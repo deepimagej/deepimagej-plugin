@@ -13,7 +13,7 @@
 		
 		<copy file="plugins.config" toDir="bin" />
 		<jar destfile="dist/DeepImageJ_.jar" basedir="bin" />
-		<copy file="dist/DeepImageJ_.jar" toDir="../../../Desktop/ImageJ/plugins/" />
+		<copy file="dist/DeepImageJ_.jar" toDir="../../ImageJ/plugins/" />
 		<copy file="dist/DeepImageJ_.jar" toDir="../../Fiji.app/plugins/" />
 		
 		<copy file="lib/libtensorflow_jni-1.12.0.jar" toDir="dist" />

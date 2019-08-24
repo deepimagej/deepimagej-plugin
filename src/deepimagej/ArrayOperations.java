@@ -6,7 +6,7 @@ import ij.process.ImageProcessor;
 
 public class ArrayOperations {
 
-	public static ImagePlus createMirroredImage(ImagePlus imp, int mirror_size, int x_size, int y_size, int channels) {
+	/*public static ImagePlus createMirroredImage(ImagePlus imp, int mirror_size, int x_size, int y_size, int channels) {
 		// Obtains the mirrored image, whose size is going to be the size of the
 		// original image plus 2 times
 		// the size of the mirror ( 2 times because a mirror is create at both ends of
@@ -26,7 +26,28 @@ public class ArrayOperations {
 			out.setProcessor(ip_mirror);
 		}
 		return out;
+	}*/
+	
+	public static ImagePlus createMirroredImage(ImagePlus or_image, int[] mirror_size, int x_size, int y_size, int channels){
+		// Obtains the mirrored image, whose size is going to be the size of the original image plus 2 times
+		// the size of the mirror ( 2 times because a mirror is create at both ends of the image)
+		double[][] mirror_mat = new double[x_size + mirror_size[0] + mirror_size[1]][y_size + mirror_size[2] + mirror_size[3]];
+		int x_size2 = x_size + mirror_size[0] + mirror_size[1];
+		int y_size2 = y_size + mirror_size[2] + mirror_size[3];
+		ImagePlus mirror_image = IJ.createImage("aux", "32-bit", x_size2, y_size2, channels, 1, 1);
+		for (int i = 0; i < channels; i++) {
+			mirror_image.setPositionWithoutUpdate(i + 1, 1, 1);
+			or_image.setPositionWithoutUpdate(i + 1, 1, 1);
+			ImageProcessor ip = or_image.getProcessor();
+			ImageProcessor ip_mirror = mirror_image.getProcessor();
+			double[][] mat_image = iProcessor2matrix(ip);
+			mirror_mat = mirrorXY(mat_image, mirror_size);
+			ip_mirror = matrix2iProcessor(mirror_mat, x_size2, y_size2, ip_mirror);
+			mirror_image.setProcessor(ip_mirror);
+		}
+		return mirror_image;
 	}
+	
 
 	public static ImagePlus convertArrayToImagePlus(double[][][][][] array, int[] shape) {
 		int nx = shape[0];
@@ -227,7 +248,75 @@ public class ArrayOperations {
 
 		return patch_info;
 	}
-
+	
+	public static double[][] mirrorXY(double[][] image, int[] padding_size){
+		int x_size1 = image.length;
+		int y_size1 = image[0].length;
+		int x_size = image.length + padding_size[0] + padding_size[1];
+		int y_size = image[0].length + padding_size[2] + padding_size[3];
+		double[][] im_padded  = new double[x_size][y_size];
+		
+		for (int x = 0; x < x_size; x ++) {
+			for (int y = 0; y < y_size; y ++) {
+				// left top corner
+				if (x < padding_size[0] && y < padding_size[2]) {
+					im_padded[x][y] = image[padding_size[0] - 1 - x][padding_size[2] - 1 - y];
+					
+				// right bottom corner
+				} else if (x >= x_size - padding_size[1] && y >= y_size - padding_size[3]) {
+					im_padded[x][y] = image[2*x_size1 + padding_size[0] - 1 - x][2*y_size1 + padding_size[2] - 1 -  y];
+					
+				// left bottom corner
+				} else if (x < padding_size[0] && y >= y_size - padding_size[3]) {
+					//im_padded[x][y] = image[padding_size[0] - x - 1][2*y_size - 3*padding_size[3] - 1 -  y];
+					im_padded[x][y] = image[padding_size[0] - x - 1][2*y_size1 + padding_size[2] - 1 -  y];
+					
+				// right top corner
+				} else if (x >= x_size - padding_size[1] && y < padding_size[2]) {
+					im_padded[x][y] = image[2*x_size1 + padding_size[0] - 1 - x][padding_size[2] - 1 - y];
+					
+				// left middle
+				} else if (x < padding_size[0]) {
+					im_padded[x][y] = image[padding_size[0] - x - 1][y - padding_size[2]];
+					
+				// top middle
+				} else if (y < padding_size[2]) {
+					im_padded[x][y] = image[x - padding_size[0]][padding_size[2] - 1 - y];
+					
+				// bottom middle
+				} else if (y >= y_size - padding_size[3]) {
+					im_padded[x][y] = image[x - padding_size[0]][2*y_size1 + padding_size[2] - 1 -  y];
+					
+				// right middle
+				} else if (x >= x_size - padding_size[1]) {
+					im_padded[x][y] = image[2*x_size1 + padding_size[0] - 1 - x][y - padding_size[2]];
+					
+				} else {
+					im_padded[x][y] = image[x - padding_size[0]][y - padding_size[2]];
+				}
+			}
+		}
+	return im_padded;
+	}
+	
+	public static int[] findAddedPixels(int x_size, int y_size, int x_patches,
+			int y_patches, int overlap, int roi_size) {
+		// this method calculates the number of pixels that have to be
+		// added at each side of the image to create the mirrored image with the exact needed size
+		// The resulting vector is a 4 dims vector of this shape --> [x_left, x_right, y_top, y_bottom]
+		int[] extra_pixels = new int[4];
+		int needed_x = roi_size * x_patches + 2 * overlap;
+		int x_left = overlap;
+		int x_right = needed_x - x_left - x_size;
+		int needed_y = roi_size * x_patches + 2 * overlap;
+		int y_top = overlap;
+		int y_bottom = needed_y - y_top - y_size;
+		extra_pixels[0] = x_left; extra_pixels[1] = x_right;
+		extra_pixels[2] = y_top; extra_pixels[3] = y_bottom;
+		return extra_pixels;
+	}
+	
+/*
 	public static double[][] mirrorXY(double[][] image, int padding_size) {
 		int x_size = image.length + 2 * padding_size;
 		int y_size = image[0].length + 2 * padding_size;
@@ -283,7 +372,7 @@ public class ArrayOperations {
 			}
 		}
 		return im_padded;
-	}
+	}*/
 	
 
 	/**

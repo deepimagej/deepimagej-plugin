@@ -19,6 +19,7 @@ import ij.ImagePlus;
 public class DeepPlugin {
 
 	private String				path;
+	private Log 					log;
 	public String				dirname;
 	public Parameters			params;
 	private boolean				valid;
@@ -29,8 +30,10 @@ public class DeepPlugin {
 	public ArrayList<String>		preprocessing	= new ArrayList<String>();
 	public ArrayList<String>		postprocessing	= new ArrayList<String>();
 
-	public DeepPlugin(String pathModel, String dirname) {
-		this.path = pathModel + File.separator + dirname + File.separator;
+	public DeepPlugin(String pathModel, String dirname, Log log) {
+		String p = pathModel + File.separator + dirname + File.separator;
+		this.path = p.replace("//", "/");
+		this.log = log;
 		this.dirname = dirname;
 		this.valid = check();
 		this.params = new Parameters(valid, path);
@@ -54,7 +57,7 @@ public class DeepPlugin {
 		this.model = model;
 	}
 	
-	static public HashMap<String, DeepPlugin> list(String pathModels) {
+	static public HashMap<String, DeepPlugin> list(String pathModels, Log log) {
 		HashMap<String, DeepPlugin> list = new HashMap<String, DeepPlugin>();
 		File models = new File(pathModels);
 		File[] dirs = models.listFiles();
@@ -65,9 +68,9 @@ public class DeepPlugin {
 		for (File dir : dirs) {
 			if (dir.isDirectory()) {
 				String name = dir.getName();
-				DeepPlugin dp = new DeepPlugin(pathModels + File.separator, name);
+				DeepPlugin dp = new DeepPlugin(pathModels, name, log);
 				if (dp.valid) {
-					list.put(name, dp);
+					list.put(dp.getName(), dp);
 				}
 			}
 		}
@@ -77,6 +80,8 @@ public class DeepPlugin {
 	public boolean loadModel() {
 		File dir = new File(path);
 		String[] files = dir.list();
+		log.print("load model from " + path);
+	
 		for(String filename : files) {
 			if (filename.toLowerCase().startsWith("preprocessing"))
 				preprocessing.add(filename);
@@ -86,7 +91,7 @@ public class DeepPlugin {
 		
 		msgLoads.add("----------------------");
 		double chrono = System.nanoTime();
-		SavedModelBundle model;
+
 		try {
 			model = SavedModelBundle.load(path, params.tag);
 			setModel(model);
@@ -95,6 +100,7 @@ public class DeepPlugin {
 			IJ.log("Exception in loading model " + dirname);
 			IJ.log(e.toString());
 			IJ.log(e.getMessage());
+			log.print("Exception in loading model " + dirname);
 			return false;
 		}
 		chrono = (System.nanoTime() - chrono) / 1000000.0;
@@ -105,6 +111,7 @@ public class DeepPlugin {
 			if (op != null)
 				msgArchis.add(new String[] {op.toString(), op.name(), op.type(), ""+op.numOutputs()});
 		}
+		log.print("Loaded");
 		msgLoads.add("Metagraph size: " + model.metaGraphDef().length);
 		msgLoads.add("Graph size: " + model.graph().toGraphDef().length);
 		msgLoads.add("Loading time: " + chrono + "ms");

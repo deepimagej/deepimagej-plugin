@@ -19,6 +19,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
+import ij.process.ImageProcessor;
 
 public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 
@@ -37,17 +38,18 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	private DeepPlugin					dp;
 
 	static public void main(String args[]) {
-		path = System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
-		// ImagePlus imp = IJ.openImage(path + "tubulin" + File.separator +
-		// "exampleImage.tiff");
-		// imp.show();
+		//path = System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
+		//path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models"+ File.separator;
+		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
+		ImagePlus imp = IJ.openImage(path + "iso_reconstruction" + File.separator + "exampleImage.tiff");
+		imp.show();
 		new DeepImageJ_Run().run("");
 	}
 
 	@Override
 	public void run(String arg) {
 
-		dps = DeepPlugin.list(path);
+		dps = DeepPlugin.list(path, log);
 		if (dps.size() == 0) {
 			IJ.error("No available models in " + path);
 			return;
@@ -70,7 +72,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		dlg.addChoice("Postprocessing macro", new String[] { "no postprocessing" }, "no postprocessing");
 		dlg.addNumericField("Patch size [pixels]", 128, 0);
 		dlg.addNumericField("Overlap size [pixels]", 16, 0);
-		dlg.addChoice("Logging", new String[] { "mute", "normal", "verbose" }, "normal");
+		dlg.addChoice("Logging", new String[] { "mute", "normal", "verbose", "debug" }, "normal");
 		dlg.addHelp(Constants.url);
 		dlg.addPanel(panel);
 
@@ -105,12 +107,16 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		log.reset();
 
 		if (overlap * 3 > patch) {
-			IJ.error("Error: " + overlap + "*x3 > " + patch);
+			IJ.error("Error: The overlap (" + overlap + ") should be less than 1/3 of the patch size  (" + patch + ")");
 			return;
 		}
 
 		dp = dps.get(modelName);
 		log.print("Load model: " + modelName);
+		if (dp.getModel() == null)
+			dp.loadModel();
+		log.print("Load model error: " + (dp.getModel()==null));
+		
 		if (dp == null) {
 			IJ.error("No valid model.");
 			return;
@@ -177,8 +183,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		}
 
 		try {
-			log.print("start runner");
+			log.print("start progress");
 			RunnerProgress rp = new RunnerProgress(dp);
+			log.print("start runner");
 			Runner runner = new Runner(dp, rp, log);
 			rp.setRunner(runner);
 			ImagePlus out = runner.call();
@@ -192,10 +199,16 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			log.print("display " + out.getTitle());
 			out.show();
 			out.setSlice(1);
-			out.getProcessor().resetMinAndMax();
+			out.getProcessor().resetMinAndMax(); 
 		}
 		catch (Exception ex) {
-			IJ.log("" + ex.getMessage());
+			IJ.log("Exception " + ex.toString());
+			for(StackTraceElement ste : ex.getStackTrace()) {
+				IJ.log(ste.getClassName());
+				IJ.log(ste.getMethodName());
+				IJ.log("line:" + ste.getLineNumber());
+			}
+			IJ.log("Exception " + ex.getMessage());
 			thread = null;
 			return;
 		}

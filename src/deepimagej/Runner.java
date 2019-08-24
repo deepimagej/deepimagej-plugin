@@ -20,14 +20,15 @@ public class Runner implements Callable<ImagePlus> {
 	private DeepPlugin		dp;
 	private RunnerProgress	rp;
 	private Log				log;
-	private int				currentPatch	= 0;
-	private int				totalPatch	= 0;
+	private int				currentPatch = 0;
+	private int				totalPatch = 0;
 
 	public Runner(DeepPlugin dp, RunnerProgress rp, ImagePlus imp, Log log) {
 		this.dp = dp;
 		this.rp = rp;
 		this.log = log;
 		this.imp = imp;
+		log.print("constructor runner");
 	}
 
 	public Runner(DeepPlugin dp, RunnerProgress rp, Log log) {
@@ -39,6 +40,7 @@ public class Runner implements Callable<ImagePlus> {
 
 	@Override
 	public ImagePlus call() {
+		log.print("call runner");
 		if (imp == null)
 			imp = WindowManager.getCurrentImage();
 		if (imp == null) {
@@ -50,6 +52,7 @@ public class Runner implements Callable<ImagePlus> {
 
 		int nx = imp.getWidth();
 		int ny = imp.getHeight();
+		log.print("image size " + nx + "x" + ny);
 		Parameters params = dp.params;
 
 		if (3 * nx < params.patch || 3 * ny < params.patch) {
@@ -57,6 +60,7 @@ public class Runner implements Callable<ImagePlus> {
 			rp.stop();
 			return null;
 		}
+		log.print("patch size " + params.patch);
 
 		// Create the image that is going to be fed to the graph
 		ImagePlus impatch = null;
@@ -66,8 +70,11 @@ public class Runner implements Callable<ImagePlus> {
 		String[] outputs = params.outputs;
 
 		SavedModelBundle model = dp.getModel();
+		log.print("model " + (model == null));
+
 		ImagePlus out = null;
 		SignatureDef sig = graph2SigDef(model, dp.params.graph);
+		log.print("sig " + (sig == null));
 
 		// Order of the dimensions. For example "NHWC"-->Batch size, Height, Width, Channels
 		String inputForm = params.input_form[0];
@@ -83,10 +90,7 @@ public class Runner implements Callable<ImagePlus> {
 			rp.stop();
 			return out;
 		}
-
-		int padding = ArrayOperations.paddingSize(nx, ny, params.patch, overlap);
-		ImagePlus mirrorImage = ArrayOperations.createMirroredImage(imp, padding, nx, ny, nChannels);
-
+		
 		int roi = params.patch - overlap * 2;
 		int npx = nx / roi;
 		int npy = ny / roi;
@@ -97,18 +101,33 @@ public class Runner implements Callable<ImagePlus> {
 		currentPatch = 0;
 		totalPatch = npx * npy;
 
+		int[] padding = ArrayOperations.findAddedPixels(nx, ny, npx, npy, overlap, roi);
+		ImagePlus mirrorImage = ArrayOperations.createMirroredImage(imp, padding, nx, ny, nChannels);
+		if (log.getLevel() == 3) {
+			mirrorImage.setTitle("Extended image");
+			mirrorImage.getProcessor().resetMinAndMax();
+			mirrorImage.show();
+		}
 		String outputName;
+		log.print("start " + npx + "x" + npy);
 		for (int i = 0; i < npx; i++) {
 			for (int j = 0; j < npy; j++) {
+				
 				currentPatch++;
+				log.print("currentPatch " + currentPatch);
 				if (rp.isStopped()) {
 					rp.stop();
 					return out;
 				}
-				int x = padding + roi * i;
-				int y = padding + roi * j;
+				int x = padding[0] + roi * i;
+				int y = padding[2] + roi * j;
 				ImagePlus patch = ArrayOperations.extractPatch(mirrorImage, x, y, roi, overlap, dim, nChannels);
 				log.print("Extract Patch (" + (i + 1) + ", " + (j + 1) + ") patch size: " + patch.getWidth() + "x" + patch.getHeight() + " pixels");
+				if (log.getLevel() == 3) {
+					patch.setTitle("Patch (" + i + "," + j + ")");
+					patch.getProcessor().resetMinAndMax();
+					patch.show();
+				}
 				Tensor<?> inputTensor = ImagePlus2Tensor.imPlus2tensor(patch, inputForm, nChannels);
 				Session.Runner sess = model.session().runner();
 				sess = sess.feed(opName(sig.getInputsOrThrow(in1)), inputTensor);

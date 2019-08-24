@@ -1,6 +1,5 @@
 package deepimagej;
 
-
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
@@ -48,7 +47,8 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	private BoldLabel					lblName		= new BoldLabel("");
 	private HTMLPane						info		= new HTMLPane("Information");
 	private Thread						thread		= null;
-
+	private Log log = new Log();
+	
 	public ExploreDialog(String path) {
 		super(new JFrame(), "DeepImageJ Explore [" + Constants.version + "]");
 		this.path = path;
@@ -115,7 +115,7 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 
 	private void load() {
 		table.removeRows();
-		dps = DeepPlugin.list(path);
+		dps = DeepPlugin.list(path, log);
 		ArrayList<LoadThreaded> loaders = new ArrayList<LoadThreaded>();
 		for (String name : dps.keySet())
 			loaders.add(new LoadThreaded(name, dps.get(name), table));

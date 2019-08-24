@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.Map;
 
 import deepimagej.tools.XmlUtils;
-import ij.ImagePlus;
 
 public class Parameters {
 
