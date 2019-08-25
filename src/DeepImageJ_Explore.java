@@ -10,7 +10,7 @@ public class DeepImageJ_Explore extends JDialog implements PlugIn {
 
 	public static void main(String arg[]) {
 		new ExploreDialog(
-				System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "ImageJ" + File.separator + "models" + File.separator);
+				System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator);
 	}
 
 	@Override

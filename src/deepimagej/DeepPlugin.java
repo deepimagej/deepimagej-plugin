@@ -70,7 +70,7 @@ public class DeepPlugin {
 				String name = dir.getName();
 				DeepPlugin dp = new DeepPlugin(pathModels, name, log);
 				if (dp.valid) {
-					list.put(dp.getName(), dp);
+					list.put(dp.dirname, dp);
 				}
 			}
 		}

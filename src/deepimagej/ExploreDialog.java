@@ -48,6 +48,8 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	private HTMLPane						info		= new HTMLPane("Information");
 	private Thread						thread		= null;
 	private Log log = new Log();
+	private	ImagePlus	imp;
+	private DeepPlugin	dp;
 	
 	public ExploreDialog(String path) {
 		super(new JFrame(), "DeepImageJ Explore [" + Constants.version + "]");
@@ -131,7 +133,7 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		int row = table.getSelectedRow();
-		DeepPlugin dp = null;
+		dp = null;
 		if (row >= 0)
 			dp = dps.get(table.getCell(row, 0));
 		if (e.getSource() == bnAbout)
@@ -170,39 +172,88 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 				return;
 			if (row < 0)
 				return;
-
-			if (thread == null) {
-				thread = new Thread(this);
-				thread.setPriority(Thread.MIN_PRIORITY);
-				thread.start();
+			if (thread != null) 
+				return;
+			String image = path + table.getCell(row, 0) + File.separator + "exampleImage.tiff";
+			Log log = new Log();
+			log.print(image);
+			if (new File(image).exists()) {
+				imp = IJ.openImage(image);
+				if (imp != null) {
+					imp.show();
+					thread = new Thread(this);
+					thread.setPriority(Thread.MIN_PRIORITY);
+					thread.start();
+				}
 			}
 		}
-
+	}
+	
+	@Override
+	public void run() {
+		bnApply.setEnabled(false);
+		try {
+			RunnerProgress rp = new RunnerProgress(dp);
+			rp.setVisible(true);
+			Runner runner = new Runner(dp, rp, imp, log);
+			rp.setRunner(runner);
+			ExecutorService executor = Executors.newFixedThreadPool(1);
+			executor.submit(runner);
+			executor.shutdownNow();
+		}
+		catch (Exception e) {
+			IJ.error("Runner Exception" + e.getMessage());
+		}
+		bnApply.setEnabled(true);
+		thread = null;
 	}
 
-	public class LoadThreaded implements Runnable {
-
-		private String			name;
-		private DeepPlugin		dp;
-		private CustomizedTable	table;
-
-		public LoadThreaded(String name, DeepPlugin dp, CustomizedTable table) {
-			this.name = name;
-			this.dp = dp;
-			this.table = table;
-		}
-
-		@Override
-		public void run() {
-			double chrono = System.nanoTime();
-			dp.loadModel();
-			String size = FileUtils.getFolderSizeKb(path + name + File.separator + "variables");
-			String time = String.format("%3.1f ms", (System.nanoTime() - chrono) / (1024 * 1024));
-			String row[] = { name, size, time };
-			table.append(row);
+	@Override
+	public void mouseClicked(MouseEvent e) {
+		if (e.getSource() == table) {
+			int row = table.getSelectedRow();
+			if (row < 0)
+				return;
+			String name = table.getCell(row, 0);
+			updateModel(name);
 		}
 	}
 
+	@Override
+	public void mousePressed(MouseEvent e) {
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent e) {
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent e) {
+	}
+
+	@Override
+	public void mouseExited(MouseEvent e) {
+	}
+
+	@Override
+	public void keyTyped(KeyEvent e) {
+	}
+
+	@Override
+	public void keyPressed(KeyEvent e) {
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) {
+		if (e.getSource() == table) {
+			int row = table.getSelectedRow();
+			if (row < 0)
+				return;
+			String name = table.getCell(row, 0);
+			updateModel(name);
+		}
+	}
+	
 	private void updateModel(String name) {
 		modelTable.removeRows();
 		String dir = path + File.separator + name + File.separator;
@@ -275,85 +326,29 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 		for (int i = 0; i < params.n_outputs; i++)
 			modelTable.append(new String[] { "Output name(form)", params.outputs[i] + "(" + params.output_form[i] + ")" });
 	}
+	
+	public class LoadThreaded implements Runnable {
 
-	@Override
-	public void mouseClicked(MouseEvent e) {
-		if (e.getSource() == table) {
-			int row = table.getSelectedRow();
-			if (row < 0)
-				return;
-			String name = table.getCell(row, 0);
-			updateModel(name);
+		private String			name;
+		private DeepPlugin		dp;
+		private CustomizedTable	table;
+
+		public LoadThreaded(String name, DeepPlugin dp, CustomizedTable table) {
+			this.name = name;
+			this.dp = dp;
+			this.table = table;
+		}
+
+		@Override
+		public void run() {
+			double chrono = System.nanoTime();
+			dp.loadModel();
+			String size = FileUtils.getFolderSizeKb(path + name + File.separator + "variables");
+			String time = String.format("%3.1f ms", (System.nanoTime() - chrono) / (1024 * 1024));
+			String row[] = { dp.dirname, size, time };
+			table.append(row);
 		}
 	}
 
-	@Override
-	public void mousePressed(MouseEvent e) {
-	}
 
-	@Override
-	public void mouseReleased(MouseEvent e) {
-	}
-
-	@Override
-	public void mouseEntered(MouseEvent e) {
-	}
-
-	@Override
-	public void mouseExited(MouseEvent e) {
-	}
-
-	@Override
-	public void keyTyped(KeyEvent e) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void keyPressed(KeyEvent e) {
-	}
-
-	@Override
-	public void keyReleased(KeyEvent e) {
-		if (e.getSource() == table) {
-			int row = table.getSelectedRow();
-			if (row < 0)
-				return;
-			String name = table.getCell(row, 0);
-			updateModel(name);
-		}
-	}
-
-	@Override
-	public void run() {
-		bnApply.setEnabled(false);
-		int row = table.getSelectedRow();
-		String image = path + table.getCell(row, 0) + File.separator + "exampleImage.tiff";
-		Log log = new Log();
-		log.print(image);
-		if (new File(image).exists()) {
-			ImagePlus imp = IJ.openImage(image);
-			if (imp != null) {
-				imp.show();
-				DeepPlugin dp = dps.get(table.getCell(row, 0));
-
-				if (dp != null) {
-					try {
-						RunnerProgress rp = new RunnerProgress(dp);
-						rp.setVisible(true);
-						Runner runner = new Runner(dp, rp, imp, log);
-						rp.setRunner(runner);
-						ExecutorService executor = Executors.newFixedThreadPool(1);
-						executor.submit(runner);
-						executor.shutdownNow();
-					}
-					catch (Exception e) {
-						IJ.error("Runner Exception" + e.getMessage());
-					}
-				}
-				bnApply.setEnabled(true);
-				thread = null;
-			}
-		}
-	}
 }

@@ -36,7 +36,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	private int							patch;
 	private int							overlap;
 	private DeepPlugin					dp;
-
+	private HashMap<String, String>		fullnames = new HashMap<String, String>();
+	
 	static public void main(String args[]) {
 		//path = System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		//path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models"+ File.separator;
@@ -64,8 +65,14 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		String[] items = new String[dps.size() + 1];
 		items[0] = "<select a model from this list>";
 		int k = 1;
-		for (String name : dps.keySet())
-			items[k++] = name;
+		for (String dirname : dps.keySet()) {
+			DeepPlugin dp = dps.get(dirname);
+			if (dp != null) {
+				String fullname = dp.getName();
+				items[k++] = fullname;
+				fullnames.put(fullname, dirname);
+			}
+		}
 
 		dlg.addChoice("Model DeepImageJ", items, items[0]);
 		dlg.addChoice("Preprocessing macro", new String[] { "no preprocessing" }, "no preprocessing");
@@ -97,7 +104,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		dlg.showDialog();
 		if (dlg.wasCanceled())
 			return;
-		String modelName = dlg.getNextChoice();
+		String fullname = dlg.getNextChoice();
 		preprocessingFile = dlg.getNextChoice();
 		postprocessingFile = dlg.getNextChoice();
 		patch = (int) dlg.getNextNumber();
@@ -110,9 +117,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			IJ.error("Error: The overlap (" + overlap + ") should be less than 1/3 of the patch size  (" + patch + ")");
 			return;
 		}
-
-		dp = dps.get(modelName);
-		log.print("Load model: " + modelName);
+		String dirname = fullnames.get(fullname);
+		log.print("Load model: " + fullname + "(" + dirname + ")" );
+		dp = dps.get(dirname);
 		if (dp.getModel() == null)
 			dp.loadModel();
 		log.print("Load model error: " + (dp.getModel()==null));
@@ -136,7 +143,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	public void itemStateChanged(ItemEvent e) {
 		if (e.getSource() == choices[0]) {
 			info.setText("");
-			DeepPlugin dp = dps.get((String) choices[0].getSelectedItem());
+			String fullname = (String) choices[0].getSelectedItem();
+			String dirname = fullnames.get(fullname);
+
+			DeepPlugin dp = dps.get(dirname);
 			if (dp == null)
 				return;
 			for (String msg : dp.msgChecks)
