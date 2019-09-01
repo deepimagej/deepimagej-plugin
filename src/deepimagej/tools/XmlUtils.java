@@ -1,3 +1,39 @@
+/*
+ * DeepImageJ
+ * 
+ * https://deepimagej.github.io/deepimagej/
+ *
+ * Conditions of use: You are free to use this software for research or educational purposes. 
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
+ * 
+ * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
+ * E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage. 
+ * Submitted 2019.
+ *
+ * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
+ * Biomedical Imaging Group, Ecole polytechnique fédérale de Lausanne (EPFL), Switzerland
+ *
+ * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
+ *
+ */
+
+/*
+ * Copyright 2019. Universidad Carlos III, Madrid, Spain and EPFL, Lausanne, Switzerland.
+ * 
+ * This file is part of DeepImageJ.
+ * 
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
+ * 
+ * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
 package deepimagej.tools;
 
 import java.io.File;
@@ -41,103 +77,172 @@ public class XmlUtils {
 			// root element-->Model.
 			Element root = document.createElement("Model");
 			document.appendChild(root);
+			
+			////////////////////////////////////////////////////////////////////
+			// Information about the model
 
+			// root element-->ModelInformation. This info is used to run the model
+			Element modelInformation = document.createElement("ModelInformation");
+			root.appendChild(modelInformation);
+			
+			// Name of the model (child of "ModelInformation")
+			Element name = document.createElement("Name");
+			name.appendChild(document.createTextNode(params.name));
+			modelInformation.appendChild(name);
+			
+			// Author of the model (child of "ModelInformation")
+			Element author = document.createElement("Author");
+			author.appendChild(document.createTextNode(params.author));
+			modelInformation.appendChild(author);
+			
+			// URL where the model can be found (child of "ModelInformation")
+			Element url = document.createElement("URL");
+			url.appendChild(document.createTextNode(params.url));
+			modelInformation.appendChild(url);
+			
+			// Credit for the model (child of "ModelInformation")
+			Element credit = document.createElement("Credit");
+			credit.appendChild(document.createTextNode(params.credit));
+			modelInformation.appendChild(credit);
+			
+			// Version of the model (child of "ModelInformation")
+			Element version = document.createElement("Version");
+			credit.appendChild(document.createTextNode(params.version));
+			modelInformation.appendChild(version);
+			
+			// Date of the model (child of "ModelInformation")
+			Element date = document.createElement("Date");
+			date.appendChild(document.createTextNode(params.date));
+			modelInformation.appendChild(date);
+			
+			// Reference for the model (child of "ModelInformation")
+			Element reference = document.createElement("Reference");
+			reference.appendChild(document.createTextNode(params.reference));
+			modelInformation.appendChild(reference);
+			
+			/////////////////////////////////////////////////////////////////////////////////////////////
+			// Parameters used when the model was prepared //
+			
 			// root element-->ModelCharacteritics. This info is used to run the model
-			Element model_characteristics = document.createElement("ModelCharacteritics");
-			root.appendChild(model_characteristics);
+			Element modelTest = document.createElement("ModelTest");
+			root.appendChild(modelTest);
+
+			// Size of the input image used for testing (child of "ModelTest")
+			Element inputSize = document.createElement("InputSize");
+			inputSize.appendChild(document.createTextNode(params.inputSize));
+			modelTest.appendChild(inputSize);
+
+			// Size of the input image used for testing (child of "ModelTest")
+			Element outputSize = document.createElement("OutputSize");
+			outputSize.appendChild(document.createTextNode(params.outputSize));
+			modelTest.appendChild(outputSize);
+
+			// Memory used during the model run (child of "ModelTest")
+			Element memoryPeak = document.createElement("MemoryPeak");
+			memoryPeak.appendChild(document.createTextNode(params.memoryPeak));
+			modelTest.appendChild(memoryPeak);
+
+			// Time the model run lasted (child of "ModelTest")
+			Element runtime = document.createElement("Runtime");
+			runtime.appendChild(document.createTextNode(params.runtime));
+			modelTest.appendChild(runtime);
+			
+			//////////////////////////////////////////////////////////////////
+			// root element-->ModelCharacteritics. This info is used to run the model
+			Element modelCharacteristics = document.createElement("ModelCharacteritics");
+			root.appendChild(modelCharacteristics);
 
 			// Minimum multiple of patch (child of "ModelCharacteritics")
-			Element min_multiple = document.createElement("MinimumMultipleOfPatches");
-			min_multiple.appendChild(document.createTextNode(params.minimum_patch_size));
-			model_characteristics.appendChild(min_multiple);
+			Element minimumSize = document.createElement("MinimumSize");
+			minimumSize.appendChild(document.createTextNode(params.minimumSize));
+			modelCharacteristics.appendChild(minimumSize);
 
 			// Model tag (child of "ModelCharacteritics"). noramlly it will
 			// be "serve"
-			Element model_tag = document.createElement("ModelTag");
-			model_tag.appendChild(document.createTextNode(params.tag));
-			model_characteristics.appendChild(model_tag);
+			Element modelTag = document.createElement("ModelTag");
+			modelTag.appendChild(document.createTextNode(params.tag));
+			modelCharacteristics.appendChild(modelTag);
 
 			// Signature Definition of the model (child of "ModelCharacteritics")
 			// Normally "serving_default"
-			Element sig_def = document.createElement("SignatureDefinition");
-			sig_def.appendChild(document.createTextNode(params.graph));
-			model_characteristics.appendChild(sig_def);
+			Element sigDef = document.createElement("SignatureDefinition");
+			sigDef.appendChild(document.createTextNode(params.graph));
+			modelCharacteristics.appendChild(sigDef);
 
 			// Dimensions of the input tensor (child of "ModelCharacteritics")
 			// Normally "serving_default"
-			String tensor_dim = tensorDims2String(params.in_dimensions);
-			Element in_tensor_dims = document.createElement("InputTensorDimensions");
-			in_tensor_dims.appendChild(document.createTextNode(tensor_dim));
-			model_characteristics.appendChild(in_tensor_dims);
+			String tensorDim = tensorDims2String(params.inDimensions);
+			Element inTensorDims = document.createElement("InputTensorDimensions");
+			inTensorDims.appendChild(document.createTextNode(tensorDim));
+			modelCharacteristics.appendChild(inTensorDims);
 
 			// Name and form and dimensions of each of the inputs
 			// (child of "ModelCharacteritics")
-			params.n_inputs = params.inputs.length;
-			Element n_inputs = document.createElement("NumberOfInputs");
-			n_inputs.appendChild(document.createTextNode(String.valueOf(params.n_inputs)));
-			model_characteristics.appendChild(n_inputs);
-			for (int i = 0; i < params.n_inputs; i++) {
+			params.nInputs = params.inputs.length;
+			Element nInputs = document.createElement("NumberOfInputs");
+			nInputs.appendChild(document.createTextNode(String.valueOf(params.nInputs)));
+			modelCharacteristics.appendChild(nInputs);
+			for (int i = 0; i < params.nInputs; i++) {
 
-				String in_name = "InputNames" + String.valueOf(i);
-				Element input_name = document.createElement(in_name);
-				input_name.appendChild(document.createTextNode(params.inputs[i]));
-				model_characteristics.appendChild(input_name);
+				String inName = "InputNames" + String.valueOf(i);
+				Element inputName = document.createElement(inName);
+				inputName.appendChild(document.createTextNode(params.inputs[i]));
+				modelCharacteristics.appendChild(inputName);
 				// Arrangement of the input dimensions
 				// (child of "ModelCharacteritics")
-				String in_dims = "InputOrganization" + String.valueOf(i);
-				Element input_dims = document.createElement(in_dims);
-				input_dims.appendChild(document.createTextNode(params.input_form[i]));
-				model_characteristics.appendChild(input_dims);
+				String inDims = "InputOrganization" + String.valueOf(i);
+				Element inputDims = document.createElement(inDims);
+				inputDims.appendChild(document.createTextNode(params.inputForm[i]));
+				modelCharacteristics.appendChild(inputDims);
 			}
 			// Name and form and dimensions of each of the outputs
 			// (child of "ModelCharacteritics")
-			params.n_outputs = params.outputs.length;
-			Element n_outputs = document.createElement("NumberOfOutputs");
-			n_outputs.appendChild(document.createTextNode(String.valueOf(params.n_inputs)));
-			model_characteristics.appendChild(n_outputs);
-			for (int i = 0; i < params.n_outputs; i++) {
+			params.nOutputs = params.outputs.length;
+			Element nOutputs = document.createElement("NumberOfOutputs");
+			nOutputs.appendChild(document.createTextNode(String.valueOf(params.nInputs)));
+			modelCharacteristics.appendChild(nOutputs);
+			for (int i = 0; i < params.nOutputs; i++) {
 
-				String out_name = "OutputNames" + String.valueOf(i);
-				Element output_name = document.createElement(out_name);
-				output_name.appendChild(document.createTextNode(params.outputs[i]));
-				model_characteristics.appendChild(output_name);
+				String outName = "OutputNames" + String.valueOf(i);
+				Element outputName = document.createElement(outName);
+				outputName.appendChild(document.createTextNode(params.outputs[i]));
+				modelCharacteristics.appendChild(outputName);
 
 				// Arrangement of the output dimensions
 				// (child of "ModelCharacteritics")
-				String out_dims = "OutputOrganization" + String.valueOf(i);
-				Element output_dims = document.createElement(out_dims);
-				output_dims.appendChild(document.createTextNode(params.output_form[i]));
-				model_characteristics.appendChild(output_dims);
+				String outDims = "OutputOrganization" + String.valueOf(i);
+				Element outputDims = document.createElement(outDims);
+				outputDims.appendChild(document.createTextNode(params.outputForm[i]));
+				modelCharacteristics.appendChild(outputDims);
 			}
 
 			// Pixel size of the images with which the image was trained
 			// (child of "ModelCharacteritics")
-			Element n_channels = document.createElement("Channels");
-			n_channels.appendChild(document.createTextNode(params.channels));
-			model_characteristics.appendChild(n_channels);
+			Element nChannels = document.createElement("Channels");
+			nChannels.appendChild(document.createTextNode(params.channels));
+			modelCharacteristics.appendChild(nChannels);
 
 			// Patch size to run the model optimally
 			Element fixed = document.createElement("FixedPatch");
 			fixed.appendChild(document.createTextNode(Boolean.toString(params.fixedPatch)));
-			model_characteristics.appendChild(fixed);
+			modelCharacteristics.appendChild(fixed);
 
 			// Patch size to run the model optimally
 			Element patch = document.createElement("PatchSize");
 			patch.appendChild(document.createTextNode(Integer.toString(params.patch)));
-			model_characteristics.appendChild(patch);
+			modelCharacteristics.appendChild(patch);
 
 			// Pixel size of the images with which the image was trained
 			// (child of "ModelCharacteritics")
-			Element n_slices = document.createElement("slices");
-			n_slices.appendChild(document.createTextNode("1"));
-			model_characteristics.appendChild(n_slices);
-			params.slices = 1;
+			Element nSlices = document.createElement("slices");
+			nSlices.appendChild(document.createTextNode(params.slices));
+			modelCharacteristics.appendChild(nSlices);
 
 			// Pixel size of the images with which the image was trained
 			// (child of "ModelCharacteritics")
-			Element overlap = document.createElement("FalseInformationBecauseCorners");
-			overlap.appendChild(document.createTextNode(Integer.toString(params.overlap = 0)));
-			model_characteristics.appendChild(overlap);
+			Element overlap = document.createElement("Overlap");
+			overlap.appendChild(document.createTextNode(Integer.toString(params.overlap)));
+			modelCharacteristics.appendChild(overlap);
 
 			// create the xml file
 			// transform the DOM Object to an XML File
@@ -150,7 +255,7 @@ public class XmlUtils {
 			transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
 
 			DOMSource domSource = new DOMSource(document);
-			String xml = dp.getPath() + File.separator + dp.dirname + File.separator + "config.xml";
+			String xml = params.saveDir + File.separator + params.saveFilename + File.separator + "config.xml";
 			StreamResult streamResult = new StreamResult(new File(xml));
 
 			// If you use
@@ -172,7 +277,7 @@ public class XmlUtils {
 
 	public static Map<?, ?> readXML(String xml) {
 		Document dom;
-		Map model_info = new HashMap();
+		Map modelInfo = new HashMap();
 		// Make an instance of the DocumentBuilderFactory
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		try {
@@ -191,14 +296,14 @@ public class XmlUtils {
 				String name = n.getNodeName();
 				if (n.getNodeType() == Node.ELEMENT_NODE) {
 					Element characteristic = (Element) n;
-					NodeList characteristics_list = characteristic.getChildNodes();
-					for (int childs = 0; childs < characteristics_list.getLength(); childs++) {
-						Node n2 = characteristics_list.item(childs);
+					NodeList characteristicsList = characteristic.getChildNodes();
+					for (int childs = 0; childs < characteristicsList.getLength(); childs++) {
+						Node n2 = characteristicsList.item(childs);
 						if (n2.getNodeType() == Node.ELEMENT_NODE) {
 							Element characteristic2 = (Element) n2;
 							String text = characteristic2.getTagName();
 							String text2 = characteristic2.getTextContent();
-							model_info.put(text, text2);
+							modelInfo.put(text, text2);
 						}
 					}
 				}
@@ -214,14 +319,14 @@ public class XmlUtils {
 			System.err.println(ioe.getMessage());
 		}
 
-		return model_info;
+		return modelInfo;
 	}
 	
-	private static String tensorDims2String(int[] tensor_dims) {
+	private static String tensorDims2String(int[] tensorDims) {
 		// method that transforms an int[] into a String
 		String result = ",";
-		for (int i = 0; i < tensor_dims.length; i++) {
-			result = result + String.valueOf(tensor_dims[i]) + ",";
+		for (int i = 0; i < tensorDims.length; i++) {
+			result = result + String.valueOf(tensorDims[i]) + ",";
 		}
 		return result;
 	}
