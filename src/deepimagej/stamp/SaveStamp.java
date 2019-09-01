@@ -8,11 +8,11 @@
  * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
- * E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage. 
+ * E. GÃ³mez-de-Mariscal, C. GarcÃ­a-LÃ³pez-de-Haro, L. Donati, M. Unser, A. MuÃ±oz-Barrutia, D. Sage. 
  * Submitted 2019.
  *
  * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
- * Biomedical Imaging Group, Ecole polytechnique fédérale de Lausanne (EPFL), Switzerland
+ * Biomedical Imaging Group, Ecole polytechnique fÃ©dÃ©rale de Lausanne (EPFL), Switzerland
  *
  * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
  *
@@ -226,6 +226,8 @@ public class SaveStamp extends AbstractStamp implements Runnable {
 		// Flag to apply post processing if needed
 		if (params.testResultImage != null) {
 			params.testResultImage = runPostprocessingMacro(params.testResultImage);
+			params.testResultImage.setSlice(1);
+			params.testResultImage.getProcessor().resetMinAndMax(); 
 		} else {
 			IJ.error("The execution of the model failed.");
 		}
