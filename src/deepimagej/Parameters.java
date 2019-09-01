@@ -1,12 +1,77 @@
+/*
+ * DeepImageJ
+ * 
+ * https://deepimagej.github.io/deepimagej/
+ *
+ * Conditions of use: You are free to use this software for research or educational purposes. 
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
+ * 
+ * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
+ * E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage. 
+ * Submitted 2019.
+ *
+ * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
+ * Biomedical Imaging Group, Ecole polytechnique fédérale de Lausanne (EPFL), Switzerland
+ *
+ * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
+ *
+ */
+
+/*
+ * Copyright 2019. Universidad Carlos III, Madrid, Spain and EPFL, Lausanne, Switzerland.
+ * 
+ * This file is part of DeepImageJ.
+ * 
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
+ * 
+ * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
 package deepimagej;
 
 import java.io.File;
 import java.util.Map;
+import java.util.Set;
 
 import deepimagej.tools.XmlUtils;
+import ij.ImagePlus;
 
 public class Parameters {
 
+
+	// Auxiliary parameters for the developer plugin user interface
+	// Parameter to keep track of the GUI that needs to be shown each time
+	public int card = 1;
+	// Directory where the model is actually located
+	public String path2Model;
+	// Parameter that checks if the plugin is for developers or users
+	public boolean developer;
+	// Strings containing the macros used in the test, only useful for developer
+	// plugin
+	public String postmacro = "";
+	public String premacro = "";
+	// Images for testing the model
+	// Image used to test the model
+	public ImagePlus testImage;
+	// Copy created to return the original image in the case
+	// that the model fails after applying the macros
+	public ImagePlus testImageBackup;
+	// ImagePlus produced after testing the model
+	public ImagePlus testResultImage;
+	
+	// Directory specified by the user to save the model
+	public String saveDir;
+	
+	// Name given to the model
+	public String saveFilename;
+	
 	// in ModelInformation
 	public String		name						= "";
 	public String		author					= "";
@@ -24,6 +89,7 @@ public class Parameters {
 
 	public String		tag						= "";
 	public String		graph					= "";
+	public Set<String> graphSet;
 
 	// Parameters for the correct execution of the model on an image.
 	// They range from the needed dimensions and dimensions organization
@@ -31,16 +97,16 @@ public class Parameters {
 	// properly and not to crash because of different issues such as memory.
 	// They also regard the requirements for the input image
 
-	public int[]		in_dimensions;
-	public int[]		out_dimensions;
-	public String[]		input_form				= new String[1];
-	public String[]		output_form				= new String[1];
+	public int[]		inDimensions;
+	public int[]		outDimensions;
+	public String[]		inputForm				= new String[1];
+	public String[]		outputForm				= new String[1];
 	public String[]		inputs;
 	public String[]		outputs;
-	public int			n_inputs;
-	public int			n_outputs;
+	public int			nInputs;
+	public int			nOutputs;
 
-	public String		minimum_patch_size;
+	public String		minimumSize;
 	public boolean		fixedPatch		= false;
 	public int			overlap					= 0;
 	public int			patch;
@@ -50,10 +116,15 @@ public class Parameters {
 
 	// This parameter is predefined and unmodifiable as 3d models are still not
 	// accepted
-	public int			slices					= 1;
+	public String			slices					= "1";
 
-	public Parameters(boolean valid, String path) {
-		if (!valid)
+
+	public Parameters(boolean valid, String path, boolean isDeveloper) {
+		// If the model is not valid or we are in the developer plugin,
+		// we cannot read the parameters from anywhere as there is no
+		// config file
+		developer = isDeveloper;
+		if (!valid || developer)
 			return;
 		String xml = path + File.separator + "config.xml";
 		Map<String, String> config = (Map<String, String>) XmlUtils.readXML(xml);
@@ -70,37 +141,37 @@ public class Parameters {
 		memoryPeak = config.get("MemoryPeak") != null ? config.get("MemoryPeak") : "";
 		runtime = config.get("Runtime") != null ? config.get("Runtime") : "";
 
-		n_inputs = Integer.parseInt(config.get("NumberOfInputs"));
-		n_outputs = Integer.parseInt(config.get("NumberOfOutputs"));
-		inputs = new String[n_inputs];
-		outputs = new String[n_outputs];
-		input_form = new String[n_inputs];
-		output_form = new String[n_outputs];
+		nInputs = Integer.parseInt(config.get("NumberOfInputs"));
+		nOutputs = Integer.parseInt(config.get("NumberOfOutputs"));
+		inputs = new String[nInputs];
+		outputs = new String[nOutputs];
+		inputForm = new String[nInputs];
+		outputForm = new String[nOutputs];
 		readInOutSet(config);
-		minimum_patch_size = config.get("MinimumMultipleOfPatches");
+		minimumSize = config.get("MinimumSize");
 		tag = config.get("ModelTag");
 		graph = config.get("SignatureDefinition");
-		overlap = Integer.parseInt(config.get("FalseInformationBecauseCorners"));
-		in_dimensions = string2tensorDims(config.get("InputTensorDimensions"));
+		overlap = Integer.parseInt(config.get("Overlap"));
+		inDimensions = string2tensorDims(config.get("InputTensorDimensions"));
 		fixedPatch = Boolean.parseBoolean(config.get("FixedPatch"));
 		patch = Integer.parseInt(config.get("PatchSize"));
 
 		channels = config.get("Channels");
-		slices = Integer.parseInt(config.get("slices"));
+		//slices = Integer.parseInt(config.get("slices"));
 	}
 
 	private void readInOutSet(Map<String, String> model) {
-		for (int i = 0; i < n_inputs; i++) {
+		for (int i = 0; i < nInputs; i++) {
 			String in_name = "InputNames" + String.valueOf(i);
 			String in_dims = "InputOrganization" + String.valueOf(i);
 			inputs[i] = model.get(in_name);
-			input_form[i] = model.get(in_dims);
+			inputForm[i] = model.get(in_dims);
 		}
-		for (int i = 0; i < n_outputs; i++) {
+		for (int i = 0; i < nOutputs; i++) {
 			String in_name = "OutputNames" + String.valueOf(i);
 			String in_dims = "OutputOrganization" + String.valueOf(i);
 			outputs[i] = model.get(in_name);
-			output_form[i] = model.get(in_dims);
+			outputForm[i] = model.get(in_dims);
 		}
 	}
 

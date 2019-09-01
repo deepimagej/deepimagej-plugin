@@ -1,3 +1,39 @@
+/*
+ * DeepImageJ
+ * 
+ * https://deepimagej.github.io/deepimagej/
+ *
+ * Conditions of use: You are free to use this software for research or educational purposes. 
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
+ * 
+ * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
+ * E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage. 
+ * Submitted 2019.
+ *
+ * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
+ * Biomedical Imaging Group, Ecole polytechnique fédérale de Lausanne (EPFL), Switzerland
+ *
+ * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
+ *
+ */
+
+/*
+ * Copyright 2019. Universidad Carlos III, Madrid, Spain and EPFL, Lausanne, Switzerland.
+ * 
+ * This file is part of DeepImageJ.
+ * 
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
+ * 
+ * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
 package deepimagej;
 
 import ij.IJ;
@@ -5,49 +41,6 @@ import ij.ImagePlus;
 import ij.process.ImageProcessor;
 
 public class ArrayOperations {
-
-	/*public static ImagePlus createMirroredImage(ImagePlus imp, int mirror_size, int x_size, int y_size, int channels) {
-		// Obtains the mirrored image, whose size is going to be the size of the
-		// original image plus 2 times
-		// the size of the mirror ( 2 times because a mirror is create at both ends of
-		// the image)
-		double[][] mirror_mat = new double[x_size + 2 * mirror_size][y_size + 2 * mirror_size];
-		int x_size2 = x_size + 2 * mirror_size;
-		int y_size2 = y_size + 2 * mirror_size;
-		ImagePlus out = IJ.createImage("aux", "32-bit", x_size2, y_size2, channels, 1, 1);
-		for (int i = 0; i < channels; i++) {
-			out.setPositionWithoutUpdate(i + 1, 1, 1);
-			imp.setPositionWithoutUpdate(i + 1, 1, 1);
-			ImageProcessor ip = imp.getProcessor();
-			ImageProcessor ip_mirror = out.getProcessor();
-			double[][] mat_image = iProcessor2matrix(ip);
-			mirror_mat = mirrorXY(mat_image, mirror_size);
-			ip_mirror = matrix2iProcessor(mirror_mat, x_size + 2 * mirror_size, y_size + 2 * mirror_size, ip_mirror);
-			out.setProcessor(ip_mirror);
-		}
-		return out;
-	}*/
-	
-	public static ImagePlus createMirroredImage(ImagePlus or_image, int[] mirror_size, int x_size, int y_size, int channels){
-		// Obtains the mirrored image, whose size is going to be the size of the original image plus 2 times
-		// the size of the mirror ( 2 times because a mirror is create at both ends of the image)
-		double[][] mirror_mat = new double[x_size + mirror_size[0] + mirror_size[1]][y_size + mirror_size[2] + mirror_size[3]];
-		int x_size2 = x_size + mirror_size[0] + mirror_size[1];
-		int y_size2 = y_size + mirror_size[2] + mirror_size[3];
-		ImagePlus mirror_image = IJ.createImage("aux", "32-bit", x_size2, y_size2, channels, 1, 1);
-		for (int i = 0; i < channels; i++) {
-			mirror_image.setPositionWithoutUpdate(i + 1, 1, 1);
-			or_image.setPositionWithoutUpdate(i + 1, 1, 1);
-			ImageProcessor ip = or_image.getProcessor();
-			ImageProcessor ip_mirror = mirror_image.getProcessor();
-			double[][] mat_image = iProcessor2matrix(ip);
-			mirror_mat = mirrorXY(mat_image, mirror_size);
-			ip_mirror = matrix2iProcessor(mirror_mat, x_size2, y_size2, ip_mirror);
-			mirror_image.setProcessor(ip_mirror);
-		}
-		return mirror_image;
-	}
-	
 
 	public static ImagePlus convertArrayToImagePlus(double[][][][][] array, int[] shape) {
 		int nx = shape[0];
@@ -72,164 +65,137 @@ public class ArrayOperations {
 
 	public static double[][] iProcessor2matrix(ImageProcessor image) {
 		// this method transforms an image processor into a matrix
-		double pixel_val = 0;
-		int y_size = image.getHeight();
-		int x_size = image.getWidth();
-		double[][] mat_image = new double[x_size][y_size];
-		for (int y = 0; y < y_size; y++) {
-			for (int x = 0; x < x_size; x++) {
-				pixel_val = (double) image.getPixelValue(x, y);
-				mat_image[x][y] = pixel_val;
+		double pixelVal = 0;
+		int ySize = image.getHeight();
+		int xSize = image.getWidth();
+		double[][] matImage = new double[xSize][ySize];
+		for (int y = 0; y < ySize; y++) {
+			for (int x = 0; x < xSize; x++) {
+				pixelVal = (double) image.getPixelValue(x, y);
+				matImage[x][y] = pixelVal;
 			}
 		}
-		return mat_image;
+		return matImage;
 	}
 
-	public static ImageProcessor matrix2iProcessor(double[][] mat_image, int x_size, int y_size, ImageProcessor ip) {
+	public static ImageProcessor matrix2iProcessor(double[][] matImage, int xSize, int ySize, ImageProcessor ip) {
 		// This method transforms a matrix of 2d into an image processor
-		for (int x = 0; x < x_size; x++) {
-			for (int y = 0; y < y_size; y++) {
-				ip.putPixelValue(x, y, mat_image[x][y]);
+		for (int x = 0; x < xSize; x++) {
+			for (int y = 0; y < ySize; y++) {
+				ip.putPixelValue(x, y, matImage[x][y]);
 			}
 		}
 		return ip;
 	}
 
-	public static ImagePlus extractPatch(ImagePlus image, int x_start, int y_start,
-			int roi, int overlap, int[] tensor_dim, int channels) {
+	public static ImagePlus extractPatch(ImagePlus image, int xStart, int yStart,
+			int roi, int overlap, int channels) {
 		// This method obtains a patch with the wanted size, starting at 'x_start' and
 		// 'y_start' and returns it as RandomAccessibleInterval with the dimensions
 		// already adjusted
-		ImagePlus patch_image = IJ.createImage("aux", "32-bit", roi + overlap * 2, roi + overlap * 2,
+		ImagePlus patchImage = IJ.createImage("aux", "32-bit", roi + overlap * 2, roi + overlap * 2,
 				channels, 1, 1);
 		for (int c = 0; c < channels; c++) {
 			image.setPositionWithoutUpdate(c + 1, 1, 1);
-			patch_image.setPositionWithoutUpdate(c + 1, 1, 1);
+			patchImage.setPositionWithoutUpdate(c + 1, 1, 1);
 			ImageProcessor ip = image.getProcessor();
-			ImageProcessor op = patch_image.getProcessor();
+			ImageProcessor op = patchImage.getProcessor();
 			// The actual patch with false and true information goes from patch_size/2
 			// number of pixels before the actual start of the patch until patch_size/2 number of pixels after
 			int xi = -1;
 			int yi = -1;
-			for (int x = x_start - overlap; x < x_start + roi + overlap - 1; x++) {
+			for (int x = xStart - overlap; x < xStart + roi + overlap - 1; x++) {
 				xi++;
 				yi = -1;
-				for (int y = y_start - overlap; y < y_start + roi + overlap - 1; y++) {
+				for (int y = yStart - overlap; y < yStart + roi + overlap - 1; y++) {
 					yi++;
 					op.putPixelValue(xi, yi, (double) ip.getPixelValue(x, y));
 				}
 			}
-			patch_image.setProcessor(op);
+			patchImage.setProcessor(op);
 		}
-		return patch_image;
+		return patchImage;
 	}
 
 	// TODO implement constraints in patch size because of the image
-	public static int findPatchSize(int min_patch_multiple, boolean fixed_patch_size) {
+	public static int findPatchSize(int minPatchMultiple, boolean fixedPatchSize) {
 		// Find the size of the patches to process the image. It will
 		// be around the defined constant 'approx_size'
-		int patch_size;
-		int estimated_size = 200;
-		if (min_patch_multiple > estimated_size || fixed_patch_size == true) {
-			patch_size = min_patch_multiple;
+		int patchSize;
+		int estimatedSize = 200;
+		if (minPatchMultiple > estimatedSize || fixedPatchSize == true) {
+			patchSize = minPatchMultiple;
 		}
 		else {
-			int n_patches = estimated_size / min_patch_multiple;
-			patch_size = (n_patches + 1) * min_patch_multiple;
+			int n_patches = estimatedSize / minPatchMultiple;
+			patchSize = (n_patches + 1) * minPatchMultiple;
 		}
-		return patch_size;
+		return patchSize;
 	}
 
-	public static int paddingSize(int x_size, int y_size, int patch_size, int overlap) {
-		// This method obtains the size of the padding that needs to be added
-		// to the sides of the image.
-		// This method calculates automatically the needed mirroring considering
-		// that from the total patch we are only going to keep the center of the result,
-		// removing a fourth of the total size at each side.
-		// The maximum pad allowed will be that one that increases the image by its size
-		// at
-		// each side. For example a 128x128 image will be converted in a 354x354 image
-		// at most
-		// The return 'pad' is the number of pixels we have to add at each extreme
-		// of each row. For example if an image is 512x512, and pad is 148, the final
-		// image will be 808x808
-		int pad;
-		// First calculate the number of patches that would be needed if we only took
-		// the
-		// center of the patch for each calculation
-		int relevant_patch = patch_size - overlap * 2;
-
-		int x_patches = x_size / relevant_patch;
-		int x_remaining_pixels = x_size - x_patches * relevant_patch;
-		int y_patches = y_size / relevant_patch;
-		int y_remaining_pixels = y_size - y_patches * relevant_patch;
-		pad = x_remaining_pixels;
-		if (pad > y_remaining_pixels) {
-			pad = y_remaining_pixels;
-		}
-		// 'patch_size' is the size of the total patch. The
-		// actual size of the area of interest is half of that.
-		// This is why we are adding at the end half of
-		// the region of interest
-		// --> one region of interest + 2*patch sides = 1 total patch
-		pad = relevant_patch - pad + overlap;
-		if (pad > x_size || pad > y_size) {
-			pad = x_size;
-		}
-		return pad;
-	}
-
-	public static void imagePlusReconstructor(ImagePlus f_image, ImagePlus patch, int x_start, int y_start,
-			int true_patch_size, int overlap) {
-		// This method inserts the pixel values of the true part of the patch into its
-		// corresponding location
+	public static void imagePlusReconstructor(ImagePlus fImage, ImagePlus patch,
+											   int xStartPatch, int xEndPatch,
+											   int yStartPatch, int yEndPatch,
+											   int xStartIMage, int yStartImage,
+											   int overlap, int roiOverlapXLeft,
+											   int roiOverlapXRight, int roiOverlapYTop,
+											   int roiOverlapYBottom) {
+		// This method inserts the pixel values of the true part of the patch into its corresponding location
 		// in the image
-		int[] patch_dimensions = patch.getDimensions();
-		int channels = patch_dimensions[2];
-		int slices = patch_dimensions[3];
-		int[] f_image_dimensions = f_image.getDimensions();
-		int fx_length = f_image_dimensions[0];
-		int fy_length = f_image_dimensions[1];
-		ImageProcessor patch_ip;
-		ImageProcessor im_ip;
-		for (int z = 0; z < slices; z++) {
-			for (int c = 0; c < channels; c++) {
+		int[] patchDimensions = patch.getDimensions();
+		int channels = patchDimensions[2];
+		int slices = patchDimensions[3];
+		int[] fImageDimensions = fImage.getDimensions();
+		int fxLength = fImageDimensions[0];
+		int fyLength = fImageDimensions[1];
+		ImageProcessor patchIp;
+		ImageProcessor imIp;
+		for (int z = 0; z < slices; z ++) {
+			for (int c = 0; c < channels; c ++) {
 				patch.setPositionWithoutUpdate(c + 1, z + 1, 1);
-				f_image.setPositionWithoutUpdate(c + 1, z + 1, 1);
-				patch_ip = patch.getProcessor();
-				im_ip = f_image.getProcessor();
+				fImage.setPositionWithoutUpdate(c + 1, z + 1, 1);
+				patchIp = patch.getProcessor();
+				imIp = fImage.getProcessor();
 				// The number of false pixels at each side of the part of interest
 				// is the overlap
-				int false_pixels = overlap;
-				int x_patch = false_pixels - 1;
-				int y_patch = false_pixels - 1;
-
-				int x_end = x_start + true_patch_size;
-				if (x_end > fx_length) {
-					x_end = fx_length;
+				int xStart = overlap;
+				int yStart = overlap;
+				
+				int xEnd = xStart + (xEndPatch - xStartPatch);
+				int yEnd = yStart + (yEndPatch - yStartPatch);
+				
+				int endImageX = xStartIMage + fxLength;
+				int endImageY = yStartImage + fyLength;
+				
+				if (xEndPatch > endImageX) {
+					xEnd = xEnd - (xEndPatch - endImageX);
 				}
-				int y_end = y_start + true_patch_size;
-				if (y_end > fy_length) {
-					y_end = fy_length;
+				
+				if (yEndPatch > endImageY) {
+					yEnd = yEnd - (yEndPatch - endImageY);
 				}
-				// The information non affected by 'the edge effect' is the one important to us.
-				// This is why we only take the center of the patch. The size of this center is
-				// the size of the patch minus the distorted number of pixels at each side
-				// (overlap)
-				for (int x = x_start; x < x_end; x++) {
-					x_patch++;
-					y_patch = false_pixels - 1;
-					for (int y = y_start; y < y_end; y++) {
-						y_patch++;
-						im_ip.putPixelValue(x, y, (double) patch_ip.getPixelValue(x_patch, y_patch));
+				// The information non affected by 'the edge effect' is the one important to us. 
+				// This is why we only take the center of the patch. The size of this center is 
+				// the size of the patch minus the distorted number of pixels at each side (overlap)
+				int xPatch = xStartPatch - xStartIMage - 1 + (int) Math.ceil((double)(roiOverlapXLeft/2));
+				int yPatch = yStartPatch - yStartImage - 1 + (int) Math.ceil((double)(roiOverlapYTop/2));
+				for (int x = xStart  + (int) Math.ceil((double)(roiOverlapXLeft/2)); x < xEnd - (int) Math.floor((double)(roiOverlapXRight/2)); x ++) {
+					xPatch ++;
+					yPatch = yStartPatch - yStartImage - 1 + (int) Math.ceil((double)(roiOverlapYTop/2));
+					for (int y = yStart + (int) Math.ceil((double)(roiOverlapYTop/2)); y < yEnd - (int) Math.floor((double)(roiOverlapYBottom/2)); y ++) {
+						yPatch ++;
+						if (xPatch >= 0 && yPatch >= 0) {
+							imIp.putPixelValue(xPatch, yPatch, (double) patchIp.getPixelValue(x, y));
+						}
 					}
 				}
-				f_image.setProcessor(im_ip);
+				fImage.setProcessor(imIp);
 			}
 		}
 	}
-
-	public static int[] patchOverlapVerification(int min_mult, boolean fixed) {
+	
+	
+	public static int[] patchOverlapVerification(int minMult, boolean fixed) {
 		// Now find the true and total patch size, the padding size and create the
 		// mirrored image.
 		// If the developer marked the patch size as fixed, the true patch size will be
@@ -238,142 +204,96 @@ public class ArrayOperations {
 		// the number
 		// given, or if it is already over 200, that same number.
 		// Also the total patch size will never be bigger than the size of the image
-		int total_patch = ArrayOperations.findPatchSize(min_mult, fixed);
+		int totalPatch = ArrayOperations.findPatchSize(minMult, fixed);
 		// By default the overlap is a fourth of the patch size, and should not be
 		// bigger than that
-		int overlap = total_patch / 4;
-		int[] patch_info = new int[2];
-		patch_info[0] = total_patch;
-		patch_info[1] = overlap;
+		int overlap = totalPatch / 4;
+		int[] patchInfo = new int[2];
+		patchInfo[0] = totalPatch;
+		patchInfo[1] = overlap;
 
-		return patch_info;
+		return patchInfo;
 	}
-	
-	public static double[][] mirrorXY(double[][] image, int[] padding_size){
+	/*
+	public static double[][] mirrorXY(double[][] image, int[] paddingSize){
 		int x_size1 = image.length;
 		int y_size1 = image[0].length;
-		int x_size = image.length + padding_size[0] + padding_size[1];
-		int y_size = image[0].length + padding_size[2] + padding_size[3];
+		int x_size = image.length + paddingSize[0] + paddingSize[1];
+		int y_size = image[0].length + paddingSize[2] + paddingSize[3];
 		double[][] im_padded  = new double[x_size][y_size];
 		
 		for (int x = 0; x < x_size; x ++) {
 			for (int y = 0; y < y_size; y ++) {
 				// left top corner
-				if (x < padding_size[0] && y < padding_size[2]) {
-					im_padded[x][y] = image[padding_size[0] - 1 - x][padding_size[2] - 1 - y];
+				if (x < paddingSize[0] && y < paddingSize[2]) {
+					im_padded[x][y] = image[paddingSize[0] - 1 - x][paddingSize[2] - 1 - y];
 					
 				// right bottom corner
-				} else if (x >= x_size - padding_size[1] && y >= y_size - padding_size[3]) {
-					im_padded[x][y] = image[2*x_size1 + padding_size[0] - 1 - x][2*y_size1 + padding_size[2] - 1 -  y];
+				} else if (x >= x_size - paddingSize[1] && y >= y_size - paddingSize[3]) {
+					im_padded[x][y] = image[2*x_size1 + paddingSize[0] - 1 - x][2*y_size1 + paddingSize[2] - 1 -  y];
 					
 				// left bottom corner
-				} else if (x < padding_size[0] && y >= y_size - padding_size[3]) {
+				} else if (x < paddingSize[0] && y >= y_size - paddingSize[3]) {
 					//im_padded[x][y] = image[padding_size[0] - x - 1][2*y_size - 3*padding_size[3] - 1 -  y];
-					im_padded[x][y] = image[padding_size[0] - x - 1][2*y_size1 + padding_size[2] - 1 -  y];
+					im_padded[x][y] = image[paddingSize[0] - x - 1][2*y_size1 + paddingSize[2] - 1 -  y];
 					
 				// right top corner
-				} else if (x >= x_size - padding_size[1] && y < padding_size[2]) {
-					im_padded[x][y] = image[2*x_size1 + padding_size[0] - 1 - x][padding_size[2] - 1 - y];
+				} else if (x >= x_size - paddingSize[1] && y < paddingSize[2]) {
+					im_padded[x][y] = image[2*x_size1 + paddingSize[0] - 1 - x][paddingSize[2] - 1 - y];
 					
 				// left middle
-				} else if (x < padding_size[0]) {
-					im_padded[x][y] = image[padding_size[0] - x - 1][y - padding_size[2]];
+				} else if (x < paddingSize[0]) {
+					im_padded[x][y] = image[paddingSize[0] - x - 1][y - paddingSize[2]];
 					
 				// top middle
-				} else if (y < padding_size[2]) {
-					im_padded[x][y] = image[x - padding_size[0]][padding_size[2] - 1 - y];
+				} else if (y < paddingSize[2]) {
+					im_padded[x][y] = image[x - paddingSize[0]][paddingSize[2] - 1 - y];
 					
 				// bottom middle
-				} else if (y >= y_size - padding_size[3]) {
-					im_padded[x][y] = image[x - padding_size[0]][2*y_size1 + padding_size[2] - 1 -  y];
+				} else if (y >= y_size - paddingSize[3]) {
+					im_padded[x][y] = image[x - paddingSize[0]][2*y_size1 + paddingSize[2] - 1 -  y];
 					
 				// right middle
-				} else if (x >= x_size - padding_size[1]) {
-					im_padded[x][y] = image[2*x_size1 + padding_size[0] - 1 - x][y - padding_size[2]];
+				} else if (x >= x_size - paddingSize[1]) {
+					im_padded[x][y] = image[2*x_size1 + paddingSize[0] - 1 - x][y - paddingSize[2]];
 					
 				} else {
-					im_padded[x][y] = image[x - padding_size[0]][y - padding_size[2]];
+					im_padded[x][y] = image[x - paddingSize[0]][y - paddingSize[2]];
 				}
 			}
 		}
 	return im_padded;
-	}
-	
-	public static int[] findAddedPixels(int x_size, int y_size, int x_patches,
-			int y_patches, int overlap, int roi_size) {
-		// this method calculates the number of pixels that have to be
-		// added at each side of the image to create the mirrored image with the exact needed size
-		// The resulting vector is a 4 dims vector of this shape --> [x_left, x_right, y_top, y_bottom]
-		int[] extra_pixels = new int[4];
-		int needed_x = roi_size * x_patches + 2 * overlap;
-		int x_left = overlap;
-		int x_right = needed_x - x_left - x_size;
-		int needed_y = roi_size * x_patches + 2 * overlap;
-		int y_top = overlap;
-		int y_bottom = needed_y - y_top - y_size;
-		extra_pixels[0] = x_left; extra_pixels[1] = x_right;
-		extra_pixels[2] = y_top; extra_pixels[3] = y_bottom;
-		return extra_pixels;
-	}
-	
-/*
-	public static double[][] mirrorXY(double[][] image, int padding_size) {
-		int x_size = image.length + 2 * padding_size;
-		int y_size = image[0].length + 2 * padding_size;
-		double[][] im_padded = new double[x_size][y_size];
-
-		for (int x = 0; x < x_size; x++) {
-			for (int y = 0; y < y_size; y++) {
-				if (x < padding_size && y < padding_size) {
-					im_padded[x][y] = image[padding_size - 1 - x][padding_size - 1 - y];
-
-				}
-				else
-					if (x >= x_size - padding_size && y >= y_size - padding_size) {
-						im_padded[x][y] = image[2 * x_size - 3 * padding_size - 1 - x][2 * y_size - 3 * padding_size - 1
-								- y];
-
-					}
-					else
-						if (x < padding_size && y >= y_size - padding_size) {
-							im_padded[x][y] = image[padding_size - x - 1][2 * y_size - 3 * padding_size - 1 - y];
-
-						}
-						else
-							if (x >= x_size - padding_size && y < padding_size) {
-								im_padded[x][y] = image[2 * x_size - 3 * padding_size - 1 - x][padding_size - 1 - y];
-
-							}
-							else
-								if (x < padding_size) {
-									im_padded[x][y] = image[padding_size - x - 1][y - padding_size];
-
-								}
-								else
-									if (y < padding_size) {
-										im_padded[x][y] = image[x - padding_size][padding_size - 1 - y];
-
-									}
-									else
-										if (y >= y_size - padding_size) {
-											im_padded[x][y] = image[x - padding_size][2 * y_size - 3 * padding_size - 1
-													- y];
-
-										}
-										else
-											if (x >= x_size - padding_size) {
-												im_padded[x][y] = image[2 * x_size - 3 * padding_size - 1 - x][y
-														- padding_size];
-
-											}
-											else {
-												im_padded[x][y] = image[x - padding_size][y - padding_size];
-											}
-			}
-		}
-		return im_padded;
 	}*/
 	
+	public static int[] findAddedPixels(int xSize, int ySize, int overlap, int roiSize) {
+		// This method calculates the number of pixels that have to be
+		// added at each side of the image to create the mirrored image with the exact needed size
+		// The resulting vector is a 4 dims vector of this shape --> [x_left, x_right, y_top, y_bottom]
+		int[] extraPixels = new int[4];
+		int neededX;
+		if (roiSize > xSize) {
+			neededX = roiSize - xSize + 2 * overlap;
+		} else {
+			neededX = 2 * overlap;
+		}
+		
+		int neededY;
+		if (roiSize > ySize) {
+			neededY = roiSize - ySize + 2 * overlap;
+		} else {
+			neededY =  2 * overlap;
+		}
+		
+		int xLeft = (int) Math.ceil((double) neededX / 2);
+		int xRight = neededX - xLeft;
+
+		int yTop = (int) Math.ceil((double) neededY / 2);
+		int yBottom = neededY - yTop;
+		extraPixels[0] = xLeft; extraPixels[1] = xRight;
+		extraPixels[2] = yTop; extraPixels[3] = yBottom;
+		return extraPixels;
+	}
+
 
 	/**
 	 * Find the index of the of the first entry of the array that coincides with the variable 'element'
@@ -409,10 +329,10 @@ public class ArrayOperations {
 		boolean found = false;
 		int counter = 0;
 		int index = -1;
-		String array_pos;
+		String arrayPos;
 		while (counter < array.length && found == false) {
-			array_pos = array[counter];
-			if (array_pos.equals(element) == true) {
+			arrayPos = array[counter];
+			if (arrayPos.equals(element) == true) {
 				found = true;
 				index = counter;
 			}
@@ -444,5 +364,42 @@ public class ArrayOperations {
 			counter++;
 		}
 		return index;
+	}
+
+
+	public static int[] findStartOfRoi(int nx, int totalRoiX, int ny, int totalRoiY) {
+		int[] start = new int[2];
+		int extraX = totalRoiX - nx;
+		int extraXRight = (int) Math.ceil((double) extraX/2);
+		int extraY = totalRoiY - ny;
+		int extraYTop = (int) Math.ceil((double) extraY/2);
+		start[0] = extraXRight; start[1] = extraYTop;
+		return start;
+	}
+
+
+	public static int[] findOverlapRoi(int size, int regionOfInterest, int nPatch) {
+		// This method finds the number of pixels that need to overlap between ROIs.
+		// The vector calculated represents the pixels in each of the overlaps.
+		
+		// The array of overlaps is bigger because we consider overlap of both sides
+		// of the ROIs
+		int[] overlap = new int[nPatch + 1];
+		if (size <= regionOfInterest) {
+			overlap[0] = 0;
+		} else {
+			int extraPixels = regionOfInterest * nPatch - size;
+			int overlapPixels = (int) Math.ceil((double)extraPixels / (double)(nPatch - 1));
+			for (int i = 1; i < nPatch; i ++) {
+				if (i != nPatch - 1) {
+					overlap[i] = overlapPixels;
+					extraPixels = extraPixels - overlapPixels;
+				} else {
+					// The last overlap is whatever the pixels are remaining
+					overlap[i] = extraPixels;
+				}
+			}
+		}
+		return overlap;
 	}
 }
