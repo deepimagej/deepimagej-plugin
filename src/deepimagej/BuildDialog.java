@@ -257,7 +257,6 @@ public class BuildDialog extends JDialog implements ActionListener {
 		}
 		if (e.getSource() == bnTest) {
 			params.testResultImage = save.test(dp);
-			params.testResultImage.show();
 			//ImageProcessing.presentImage(params.testResultImage);
 		}
 			
