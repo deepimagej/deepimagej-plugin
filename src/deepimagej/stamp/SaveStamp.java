@@ -227,7 +227,8 @@ public class SaveStamp extends AbstractStamp implements Runnable {
 		if (params.testResultImage != null) {
 			params.testResultImage = runPostprocessingMacro(params.testResultImage);
 			params.testResultImage.setSlice(1);
-			params.testResultImage.getProcessor().resetMinAndMax(); 
+			params.testResultImage.getProcessor().resetMinAndMax();
+			params.testResultImage.show();
 		} else {
 			IJ.error("The execution of the model failed.");
 		}
