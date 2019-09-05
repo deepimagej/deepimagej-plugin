@@ -1,3 +1,40 @@
+/*
+ * DeepImageJ
+ * 
+ * https://deepimagej.github.io/deepimagej/
+ *
+ * Conditions of use: You are free to use this software for research or educational purposes. 
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
+ * 
+ * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
+ * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
+ * Submitted 2019.
+ *
+ * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
+ * Biomedical Imaging Group, Ecole polytechnique federale de Lausanne (EPFL), Switzerland
+ *
+ * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
+ *
+ */
+
+/*
+ * Copyright 2019. Universidad Carlos III, Madrid, Spain and EPFL, Lausanne, Switzerland.
+ * 
+ * This file is part of DeepImageJ.
+ * 
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
+ * 
+ * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package deepimagej;
 
 import java.awt.TextArea;
@@ -12,7 +49,7 @@ import org.tensorflow.Graph;
 import org.tensorflow.Operation;
 import org.tensorflow.SavedModelBundle;
 
-import deepimagej.tools.FileUtils;
+import deepimagej.tools.Log;
 import ij.IJ;
 import ij.ImagePlus;
 
@@ -29,14 +66,14 @@ public class DeepPlugin {
 	private SavedModelBundle		model			= null;
 	public ArrayList<String>		preprocessing	= new ArrayList<String>();
 	public ArrayList<String>		postprocessing	= new ArrayList<String>();
-
-	public DeepPlugin(String pathModel, String dirname, Log log) {
+	
+	public DeepPlugin(String pathModel, String dirname, Log log, boolean isDeveloper) {
 		String p = pathModel + File.separator + dirname + File.separator;
 		this.path = p.replace("//", "/");
 		this.log = log;
 		this.dirname = dirname;
-		this.valid = check();
-		this.params = new Parameters(valid, path);
+		this.valid = isDeveloper ? TensorFlowModel.check(p, msgChecks) : check(p, msgChecks);
+		this.params = new Parameters(valid, path, isDeveloper);
 		preprocessing.add("no preprocessing");
 		postprocessing.add("no postprocessing");
 	}
@@ -56,8 +93,12 @@ public class DeepPlugin {
 	public void setModel(SavedModelBundle model) {
 		this.model = model;
 	}
+
+	public boolean getValid() {
+		return this.valid;
+	}
 	
-	static public HashMap<String, DeepPlugin> list(String pathModels, Log log) {
+	static public HashMap<String, DeepPlugin> list(String pathModels, Log log, boolean isDeveloper) {
 		HashMap<String, DeepPlugin> list = new HashMap<String, DeepPlugin>();
 		File models = new File(pathModels);
 		File[] dirs = models.listFiles();
@@ -68,7 +109,7 @@ public class DeepPlugin {
 		for (File dir : dirs) {
 			if (dir.isDirectory()) {
 				String name = dir.getName();
-				DeepPlugin dp = new DeepPlugin(pathModels, name, log);
+				DeepPlugin dp = new DeepPlugin(pathModels + File.separator, name, log, isDeveloper);
 				if (dp.valid) {
 					list.put(dp.dirname, dp);
 				}
@@ -77,11 +118,11 @@ public class DeepPlugin {
 		return list;
 	}
 
+
 	public boolean loadModel() {
 		File dir = new File(path);
 		String[] files = dir.list();
 		log.print("load model from " + path);
-	
 		for(String filename : files) {
 			if (filename.toLowerCase().startsWith("preprocessing"))
 				preprocessing.add(filename);
@@ -91,7 +132,7 @@ public class DeepPlugin {
 		
 		msgLoads.add("----------------------");
 		double chrono = System.nanoTime();
-
+		SavedModelBundle model;
 		try {
 			model = SavedModelBundle.load(path, params.tag);
 			setModel(model);
@@ -131,56 +172,26 @@ public class DeepPlugin {
 		info.append("Tag: " + params.tag + "  Signature: " + params.graph + "\n");
 
 		info.append("Dimensions: ");
-		for (int dim : params.in_dimensions)
+		for (int dim : params.inDimensions)
 			info.append(" " + dim);
 		info.append(" Slices (" + params.slices + ") Channels (" + params.channels + ")\n");
 
 		info.append("Input:");
-		for (int i = 0; i < params.n_inputs; i++)
-			info.append(" " + params.inputs[i] + " (" + params.input_form[i] + ")");
+		for (int i = 0; i < params.nInputs; i++)
+			info.append(" " + params.inputs[i] + " (" + params.inputForm[i] + ")");
 		info.append("\n");
 		info.append("Output:");
-		for (int i = 0; i < params.n_outputs; i++)
-			info.append(" " + params.outputs[i] + " (" + params.output_form[i] + ")");
+		for (int i = 0; i < params.nOutputs; i++)
+			info.append(" " + params.outputs[i] + " (" + params.outputForm[i] + ")");
 		info.append("\n");
 	}
 
-	private boolean check() {
-		msgChecks.add(path);
-
-		File dir = new File(path);
-		if (!dir.exists()) {
-			msgChecks.add("Not found " + path);
-			return false;
-		}
-		if (!dir.isDirectory()) {
-			msgChecks.add("Not found " + path);
-			return false;
-		}
-		boolean valid = true;
-
-		// config.xml
+	
+	public  boolean check(String path, ArrayList<String> msg) {
+		boolean valid = TensorFlowModel.check(path, msg);
 		File configFile = new File(path + "config.xml");
 		if (!configFile.exists()) {
-			msgChecks.add("No 'config.xml' found in " + path);
-			valid = false;
-		}
-
-		// saved_model
-		File modelFile = new File(path + "saved_model.pb");
-		if (!modelFile.exists()) {
-			msgChecks.add("No 'saved_model.pb' found in " + path);
-			valid = false;
-		}
-
-		// variable
-		File variableFile = new File(path + "variables");
-		if (!variableFile.exists()) {
-			msgChecks.add("No 'variables' directory found in " + path);
-			valid = false;
-		}
-		else {
-			msgChecks.add("TensorFlow model " + FileUtils.getFolderSizeKb(path + "variables"));
+			msg.add("No 'config.xml' found in " + path);
 		}
 		return valid;
 	}
@@ -225,4 +236,6 @@ public class DeepPlugin {
 			return "Error";
 		}
 	}
+
 }
+
