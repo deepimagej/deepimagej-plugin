@@ -364,6 +364,22 @@ public class TensorFlowModel {
 		return nChannels;
 	}
 	
+	// Method added to allow multiple possible batch sizes
+	public static String nBatch(int[] dims, String inputForm) {
+		// Find the number of channels in the input
+		String inBatch;
+		int ind = Index.indexOf(inputForm.split(""), "N");
+		if (ind == -1) {
+			inBatch = "1";
+		} else {
+			inBatch = Integer.toString(dims[ind]);
+		}
+		if (inBatch.equals("-1")) {
+			inBatch = "1";
+		}
+		return inBatch;
+	}
+	
 	public static String returnTfTag(String tag) {
 		String tfTag;
 		int tagInd = Index.indexOf(MODEL_TAGS, tag);
