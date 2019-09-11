@@ -8,11 +8,11 @@
  * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
- * E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage. 
+ * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
  * Submitted 2019.
  *
  * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
- * Biomedical Imaging Group, Ecole polytechnique fédérale de Lausanne (EPFL), Switzerland
+ * Biomedical Imaging Group, Ecole polytechnique federale de Lausanne (EPFL), Switzerland
  *
  * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
  *
@@ -34,6 +34,7 @@
  * You should have received a copy of the GNU General Public License along with DeepImageJ. 
  * If not, see <http://www.gnu.org/licenses/>.
  */
+
 package deepimagej;
 
 import java.io.File;
@@ -45,10 +46,6 @@ import ij.ImagePlus;
 
 public class Parameters {
 
-
-	// Auxiliary parameters for the developer plugin user interface
-	// Parameter to keep track of the GUI that needs to be shown each time
-	public int card = 1;
 	// Directory where the model is actually located
 	public String path2Model;
 	// Parameter that checks if the plugin is for developers or users
@@ -69,9 +66,10 @@ public class Parameters {
 	// Directory specified by the user to save the model
 	public String saveDir;
 	
-	// Name given to the model
-	public String saveFilename;
-	
+	// Boolean informing if the config file contains the ModelCharacteristics
+	// parameters, needed to load the model
+	public boolean completeConfig = true;
+		
 	// in ModelInformation
 	public String		name						= "";
 	public String		author					= "";
@@ -89,7 +87,7 @@ public class Parameters {
 
 	public String		tag						= "";
 	public String		graph					= "";
-	public Set<String> graphSet;
+	public Set<String> 	graphSet;
 
 	// Parameters for the correct execution of the model on an image.
 	// They range from the needed dimensions and dimensions organization
@@ -97,26 +95,26 @@ public class Parameters {
 	// properly and not to crash because of different issues such as memory.
 	// They also regard the requirements for the input image
 
-	public int[]		inDimensions;
-	public int[]		outDimensions;
+	public int[]			inDimensions;
+	public int[]			outDimensions;
 	public String[]		inputForm				= new String[1];
 	public String[]		outputForm				= new String[1];
 	public String[]		inputs;
 	public String[]		outputs;
-	public int			nInputs;
-	public int			nOutputs;
-
+	public int			nInputs				= -1;
+	public int			nOutputs			= -1;
+	
 	public String		minimumSize;
-	public boolean		fixedPatch		= false;
-	public int			overlap					= 0;
-	public int			patch;
+	public boolean		fixedPatch			= false;
+	public boolean		fixedPadding			= true;
+	public int			padding				= -1;
+	public int			patch				= -1;
 
 	// Set one channel as default
 	public String		channels				= "1";
 
-	// This parameter is predefined and unmodifiable as 3d models are still not
-	// accepted
-	public String			slices					= "1";
+	// This parameter is predefined and unmodifiable as 3d models are still not accepted
+	public String		slices					= "1";
 
 
 	public Parameters(boolean valid, String path, boolean isDeveloper) {
@@ -141,8 +139,8 @@ public class Parameters {
 		memoryPeak = config.get("MemoryPeak") != null ? config.get("MemoryPeak") : "";
 		runtime = config.get("Runtime") != null ? config.get("Runtime") : "";
 
-		nInputs = Integer.parseInt(config.get("NumberOfInputs"));
-		nOutputs = Integer.parseInt(config.get("NumberOfOutputs"));
+		nInputs = Integer.parseInt(config.get("NumberOfInputs")==null ? "0" : config.get("NumberOfInputs"));
+		nOutputs = Integer.parseInt(config.get("NumberOfOutputs")==null ? "0" : config.get("NumberOfOutputs"));
 		inputs = new String[nInputs];
 		outputs = new String[nOutputs];
 		inputForm = new String[nInputs];
@@ -151,13 +149,21 @@ public class Parameters {
 		minimumSize = config.get("MinimumSize");
 		tag = config.get("ModelTag");
 		graph = config.get("SignatureDefinition");
-		overlap = Integer.parseInt(config.get("Overlap"));
+		padding = Integer.parseInt(config.get("Padding")==null ? "-1" : config.get("Padding"));
 		inDimensions = string2tensorDims(config.get("InputTensorDimensions"));
-		fixedPatch = Boolean.parseBoolean(config.get("FixedPatch"));
-		patch = Integer.parseInt(config.get("PatchSize"));
-
-		channels = config.get("Channels");
+		fixedPatch = Boolean.parseBoolean(config.get("FixedPatch") == null ? "true" : config.get("FixedPatch"));
+		patch = Integer.parseInt(config.get("PatchSize")==null ? "-1" : config.get("PatchSize"));
+		fixedPadding = Boolean.parseBoolean(config.get("fixedPadding") == null ? "true" : config.get("fixedPadding"));
+		channels = config.get("Channels");// == null ? "1" : config.get("Channels");
 		//slices = Integer.parseInt(config.get("slices"));
+		
+		// Now check that all the Model Characteristic parameters are
+		// present in the config file, if not the model will not be loaded
+		if (nInputs == 0 || nOutputs == 0 || inputs == null || outputs == null || inputForm == null ||
+			inputForm == null || outputForm == null || minimumSize == null || tag == null || graph == null ||
+			padding == -1 || inDimensions == null || patch == -1 || channels == null) {
+			completeConfig = false;
+		}
 	}
 
 	private void readInOutSet(Map<String, String> model) {
@@ -166,12 +172,26 @@ public class Parameters {
 			String in_dims = "InputOrganization" + String.valueOf(i);
 			inputs[i] = model.get(in_name);
 			inputForm[i] = model.get(in_dims);
+			if (inputs[i] == null || inputForm[i] == null) {
+				inputs = null;
+				inputForm = null;
+				outputs = null;
+				outputForm = null;
+				return;
+			}
 		}
 		for (int i = 0; i < nOutputs; i++) {
 			String in_name = "OutputNames" + String.valueOf(i);
 			String in_dims = "OutputOrganization" + String.valueOf(i);
 			outputs[i] = model.get(in_name);
 			outputForm[i] = model.get(in_dims);
+			if (outputs[i] == null || outputForm[i] == null) {
+				inputs = null;
+				inputForm = null;
+				outputs = null;
+				outputForm = null;
+				return;
+			}
 		}
 	}
 

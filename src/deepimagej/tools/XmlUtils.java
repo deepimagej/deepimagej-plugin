@@ -8,11 +8,11 @@
  * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
- * E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage. 
+ * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
  * Submitted 2019.
  *
  * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
- * Biomedical Imaging Group, Ecole polytechnique fédérale de Lausanne (EPFL), Switzerland
+ * Biomedical Imaging Group, Ecole polytechnique federale de Lausanne (EPFL), Switzerland
  *
  * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
  *
@@ -34,6 +34,7 @@
  * You should have received a copy of the GNU General Public License along with DeepImageJ. 
  * If not, see <http://www.gnu.org/licenses/>.
  */
+
 package deepimagej.tools;
 
 import java.io.File;
@@ -58,12 +59,12 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import deepimagej.DeepPlugin;
-import deepimagej.Parameters;;
+import deepimagej.Parameters;
+import deepimagej.TensorFlowModel;;
 
 public class XmlUtils {
 
-
-	public static void writeXml(DeepPlugin dp) {
+	public static void writeXml(String filename, DeepPlugin dp) {
 
 		try {
 			Parameters params = dp.params;
@@ -77,53 +78,53 @@ public class XmlUtils {
 			// root element-->Model.
 			Element root = document.createElement("Model");
 			document.appendChild(root);
-			
+
 			////////////////////////////////////////////////////////////////////
 			// Information about the model
 
 			// root element-->ModelInformation. This info is used to run the model
 			Element modelInformation = document.createElement("ModelInformation");
 			root.appendChild(modelInformation);
-			
+
 			// Name of the model (child of "ModelInformation")
 			Element name = document.createElement("Name");
 			name.appendChild(document.createTextNode(params.name));
 			modelInformation.appendChild(name);
-			
+
 			// Author of the model (child of "ModelInformation")
 			Element author = document.createElement("Author");
 			author.appendChild(document.createTextNode(params.author));
 			modelInformation.appendChild(author);
-			
+
 			// URL where the model can be found (child of "ModelInformation")
 			Element url = document.createElement("URL");
 			url.appendChild(document.createTextNode(params.url));
 			modelInformation.appendChild(url);
-			
+
 			// Credit for the model (child of "ModelInformation")
 			Element credit = document.createElement("Credit");
 			credit.appendChild(document.createTextNode(params.credit));
 			modelInformation.appendChild(credit);
-			
+
 			// Version of the model (child of "ModelInformation")
 			Element version = document.createElement("Version");
-			credit.appendChild(document.createTextNode(params.version));
+			version.appendChild(document.createTextNode(params.version));
 			modelInformation.appendChild(version);
-			
+
 			// Date of the model (child of "ModelInformation")
 			Element date = document.createElement("Date");
 			date.appendChild(document.createTextNode(params.date));
 			modelInformation.appendChild(date);
-			
+
 			// Reference for the model (child of "ModelInformation")
 			Element reference = document.createElement("Reference");
 			reference.appendChild(document.createTextNode(params.reference));
 			modelInformation.appendChild(reference);
-			
+
 			/////////////////////////////////////////////////////////////////////////////////////////////
 			// Parameters used when the model was prepared //
-			
-			// root element-->ModelCharacteritics. This info is used to run the model
+
+			// root element-->ModelCharacteristics. This info is used to run the model
 			Element modelTest = document.createElement("ModelTest");
 			root.appendChild(modelTest);
 
@@ -146,27 +147,22 @@ public class XmlUtils {
 			Element runtime = document.createElement("Runtime");
 			runtime.appendChild(document.createTextNode(params.runtime));
 			modelTest.appendChild(runtime);
-			
+
 			//////////////////////////////////////////////////////////////////
-			// root element-->ModelCharacteritics. This info is used to run the model
-			Element modelCharacteristics = document.createElement("ModelCharacteritics");
+			// root element-->ModelCharacteristics. This info is used to run the model
+			Element modelCharacteristics = document.createElement("ModelCharacteristics");
 			root.appendChild(modelCharacteristics);
 
-			// Minimum multiple of patch (child of "ModelCharacteritics")
-			Element minimumSize = document.createElement("MinimumSize");
-			minimumSize.appendChild(document.createTextNode(params.minimumSize));
-			modelCharacteristics.appendChild(minimumSize);
-
-			// Model tag (child of "ModelCharacteritics"). noramlly it will
+			// Model tag (child of "ModelCharacteritics"). Normally it will
 			// be "serve"
 			Element modelTag = document.createElement("ModelTag");
-			modelTag.appendChild(document.createTextNode(params.tag));
+			modelTag.appendChild(document.createTextNode(TensorFlowModel.returnTfTag(params.tag)));
 			modelCharacteristics.appendChild(modelTag);
 
 			// Signature Definition of the model (child of "ModelCharacteritics")
 			// Normally "serving_default"
 			Element sigDef = document.createElement("SignatureDefinition");
-			sigDef.appendChild(document.createTextNode(params.graph));
+			sigDef.appendChild(document.createTextNode(TensorFlowModel.returnTfSig(params.graph)));
 			modelCharacteristics.appendChild(sigDef);
 
 			// Dimensions of the input tensor (child of "ModelCharacteritics")
@@ -183,7 +179,6 @@ public class XmlUtils {
 			nInputs.appendChild(document.createTextNode(String.valueOf(params.nInputs)));
 			modelCharacteristics.appendChild(nInputs);
 			for (int i = 0; i < params.nInputs; i++) {
-
 				String inName = "InputNames" + String.valueOf(i);
 				Element inputName = document.createElement(inName);
 				inputName.appendChild(document.createTextNode(params.inputs[i]));
@@ -202,12 +197,10 @@ public class XmlUtils {
 			nOutputs.appendChild(document.createTextNode(String.valueOf(params.nInputs)));
 			modelCharacteristics.appendChild(nOutputs);
 			for (int i = 0; i < params.nOutputs; i++) {
-
 				String outName = "OutputNames" + String.valueOf(i);
 				Element outputName = document.createElement(outName);
 				outputName.appendChild(document.createTextNode(params.outputs[i]));
 				modelCharacteristics.appendChild(outputName);
-
 				// Arrangement of the output dimensions
 				// (child of "ModelCharacteritics")
 				String outDims = "OutputOrganization" + String.valueOf(i);
@@ -227,6 +220,11 @@ public class XmlUtils {
 			fixed.appendChild(document.createTextNode(Boolean.toString(params.fixedPatch)));
 			modelCharacteristics.appendChild(fixed);
 
+			// Minimum multiple of patch (child of "ModelCharacteritics")
+			Element minimumSize = document.createElement("MinimumSize");
+			minimumSize.appendChild(document.createTextNode(params.minimumSize));
+			modelCharacteristics.appendChild(minimumSize);
+
 			// Patch size to run the model optimally
 			Element patch = document.createElement("PatchSize");
 			patch.appendChild(document.createTextNode(Integer.toString(params.patch)));
@@ -234,15 +232,22 @@ public class XmlUtils {
 
 			// Pixel size of the images with which the image was trained
 			// (child of "ModelCharacteritics")
+			Element fixedPadding = document.createElement("FixedPadding");
+			fixedPadding.appendChild(document.createTextNode(Boolean.toString(params.fixedPadding)));
+			modelCharacteristics.appendChild(fixedPadding);
+			
+			// Pixel size of the images with which the image was trained
+			// (child of "ModelCharacteritics")
+			Element padding = document.createElement("Padding");
+			padding.appendChild(document.createTextNode(Integer.toString(params.padding)));
+			modelCharacteristics.appendChild(padding);
+
+			// Pixel size of the images with which the image was trained
+			// (child of "ModelCharacteritics")
 			Element nSlices = document.createElement("slices");
 			nSlices.appendChild(document.createTextNode(params.slices));
 			modelCharacteristics.appendChild(nSlices);
 
-			// Pixel size of the images with which the image was trained
-			// (child of "ModelCharacteritics")
-			Element overlap = document.createElement("Overlap");
-			overlap.appendChild(document.createTextNode(Integer.toString(params.overlap)));
-			modelCharacteristics.appendChild(overlap);
 
 			// create the xml file
 			// transform the DOM Object to an XML File
@@ -255,17 +260,8 @@ public class XmlUtils {
 			transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
 
 			DOMSource domSource = new DOMSource(document);
-			String xml = params.saveDir + File.separator + params.saveFilename + File.separator + "config.xml";
-			StreamResult streamResult = new StreamResult(new File(xml));
-
-			// If you use
-			// StreamResult result = new StreamResult(System.out);
-			// the output will be pushed to the standard output ...
-			// You can use that for debugging
-
+			StreamResult streamResult = new StreamResult(new File(filename));
 			transformer.transform(domSource, streamResult);
-
-			System.out.println("Done creating XML File");
 		}
 		catch (ParserConfigurationException pce) {
 			pce.printStackTrace();
@@ -321,7 +317,7 @@ public class XmlUtils {
 
 		return modelInfo;
 	}
-	
+
 	private static String tensorDims2String(int[] tensorDims) {
 		// method that transforms an int[] into a String
 		String result = ",";

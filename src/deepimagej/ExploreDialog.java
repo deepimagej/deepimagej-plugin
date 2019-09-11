@@ -8,11 +8,11 @@
  * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
- * E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage. 
+ * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
  * Submitted 2019.
  *
  * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
- * Biomedical Imaging Group, Ecole polytechnique fédérale de Lausanne (EPFL), Switzerland
+ * Biomedical Imaging Group, Ecole polytechnique federale de Lausanne (EPFL), Switzerland
  *
  * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
  *
@@ -34,6 +34,7 @@
  * You should have received a copy of the GNU General Public License along with DeepImageJ. 
  * If not, see <http://www.gnu.org/licenses/>.
  */
+
 package deepimagej;
 
 
@@ -65,6 +66,7 @@ import deepimagej.components.CustomizedColumn;
 import deepimagej.components.CustomizedTable;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.FileUtils;
+import deepimagej.tools.Log;
 import deepimagej.tools.WebBrowser;
 import ij.IJ;
 import ij.ImagePlus;
@@ -190,22 +192,8 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 			dispose();
 		}
 		if (e.getSource() == bnArchi) {
-			if (dp != null) {
-				JFrame frame = new JFrame("Architedcture of " + dp.getName());
-				ArrayList<CustomizedColumn> columns = new ArrayList<CustomizedColumn>();
-				columns.add(new CustomizedColumn("Operation", String.class, 100, false));
-				columns.add(new CustomizedColumn("Name", String.class, 100, false));
-				columns.add(new CustomizedColumn("Type", String.class, 40, false));
-				columns.add(new CustomizedColumn("NumOutputs", String.class, 20, false));
-
-				CustomizedTable arch = new CustomizedTable(columns, true);
-				ArrayList<String[]> archis = dp.msgArchis;
-				for (String[] archi : archis)
-					arch.append(archi);
-				frame.add(arch.getPane(500, 500));
-				frame.pack();
-				frame.setVisible(true);
-			}
+			if (dp != null) 
+				TensorFlowModel.showArchitecture(dp.getName(), dp.msgArchis);
 		}
 		if (e.getSource() == bnApply) {
 			if (dp == null)
@@ -349,7 +337,7 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 		modelTable.append(new String[] { "Metagraph size", "" + mgd });
 		modelTable.append(new String[] { "Patch policy", patch });
 		modelTable.append(new String[] { "Patch size", "" + params.patch });
-		modelTable.append(new String[] { "Overlap", "" + params.overlap });
+		modelTable.append(new String[] { "Padding", "" + params.padding });
 		modelTable.append(new String[] { "Dimension", dimension });
 		modelTable.append(new String[] { "Slices/Channels", "" + params.slices + "/" + params.channels });
 		for (String p : dp.preprocessing)

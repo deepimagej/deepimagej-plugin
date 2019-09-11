@@ -1,39 +1,3 @@
-/*
- * DeepImageJ
- * 
- * https://deepimagej.github.io/deepimagej/
- *
- * Conditions of use: You are free to use this software for research or educational purposes. 
- * In addition, we expect you to include adequate citations and acknowledgments whenever you 
- * present or publish results that are based on it.
- * 
- * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
- * E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage. 
- * Submitted 2019.
- *
- * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
- * Biomedical Imaging Group, Ecole polytechnique fédérale de Lausanne (EPFL), Switzerland
- *
- * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
- *
- */
-
-/*
- * Copyright 2019. Universidad Carlos III, Madrid, Spain and EPFL, Lausanne, Switzerland.
- * 
- * This file is part of DeepImageJ.
- * 
- * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
- * the GNU General Public License as published by the Free Software Foundation, either 
- * version 3 of the License, or (at your option) any later version.
- * 
- * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
- * See the GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License along with DeepImageJ. 
- * If not, see <http://www.gnu.org/licenses/>.
- */
 package deepimagej;
 
 import java.util.List;
@@ -42,10 +6,12 @@ import java.util.concurrent.Callable;
 import org.tensorflow.SavedModelBundle;
 import org.tensorflow.Session;
 import org.tensorflow.Tensor;
-import org.tensorflow.framework.MetaGraphDef;
 import org.tensorflow.framework.SignatureDef;
 import org.tensorflow.framework.TensorInfo;
 
+import deepimagej.tools.ArrayOperations;
+import deepimagej.tools.CompactMirroring;
+import deepimagej.tools.Log;
 import deepimagej.tools.NumFormat;
 import ij.IJ;
 import ij.ImagePlus;
@@ -115,7 +81,7 @@ public class Runner implements Callable<ImagePlus> {
 		log.print("model " + (model == null));
 		
 		ImagePlus out = null;
-		SignatureDef sig = graph2SigDef(model, dp.params.graph);
+		SignatureDef sig = TensorFlowModel.getSignatureFromGraph(model, TensorFlowModel.returnStringSig(dp.params.graph));
 		log.print("sig " + (sig == null));
 
 		// Order of the dimensions. For example "NHWC"-->Batch size, Height, Width, Channels
@@ -123,7 +89,7 @@ public class Runner implements Callable<ImagePlus> {
 		// Order of the dimensions. For example "NHWC"-->Batch size, Height, Width, Channels
 		String outputForm = params.outputForm[0];
 		int nChannels = Integer.parseInt((String) params.channels);
-		int overlap = params.overlap;
+		int overlap = params.padding;
 
 		int channel_pos = ArrayOperations.indexOf(inputForm.split(""), "C");
 		int[] inDim = imp.getDimensions();
@@ -266,25 +232,11 @@ public class Runner implements Callable<ImagePlus> {
 		params.runtime = NumFormat.seconds(endTime - startingTime);
 		// Set Parameter params.memoryPeak
 		params.memoryPeak = NumFormat.bytes(rp.getPeakmem());
-
 		// Set Parameter  params.outputSize
 		params.outputSize = Integer.toString(nx) + "x" + Integer.toString(ny);
 		rp.stop();
 		
 		return out;
-	}
-
-	public SignatureDef graph2SigDef(SavedModelBundle model, String key) {
-		byte[] byteGraph = model.metaGraphDef();
-
-		SignatureDef sig = null;
-		try {
-			sig = MetaGraphDef.parseFrom(byteGraph).getSignatureDefOrThrow(key);
-		}
-		catch (Exception e) {
-			System.out.println("Invalid graph");
-		}
-		return sig;
 	}
 
 	private String opName(final TensorInfo t) {

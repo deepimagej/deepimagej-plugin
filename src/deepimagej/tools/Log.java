@@ -37,12 +37,27 @@
 
 package deepimagej.tools;
 
-public class Information {
-	public String	name			= "untitled";
-	public String	author		= "n.a";
-	public String	url			= "n.a";
-	public String	credit		= "n.a";
-	public String	version		= "n.a";
-	public String	date			= "n.a";
-	public String	reference	= "n.a";
+import ij.IJ;
+
+public class Log {
+
+	private int level = 1; // normal
+	private double chrono = System.nanoTime();
+		
+	public void print(String message) {
+		if (level >= 2)
+			IJ.log("DeepImageJ (" + NumFormat.time(System.nanoTime()-chrono) + ") : " + message);
+	}
+	
+	public void reset() {
+		chrono = System.nanoTime();
+	}
+	
+	public void setLevel(int level) {
+		this.level = level;
+	}
+	
+	public int getLevel() {
+		return level;
+	}
 }

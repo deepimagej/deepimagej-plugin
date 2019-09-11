@@ -8,11 +8,11 @@
  * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
- * E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage. 
+ * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
  * Submitted 2019.
  *
  * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
- * Biomedical Imaging Group, Ecole polytechnique fédérale de Lausanne (EPFL), Switzerland
+ * Biomedical Imaging Group, Ecole polytechnique federale de Lausanne (EPFL), Switzerland
  *
  * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
  *
@@ -34,32 +34,34 @@
  * You should have received a copy of the GNU General Public License along with DeepImageJ. 
  * If not, see <http://www.gnu.org/licenses/>.
  */
+
 package deepimagej.stamp;
 
 import java.awt.BorderLayout;
 
-import javax.swing.BorderFactory;
 import javax.swing.JPanel;
 
 import deepimagej.BuildDialog;
-import deepimagej.Parameters;
+import deepimagej.DeepPlugin;
 
 public abstract class AbstractStamp {
 
-	protected BuildDialog parent;
-	protected Parameters params;
-	protected JPanel panel;
-	
-	public AbstractStamp(Parameters params, BuildDialog parent, String title) {
-		this.params = params;
+	protected BuildDialog	parent;
+	protected JPanel		panel;
+
+	public AbstractStamp(BuildDialog parent) {
 		this.parent = parent;
 		panel = new JPanel(new BorderLayout());
-		panel.setBorder(BorderFactory.createTitledBorder(title));
 	}
-	
+
 	public abstract void buildPanel();
-	
+
+	public abstract void init();
+
+	public abstract boolean finish();
+
 	public JPanel getPanel() {
 		return panel;
 	}
+
 }

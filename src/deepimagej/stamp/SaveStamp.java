@@ -8,11 +8,11 @@
  * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
- * E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage. 
+ * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
  * Submitted 2019.
  *
  * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
- * Biomedical Imaging Group, Ecole polytechnique fédérale de Lausanne (EPFL), Switzerland
+ * Biomedical Imaging Group, Ecole polytechnique federale de Lausanne (EPFL), Switzerland
  *
  * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
  *
@@ -34,249 +34,225 @@
  * You should have received a copy of the GNU General Public License along with DeepImageJ. 
  * If not, see <http://www.gnu.org/licenses/>.
  */
+
 package deepimagej.stamp;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DropTarget;
+import java.awt.dnd.DropTargetDropEvent;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.nio.channels.FileChannel;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.List;
 
-import javax.swing.JLabel;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-
-import additionaluserinterface.GridPanel;
-import deepimagej.Runner;
-import deepimagej.RunnerProgress;
-import deepimagej.components.HTMLPane;
-import deepimagej.exceptions.IncorrectChannelsNumber;
-import deepimagej.exceptions.MacrosError;
-import deepimagej.Log;
 import deepimagej.BuildDialog;
-import deepimagej.Parameters;
+import deepimagej.Constants;
 import deepimagej.DeepPlugin;
+import deepimagej.Parameters;
+import deepimagej.components.HTMLPane;
+import deepimagej.tools.FileUtils;
 import deepimagej.tools.XmlUtils;
 import ij.IJ;
-import ij.ImagePlus;
-import ij.WindowManager;
-import ij.process.ImageProcessor;
 
-public class SaveStamp extends AbstractStamp implements Runnable {
+public class SaveStamp extends AbstractStamp implements ActionListener, Runnable {
 
-	private JTextField txtPathSave = new JTextField();
-	private JTextField txtFileSave = new JTextField("ready2upload");
-	private HTMLPane list = new HTMLPane();
-	private Thread thread = null;
-	private Log	log	= new Log();
-	private DeepPlugin dp;
+	private JTextField	txt			= new JTextField(System.getProperty("user.home")+File.separator+"Documents"+File.separator);
+	private JButton		bnBrowse	= new JButton("Browse");
+	private JButton		bnSave	= new JButton("Save Bundled Model");
+	private HTMLPane 	pane;
 	
-	public SaveStamp(Parameters params, BuildDialog parent, String title, Log log) {
-		super(params, parent, title);
+	public SaveStamp(BuildDialog parent) {
+		super(parent);
 		buildPanel();
-		this.log = log;
 	}
-	
+
 	public void buildPanel() {
-		list.append("give here the list of files to put into the ZIP");
-		txtPathSave.setEditable(true);
-		txtFileSave.setEditable(true);
-		GridPanel pn = new GridPanel(false);
-		pn.place(0, 0, 2, 1, list);
-		pn.place(1, 0, new JLabel("Path"));
-		pn.place(1, 1, txtPathSave);
-		pn.place(2, 0, new JLabel("File"));
-		pn.place(2, 1, txtFileSave);
+		pane = new HTMLPane(Constants.width, 320);
+		pane.setBorder(BorderFactory.createEtchedBorder());
+		pane.append("h2", "Saving Bundled Model");
+		DeepPlugin dp = parent.getDeepPlugin();
+
+		if (dp != null)
+			if (dp.params != null)
+				if (dp.params.path2Model != null)
+					txt.setText(dp.params.path2Model);
+		txt.setFont(new Font("Arial", Font.BOLD, 14));
+		txt.setForeground(Color.red);
+		txt.setPreferredSize(new Dimension(Constants.width, 25));
+		JPanel load = new JPanel(new BorderLayout());
+		load.setBorder(BorderFactory.createEtchedBorder());
+		load.add(txt, BorderLayout.CENTER);
+		load.add(bnBrowse, BorderLayout.EAST);
+
+		JPanel pn = new JPanel(new BorderLayout());
+		pn.add(load, BorderLayout.NORTH);
+		pn.add(pane.getPane(), BorderLayout.CENTER);
+		pn.add(bnSave, BorderLayout.SOUTH);
 		panel.add(pn);
+
+		bnSave.addActionListener(this);
+		txt.setDropTarget(new LocalDropTarget());
+		load.setDropTarget(new LocalDropTarget());
+		bnBrowse.addActionListener(this);
 	}
 
-	public void validate(DeepPlugin dp) {
-		if (params.testResultImage == null) {
-			IJ.error("No result was obtained in the test");
-		} else {
-			params.saveDir = txtPathSave.getText();
-			File dir = new File(params.saveDir);
-			if (params.saveDir.isEmpty() == true || dir.isDirectory() == false) {
-				IJ.error("Introduce a valid directory");
-			} else {
-				//params.directory = params.saveDir;
-				params.saveFilename = txtFileSave.getText();
-				try {
-					// The following method creates the user defined folder and copies the model files to it
-					createFolder();
-					// The following method copies the preprocessing macros file to the folder
-					saveFile();
-					// The following method creates the config.xml with the needed parameters.
-					//XmlUtils.writeXml(params);
-					XmlUtils.writeXml(dp);
-					// Finally copy the template images
-					IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + params.saveFilename + File.separator + "exampleImage.tiff");
-					IJ.saveAsTiff(params.testResultImage, params.saveDir + File.separator + params.saveFilename + File.separator + "resultImage.tiff");
-				} catch(Exception ex) {
-					IJ.error("Impossible to save the ZIP file");
-				} 
-			}
-		}
+	@Override
+	public void init() {
+	}
 
+	@Override
+	public boolean finish() {
+		return true;
 	}
-	
-	public ImagePlus duplicateImage(ImagePlus img) {
-		
-		ImageProcessor ip = img.getProcessor();
-		ImagePlus result_image = IJ.createHyperStack(img.getTitle(), img.getWidth(), img.getHeight(), img.getNChannels(), img.getNSlices(), img.getNFrames(), img.getBitDepth());
-		result_image.setProcessor(ip);
-		return result_image;
-	}
-	
-	public ImagePlus runPreprocessingMacro(ImagePlus img) throws MacrosError, IOException {
-		WindowManager.setTempCurrentImage(img);
-		if (params.postmacro.equals("") == false) {
-			String result = IJ.runMacro(params.premacro);
-			if (result == "[aborted]") {
-				throw new MacrosError();
-			}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		if (e.getSource() == bnBrowse) {
+			browse();
 		}
-		ImagePlus result = WindowManager.getCurrentImage();
-		return result;
-	}
-	public ImagePlus runPostprocessingMacro(ImagePlus img){
-		WindowManager.setTempCurrentImage(img);
-		if (params.postmacro.equals("") == false) {
-			String result = IJ.runMacro(params.postmacro);
-			if (result == "[aborted]") {
-				IJ.error("The postprocessing macros did not work.\n"
-						+ "The image displayed is the raw output.");
-			}
+		if (e.getSource() == bnSave) {
+			save();
 		}
-		ImagePlus result = WindowManager.getCurrentImage();
-		return result;
 	}
-	
-	
-	public  ImagePlus test(DeepPlugin dp1) {
-		dp = dp1;
-		// Initialise testImage, so it does not use data from previous tests
-		params.testImage =  null;
-		try {
-			params.testImage = WindowManager.getCurrentImage();
-			if (params.testImage == null) {
-				throw new IOException();
-			}
-				// Duplicate the image so in case the model fails after
-				// applying the macro, the origina image is the one shown
-				params.testImageBackup = duplicateImage(params.testImage);
-				params.testImage = runPreprocessingMacro(params.testImage);
-				// We select params.input_form[0] because the code is tried to be prepared 
-				// for when there are several inputs and outputs admitted.
-				params.channels = DeepPlugin.nChannels(params, params.inputForm[0]);
-				int imageChannels = params.testImage.getNChannels();
-				if (params.channels.equals(Integer.toString(imageChannels)) != true) {
-					throw new IncorrectChannelsNumber(Integer.parseInt(params.channels),
-													  imageChannels);
-				}
-				dp.params = params;
-				
-				if (thread == null) {
-					thread = new Thread(this);
-					thread.setPriority(Thread.MIN_PRIORITY);
-					thread.start();
-				}
-				thread = null;
-		} catch (MacrosError e1) {
-			System.out.print("Error in the Macro's code");
-			// Go to the stamp where the macros are programmed
-			params.card = 5;
-			IJ.error("Failed preprocessing");
-		
-		} catch (IllegalArgumentException e1) {
-			IJ.error("The model failed to execute because "
-					+ "at some point \nthe size of the activations map was incorrect");
-			e1.printStackTrace();
-			
-		} catch (InvalidProtocolBufferException e) {
-			System.out.println("Impossible to load model");
-			e.printStackTrace();
-		} catch (IOException e){
-			IJ.error("There is no image open in ImageJ");
-		} catch (UnsupportedOperationException e){
-			IJ.error("The model could not be executed properly. Try with another parameters.\n"
-					+ "The given parameters are:\n"
-					+ modelParameters());
-		} catch (IncorrectChannelsNumber e) {
-			IJ.error("The number of channels of the iput image is incorrect.");
+
+	private void browse() {
+		JFileChooser chooser = new JFileChooser(txt.getText());
+		chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		chooser.setDialogTitle("Select model");
+		int ret = chooser.showSaveDialog(new JFrame());
+		if (ret == JFileChooser.APPROVE_OPTION) {
+			txt.setText(chooser.getSelectedFile().getAbsolutePath());
+			txt.setCaretPosition(1);
 		}
-		
-		
-		return params.testResultImage;
+	}
+
+	public void save() {
+		Thread thread = new Thread(this);
+		thread.setPriority(Thread.MIN_PRIORITY);
+		thread.start();
 		
 	}
-	
+	@Override
 	public void run() {
-		log.print("start runner");
-		RunnerProgress rp = new RunnerProgress(dp);
-		Runner runner = new Runner(dp, rp, log);
-		rp.setRunner(runner);
-		params.testResultImage = runner.call();
-		// Flag to apply post processing if needed
-		if (params.testResultImage != null) {
-			params.testResultImage = runPostprocessingMacro(params.testResultImage);
-			params.testResultImage.setSlice(1);
-			params.testResultImage.getProcessor().resetMinAndMax();
-			params.testResultImage.show();
-		} else {
-			IJ.error("The execution of the model failed.");
+		DeepPlugin dp = parent.getDeepPlugin();
+		Parameters params = dp.params;
+		params.saveDir = txt.getText() + File.separator;
+		File dir = new File(params.saveDir);
+		boolean ok = true;
+		if (!dir.exists()) {
+			dir.mkdir();
+			pane.append("p", "Make a directory: " + params.saveDir);
 		}
-	}
-	
-	public void saveFile() {
+		dir = new File(params.saveDir);
+		if (ok && !dir.exists()) {
+			IJ.error("This directory is not valid to save");
+			ok = false;
+		}
+		if (ok && !dir.isDirectory()) {
+			IJ.error("This folder is not a directory");
+			ok = false;
+		}
+
+		if (ok)
 		try {
-			PrintWriter preprocessing = new PrintWriter(params.saveDir + File.separator + params.saveFilename + File.separator + "preprocessing.txt", "UTF-8");
+			File source = new File(params.path2Model + "saved_model.pb");
+			File dest = new File(params.saveDir  + "saved_model.pb");
+			FileUtils.copyFile(source, dest);
+			pane.append("p", "protobuf of the model (saved_model.pb): saved");
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			pane.append("p", "protobuf of the model (saved_model.pb): not saved");
+			ok = false;
+		}
+		
+		if (ok)
+		try {
+			File source = new File(params.path2Model + "variables");
+			File dest = new File(params.saveDir + "variables");
+			copyWeights(source, dest);
+			pane.append("p", "weights of the network (variables): saved");
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			pane.append("p", "weights of the network (variables): not saved");
+			ok = false;
+		}
+
+		if (ok)
+		try {
+			PrintWriter preprocessing = new PrintWriter(params.saveDir + "preprocessing.txt", "UTF-8");
 			preprocessing.println(params.premacro);
 			preprocessing.close();
-			PrintWriter postprocessing = new PrintWriter(params.saveDir + File.separator + params.saveFilename + File.separator + "postprocessing.txt", "UTF-8");
+			pane.append("p", "preprocessing.txt: saved");
+		}
+		catch (Exception e) {
+			pane.append("p", "preprocessing.txt: not saved");
+			ok = false;
+		}
+
+		if (ok)
+		try {
+			PrintWriter postprocessing = new PrintWriter(params.saveDir + "postprocessing.txt","UTF-8");
 			postprocessing.println(params.postmacro);
 			postprocessing.close();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			pane.append("p", "postprocessing.txt: saved");
 		}
-	}
-	
+		catch (Exception e) {
+			pane.append("p", "postprocessing.txt: not saved");
+			ok = false;
+		}
 
-	public void createFolder() {
-		// This method creates the final output folder and copies inside the 
-		// particular TensorFlow model
-		
-		File dir = new File(params.saveDir + File.separator + params.saveFilename);
-		dir.mkdir();
-		File source_archi = new File(params.path2Model + File.separator + "saved_model.pb");
-		File dest_archi = new File(params.saveDir + File.separator + params.saveFilename + File.separator + "saved_model.pb");
-		File source_weights = new File(params.path2Model + File.separator + "variables");
-		File dest_weights = new File(params.saveDir + File.separator + params.saveFilename + File.separator + "variables");
-		
+		if (ok)
 		try {
-			copyFile(source_archi, dest_archi);
-			copyWeights(source_weights, dest_weights);
-
-		} catch (IOException e) {
-		    e.printStackTrace();
-		    IJ.error("Unable to copy the model files\n to the"
-		    		+ "desired destination folder");
+			XmlUtils.writeXml(params.saveDir + "config.xml", dp);
+			pane.append("p", "config.xml: saved");
+		} 
+		catch(Exception ex) {
+			pane.append("p", "config.xml: not saved");
+			ok = false;
 		}
+
+		if (ok)
+		try {
+			IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + "exampleImage.tiff");
+			pane.append("p", "exampleImage.tiff: saved");
+		} 
+		catch(Exception ex) {
+			pane.append("p", "exampleImage.tiff: not saved");
+			ok = false;
+		}
+
+		if (ok)
+		try {
+			IJ.saveAsTiff(params.testResultImage, params.saveDir + File.separator + "resultImage.tiff");
+			pane.append("p", "resultImage.tiff: saved");
+		} 
+		catch(Exception ex) {
+			pane.append("p", "resultImage.tiff:  not saved");
+			ok = false;
+		}
+
+		parent.setEnabledBackNext(ok);
 	}
-	
-	private static void copyWeights(File source, File dest) throws IOException {
-		// Copies all the files inside the source directory to the 
-		// dest directory
+
+	private void copyWeights(File source, File dest) throws IOException {
 		String source_path;
 		String dest_path;
 		String filename;
@@ -286,51 +262,40 @@ public class SaveStamp extends AbstractStamp implements Runnable {
 				filename = n_files[i].getName();
 				source_path = source.getAbsolutePath() + File.separator + filename;
 				dest_path = dest.getAbsolutePath() + File.separator + filename;
-				copyFile(new File(source_path), new File(dest_path));
+				FileUtils.copyFile(new File(source_path), new File(dest_path));
 			}
 		}
 	}
-	
-	
-	private static void copyFile(File sourceFile, File destFile)
-	        throws IOException {
-		if (!destFile.getParentFile().exists()) {
-			destFile.getParentFile().mkdir();
-		}
-	    if (!sourceFile.exists()) {
-	        return;
-	    }
-	    if (!destFile.exists()) {
-	        destFile.createNewFile();
-	    }
-	    FileChannel source = null;
-	    FileChannel destination = null;
-	    source = new FileInputStream(sourceFile).getChannel();
-	    destination = new FileOutputStream(destFile).getChannel();
-	    if (destination != null && source != null) {
-	        destination.transferFrom(source, 0, source.size());
-	    }
-	    if (source != null) {
-	        source.close();
-	    }
-	    if (destination != null) {
-	        destination.close();
-	    }
 
-	}
-	
-	public String modelParameters() {
-		// Creates a string summing up the parameters used for the model.
-		// This string is printed as an error message when the model cannot run.
-		String[] input_form = params.inputForm[0].split("");
-		int[] image_dims = params.testImage.getDimensions();
-		String message = "Input tensor dimensions:";
-		for (int i = 0; i < input_form.length; i ++) {
-			message = message + " " + input_form[i] + ":" + params.inDimensions[i];
+	public class LocalDropTarget extends DropTarget {
+
+		@Override
+		public void drop(DropTargetDropEvent e) {
+			e.acceptDrop(DnDConstants.ACTION_COPY);
+			e.getTransferable().getTransferDataFlavors();
+			Transferable transferable = e.getTransferable();
+			DataFlavor[] flavors = transferable.getTransferDataFlavors();
+			for (DataFlavor flavor : flavors) {
+				if (flavor.isFlavorJavaFileListType()) {
+					try {
+						List<File> files = (List<File>) transferable.getTransferData(flavor);
+						for (File file : files) {
+							txt.setText(file.getAbsolutePath());
+							txt.setCaretPosition(1);
+						}
+					}
+					catch (UnsupportedFlavorException ex) {
+						ex.printStackTrace();
+					}
+					catch (IOException ex) {
+						ex.printStackTrace();
+					}
+				}
+			}
+			e.dropComplete(true);
+			super.drop(e);
 		}
-		message = message + "\n Input image dimensions: " + "W: " + image_dims[0] + ", "
-				+ "H: " + image_dims[1] + ", " + "C: " + image_dims[2];
-		message = message + "\nPatch size: " + params.patch + " Overlap: " + params.overlap;
-		return message;
 	}
+
+
 }
