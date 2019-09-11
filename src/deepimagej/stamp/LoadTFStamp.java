@@ -41,6 +41,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Set;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -57,6 +58,7 @@ import deepimagej.Parameters;
 import deepimagej.TensorFlowModel;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.Log;
+import ij.IJ;
 
 public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnable {
 
@@ -72,7 +74,7 @@ public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnab
 	public LoadTFStamp(BuildDialog parent) {
 		super(parent);
 		tags = new ArrayList<String>();
-		tags.add("Server");
+		tags.add("Serve");
 		buildPanel();
 	}
 
@@ -111,7 +113,63 @@ public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnab
 	
 	@Override
 	public boolean finish() {
-		return true;
+		Parameters params = parent.getDeepPlugin().params;
+		if (params.tag == null) {
+			Log log = new Log();
+			String tag = (String)cmbTags.getSelectedItem();
+			try {	
+				ArrayList<String> msgLoad = new ArrayList<String>();
+				SavedModelBundle model = TensorFlowModel.load(params.path2Model, tag, log, msgLoad, architecture);
+				parent.getDeepPlugin().setModel(model);
+				params.tag = tag;
+				cmbTags.setEditable(false);
+				for (String m : msgLoad)
+					pnLoad.append("p", m);
+				parent.getDeepPlugin().setModel(model);
+				pnLoad.append("p", "Architecture Network: " + architecture.size() + " ops");
+				params.graphSet = TensorFlowModel.metaGraphsSet(model);
+				if (params.graphSet.size() > 0) {
+					Set<String> tfGraphSet = TensorFlowModel.returnTfSig(params.graphSet);
+					cmbGraphs.removeAllItems();
+					for (int i = 0; i < params.graphSet.size(); i++) {
+						cmbGraphs.addItem((String) tfGraphSet.toArray()[i]);
+						cmbGraphs.setEditable(false);
+					}
+				}
+				
+			}
+			catch (Exception e) {
+				IJ.error("Incorrect ModelTag");
+				params.tag = null;
+				cmbTags.removeAllItems();
+				cmbTags.setEditable(true);
+			}
+			return false;
+		} else {
+			SavedModelBundle model = parent.getDeepPlugin().getModel();
+			params.graph = TensorFlowModel.returnStringSig((String)cmbGraphs.getSelectedItem());
+			SignatureDef sig = TensorFlowModel.getSignatureFromGraph(model, params.graph);
+			params.outputs = TensorFlowModel.returnOutputs(sig);
+			pnLoad.append("p", "Number of output: " + params.outputs.length);
+			boolean valid = true;
+			try {
+				Object[] dimensions = TensorFlowModel.getDimensions(model, params.graph);
+				params.inDimensions = (int[]) dimensions[0];
+				params.outDimensions = (int[]) dimensions[1];
+				params.inputs = (String[]) dimensions[2];
+				params.outputs = (String[]) dimensions[3];
+				pnLoad.append("p", "Dimension of input: " + params.inDimensions.length + " and output: " + params.outDimensions.length);
+	
+			}
+			catch (Exception ex) {
+				pnLoad.append("p", "Dimension: ERROR");
+				valid  = false;
+				parent.setEnabledBackNext(valid);
+				return false;
+			}
+			parent.setEnabledBackNext(valid);
+			return true;
+		}
 	}
 
 	public void run() {
@@ -138,7 +196,8 @@ public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnab
 			String tag = (String) info[0];
 			if (tag != null) {
 				params.tag = tag;
-				cmbTags.addItem(params.tag);
+				String tfTag = TensorFlowModel.returnTfTag(tag);
+				cmbTags.addItem(tfTag);
 				cmbTags.setEditable(false);
 				ArrayList<String> msgLoad = new ArrayList<String>();
 				SavedModelBundle model = TensorFlowModel.load(params.path2Model, params.tag, log, msgLoad, architecture);
@@ -148,38 +207,21 @@ public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnab
 				pnLoad.append("p", "Architecture Network: " + architecture.size() + " ops");
 				params.graphSet = TensorFlowModel.metaGraphsSet(model);
 				if (params.graphSet.size() > 0) {
+					Set<String> tfGraphSet = TensorFlowModel.returnTfSig(params.graphSet);
 					for (int i = 0; i < params.graphSet.size(); i++) {
-						cmbGraphs.addItem((String) params.graphSet.toArray()[i]);
+						cmbGraphs.addItem((String) tfGraphSet.toArray()[i]);
 						cmbGraphs.setEditable(false);
 					}
-					params.graph = (String) params.graphSet.toArray()[0];
-					SignatureDef sig = TensorFlowModel.getSignatureFromGraph(model, params.graph);
-					params.outputs = TensorFlowModel.returnOutputs(sig);
-					pnLoad.append("p", "Number of output: " + params.outputs.length);
-					try {
-						Object[] dimensions = TensorFlowModel.getDimensions(model, params.graph);
-						params.inDimensions = (int[]) dimensions[0];
-						params.outDimensions = (int[]) dimensions[1];
-						params.inputs = (String[]) dimensions[2];
-						params.outputs = (String[]) dimensions[3];
-						pnLoad.append("p", "Dimension of input: " + params.inDimensions.length + " and output: " + params.outDimensions.length);
-
-					}
-					catch (Exception ex) {
-						pnLoad.append("p", "Dimension: ERROR");
-						valid = false;
-					}
 				}
+			} else {
+				cmbTags.addItem("");
+				cmbTags.setEditable(true);
+				cmbGraphs.addItem("");
+				cmbGraphs.setEditable(false);
 			}
 		}
-		else {
-			cmbTags.addItem("");
-			cmbTags.setEditable(true);
-			cmbGraphs.addItem("");
-			cmbGraphs.setEditable(true);
-		}
 		parent.setEnabledBackNext(valid);
-	}
+	} 
 
 	@Override
 	public void actionPerformed(ActionEvent e) {

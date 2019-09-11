@@ -125,11 +125,17 @@ public class TensorStamp extends AbstractStamp  {
 		if (rank < 4) {
 			for (int i = 3; i >= rank; i--)
 				cmbIn[i].setVisible(false);
+		} else if (rank == 4) {
+			for (int i = 0; i < rank; i ++)
+				cmbIn[i].setVisible(true);
 		}
 		rank = params.outDimensions.length;
 		if (rank < 5) {
 			for (int i = 4; i >= rank; i--)
 				cmbOut[i].setVisible(false);
+		} else if (rank == 4) {
+			for (int i = 0; i < rank; i ++)
+				cmbOut[i].setVisible(true);
 		}
 		File file = new File(parent.getDeepPlugin().params.path2Model);
 		String dirname = "untitled";

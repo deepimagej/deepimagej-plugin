@@ -81,7 +81,7 @@ public class Runner implements Callable<ImagePlus> {
 		log.print("model " + (model == null));
 		
 		ImagePlus out = null;
-		SignatureDef sig = TensorFlowModel.getSignatureFromGraph(model, dp.params.graph);
+		SignatureDef sig = TensorFlowModel.getSignatureFromGraph(model, TensorFlowModel.returnStringSig(dp.params.graph));
 		log.print("sig " + (sig == null));
 
 		// Order of the dimensions. For example "NHWC"-->Batch size, Height, Width, Channels

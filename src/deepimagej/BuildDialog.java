@@ -107,8 +107,8 @@ public class BuildDialog extends JDialog implements ActionListener {
 
 		pnCards.add(welcome.getPanel(), "1");
 		pnCards.add(loader.getPanel(), "2");
-		pnCards.add(dim3.getPanel(), "3");
-		pnCards.add(tensor.getPanel(), "4");
+		pnCards.add(tensor.getPanel(), "3");
+		pnCards.add(dim3.getPanel(), "4");
 		pnCards.add(info.getPanel(), "5");
 		pnCards.add(preproc.getPanel(), "6");
 		pnCards.add(postproc.getPanel(), "7");
@@ -160,11 +160,14 @@ public class BuildDialog extends JDialog implements ActionListener {
 					}
 				}
 				break;
+			case 2:
+				card = loader.finish() ? card+1 : card;
+				break;
 			case 3:
-				card = dim3.finish() ? card+1 : card;
+				card = tensor.finish() ? card+1 : card;
 				break;
 			case 4:
-				card = tensor.finish() ? card+1 : card;
+				card = dim3.finish() ? card+1 : card;
 				break;
 			case 5:
 				card = info.finish() ? card+1 : card;
@@ -191,8 +194,10 @@ public class BuildDialog extends JDialog implements ActionListener {
 
 		setCard("" + card);
 		bnBack.setEnabled(card > 1);
-		if (card == 4)
+		if (card == 3)
 			tensor.init();
+		if (card == 4)
+			dim3.init();
 		if (card == 5)
 			info.init();
 		if (card == 8)

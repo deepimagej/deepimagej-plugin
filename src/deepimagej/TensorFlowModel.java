@@ -39,6 +39,7 @@ package deepimagej;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +71,49 @@ public class TensorFlowModel {
 
 	// Same as the tag used in export_saved_model in the Python code.
 	private static final String[] MODEL_TAGS = {"serve", "inference", "train", "eval", "gpu", "tpu"};
-	private static final String DEFAULT_TAG = "serve";
+	private static final String DEFAULT_TAG = "serve_";
+	
+	
+	private static final String[] TF_MODEL_TAGS = {"tf.saved_model.tag_constants.SERVING",
+											   	   "tf.saved_model.tag_constants.INFERENCE",
+											   	   "tf.saved_model.tag_constants.TRAINING",
+											   	   "tf.saved_model.tag_constants.EVAL",
+											   	   "tf.saved_model.tag_constants.GPU",
+											   	   "tf.saved_model.tag_constants.TPU"};
+	
+	
+	private static final String[] SIGNATURE_CONSTANTS = {"serving_default",
+												   	     "inputs",
+												   	     "tensorflow/serving/classify",
+												   	     "classes",
+												   	     "scores",
+												   	     "inputs",
+												   	     "tensorflow/serving/predict",
+												   	     "outputs",
+												   	     "inputs",
+												   	     "tensorflow/serving/regress",
+												   	     "outputs",
+												   	     "train",
+												   	     "eval",
+												   	     "tensorflow/supervised/training",
+												   	     "tensorflow/supervised/eval"};
+
+	private static final String[] TF_SIGNATURE_CONSTANTS = {"tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY",
+												   	     "tf.saved_model.signature_constants.CLASSIFY_INPUTS",
+												   	     "tf.saved_model.signature_constants.CLASSIFY_METHOD_NAME",
+												   	     "tf.saved_model.signature_constants.CLASSIFY_OUTPUT_CLASSES",
+												   	     "tf.saved_model.signature_constants.CLASSIFY_OUTPUT_SCORES",
+												   	     "tf.saved_model.signature_constants.PREDICT_INPUTS",
+												   	     "tf.saved_model.signature_constants.PREDICT_METHOD_NAME",
+												   	     "tf.saved_model.signature_constants.PREDICT_OUTPUTS",
+												   	     "tf.saved_model.signature_constants.REGRESS_INPUTS",
+												   	     "tf.saved_model.signature_constants.REGRESS_METHOD_NAME",
+												   	     "tf.saved_model.signature_constants.REGRESS_OUTPUTS",
+												   	     "tf.saved_model.signature_constants.DEFAULT_TRAIN_SIGNATURE_DEF_KEY",
+												   	     "tf.saved_model.signature_constants.DEFAULT_EVAL_SIGNATURE_DEF_KEY",
+												   	     "tf.saved_model.signature_constants.SUPERVISED_TRAIN_METHOD_NAME",
+												   	     "tf.saved_model.signature_constants.SUPERVISED_EVAL_METHOD_NAME"};
+
 
 	public static boolean check(String path, ArrayList<String> msg) {
 		msg.add("Path: " + path);
@@ -293,6 +336,89 @@ public class TensorFlowModel {
 			nChannels = Integer.toString(params.inDimensions[ind]);
 		}
 		return nChannels;
+	}
+	
+	public static String hSize(Parameters params, String inputForm) {
+		// Find the number of channels in the input
+		String nChannels;
+		int ind = Index.indexOf(inputForm.split(""), "H");
+		if (ind == -1) {
+			nChannels = "-1";
+		}
+		else {
+			nChannels = Integer.toString(params.inDimensions[ind]);
+		}
+		return nChannels;
+	}
+	
+	public static String wSize(Parameters params, String inputForm) {
+		// Find the number of channels in the input
+		String nChannels;
+		int ind = Index.indexOf(inputForm.split(""), "W");
+		if (ind == -1) {
+			nChannels = "-1";
+		}
+		else {
+			nChannels = Integer.toString(params.inDimensions[ind]);
+		}
+		return nChannels;
+	}
+	
+	public static String returnTfTag(String tag) {
+		String tfTag;
+		int tagInd = Index.indexOf(MODEL_TAGS, tag);
+		if (tagInd == -1) {
+			tfTag = tag;
+		} else {
+			tfTag = TF_MODEL_TAGS[tagInd];
+		}
+		return tfTag;
+	}
+	
+	public static String returnStringTag(String tfTag) {
+		String tag;
+		int tagInd = Index.indexOf(TF_MODEL_TAGS, tfTag);
+		if (tagInd == -1) {
+			tag = tfTag;
+		} else {
+			tag = MODEL_TAGS[tagInd];
+		}
+		return tag;
+	}
+	
+	public static Set<String> returnTfSig(Set<String> sig) {
+		Set<String> tfSig = new HashSet<>();
+		for (int i = 0; i < TF_SIGNATURE_CONSTANTS.length; i ++) {
+			if (sig.contains(SIGNATURE_CONSTANTS[i]) == true) {
+				tfSig.add(TF_SIGNATURE_CONSTANTS[i]);
+			}
+		}
+		if (tfSig.size() != sig.size()) {
+			tfSig = sig;
+		}
+		return tfSig;
+	}
+	
+	public static String returnStringSig(String tfSig) {
+		String sig;
+		int sigInd = Index.indexOf(TF_SIGNATURE_CONSTANTS, tfSig);
+		if (sigInd == -1) {
+			sig = tfSig;
+		} else {
+			sig = SIGNATURE_CONSTANTS[sigInd];
+		}
+		return sig;
+	}
+	
+	public static String returnTfSig(String sig) {
+		String tfSig;
+		int tfSigInd = Index.indexOf(SIGNATURE_CONSTANTS, sig);
+		if (tfSigInd == -1) {
+			tfSig = sig;
+		} else {
+			tfSig = TF_SIGNATURE_CONSTANTS[tfSigInd];
+		}
+		return tfSig;
 	}
 	
 	public static void showArchitecture(String name, ArrayList<String[]> architecture) {

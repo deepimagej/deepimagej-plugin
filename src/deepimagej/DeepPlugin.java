@@ -110,7 +110,7 @@ public class DeepPlugin {
 			if (dir.isDirectory()) {
 				String name = dir.getName();
 				DeepPlugin dp = new DeepPlugin(pathModels + File.separator, name, log, isDeveloper);
-				if (dp.valid) {
+				if (dp.valid && dp.params.completeConfig == true) {
 					list.put(dp.dirname, dp);
 				}
 			}
@@ -134,7 +134,7 @@ public class DeepPlugin {
 		double chrono = System.nanoTime();
 		SavedModelBundle model;
 		try {
-			model = SavedModelBundle.load(path, params.tag);
+			model = SavedModelBundle.load(path, TensorFlowModel.returnStringTag(params.tag));
 			setModel(model);
 		}
 		catch (Exception e) {

@@ -81,9 +81,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		// ImagePlus imp = IJ.openImage(path + "iso_reconstruction" + File.separator +
 		// "exampleImage.tiff");
-		//path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models" + File.separator;
-		ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
-		imp.show();
+		path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models" + File.separator;
+		//ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
+		//imp.show();
 		new DeepImageJ_Run().run("");
 	}
 
@@ -168,6 +168,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 
 		if (dp == null) {
 			IJ.error("No valid model.");
+			return;
+		}
+		
+		if (patch % Integer.parseInt(dp.params.minimumSize) != 0) {
+			IJ.error("Patch size should be a multiple of " + dp.params.minimumSize);
 			return;
 		}
 
