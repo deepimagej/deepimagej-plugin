@@ -131,7 +131,9 @@ public class DimensionStamp extends AbstractStamp implements ActionListener {
 		lblPadding.setText(pad ? "Specific padding size" : "Proposed padding size");
 		boolean pat = cmbPatches.getSelectedIndex() == 1;
 		lblPatches.setText(pat ? "Default patch size" : "Predetermined input size");
-		setOptimal();
+		if (cmbPatches.isEnabled() == true) {
+			setOptimal();
+		}
 	}
 	
 	@Override
@@ -143,26 +145,26 @@ public class DimensionStamp extends AbstractStamp implements ActionListener {
 		String hSize = TensorFlowModel.hSize(params, params.inputForm[0]);
 		String wSize = TensorFlowModel.wSize(params, params.inputForm[0]);
 		if (hSize.equals("-1") == false && wSize.equals("-1") == true) {
+			cmbPatches.setEnabled(false);
 			txtPatches.setText(hSize);
 			txtMultiple.setText(hSize);
 			txtPatches.setEditable(false);
 			txtMultiple.setEditable(false);
 			cmbPatches.setSelectedIndex(1);
-			cmbPatches.setEnabled(false);
 		} else if (hSize.equals("-1") == true && wSize.equals("-1") == false) {
+			cmbPatches.setEnabled(false);
 			txtPatches.setText(wSize);
 			txtMultiple.setText(wSize);
 			txtPatches.setEditable(false);
 			txtMultiple.setEditable(false);
 			cmbPatches.setSelectedIndex(1);
-			cmbPatches.setEnabled(false);
 		} else if (hSize.equals("-1") == false && wSize.equals(hSize) == true) {
+			cmbPatches.setEnabled(false);
 			txtPatches.setText(wSize);
 			txtMultiple.setText(wSize);
 			txtPatches.setEditable(false);
 			txtMultiple.setEditable(false);
 			cmbPatches.setSelectedIndex(1);
-			cmbPatches.setEnabled(false);
 		} else if (hSize.equals("-1") == false && wSize.equals(hSize) == false) {
 			IJ.error("DeepImageJ only supports square patches for the moment.");
 		}
@@ -260,7 +262,9 @@ public class DimensionStamp extends AbstractStamp implements ActionListener {
 	
 	private void setOptimal() {
 		// Set the optimal patch size (only 1 patch) to process the image
-		txtPatches.setText(optimalPatch());
+		if (cmbPatches.isEnabled() == true) {
+			txtPatches.setText(optimalPatch());
+		}
 	}
 
 	@Override

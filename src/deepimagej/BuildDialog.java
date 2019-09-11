@@ -203,7 +203,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 		if (card == 8)
 			test8.init();
 		if (card == 9) 
-			setEnabledBackNext(false);
+			setEnabledBackNext(true);
 
 		bnNext.setText(card == 9 ? "Finish" : "Next");
 	}
