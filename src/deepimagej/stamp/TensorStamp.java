@@ -52,6 +52,7 @@ import javax.swing.JTextField;
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
 import deepimagej.Parameters;
+import deepimagej.TensorFlowModel;
 import deepimagej.components.GridPanel;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.ArrayOperations;
@@ -162,6 +163,15 @@ public class TensorStamp extends AbstractStamp  {
 			IJ.error("Repetition is not allower in input");
 			return false;
 		}
+		if (TensorFlowModel.nBatch(params.inDimensions, params.inputForm[0]).equals("1") == false){
+			IJ.error("The plugin only supports models with batch size (N) = 1");
+			return false;
+		}
+		if (TensorFlowModel.nBatch(params.outDimensions, params.outputForm[0]).equals("1") == false){
+			IJ.error("The plugin only supports models with batch size (N) = 1");
+			return false;
+		}
+		
 		return true;
 	}
 
