@@ -242,6 +242,7 @@ public class DimensionStamp extends AbstractStamp implements ActionListener {
 		}
 		if (imp == null) {
 			patch = "100";
+			return patch;	
 		}
 		int nx = imp.getWidth();
 		int ny = imp.getHeight();
