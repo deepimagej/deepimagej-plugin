@@ -54,6 +54,7 @@ import deepimagej.components.BorderPanel;
 import deepimagej.tools.Log;
 import ij.IJ;
 import ij.ImagePlus;
+import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 
@@ -84,6 +85,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
 		//imp.show();
+		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\New folder (2)\\care_deconvolution_microtubules - Copy\\exampleImage.tiff");
+		if (imp != null)
+			imp.show();
 		new DeepImageJ_Run().run("");
 	}
 
@@ -218,7 +222,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			}
 			texts[0].setEnabled(dp.params.fixedPatch == false);
 			labels[3].setEnabled(dp.params.fixedPatch == false);
-			texts[0].setText("" + dp.params.patch);
+			//texts[0].setText("" + dp.params.patch);
+			texts[0].setText(optimalPatch(dp.params.minimumSize, dp.params.padding, dp.params.fixedPatch));
 			texts[1].setText("" + dp.params.padding);
 		}
 	}
@@ -280,6 +285,37 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			}
 		}
 		thread = null;
+	}
+	
+	public String optimalPatch(String minSizeString, int padding, boolean fixed) {
+		// This method looks for the optimal patch size regarding the
+		// minimum patch constraint and image size. This is then suggested
+		// to the user
+		String patch;
+		ImagePlus imp = null;
+		int minimumSize = Integer.parseInt(minSizeString);
+		if (imp == null) {
+			imp = WindowManager.getCurrentImage();
+		}
+		if (fixed == true || imp == null) {
+			patch = "" + dp.params.patch;
+			return patch;
+		}
+		int nx = imp.getWidth();
+		int ny = imp.getHeight();
+		int maxDim = nx;
+		if (nx < ny) {
+			maxDim = ny;
+		}
+		int optimalMult = (int)Math.ceil((double)(maxDim + 2 * padding) / (double)minimumSize) * minimumSize;
+		if (optimalMult > 3 * maxDim) {
+			optimalMult = optimalMult - minimumSize;
+		}
+		if (optimalMult > 3 * maxDim) {
+			optimalMult = (int)Math.ceil((double)maxDim / (double)minimumSize) * minimumSize;
+		}
+		patch = Integer.toString(optimalMult);
+		return patch;
 	}
 
 }
