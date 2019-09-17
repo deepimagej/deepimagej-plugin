@@ -127,10 +127,16 @@ public class DimensionStamp extends AbstractStamp implements ActionListener {
 	}
 
 	private void updateInterface() {
+		txtMultiple.setEditable(true);
+
 		boolean pad = cmbPadding.getSelectedIndex() == 0;
 		lblPadding.setText(pad ? "Specific padding size" : "Proposed padding size");
 		boolean pat = cmbPatches.getSelectedIndex() == 1;
 		lblPatches.setText(pat ? "Default patch size" : "Predetermined input size");
+		if (pat == true) {
+			txtMultiple.setText("1");
+			txtMultiple.setEditable(false);
+		}
 		if (cmbPatches.isEnabled() == true) {
 			setOptimal();
 		}
