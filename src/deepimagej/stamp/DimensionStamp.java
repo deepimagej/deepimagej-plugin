@@ -213,7 +213,7 @@ public class DimensionStamp extends AbstractStamp implements ActionListener {
 			return false;
 		}
 
-		params.fixedPatch = cmbPatches.getSelectedIndex() == 0;
+		params.fixedPatch = cmbPatches.getSelectedIndex() == 1;
 		params.fixedPadding = cmbPadding.getSelectedIndex() == 0;
 		params.minimumSize = "" + multiple;
 		//int[] overlap_size = ArrayOperations.patchOverlapVerification(patch, params.fixedPatch);
