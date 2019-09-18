@@ -174,6 +174,11 @@ public class DimensionStamp extends AbstractStamp implements ActionListener {
 		} else if (hSize.equals("-1") == false && wSize.equals(hSize) == false) {
 			IJ.error("DeepImageJ only supports square patches for the moment.");
 		}
+		boolean pat = cmbPatches.getSelectedIndex() == 1;
+		if (pat == true) {
+			txtMultiple.setText("1");
+			txtMultiple.setEditable(false);
+		}
 	}
 
 	@Override
