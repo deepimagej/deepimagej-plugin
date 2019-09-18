@@ -223,7 +223,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			texts[0].setEnabled(dp.params.fixedPatch == false);
 			labels[3].setEnabled(dp.params.fixedPatch == false);
 			//texts[0].setText("" + dp.params.patch);
-			texts[0].setText(optimalPatch(dp.params.minimumSize, dp.params.padding, dp.params.fixedPatch));
+			texts[0].setText(optimalPatch(dp));
 			texts[1].setText("" + dp.params.padding);
 		}
 	}
@@ -287,13 +287,16 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		thread = null;
 	}
 	
-	public String optimalPatch(String minSizeString, int padding, boolean fixed) {
+	public String optimalPatch(DeepPlugin dp) {
 		// This method looks for the optimal patch size regarding the
 		// minimum patch constraint and image size. This is then suggested
 		// to the user
+		
 		String patch;
 		ImagePlus imp = null;
-		int minimumSize = Integer.parseInt(minSizeString);
+		int minimumSize = Integer.parseInt(dp.params.minimumSize);
+		boolean fixed = dp.params.fixedPatch;
+		int padding = dp.params.padding;
 		if (imp == null) {
 			imp = WindowManager.getCurrentImage();
 		}
