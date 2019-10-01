@@ -242,6 +242,18 @@ public class XmlUtils {
 			padding.appendChild(document.createTextNode(Integer.toString(params.padding)));
 			modelCharacteristics.appendChild(padding);
 
+			// NAme of the preprocessing file
+			// (child of "ModelCharacteritics")
+			Element preprocessingFile = document.createElement("PreprocessingFile");
+			padding.appendChild(document.createTextNode(params.preprocessingFile));
+			modelCharacteristics.appendChild(preprocessingFile);
+			
+			// Name of the postprocessing file
+			// (child of "ModelCharacteritics")
+			Element postprocessingFile = document.createElement("PostprocessingFile");
+			padding.appendChild(document.createTextNode(params.postprocessingFile));
+			modelCharacteristics.appendChild(postprocessingFile);
+						
 			// Pixel size of the images with which the image was trained
 			// (child of "ModelCharacteritics")
 			Element nSlices = document.createElement("slices");

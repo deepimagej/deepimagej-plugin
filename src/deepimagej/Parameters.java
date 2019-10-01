@@ -113,6 +113,10 @@ public class Parameters {
 	// Set one channel as default
 	public String		channels				= "1";
 
+	// Name if the default pre and post processing files
+	public String postprocessingFile = "preprocessing.txt";
+	public String preprocessingFile = "postprocessing.txt";
+	
 	// This parameter is predefined and unmodifiable as 3d models are still not accepted
 	public String		slices					= "1";
 
@@ -153,7 +157,9 @@ public class Parameters {
 		inDimensions = string2tensorDims(config.get("InputTensorDimensions"));
 		fixedPatch = Boolean.parseBoolean(config.get("FixedPatch") == null ? "true" : config.get("FixedPatch"));
 		patch = Integer.parseInt(config.get("PatchSize")==null ? "-1" : config.get("PatchSize"));
-		fixedPadding = Boolean.parseBoolean(config.get("fixedPadding") == null ? "true" : config.get("fixedPadding"));
+		fixedPadding = Boolean.parseBoolean(config.get("FixedPadding") == null ? "true" : config.get("FixedPadding"));
+		preprocessingFile = config.get("PreprocessingFile");
+		postprocessingFile = config.get("PostprocessingFile");
 		channels = config.get("Channels");// == null ? "1" : config.get("Channels");
 		//slices = Integer.parseInt(config.get("slices"));
 		
@@ -161,7 +167,8 @@ public class Parameters {
 		// present in the config file, if not the model will not be loaded
 		if (nInputs == 0 || nOutputs == 0 || inputs == null || outputs == null || inputForm == null ||
 			inputForm == null || outputForm == null || minimumSize == null || tag == null || graph == null ||
-			padding == -1 || inDimensions == null || patch == -1 || channels == null) {
+			padding == -1 || inDimensions == null || patch == -1 || channels == null
+			|| preprocessingFile == null || postprocessingFile == null) {
 			completeConfig = false;
 		}
 	}
