@@ -245,13 +245,13 @@ public class XmlUtils {
 			// NAme of the preprocessing file
 			// (child of "ModelCharacteritics")
 			Element preprocessingFile = document.createElement("PreprocessingFile");
-			padding.appendChild(document.createTextNode(params.preprocessingFile));
+			preprocessingFile.appendChild(document.createTextNode(params.preprocessingFile));
 			modelCharacteristics.appendChild(preprocessingFile);
 			
 			// Name of the postprocessing file
 			// (child of "ModelCharacteritics")
 			Element postprocessingFile = document.createElement("PostprocessingFile");
-			padding.appendChild(document.createTextNode(params.postprocessingFile));
+			postprocessingFile.appendChild(document.createTextNode(params.postprocessingFile));
 			modelCharacteristics.appendChild(postprocessingFile);
 						
 			// Pixel size of the images with which the image was trained
