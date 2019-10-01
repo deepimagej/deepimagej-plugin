@@ -114,8 +114,8 @@ public class Parameters {
 	public String		channels				= "1";
 
 	// Name if the default pre and post processing files
-	public String postprocessingFile = "preprocessing.txt";
-	public String preprocessingFile = "postprocessing.txt";
+	public String postprocessingFile = "postprocessing.txt";
+	public String preprocessingFile = "preprocessing.txt";
 	
 	// This parameter is predefined and unmodifiable as 3d models are still not accepted
 	public String		slices					= "1";

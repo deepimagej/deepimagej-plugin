@@ -57,9 +57,6 @@ public class Runner implements Callable<ImagePlus> {
 		int ny = imp.getHeight();
 		log.print("image size " + nx + "x" + ny);
 		Parameters params = dp.params;
-		
-		// Set Parameter params.inputSize for config.xml
-		params.inputSize = Integer.toString(nx) + "x" + Integer.toString(ny);
 
 		if (3 * nx < params.patch || 3 * ny < params.patch) {
 			IJ.log("Error patch size is too large " + params.patch);
