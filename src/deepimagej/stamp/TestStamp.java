@@ -63,11 +63,9 @@ import deepimagej.components.HTMLPane;
 import deepimagej.exceptions.IncorrectChannelsNumber;
 import deepimagej.exceptions.MacrosError;
 import deepimagej.tools.Log;
-import deepimagej.tools.NumFormat;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
-import ij.process.ImageProcessor;
 import ij.plugin.Duplicator;
 
 public class TestStamp extends AbstractStamp implements Runnable, ActionListener {
@@ -133,7 +131,6 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		}
 	}
 
-
 	public void test() {
 		Parameters params = parent.getDeepPlugin().params;
 
@@ -156,6 +153,8 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		pnTest.append("Selected input image " + params.testImage.getTitle());
 	
 		try {
+			// Set Parameter params.inputSize for config.xml
+			params.inputSize = Integer.toString(params.testImage.getWidth()) + "x" + Integer.toString(params.testImage.getHeight());
 			params.testImageBackup = new Duplicator().run(params.testImage);
 			params.testImage = runPreprocessingMacro(params.testImage);
 			params.channels = TensorFlowModel.nChannels(params, params.inputForm[0]);
