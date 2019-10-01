@@ -48,8 +48,10 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -65,11 +67,13 @@ import deepimagej.components.BoldLabel;
 import deepimagej.components.CustomizedColumn;
 import deepimagej.components.CustomizedTable;
 import deepimagej.components.HTMLPane;
+import deepimagej.exceptions.MacrosError;
 import deepimagej.tools.FileUtils;
 import deepimagej.tools.Log;
 import deepimagej.tools.WebBrowser;
 import ij.IJ;
 import ij.ImagePlus;
+import ij.WindowManager;
 
 public class ExploreDialog extends JDialog implements Runnable, ActionListener, MouseListener, KeyListener {
 
@@ -82,6 +86,7 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	private JButton						bnApply		= new JButton("Apply");
 	private JButton						bnHelp		= new JButton("Help");
 	private String						path;
+	private String 						image; 
 	private HashMap<String, DeepPlugin>	dps;
 	private BoldLabel					lblName		= new BoldLabel("");
 	private HTMLPane						info		= new HTMLPane("Information");
@@ -202,16 +207,19 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 				return;
 			if (thread != null) 
 				return;
-			String image = path + table.getCell(row, 0) + File.separator + "exampleImage.tiff";
+			image = path + table.getCell(row, 0) + File.separator + "exampleImage.tiff";
 			Log log = new Log();
 			log.print(image);
 			if (new File(image).exists()) {
 				imp = IJ.openImage(image);
 				if (imp != null) {
 					imp.show();
-					thread = new Thread(this);
-					thread.setPriority(Thread.MIN_PRIORITY);
-					thread.start();
+					if (thread == null) {
+						thread = new Thread(this);
+						thread.setPriority(Thread.MIN_PRIORITY);
+						thread.start();
+					}
+					
 				}
 			}
 		}
@@ -220,17 +228,76 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	@Override
 	public void run() {
 		bnApply.setEnabled(false);
+		int runStage = 0;
 		try {
+			String dir = dp.getPath();
+			String m = dir + dp.params.preprocessingFile;
+			if (new File(m).exists()) {
+				log.print("start preprocessing");
+				runMacro(m);
+				log.print("end preprocessing");
+				imp = WindowManager.getCurrentImage();
+			}
+			if (WindowManager.getCurrentWindow() == null) {
+				IJ.error("Something failed in the preprocessing.");
+				thread = null;
+				return;
+			}
+			runStage ++;
+			
+			log.print("start progress");
 			RunnerProgress rp = new RunnerProgress(dp);
-			rp.setVisible(true);
-			Runner runner = new Runner(dp, rp, imp, log);
+			log.print("start runner");
+			Runner runner = new Runner(dp, rp, log);
 			rp.setRunner(runner);
-			ExecutorService executor = Executors.newFixedThreadPool(1);
-			executor.submit(runner);
-			executor.shutdownNow();
-		}
-		catch (Exception e) {
+			ImagePlus out = runner.call();
+			
+			if (out == null) {
+				log.print("Error, output is null");
+				IJ.error("Output is null");
+				thread = null;
+				return;
+			}
+			runStage ++;
+			
+			m = dir + dp.params.postprocessingFile;
+			if (new File(m).exists()) {
+				log.print("start postprocessing");
+				runMacro(m);
+				log.print("end postprocessing");
+				out = WindowManager.getCurrentImage();
+			}
+			log.print("display " + out.getTitle());
+			out.show();
+			out.setSlice(1);
+			out.getProcessor().resetMinAndMax();
+		} catch(MacrosError ex) {
+			if (runStage == 0) {
+				IJ.error("Error applying the preprocessing macro to the image.");
+			} else if (runStage == 2) {
+				IJ.error("Error applying the postprocessing macro to the image.");
+			}
+			thread = null;
+			return;
+		
+		} catch (FileNotFoundException e) {
+			if (runStage == 1) {
+				IJ.error("There was not preprocessing file found.");
+			} else if (runStage == 3) {
+				IJ.error("There was not preprocessing file found.");
+			}
+			thread = null;
+			return;
+		
+		} catch (Exception e) {
 			IJ.error("Runner Exception" + e.getMessage());
+			if (runStage == 0){
+				IJ.error("Error during preprocessing.");
+			} else if (runStage == 1) {
+				IJ.error("Error during the aplication of the model.");
+			} else if (runStage == 2) {
+				IJ.error("Error during postprocessing.");
+			}
 		}
 		bnApply.setEnabled(true);
 		thread = null;
@@ -376,6 +443,18 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 			String row[] = { dp.dirname, size, time };
 			table.append(row);
 		}
+	}
+	
+	public static void runMacro(String macroFile) throws FileNotFoundException, MacrosError {
+		String macro = new Scanner(new File(macroFile)).useDelimiter("\\Z").next();
+		String executionResult = "";
+		executionResult = IJ.runMacro(macro);
+		if (executionResult != null ) {
+			if (executionResult.contentEquals("[aborted]") == true) {
+				throw new MacrosError();
+			}
+		}
+		
 	}
 
 
