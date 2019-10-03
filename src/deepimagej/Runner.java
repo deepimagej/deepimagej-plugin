@@ -107,7 +107,6 @@ public class Runner implements Callable<ImagePlus> {
 		totalPatch = npx * npy;
 
 		int[] padding = ArrayOperations.findAddedPixels(nx, ny, overlap, roi);
-		//ImagePlus mirrorImage = ArrayOperations.createMirroredImage(imp, padding, nx, ny, nChannels);
 		ImagePlus mirrorImage = CompactMirroring.mirrorXY(imp, padding[0], padding[1], padding[2], padding[3]);
 		if (log.getLevel() == 3) {
 			mirrorImage.setTitle("Extended image");
@@ -133,31 +132,31 @@ public class Runner implements Callable<ImagePlus> {
 		
 		// Find where the image starts with respect to the mirrored image
 		int[] start = ArrayOperations.findStartOfRoi(nx, totalRoiX, ny, totalRoiY);
-		
+		/*
 		// Find the needed overlap between patches
 		int[] xOverlap = ArrayOperations.findOverlapRoi(nx, roi, npx);
-		int[] yOverlap = ArrayOperations.findOverlapRoi(ny, roi, npy);
+		int[] yOverlap = ArrayOperations.findOverlapRoi(ny, roi, npy);*/
 		
 
 		int xStartROI = padding[0];
 		int yStartROI = padding[2];
-		
+		/*
 		int roiOverlapXLeft = 0;
 		int roiOverlapXRight = 0;
 		int roiOverlapYTop = 0;
 		int roiOverlapYBottom = 0;
 		int totalOverlapX = 0;
-		int totalOverlapY = 0;
+		int totalOverlapY = 0;*/
 
 		String outputName;
 		log.print("start " + npx + "x" + npy);
 		
 		for (int i = 0; i < npx; i++) {
-			
+			/*
 			roiOverlapXLeft = xOverlap[i];
 			roiOverlapXRight = xOverlap[i + 1];
 			totalOverlapX = totalOverlapX + roiOverlapXLeft;
-			totalOverlapY = 0;
+			totalOverlapY = 0;*/
 			for (int j = 0; j < npy; j++) {
 				
 				currentPatch++;
@@ -166,15 +165,29 @@ public class Runner implements Callable<ImagePlus> {
 					rp.stop();
 					return out;
 				}
-
+				/*
 				roiOverlapYTop = yOverlap[j];
 				roiOverlapYBottom = yOverlap[j + 1];
-				totalOverlapY = totalOverlapY + roiOverlapYTop;
+				totalOverlapY = totalOverlapY + roiOverlapYTop;*/
+				int xStartPatch;
+				int xEndPatch;
+				int yStartPatch;
+				int yEndPatch;
+				if (i < npx -1 || npx == 1) {
+					xStartPatch = padding[0] - start[0] + roi*i;
+					xEndPatch = padding[0] - start[0] + roi*(i + 1);
+				} else {
+					xStartPatch = nx + overlap - roi;
+					xEndPatch = nx + overlap;
+				}
 				
-				int xStartPatch = padding[0] - start[0] + roi*i - totalOverlapX;
-				int xEndPatch = padding[0] - start[0] + roi*(i + 1) - totalOverlapX;
-				int yStartPatch = padding[2] - start[1] + roi*j - totalOverlapY;
-				int yEndPatch = padding[2] - start[1] + roi*(j + 1) - totalOverlapY;
+				if (j < npy - 1 || npy == 1) {
+					yStartPatch = padding[2] - start[1] + roi*j;
+					yEndPatch = padding[2] - start[1] + roi*(j + 1);
+				} else {
+					yStartPatch = ny + overlap - roi;
+					yEndPatch = ny + overlap;
+				}
 				
 				ImagePlus patch = ArrayOperations.extractPatch(mirrorImage, xStartPatch, yStartPatch, roi, overlap, nChannels);
 				log.print("Extract Patch (" + (i + 1) + ", " + (j + 1) + ") patch size: " + patch.getWidth() + "x" + patch.getHeight() + " pixels");
@@ -213,8 +226,7 @@ public class Runner implements Callable<ImagePlus> {
 					out.show();
 				}
 				ArrayOperations.imagePlusReconstructor(out, impatch, xStartPatch, xEndPatch,
-						yStartPatch, yEndPatch, xStartROI, yStartROI, overlap, roiOverlapXLeft,
-						roiOverlapXRight, roiOverlapYTop,roiOverlapYBottom);
+						yStartPatch, yEndPatch, xStartROI, yStartROI, overlap, npx, npy);
 				log.print("Create Output ");
 				if (out != null)
 					out.getProcessor().resetMinAndMax();
