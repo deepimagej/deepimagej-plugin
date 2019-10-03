@@ -137,10 +137,8 @@ public class ArrayOperations {
 	public static void imagePlusReconstructor(ImagePlus fImage, ImagePlus patch,
 											   int xStartPatch, int xEndPatch,
 											   int yStartPatch, int yEndPatch,
-											   int xStartIMage, int yStartImage,
-											   int overlap, int roiOverlapXLeft,
-											   int roiOverlapXRight, int roiOverlapYTop,
-											   int roiOverlapYBottom) {
+											   int xStartImage, int yStartImage,
+											   int overlap, int npx, int npy) {
 		// This method inserts the pixel values of the true part of the patch into its corresponding location
 		// in the image
 		int[] patchDimensions = patch.getDimensions();
@@ -151,46 +149,69 @@ public class ArrayOperations {
 		int fyLength = fImageDimensions[1];
 		ImageProcessor patchIp;
 		ImageProcessor imIp;
+		int xPatchLength = xEndPatch - xStartPatch;
+		int yPatchLength = yEndPatch - yStartPatch;
+		
+		int xPatch = - 1;
+		int yPatch = - 1;
+		int xNewPatch = - 1;
+		int yNewPatch = - 1;
+
+		
+		if (xEndPatch == fxLength + overlap && npx != 1) {
+			xStartPatch = (fxLength / xPatchLength) * xPatchLength + overlap;
+			xNewPatch = xPatchLength - xEndPatch + xStartPatch - 1;
+		}
+		
+		if (yEndPatch == fyLength + overlap && npy != 1) {
+			yStartPatch = (fyLength / yPatchLength) * yPatchLength + overlap;
+			yNewPatch = yPatchLength - yEndPatch + yStartPatch - 1;
+		}
+		
+		if (xPatchLength > fxLength) {
+			// If the roi is bigger than the actual image consider only the area
+			// that corresponds to the image
+			xStartPatch = xStartImage;
+			xEndPatch = xStartPatch + xPatchLength;
+			overlap = xStartImage;
+		}
+		if (yPatchLength > fyLength) {
+			// If the roi is bigger than the actual image consider only the area
+			// that corresponds to the image
+			yStartPatch = yStartImage;
+			yEndPatch = yStartPatch + yPatchLength;
+			overlap = yStartImage;
+		}
+		
 		for (int z = 0; z < slices; z ++) {
 			for (int c = 0; c < channels; c ++) {
 				patch.setPositionWithoutUpdate(c + 1, z + 1, 1);
 				fImage.setPositionWithoutUpdate(c + 1, z + 1, 1);
 				patchIp = patch.getProcessor();
 				imIp = fImage.getProcessor();
-				// The number of false pixels at each side of the part of interest
-				// is the overlap
-				int xStart = overlap;
-				int yStart = overlap;
-				
-				int xEnd = xStart + (xEndPatch - xStartPatch);
-				int yEnd = yStart + (yEndPatch - yStartPatch);
-				
-				int endImageX = xStartIMage + fxLength;
-				int endImageY = yStartImage + fyLength;
-				
-				if (xEndPatch > endImageX) {
-					xEnd = xEnd - (xEndPatch - endImageX);
-				}
-				
-				if (yEndPatch > endImageY) {
-					yEnd = yEnd - (yEndPatch - endImageY);
-				}
 				// The information non affected by 'the edge effect' is the one important to us. 
 				// This is why we only take the center of the patch. The size of this center is 
 				// the size of the patch minus the distorted number of pixels at each side (overlap)
-				int xPatch = xStartPatch - xStartIMage - 1 + (int) Math.ceil((double)(roiOverlapXLeft/2));
-				int yPatch = yStartPatch - yStartImage - 1 + (int) Math.ceil((double)(roiOverlapYTop/2));
-				for (int x = xStart  + (int) Math.ceil((double)(roiOverlapXLeft/2)); x < xEnd - (int) Math.floor((double)(roiOverlapXRight/2)); x ++) {
+				/*int xPatch = xStartPatch - xStartIMage - 1;
+				int yPatch = yStartPatch - yStartImage - 1;*/
+				xPatch = xNewPatch + overlap;
+				yPatch = yNewPatch + overlap;
+				double sum=0;
+				for (int x = xStartPatch; x < xEndPatch; x ++) {
 					xPatch ++;
-					yPatch = yStartPatch - yStartImage - 1 + (int) Math.ceil((double)(roiOverlapYTop/2));
-					for (int y = yStart + (int) Math.ceil((double)(roiOverlapYTop/2)); y < yEnd - (int) Math.floor((double)(roiOverlapYBottom/2)); y ++) {
+					yPatch = yNewPatch + overlap;
+					for (int y = yStartPatch; y < yEndPatch; y ++) {
 						yPatch ++;
-						if (xPatch >= 0 && yPatch >= 0) {
-							imIp.putPixelValue(xPatch, yPatch, (double) patchIp.getPixelValue(x, y));
+						if (xPatch >= xStartImage && yPatch >= yStartImage) {
+							imIp.putPixelValue(x - overlap, y - overlap, (double) patchIp.getPixelValue(xPatch, yPatch));
+						}
+						if (y== 511) {
+							sum = sum + (double) patchIp.getPixelValue(xPatch, yPatch);
 						}
 					}
 				}
 				fImage.setProcessor(imIp);
+				System.out.println("Suma" + sum);
 			}
 		}
 	}
