@@ -46,6 +46,7 @@ import java.awt.event.ItemListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.HashMap;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 import deepimagej.Constants;
@@ -79,9 +80,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	private HashMap<String, String>		fullnames	= new HashMap<String, String>();
 
 	static public void main(String args[]) {
-		// path = System.getProperty("user.home") + File.separator + "Desktop" +
-		// File.separator + "ImageJ" + File.separator + "models" + File.separator;
-		// path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models"+ File.separator;
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		// ImagePlus imp = IJ.openImage(path + "iso_reconstruction" + File.separator +
 		// "exampleImage.tiff");
@@ -386,12 +384,19 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	}
 	
 	public static void runMacro(String macroFile) throws FileNotFoundException, MacrosError {
-		String macro = new Scanner(new File(macroFile)).useDelimiter("\\Z").next();
+		String macro = "";
+		try {
+			macro = new Scanner(new File(macroFile)).useDelimiter("\\Z").next();
+		} catch (NoSuchElementException ex) {
+			macro ="";
+		}
 		String executionResult = "";
-		executionResult = IJ.runMacro(macro);
-		if (executionResult != null ) {
-			if (executionResult.contentEquals("[aborted]") == true) {
-				throw new MacrosError();
+		if (macro.contentEquals("") == false) {
+			executionResult = IJ.runMacro(macro);
+			if (executionResult != null ) {
+				if (executionResult.contentEquals("[aborted]") == true) {
+					throw new MacrosError();
+				}
 			}
 		}
 		
