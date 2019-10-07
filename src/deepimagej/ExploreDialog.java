@@ -51,6 +51,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -446,12 +447,19 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	}
 	
 	public static void runMacro(String macroFile) throws FileNotFoundException, MacrosError {
-		String macro = new Scanner(new File(macroFile)).useDelimiter("\\Z").next();
+		String macro = "";
+		try {
+			macro = new Scanner(new File(macroFile)).useDelimiter("\\Z").next();
+		} catch (NoSuchElementException ex) {
+			macro ="";
+		}
 		String executionResult = "";
-		executionResult = IJ.runMacro(macro);
-		if (executionResult != null ) {
-			if (executionResult.contentEquals("[aborted]") == true) {
-				throw new MacrosError();
+		if (macro.contentEquals("") == false) {
+			executionResult = IJ.runMacro(macro);
+			if (executionResult != null ) {
+				if (executionResult.contentEquals("[aborted]") == true) {
+					throw new MacrosError();
+				}
 			}
 		}
 		
