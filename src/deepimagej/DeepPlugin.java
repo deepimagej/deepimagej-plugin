@@ -112,7 +112,12 @@ public class DeepPlugin {
 				DeepPlugin dp = new DeepPlugin(pathModels + File.separator, name, log, isDeveloper);
 				if (dp.valid && dp.params.completeConfig == true) {
 					list.put(dp.dirname, dp);
+				} else if (dp.valid && dp.params.completeConfig != true) {
+					IJ.error("Model " + dp.dirname + " could not load\n"
+							+ "because its config.xml file did not correspond\n"
+							+ "to this version of the plugin.");
 				}
+				
 			}
 		}
 		return list;
@@ -192,6 +197,8 @@ public class DeepPlugin {
 		File configFile = new File(path + "config.xml");
 		if (!configFile.exists()) {
 			msg.add("No 'config.xml' found in " + path);
+			// TODO Test (8/10/19)
+			valid = false;
 		}
 		return valid;
 	}
