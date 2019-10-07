@@ -106,7 +106,6 @@ public class ArrayOperations {
 			int yi = -1;
 			for (int x = xStart - overlapX; x < xStart - overlapX + sPatch; x++) {
 				xi++;
-				System.out.println(xi);
 				yi = -1;
 				for (int y = yStart - overlapY; y < yStart - overlapY + sPatch; y++) {
 					yi++;
@@ -148,16 +147,12 @@ public class ArrayOperations {
 		int roiX = xImageEndPatch - xImageStartPatch;
 		// Vertical size of the roi
 		int roiY = yImageEndPatch - yImageStartPatch;
-		// The roi is going to be in the center of the patch, so guess the
-		// leftover pixels
-		//int leftoverX = (xSize - roiX) / 2;
-		//int leftoverY = (ySize - roiY) / 2;
 		
-		int xImage = xImageStartPatch - 1;
-		int yImage = yImageStartPatch - 1;
 		
 		for (int z = 0; z < slices; z ++) {
 			for (int c = 0; c < channels; c ++) {
+				int xImage = xImageStartPatch - 1;
+				int yImage = yImageStartPatch - 1;
 				patch.setPositionWithoutUpdate(c + 1, z + 1, 1);
 				fImage.setPositionWithoutUpdate(c + 1, z + 1, 1);
 				patchIp = patch.getProcessor();
@@ -165,22 +160,15 @@ public class ArrayOperations {
 				// The information non affected by 'the edge effect' is the one important to us. 
 				// This is why we only take the center of the patch. The size of this center is 
 				// the size of the patch minus the distorted number of pixels at each side (overlap)
-				/*int xPatch = xStartPatch - xStartIMage - 1;
-				int yPatch = yStartPatch - yStartImage - 1;*/
-				double sum=0;
 				for (int xMirror = leftoverX; xMirror < leftoverX + roiX; xMirror ++) {
 					xImage ++;
 					yImage = yImageStartPatch - 1;
 					for (int yMirror = leftoverY; yMirror < leftoverY + roiY; yMirror ++) {
 						yImage ++;
 						imIp.putPixelValue(xImage, yImage, (double) patchIp.getPixelValue(xMirror, yMirror));
-						if (yImage== 511 && xImage == 511) {
-							sum = sum + (double) patchIp.getPixelValue(xImage, yImage);
-						}
 					}
 				}
 				fImage.setProcessor(imIp);
-				System.out.println("Suma" + sum);
 			}
 		}
 	}
