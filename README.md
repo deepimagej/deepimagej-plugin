@@ -17,6 +17,7 @@ All the resources provided are freely available for noncommercial and research p
 ## References
 Cite the appropriate TensorFlow network which is bundled into DeepImageJ.
 
-E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage, "DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ" submitted 07.08.2019.
+=======
+E. GÃ³mez-de-Mariscal, C. GarcÃ­a-LÃ³pez-de-Haro, L. Donati, M. Unser, A. MuÃ±oz-Barrutia, D. Sage, "DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ" submitted 07.08.2019.
 
 ### Further information: https://deepimagej.github.io/deepimagej
