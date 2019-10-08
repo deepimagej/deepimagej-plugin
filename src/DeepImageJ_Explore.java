@@ -46,7 +46,7 @@ import ij.plugin.PlugIn;
 public class DeepImageJ_Explore extends JDialog implements PlugIn {
 
 	public static void main(String arg[]) {
-		new ExploreDialog(System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "ImageJ" + File.separator + "models" + File.separator);
+		new ExploreDialog("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models" + File.separator);
 	}
 
 	@Override

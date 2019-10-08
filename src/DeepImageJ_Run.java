@@ -44,16 +44,21 @@ import java.awt.TextField;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.HashMap;
+import java.util.NoSuchElementException;
+import java.util.Scanner;
 
 import deepimagej.Constants;
 import deepimagej.DeepPlugin;
 import deepimagej.Runner;
 import deepimagej.RunnerProgress;
 import deepimagej.components.BorderPanel;
+import deepimagej.exceptions.MacrosError;
 import deepimagej.tools.Log;
 import ij.IJ;
 import ij.ImagePlus;
+import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 
@@ -62,7 +67,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	private TextArea					info		= new TextArea("Information on the model", 5, 48, TextArea.SCROLLBARS_VERTICAL_ONLY);
 	private Choice[]					choices		= new Choice[4];
 	private TextField[]					texts		= new TextField[3];
-	private Label[]						labels		= new Label[6];
+	private Label[]						labels		= new Label[10];
 	static private String				path		= IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
 	private Thread						thread		= null;
 	private HashMap<String, DeepPlugin>	dps;
@@ -75,109 +80,128 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	private HashMap<String, String>		fullnames	= new HashMap<String, String>();
 
 	static public void main(String args[]) {
-		// path = System.getProperty("user.home") + File.separator + "Desktop" +
-		// File.separator + "ImageJ" + File.separator + "models" + File.separator;
-		// path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models"+ File.separator;
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		// ImagePlus imp = IJ.openImage(path + "iso_reconstruction" + File.separator +
 		// "exampleImage.tiff");
-		//path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models" + File.separator;
-		ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
-		imp.show();
+		path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models" + File.separator;
+		//ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
+		//imp.show();
+		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\frunet\\exampleImage.tiff");
+		if (imp != null)
+			imp.show();
 		new DeepImageJ_Run().run("");
 	}
 
 	@Override
 	public void run(String arg) {
-
-		boolean isDeveloper = false;
-
-		dps = DeepPlugin.list(path, log, isDeveloper);
-		if (dps.size() == 0) {
-			IJ.error("No available models in " + path);
-			return;
-		}
-		info.setEditable(false);
-
-		BorderPanel panel = new BorderPanel();
-		panel.setLayout(new BorderLayout());
-		panel.add(info, BorderLayout.CENTER);
-
-		GenericDialog dlg = new GenericDialog("DeepImageJ Run [" + Constants.version + "]");
-		String[] items = new String[dps.size() + 1];
-		items[0] = "<select a model from this list>";
-		int k = 1;
-		for (String dirname : dps.keySet()) {
-			DeepPlugin dp = dps.get(dirname);
-			if (dp != null) {
-				String fullname = dp.getName();
-				items[k++] = fullname;
-				fullnames.put(fullname, dirname);
+		
+		if (WindowManager.getCurrentImage() == null) {
+			IJ.error("There should be an image open.");
+		} else {
+			
+			boolean isDeveloper = false;
+	
+			dps = DeepPlugin.list(path, log, isDeveloper);
+			if (dps.size() == 0) {
+				IJ.error("No available models in " + path);
+				return;
 			}
-		}
-
-		dlg.addChoice("Model DeepImageJ", items, items[0]);
-		dlg.addChoice("Preprocessing macro", new String[] { "no preprocessing" }, "no preprocessing");
-		dlg.addChoice("Postprocessing macro", new String[] { "no postprocessing" }, "no postprocessing");
-		dlg.addNumericField("Patch size [pixels]", 128, 0);
-		dlg.addNumericField("Overlap size [pixels]", 16, 0);
-		dlg.addChoice("Logging", new String[] { "mute", "normal", "verbose", "debug" }, "normal");
-		dlg.addHelp(Constants.url);
-		dlg.addPanel(panel);
-
-		int countChoice = 0;
-		int countTextField = 0;
-		int countLabels = 0;
-		for (Component c : dlg.getComponents()) {
-			if (c instanceof Choice) {
-				Choice choice = (Choice) c;
-				if (countChoice == 0)
-					choice.addItemListener(this);
-				choices[countChoice++] = choice;
+			info.setEditable(false);
+	
+			BorderPanel panel = new BorderPanel();
+			panel.setLayout(new BorderLayout());
+			panel.add(info, BorderLayout.CENTER);
+	
+			GenericDialog dlg = new GenericDialog("DeepImageJ Run [" + Constants.version + "]");
+			String[] items = new String[dps.size() + 1];
+			items[0] = "<select a model from this list>";
+			int k = 1;
+			for (String dirname : dps.keySet()) {
+				DeepPlugin dp = dps.get(dirname);
+				if (dp != null) {
+					String fullname = dp.getName();
+					items[k++] = fullname;
+					int index = k - 1;
+					fullnames.put(Integer.toString(index), dirname);
+				}
 			}
-			if (c instanceof TextField) {
-				texts[countTextField++] = (TextField) c;
+	
+			dlg.addChoice("Model DeepImageJ", items, items[0]);
+			dlg.addChoice("Preprocessing macro", new String[] { "no preprocessing" }, "no preprocessing");
+			dlg.addChoice("Postprocessing macro", new String[] { "no postprocessing" }, "no postprocessing");
+			dlg.addMessage("The patch introduced needs to be a multiple "
+						+ "of a given number.");
+			dlg.addMessage("Test conditions:");
+			dlg.addMessage("The model was tested with an image of XXxYY pixels.");
+			dlg.addMessage("The test consumed XXX Mb of the memory.");
+			dlg.addNumericField("Patch size [pixels]", 128, 0);
+			dlg.addNumericField("Overlap size [pixels]", 16, 0);
+			dlg.addChoice("Logging", new String[] { "mute", "normal", "verbose", "debug" }, "normal");
+			dlg.addHelp(Constants.url);
+			dlg.addPanel(panel);
+	
+			int countChoice = 0;
+			int countTextField = 0;
+			int countLabels = 0;
+			for (Component c : dlg.getComponents()) {
+				if (c instanceof Choice) {
+					Choice choice = (Choice) c;
+					if (countChoice == 0)
+						choice.addItemListener(this);
+					choices[countChoice++] = choice;
+				}
+				if (c instanceof TextField) {
+					texts[countTextField++] = (TextField) c;
+				}
+				if (c instanceof Label) {
+					labels[countLabels++] = (Label) c;
+				}
 			}
-			if (c instanceof Label) {
-				labels[countLabels++] = (Label) c;
+			
+			// buttons[0].setEnabled(false);
+			dlg.showDialog();
+			if (dlg.wasCanceled())
+				return;
+			String fullname = dlg.getNextChoice();
+			String index = Integer.toString(choices[0].getSelectedIndex());
+			preprocessingFile = dlg.getNextChoice();
+			postprocessingFile = dlg.getNextChoice();
+			patch = (int) dlg.getNextNumber();
+			overlap = (int) dlg.getNextNumber();
+			int level = dlg.getNextChoiceIndex();
+			log.setLevel(level);
+			log.reset();
+	
+			if (overlap * 3 > patch) {
+				IJ.error("Error: The overlap (" + overlap + ") should be less than 1/3 of the patch size  (" + patch + ")");
+				return;
 			}
-		}
-		// buttons[0].setEnabled(false);
-		dlg.showDialog();
-		if (dlg.wasCanceled())
-			return;
-		String fullname = dlg.getNextChoice();
-		preprocessingFile = dlg.getNextChoice();
-		postprocessingFile = dlg.getNextChoice();
-		patch = (int) dlg.getNextNumber();
-		overlap = (int) dlg.getNextNumber();
-		int level = dlg.getNextChoiceIndex();
-		log.setLevel(level);
-		log.reset();
-
-		if (overlap * 3 > patch) {
-			IJ.error("Error: The overlap (" + overlap + ") should be less than 1/3 of the patch size  (" + patch + ")");
-			return;
-		}
-		String dirname = fullnames.get(fullname);
-		log.print("Load model: " + fullname + "(" + dirname + ")");
-		dp = dps.get(dirname);
-		if (dp.getModel() == null)
-			dp.loadModel();
-		log.print("Load model error: " + (dp.getModel() == null));
-
-		if (dp == null) {
-			IJ.error("No valid model.");
-			return;
-		}
-
-		if (thread == null) {
-			thread = new Thread(this);
-			thread.setPriority(Thread.MIN_PRIORITY);
-			thread.start();
-		}
-		else {
-			IJ.error("No model loaded");
+			String dirname = fullnames.get(index);
+			log.print("Load model: " + fullname + "(" + dirname + ")");
+			dp = dps.get(dirname);
+			if (dp.getModel() == null)
+				dp.loadModel();
+			log.print("Load model error: " + (dp.getModel() == null));
+	
+			if (dp == null) {
+				IJ.error("No valid model.");
+				return;
+			}
+			
+			if (patch % Integer.parseInt(dp.params.minimumSize) != 0) {
+				IJ.error("Patch size should be a multiple of " + dp.params.minimumSize);
+				return;
+			}
+			//addChangeListener(texts[1], e -> optimalPatch(dp));
+	
+			if (thread == null) {
+				thread = new Thread(this);
+				thread.setPriority(Thread.MIN_PRIORITY);
+				thread.start();
+			}
+			else {
+				IJ.error("No model loaded");
+			}
 		}
 	}
 
@@ -185,7 +209,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	public void itemStateChanged(ItemEvent e) {
 		if (e.getSource() == choices[0]) {
 			info.setText("");
-			String fullname = (String) choices[0].getSelectedItem();
+			String fullname = Integer.toString(choices[0].getSelectedIndex());
 			String dirname = fullnames.get(fullname);
 
 			DeepPlugin dp = dps.get(dirname);
@@ -211,9 +235,22 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				for (String p : dp.postprocessing)
 					choices[2].addItem(p);
 			}
+			if (dp.params.fixedPatch) {
+				labels[3].setText("The patch size was fixed by the developer.");
+			} else {
+				labels[3].setText("The patch introduced needs to be a multiple"
+						+ " of " + dp.params.minimumSize + ".");
+			}
+			labels[5].setText("The model was tested with an image of "
+								+ dp.params.inputSize + " pixels.");
+			labels[6].setText("The test consumed " + dp.params.memoryPeak
+					+ " of the memory.");
 			texts[0].setEnabled(dp.params.fixedPatch == false);
-			labels[3].setEnabled(dp.params.fixedPatch == false);
-			texts[0].setText("" + dp.params.patch);
+			labels[7].setEnabled(dp.params.fixedPatch == false);
+			//texts[0].setText("" + dp.params.patch);
+			texts[0].setText(optimalPatch(dp));
+			texts[1].setEnabled(dp.params.fixedPadding == false);
+			labels[8].setEnabled(dp.params.fixedPadding == false);
 			texts[1].setText("" + dp.params.padding);
 		}
 	}
@@ -223,18 +260,24 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		dp.params.padding = overlap;
 		dp.params.patch = patch;
 		String dir = dp.getPath();
-		if (preprocessingFile != null) {
-			if (!preprocessingFile.trim().toLowerCase().startsWith("no")) {
-				String m = dir + preprocessingFile;
-				if (new File(m).exists()) {
-					log.print("start preprocessing");
-					IJ.runMacroFile(m);
-					log.print("end preprocessing");
+		int runStage = 0;
+		try {
+			if (preprocessingFile != null) {
+				if (!preprocessingFile.trim().toLowerCase().startsWith("no")) {
+					String m = dir + preprocessingFile;
+					if (new File(m).exists()) {
+						log.print("start preprocessing");
+						runMacro(m);
+						log.print("end preprocessing");
+					}
 				}
 			}
-		}
-
-		try {
+			if (WindowManager.getCurrentWindow() == null) {
+				IJ.error("Something failed in the preprocessing.");
+				thread = null;
+				return;
+			}
+			runStage ++;
 			log.print("start progress");
 			RunnerProgress rp = new RunnerProgress(dp);
 			log.print("start runner");
@@ -248,12 +291,42 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				thread = null;
 				return;
 			}
+			runStage ++;
+			if (postprocessingFile != null) {
+				if (!postprocessingFile.trim().toLowerCase().startsWith("no")) {
+					String m = dir + postprocessingFile;
+					if (new File(m).exists()) {
+						log.print("start postprocessing");
+						runMacro(m);
+						log.print("end postprocessing");
+						out = WindowManager.getCurrentImage();
+					}
+				}
+			}
 			log.print("display " + out.getTitle());
 			out.show();
 			out.setSlice(1);
 			out.getProcessor().resetMinAndMax();
-		}
-		catch (Exception ex) {
+			
+		} catch(MacrosError ex) {
+			if (runStage == 0) {
+				IJ.error("Error applying the preprocessing macro to the image.");
+			} else if (runStage == 2) {
+				IJ.error("Error applying the postprocessing macro to the image.");
+			}
+			thread = null;
+			return;
+		
+		} catch (FileNotFoundException e) {
+			if (runStage == 0) {
+				IJ.error("There was not preprocessing file found.");
+			} else if (runStage == 2) {
+				IJ.error("There was not preprocessing file found.");
+			}
+			thread = null;
+			return;
+		
+		} catch (Exception ex) {
 			IJ.log("Exception " + ex.toString());
 			for (StackTraceElement ste : ex.getStackTrace()) {
 				IJ.log(ste.getClassName());
@@ -261,20 +334,111 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				IJ.log("line:" + ste.getLineNumber());
 			}
 			IJ.log("Exception " + ex.getMessage());
+			if (runStage == 0){
+				IJ.error("Error during preprocessing.");
+			} else if (runStage == 1) {
+				IJ.error("Error during the aplication of the model.");
+			} else if (runStage == 2) {
+				IJ.error("Error during postprocessing.");
+			}
 			thread = null;
 			return;
 		}
-		if (postprocessingFile != null) {
-			if (!postprocessingFile.trim().toLowerCase().startsWith("no")) {
-				String m = dir + postprocessingFile;
-				if (new File(m).exists()) {
-					log.print("start postprocessing");
-					IJ.runMacroFile(m);
-					log.print("end postprocessing");
+
+		thread = null;
+	}
+	
+	public String optimalPatch(DeepPlugin dp) {
+		// This method looks for the optimal patch size regarding the
+		// minimum patch constraint and image size. This is then suggested
+		// to the user
+		
+		String patch;
+		ImagePlus imp = null;
+		int minimumSize = Integer.parseInt(dp.params.minimumSize);
+		boolean fixed = dp.params.fixedPatch;
+		//int padding = dp.params.padding;
+		int padding = Integer.parseInt(texts[1].getText());
+		if (imp == null) {
+			imp = WindowManager.getCurrentImage();
+		}
+		if (fixed == true || imp == null) {
+			patch = "" + dp.params.patch;
+			return patch;
+		}
+		int nx = imp.getWidth();
+		int ny = imp.getHeight();
+		int maxDim = nx;
+		if (nx < ny) {
+			maxDim = ny;
+		}
+		int optimalMult = (int)Math.ceil((double)(maxDim + 2 * padding) / (double)minimumSize) * minimumSize;
+		if (optimalMult > 3 * maxDim) {
+			optimalMult = optimalMult - minimumSize;
+		}
+		if (optimalMult > 3 * maxDim) {
+			optimalMult = (int)Math.ceil((double)maxDim / (double)minimumSize) * minimumSize;
+		}
+		patch = Integer.toString(optimalMult);
+		return patch;
+	}
+	
+	public static void runMacro(String macroFile) throws FileNotFoundException, MacrosError {
+		String macro = "";
+		try {
+			macro = new Scanner(new File(macroFile)).useDelimiter("\\Z").next();
+		} catch (NoSuchElementException ex) {
+			macro ="";
+		}
+		String executionResult = "";
+		if (macro.contentEquals("") == false) {
+			executionResult = IJ.runMacro(macro);
+			if (executionResult != null ) {
+				if (executionResult.contentEquals("[aborted]") == true) {
+					throw new MacrosError();
 				}
 			}
 		}
-		thread = null;
+		
 	}
+	/*
+	public static void addChangeListener(TextField text, ChangeListener changeListener) {
+		// Method used to "listen" the JTextFields
+	    Objects.requireNonNull(text);
+	    Objects.requireNonNull(changeListener);
+	    DocumentListener dl = new DocumentListener() {
+	        private int lastChange = 0, lastNotifiedChange = 0;
+
+	        @Override
+	        public void insertUpdate(DocumentEvent e) {
+	            changedUpdate(e);
+	        }
+
+	        @Override
+	        public void removeUpdate(DocumentEvent e) {
+	            changedUpdate(e);
+	        }
+
+	        @Override
+	        public void changedUpdate(DocumentEvent e) {
+	            lastChange++;
+	            SwingUtilities.invokeLater(() -> {
+	                if (lastNotifiedChange != lastChange) {
+	                    lastNotifiedChange = lastChange;
+	                    changeListener.stateChanged(new ChangeEvent(text));
+	                }
+	            });
+	        }
+	    };
+	    text.addPropertyChangeListener("document", (PropertyChangeEvent e) -> {
+	        Document d1 = (Document)e.getOldValue();
+	        Document d2 = (Document)e.getNewValue();
+	        if (d1 != null) d1.removeDocumentListener(dl);
+	        if (d2 != null) d2.addDocumentListener(dl);
+	        dl.changedUpdate(null);
+	    });
+	    Document d = (Document) text.getParent();
+	    if (d != null) d.addDocumentListener(dl);
+	}*/
 
 }

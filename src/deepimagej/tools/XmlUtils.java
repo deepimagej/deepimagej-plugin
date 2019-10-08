@@ -59,7 +59,8 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import deepimagej.DeepPlugin;
-import deepimagej.Parameters;;
+import deepimagej.Parameters;
+import deepimagej.TensorFlowModel;;
 
 public class XmlUtils {
 
@@ -152,16 +153,16 @@ public class XmlUtils {
 			Element modelCharacteristics = document.createElement("ModelCharacteristics");
 			root.appendChild(modelCharacteristics);
 
-			// Model tag (child of "ModelCharacteritics"). noramlly it will
+			// Model tag (child of "ModelCharacteritics"). Normally it will
 			// be "serve"
 			Element modelTag = document.createElement("ModelTag");
-			modelTag.appendChild(document.createTextNode(params.tag));
+			modelTag.appendChild(document.createTextNode(TensorFlowModel.returnTfTag(params.tag)));
 			modelCharacteristics.appendChild(modelTag);
 
 			// Signature Definition of the model (child of "ModelCharacteritics")
 			// Normally "serving_default"
 			Element sigDef = document.createElement("SignatureDefinition");
-			sigDef.appendChild(document.createTextNode(params.graph));
+			sigDef.appendChild(document.createTextNode(TensorFlowModel.returnTfSig(params.graph)));
 			modelCharacteristics.appendChild(sigDef);
 
 			// Dimensions of the input tensor (child of "ModelCharacteritics")
@@ -241,6 +242,18 @@ public class XmlUtils {
 			padding.appendChild(document.createTextNode(Integer.toString(params.padding)));
 			modelCharacteristics.appendChild(padding);
 
+			// NAme of the preprocessing file
+			// (child of "ModelCharacteritics")
+			Element preprocessingFile = document.createElement("PreprocessingFile");
+			preprocessingFile.appendChild(document.createTextNode(params.preprocessingFile));
+			modelCharacteristics.appendChild(preprocessingFile);
+			
+			// Name of the postprocessing file
+			// (child of "ModelCharacteritics")
+			Element postprocessingFile = document.createElement("PostprocessingFile");
+			postprocessingFile.appendChild(document.createTextNode(params.postprocessingFile));
+			modelCharacteristics.appendChild(postprocessingFile);
+						
 			// Pixel size of the images with which the image was trained
 			// (child of "ModelCharacteritics")
 			Element nSlices = document.createElement("slices");

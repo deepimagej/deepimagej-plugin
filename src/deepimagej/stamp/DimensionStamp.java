@@ -40,6 +40,8 @@ package deepimagej.stamp;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.beans.PropertyChangeEvent;
+import java.util.Objects;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -47,15 +49,24 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.Document;
 
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
 import deepimagej.Parameters;
+import deepimagej.TensorFlowModel;
 import deepimagej.components.GridPanel;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.Index;
 import ij.IJ;
+import ij.ImagePlus;
+import ij.WindowManager;
 
 public class DimensionStamp extends AbstractStamp implements ActionListener {
 
@@ -85,14 +96,14 @@ public class DimensionStamp extends AbstractStamp implements ActionListener {
 		//cmbPatches.setPreferredSize(new Dimension(Constants.width/2, 25));
 		//cmbPadding.setPreferredSize(new Dimension(Constants.width/2, 25));
 		GridPanel pnPatches = new GridPanel(true);
-		pnPatches.place(0, 0, 2, 1, cmbPatches);
-		pnPatches.place(1, 0, lblPatches);
-		pnPatches.place(1, 1, txtPatches);
-		pnPatches.place(2, 0, 2, 1, cmbPadding);
-		pnPatches.place(3, 0, lblPadding);
-		pnPatches.place(3, 1, txtPadding);
-		pnPatches.place(4, 0, lblMultiple);
-		pnPatches.place(4, 1, txtMultiple);
+		pnPatches.place(0, 0, lblMultiple);
+		pnPatches.place(0, 1, txtMultiple);
+		pnPatches.place(1, 0, 2, 1, cmbPadding);
+		pnPatches.place(2, 0, lblPadding);
+		pnPatches.place(2, 1, txtPadding);
+		pnPatches.place(3, 0, 2, 1, cmbPatches);
+		pnPatches.place(4, 0, lblPatches);
+		pnPatches.place(4, 1, txtPatches);
 
 		JPanel information = new JPanel();
 		information.setLayout(new GridLayout(2, 1));
@@ -110,18 +121,64 @@ public class DimensionStamp extends AbstractStamp implements ActionListener {
 		
 		cmbPadding.addActionListener(this);
 		cmbPatches.addActionListener(this);
+		addChangeListener(txtMultiple, e -> setOptimal());
+		addChangeListener(txtPadding, e -> setOptimal());
 		updateInterface();
 	}
 
 	private void updateInterface() {
+		txtMultiple.setEditable(true);
+
 		boolean pad = cmbPadding.getSelectedIndex() == 0;
 		lblPadding.setText(pad ? "Specific padding size" : "Proposed padding size");
 		boolean pat = cmbPatches.getSelectedIndex() == 1;
 		lblPatches.setText(pat ? "Default patch size" : "Predetermined input size");
+		if (pat == true) {
+			txtMultiple.setText("1");
+			txtMultiple.setEditable(false);
+		}
+		if (cmbPatches.isEnabled() == true) {
+			setOptimal();
+		}
 	}
 	
 	@Override
 	public void init() {
+		txtPatches.setEditable(true);
+		txtMultiple.setEditable(true);
+		cmbPatches.setEnabled(true);
+		Parameters params = parent.getDeepPlugin().params;
+		String hSize = TensorFlowModel.hSize(params, params.inputForm[0]);
+		String wSize = TensorFlowModel.wSize(params, params.inputForm[0]);
+		if (hSize.equals("-1") == false && wSize.equals("-1") == true) {
+			cmbPatches.setEnabled(false);
+			txtPatches.setText(hSize);
+			txtMultiple.setText(hSize);
+			txtPatches.setEditable(false);
+			txtMultiple.setEditable(false);
+			cmbPatches.setSelectedIndex(1);
+		} else if (hSize.equals("-1") == true && wSize.equals("-1") == false) {
+			cmbPatches.setEnabled(false);
+			txtPatches.setText(wSize);
+			txtMultiple.setText(wSize);
+			txtPatches.setEditable(false);
+			txtMultiple.setEditable(false);
+			cmbPatches.setSelectedIndex(1);
+		} else if (hSize.equals("-1") == false && wSize.equals(hSize) == true) {
+			cmbPatches.setEnabled(false);
+			txtPatches.setText(wSize);
+			txtMultiple.setText(wSize);
+			txtPatches.setEditable(false);
+			txtMultiple.setEditable(false);
+			cmbPatches.setSelectedIndex(1);
+		} else if (hSize.equals("-1") == false && wSize.equals(hSize) == false) {
+			IJ.error("DeepImageJ only supports square patches for the moment.");
+		}
+		boolean pat = cmbPatches.getSelectedIndex() == 1;
+		if (pat == true) {
+			txtMultiple.setText("1");
+			txtMultiple.setEditable(false);
+		}
 	}
 
 	@Override
@@ -149,7 +206,7 @@ public class DimensionStamp extends AbstractStamp implements ActionListener {
 			IJ.error("The padding size is not a correct integer");
 			return false;
 		}
-		if (padding <= 0) {
+		if (padding < 0) {
 			IJ.error("The padding size should be larger than 0");
 			return false;
 		}
@@ -162,23 +219,109 @@ public class DimensionStamp extends AbstractStamp implements ActionListener {
 			IJ.error("The multiple factor size is not a correct integer");
 			return false;
 		}
-		if (padding <= 0) {
+		if (multiple <= 0) {
 			IJ.error("The multiple factor size should be larger than 0");
 			return false;
 		}
 
-		params.fixedPatch = cmbPatches.getSelectedIndex() == 0;
+		params.fixedPatch = cmbPatches.getSelectedIndex() == 1;
 		params.fixedPadding = cmbPadding.getSelectedIndex() == 0;
 		params.minimumSize = "" + multiple;
-		int[] overlap_size = ArrayOperations.patchOverlapVerification(patch, params.fixedPatch);
-		params.patch = overlap_size[0];
-		params.padding = overlap_size[1];
+		//int[] overlap_size = ArrayOperations.patchOverlapVerification(patch, params.fixedPatch);
+		params.patch = patch;
+		params.padding = padding;
+		
+		if (patch%multiple != 0) {
+			IJ.error(params.patch + " is not a multiple of "
+					+ params.minimumSize);
+			return false;
+		}
+		
 		return true;
+	}
+	
+	public String optimalPatch() {
+		// This method looks for the optimal patch size regarding the
+		// minimum patch constraint and image size. This is then suggested
+		// to the user
+		ImagePlus imp = null;
+		String patch;
+		int minimumSize = Integer.parseInt(txtMultiple.getText());
+		int padding = Integer.parseInt(txtPadding.getText());
+		if (imp == null) {
+			imp = WindowManager.getCurrentImage();
+		}
+		if (imp == null) {
+			patch = "100";
+			return patch;	
+		}
+		int nx = imp.getWidth();
+		int ny = imp.getHeight();
+		int maxDim = nx;
+		if (nx < ny) {
+			maxDim = ny;
+		}
+		int optimalMult = (int)Math.ceil((double)(maxDim + 2 * padding) / (double)minimumSize) * minimumSize;
+		if (optimalMult > 3 * maxDim) {
+			optimalMult = optimalMult - minimumSize;
+		}
+		if (optimalMult > 3 * maxDim) {
+			optimalMult = (int)Math.ceil((double)maxDim / (double)minimumSize) * minimumSize;
+		}
+		patch = Integer.toString(optimalMult);
+		return patch;
+	}
+	
+	private void setOptimal() {
+		// Set the optimal patch size (only 1 patch) to process the image
+		if (cmbPatches.isEnabled() == true) {
+			txtPatches.setText(optimalPatch());
+		}
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		updateInterface();
+	}
+
+
+	public static void addChangeListener(JTextField text, ChangeListener changeListener) {
+		// Method used to "listen" the JTextFields
+	    Objects.requireNonNull(text);
+	    Objects.requireNonNull(changeListener);
+	    DocumentListener dl = new DocumentListener() {
+	        private int lastChange = 0, lastNotifiedChange = 0;
+
+	        @Override
+	        public void insertUpdate(DocumentEvent e) {
+	            changedUpdate(e);
+	        }
+
+	        @Override
+	        public void removeUpdate(DocumentEvent e) {
+	            changedUpdate(e);
+	        }
+
+	        @Override
+	        public void changedUpdate(DocumentEvent e) {
+	            lastChange++;
+	            SwingUtilities.invokeLater(() -> {
+	                if (lastNotifiedChange != lastChange) {
+	                    lastNotifiedChange = lastChange;
+	                    changeListener.stateChanged(new ChangeEvent(text));
+	                }
+	            });
+	        }
+	    };
+	    text.addPropertyChangeListener("document", (PropertyChangeEvent e) -> {
+	        Document d1 = (Document)e.getOldValue();
+	        Document d2 = (Document)e.getNewValue();
+	        if (d1 != null) d1.removeDocumentListener(dl);
+	        if (d2 != null) d2.addDocumentListener(dl);
+	        dl.changedUpdate(null);
+	    });
+	    Document d = text.getDocument();
+	    if (d != null) d.addDocumentListener(dl);
 	}
 
 }

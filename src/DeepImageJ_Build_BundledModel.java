@@ -49,7 +49,7 @@ public class DeepImageJ_Build_BundledModel implements PlugIn {
 	}
 
 	public static void main(String args[]) {
-		ImagePlus imp = IJ.openImage("/Users/dsage/Google Drive/ImageJ/models/care_isotropic_reconstruction/exampleImage.tiff");
+		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\New folder (2)\\care_deconvolution_microtubules - Copy\\exampleImage.tiff");
 		if (imp != null)
 			imp.show();
 		new ImageJ();

@@ -110,9 +110,14 @@ public class DeepPlugin {
 			if (dir.isDirectory()) {
 				String name = dir.getName();
 				DeepPlugin dp = new DeepPlugin(pathModels + File.separator, name, log, isDeveloper);
-				if (dp.valid) {
+				if (dp.valid && dp.params.completeConfig == true) {
 					list.put(dp.dirname, dp);
+				} else if (dp.valid && dp.params.completeConfig != true) {
+					IJ.error("Model " + dp.dirname + " could not load\n"
+							+ "because its config.xml file did not correspond\n"
+							+ "to this version of the plugin.");
 				}
+				
 			}
 		}
 		return list;
@@ -134,7 +139,7 @@ public class DeepPlugin {
 		double chrono = System.nanoTime();
 		SavedModelBundle model;
 		try {
-			model = SavedModelBundle.load(path, params.tag);
+			model = SavedModelBundle.load(path, TensorFlowModel.returnStringTag(params.tag));
 			setModel(model);
 		}
 		catch (Exception e) {
@@ -192,6 +197,8 @@ public class DeepPlugin {
 		File configFile = new File(path + "config.xml");
 		if (!configFile.exists()) {
 			msg.add("No 'config.xml' found in " + path);
+			// TODO Test (8/10/19)
+			valid = false;
 		}
 		return valid;
 	}
