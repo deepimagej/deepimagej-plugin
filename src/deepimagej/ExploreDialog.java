@@ -114,7 +114,8 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 		columns.add(new CustomizedColumn("Name", String.class, 100, false));
 		columns.add(new CustomizedColumn("Model", String.class, 100, false));
 		columns.add(new CustomizedColumn("Loading time", String.class, 40, false));
-		table = new CustomizedTable(columns, true);
+		// TODO allow re-sorting of rows 
+		table = new CustomizedTable(columns, false);
 		modelTable = new CustomizedTable(new String[] { "Feature", "Value" }, true);
 
 		JPanel buttons1 = new JPanel(new GridLayout(1, 3));
