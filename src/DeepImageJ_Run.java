@@ -132,7 +132,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			dlg.addMessage("The patch introduced needs to be a multiple "
 						+ "of a given number.");
 			dlg.addMessage("Test conditions:");
-			dlg.addMessage("The model was tested with an image of XXxYY pixels.");
+			dlg.addMessage("Model was tested with "
+					+ dp.params.inputSize + " image of " + dp.params.pixelSize + " pixel size.");
 			dlg.addMessage("The test consumed XXX Mb of the memory.");
 			dlg.addNumericField("Patch size [pixels]", 128, 0);
 			dlg.addNumericField("Overlap size [pixels]", 16, 0);
@@ -241,8 +242,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				labels[3].setText("The patch introduced needs to be a multiple"
 						+ " of " + dp.params.minimumSize + ".");
 			}
-			labels[5].setText("The model was tested with an image of "
-								+ dp.params.inputSize + " pixels.");
+			labels[5].setText("Model was tested with "
+					+ dp.params.inputSize + " image of " + dp.params.pixelSize + " pixel size.");
 			labels[6].setText("The test consumed " + dp.params.memoryPeak
 					+ " of the memory.");
 			texts[0].setEnabled(dp.params.fixedPatch == false);
