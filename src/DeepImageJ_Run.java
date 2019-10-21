@@ -132,8 +132,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			dlg.addMessage("The patch introduced needs to be a multiple "
 						+ "of a given number.");
 			dlg.addMessage("Test conditions:");
-			dlg.addMessage("Model was tested with "
-					+ dp.params.inputSize + " image of " + dp.params.pixelSize + " pixel size.");
+			dlg.addMessage("Model was tested with a XXxYY image of " 
+			+ "XxY pixel size.");
 			dlg.addMessage("The test consumed XXX Mb of the memory.");
 			dlg.addNumericField("Patch size [pixels]", 128, 0);
 			dlg.addNumericField("Overlap size [pixels]", 16, 0);
