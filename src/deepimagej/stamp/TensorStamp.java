@@ -76,7 +76,10 @@ public class TensorStamp extends AbstractStamp  {
 	public void buildPanel() {
 		HTMLPane info = new HTMLPane(Constants.width, 60);
 		info.append("h2", "Tensor Organization");
-		info.append("p", "more help to provide.");
+		info.append("p", "Each dimension of input and output tensors must"
+				+ " be specified so the image is processed correctly, i.e. "
+				+ "the first dimension of the input tensor corresponds to the batch size, "
+				+ "the second dimension to the width and so on.");
 		for (int i = 0; i < in.length; i++) {
 			cmbIn[i] = new JComboBox<String>(in);
 			cmbIn[i].setSelectedIndex(i);
