@@ -114,6 +114,12 @@ public class FileUtils {
 		if (!sourceFile.exists()) {
 			return;
 		}
+		// If we are trying to copy a file into itself, do nothing
+		//i.e, the sorce file and the destination are the same
+		if (sourceFile.getAbsolutePath().equals(destFile.getAbsolutePath())) {
+			return;
+		}
+		
 		if (!destFile.exists()) {
 			destFile.createNewFile();
 		}
