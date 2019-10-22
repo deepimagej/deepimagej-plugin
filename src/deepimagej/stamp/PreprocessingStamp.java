@@ -53,7 +53,7 @@ import javax.swing.JTextArea;
 
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
-import deepimagej.DeepPlugin;
+import deepimagej.DeepImageJ;
 import deepimagej.components.HTMLPane;
 
 public class PreprocessingStamp extends AbstractStamp implements ActionListener {

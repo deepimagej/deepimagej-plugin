@@ -58,13 +58,13 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import deepimagej.DeepPlugin;
+import deepimagej.DeepImageJ;
 import deepimagej.Parameters;
 import deepimagej.TensorFlowModel;;
 
 public class XmlUtils {
 
-	public static void writeXml(String filename, DeepPlugin dp) {
+	public static void writeXml(String filename, DeepImageJ dp) {
 
 		try {
 			Parameters params = dp.params;

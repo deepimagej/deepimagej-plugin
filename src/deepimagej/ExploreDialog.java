@@ -88,13 +88,13 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	private JButton						bnHelp		= new JButton("Help");
 	private String						path;
 	private String 						image; 
-	private HashMap<String, DeepPlugin>	dps;
+	private HashMap<String, DeepImageJ>	dps;
 	private BoldLabel					lblName		= new BoldLabel("");
 	private HTMLPane						info		= new HTMLPane("Information");
 	private Thread						thread		= null;
 	private Log log = new Log();
 	private	ImagePlus	imp;
-	private DeepPlugin	dp;
+	private DeepImageJ	dp;
 	
 	public ExploreDialog(String path) {
 		super(new JFrame(), "DeepImageJ Explore [" + Constants.version + "]");
@@ -162,11 +162,9 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	}
 
 	private void load() {
-		// TODO added by Carlos to be consecuent with the new
-		// DeepPlugin constructor
 		boolean isDeveloper = false;
 		table.removeRows();
-		dps = DeepPlugin.list(path, log, isDeveloper);
+		dps = DeepImageJ.list(path, log, isDeveloper);
 		ArrayList<LoadThreaded> loaders = new ArrayList<LoadThreaded>();
 		for (String name : dps.keySet())
 			loaders.add(new LoadThreaded(name, dps.get(name), table));
@@ -359,7 +357,7 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 			modelTable.append(new String[] { "DeepPlugins", "Error" });
 			return;
 		}
-		DeepPlugin dp = dps.get(name);
+		DeepImageJ dp = dps.get(name);
 		if (dp == null) {
 			modelTable.append(new String[] { "DeepPlugins", "Error" });
 			return;
@@ -427,10 +425,10 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	public class LoadThreaded implements Runnable {
 
 		private String			name;
-		private DeepPlugin		dp;
+		private DeepImageJ		dp;
 		private CustomizedTable	table;
 
-		public LoadThreaded(String name, DeepPlugin dp, CustomizedTable table) {
+		public LoadThreaded(String name, DeepImageJ dp, CustomizedTable table) {
 			this.name = name;
 			this.dp = dp;
 			this.table = table;

@@ -83,7 +83,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 	private PreprocessingStamp	preproc;
 	private TestStamp			test8;
 	private SaveStamp			save;
-	private DeepPlugin			dp;
+	private DeepImageJ			dp;
 	private int					card	= 1;
 
 	public BuildDialog() {
@@ -154,7 +154,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 					String path = welcome.getModelDir();
 					String name = welcome.getModelName();
 					if (path != null) {
-						dp = new DeepPlugin(path, name, new Log(), true);
+						dp = new DeepImageJ(path, name, new Log(), true);
 						if (dp != null) {
 							dp.params.path2Model = path + File.separator + name + File.separator;
 							setEnabledBackNext(false);
@@ -230,7 +230,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 		bnNext.setText("Next");
 	}
 	
-	public DeepPlugin getDeepPlugin() {
+	public DeepImageJ getDeepPlugin() {
 		return dp;
 	}
 }

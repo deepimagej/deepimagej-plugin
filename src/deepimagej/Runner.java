@@ -58,13 +58,13 @@ import ij.plugin.ChannelSplitter;
 public class Runner implements Callable<ImagePlus> {
 
 	private ImagePlus		imp;
-	private DeepPlugin		dp;
+	private DeepImageJ		dp;
 	private RunnerProgress	rp;
 	private Log				log;
 	private int				currentPatch = 0;
 	private int				totalPatch = 0;
 
-	public Runner(DeepPlugin dp, RunnerProgress rp, ImagePlus imp, Log log) {
+	public Runner(DeepImageJ dp, RunnerProgress rp, ImagePlus imp, Log log) {
 		this.dp = dp;
 		this.rp = rp;
 		this.log = log;
@@ -72,7 +72,7 @@ public class Runner implements Callable<ImagePlus> {
 		log.print("constructor runner");
 	}
 
-	public Runner(DeepPlugin dp, RunnerProgress rp, Log log) {
+	public Runner(DeepImageJ dp, RunnerProgress rp, Log log) {
 		this.dp = dp;
 		this.rp = rp;
 		this.log = log;

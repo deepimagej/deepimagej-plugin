@@ -50,7 +50,7 @@ import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 import deepimagej.Constants;
-import deepimagej.DeepPlugin;
+import deepimagej.DeepImageJ;
 import deepimagej.Runner;
 import deepimagej.RunnerProgress;
 import deepimagej.components.BorderPanel;
@@ -70,13 +70,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	private Label[]						labels		= new Label[10];
 	static private String				path		= IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
 	private Thread						thread		= null;
-	private HashMap<String, DeepPlugin>	dps;
+	private HashMap<String, DeepImageJ>	dps;
 	private String						preprocessingFile;
 	private String						postprocessingFile;
 	private Log							log			= new Log();
 	private int							patch;
 	private int							overlap;
-	private DeepPlugin					dp;
+	private DeepImageJ					dp;
 	private HashMap<String, String>		fullnames	= new HashMap<String, String>();
 
 	static public void main(String args[]) {
@@ -101,7 +101,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			
 			boolean isDeveloper = false;
 	
-			dps = DeepPlugin.list(path, log, isDeveloper);
+			dps = DeepImageJ.list(path, log, isDeveloper);
 			if (dps.size() == 0) {
 				IJ.error("No available models in " + path);
 				return;
@@ -117,7 +117,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			items[0] = "<select a model from this list>";
 			int k = 1;
 			for (String dirname : dps.keySet()) {
-				DeepPlugin dp = dps.get(dirname);
+				DeepImageJ dp = dps.get(dirname);
 				if (dp != null) {
 					String fullname = dp.getName();
 					items[k++] = fullname;
@@ -213,7 +213,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			String fullname = Integer.toString(choices[0].getSelectedIndex());
 			String dirname = fullnames.get(fullname);
 
-			DeepPlugin dp = dps.get(dirname);
+			DeepImageJ dp = dps.get(dirname);
 			if (dp == null)
 				return;
 			for (String msg : dp.msgChecks)
@@ -349,7 +349,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		thread = null;
 	}
 	
-	public String optimalPatch(DeepPlugin dp) {
+	public String optimalPatch(DeepImageJ dp) {
 		// This method looks for the optimal patch size regarding the
 		// minimum patch constraint and image size. This is then suggested
 		// to the user

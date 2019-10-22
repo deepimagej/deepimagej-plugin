@@ -63,7 +63,7 @@ import javax.swing.JTextField;
 
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
-import deepimagej.DeepPlugin;
+import deepimagej.DeepImageJ;
 import deepimagej.Parameters;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.FileUtils;
@@ -86,7 +86,7 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 		pane = new HTMLPane(Constants.width, 320);
 		pane.setBorder(BorderFactory.createEtchedBorder());
 		pane.append("h2", "Saving Bundled Model");
-		DeepPlugin dp = parent.getDeepPlugin();
+		DeepImageJ dp = parent.getDeepPlugin();
 
 		if (dp != null)
 			if (dp.params != null)
@@ -150,7 +150,7 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 	}
 	@Override
 	public void run() {
-		DeepPlugin dp = parent.getDeepPlugin();
+		DeepImageJ dp = parent.getDeepPlugin();
 		Parameters params = dp.params;
 		params.saveDir = txt.getText() + File.separator;
 		File dir = new File(params.saveDir);

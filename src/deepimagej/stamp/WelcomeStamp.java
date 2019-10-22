@@ -62,7 +62,7 @@ import javax.swing.JTextField;
 
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
-import deepimagej.DeepPlugin;
+import deepimagej.DeepImageJ;
 import deepimagej.components.HTMLPane;
 import ij.IJ;
 

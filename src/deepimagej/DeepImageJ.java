@@ -53,7 +53,7 @@ import deepimagej.tools.Log;
 import ij.IJ;
 import ij.ImagePlus;
 
-public class DeepPlugin {
+public class DeepImageJ {
 
 	private String				path;
 	private Log 					log;
@@ -67,7 +67,7 @@ public class DeepPlugin {
 	public ArrayList<String>		preprocessing	= new ArrayList<String>();
 	public ArrayList<String>		postprocessing	= new ArrayList<String>();
 	
-	public DeepPlugin(String pathModel, String dirname, Log log, boolean isDeveloper) {
+	public DeepImageJ(String pathModel, String dirname, Log log, boolean isDeveloper) {
 		String p = pathModel + File.separator + dirname + File.separator;
 		this.path = p.replace("//", "/");
 		this.log = log;
@@ -98,8 +98,8 @@ public class DeepPlugin {
 		return this.valid;
 	}
 	
-	static public HashMap<String, DeepPlugin> list(String pathModels, Log log, boolean isDeveloper) {
-		HashMap<String, DeepPlugin> list = new HashMap<String, DeepPlugin>();
+	static public HashMap<String, DeepImageJ> list(String pathModels, Log log, boolean isDeveloper) {
+		HashMap<String, DeepImageJ> list = new HashMap<String, DeepImageJ>();
 		File models = new File(pathModels);
 		File[] dirs = models.listFiles();
 		if (dirs == null) {
@@ -109,7 +109,7 @@ public class DeepPlugin {
 		for (File dir : dirs) {
 			if (dir.isDirectory()) {
 				String name = dir.getName();
-				DeepPlugin dp = new DeepPlugin(pathModels + File.separator, name, log, isDeveloper);
+				DeepImageJ dp = new DeepImageJ(pathModels + File.separator, name, log, isDeveloper);
 				if (dp.valid && dp.params.completeConfig == true) {
 					list.put(dp.dirname, dp);
 				} else if (dp.valid && dp.params.completeConfig != true) {
