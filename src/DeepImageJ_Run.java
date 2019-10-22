@@ -402,44 +402,5 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		}
 		
 	}
-	/*
-	public static void addChangeListener(TextField text, ChangeListener changeListener) {
-		// Method used to "listen" the JTextFields
-	    Objects.requireNonNull(text);
-	    Objects.requireNonNull(changeListener);
-	    DocumentListener dl = new DocumentListener() {
-	        private int lastChange = 0, lastNotifiedChange = 0;
-
-	        @Override
-	        public void insertUpdate(DocumentEvent e) {
-	            changedUpdate(e);
-	        }
-
-	        @Override
-	        public void removeUpdate(DocumentEvent e) {
-	            changedUpdate(e);
-	        }
-
-	        @Override
-	        public void changedUpdate(DocumentEvent e) {
-	            lastChange++;
-	            SwingUtilities.invokeLater(() -> {
-	                if (lastNotifiedChange != lastChange) {
-	                    lastNotifiedChange = lastChange;
-	                    changeListener.stateChanged(new ChangeEvent(text));
-	                }
-	            });
-	        }
-	    };
-	    text.addPropertyChangeListener("document", (PropertyChangeEvent e) -> {
-	        Document d1 = (Document)e.getOldValue();
-	        Document d2 = (Document)e.getNewValue();
-	        if (d1 != null) d1.removeDocumentListener(dl);
-	        if (d2 != null) d2.addDocumentListener(dl);
-	        dl.changedUpdate(null);
-	    });
-	    Document d = (Document) text.getParent();
-	    if (d != null) d.addDocumentListener(dl);
-	}*/
 
 }
