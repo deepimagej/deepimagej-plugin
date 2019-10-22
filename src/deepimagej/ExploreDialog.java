@@ -221,6 +221,9 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 					}
 					
 				}
+			} else {
+				IJ.error("The DeepImageJ model is incomplete.\n"
+						+ "It is missing an the 'exampleImage.tiff'.");
 			}
 		}
 	}
