@@ -117,6 +117,8 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 			}
 		}
 		bnTest.setEnabled(parent.getDeepPlugin() != null);
+		Parameters params = parent.getDeepPlugin().params;
+		params.testImageBackup = WindowManager.getCurrentImage();
 	}
 
 	@Override

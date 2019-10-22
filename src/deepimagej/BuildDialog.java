@@ -61,6 +61,9 @@ import deepimagej.stamp.TestStamp;
 import deepimagej.stamp.WelcomeStamp;
 import deepimagej.tools.Log;
 import deepimagej.tools.WebBrowser;
+import ij.IJ;
+import ij.ImagePlus;
+import ij.WindowManager;
 import ij.gui.GUI;
 
 public class BuildDialog extends JDialog implements ActionListener {
@@ -177,7 +180,15 @@ public class BuildDialog extends JDialog implements ActionListener {
 				break;
 			case 7:
 				card = postproc.finish() ? card+1 : card;
+				ImagePlus imp = null;
+				imp = WindowManager.getCurrentImage();
+				if (imp == null) {
+					IJ.error("You need to open an image.");
+					card --;
+				}
 				break;
+			case 9:
+				dispose();
 			default:
 				card = Math.min(9, card + 1);
 			}

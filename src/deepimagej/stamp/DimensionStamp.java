@@ -179,6 +179,7 @@ public class DimensionStamp extends AbstractStamp implements ActionListener {
 			txtMultiple.setText("1");
 			txtMultiple.setEditable(false);
 		}
+		updateInterface();
 	}
 
 	@Override

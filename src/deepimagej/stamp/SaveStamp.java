@@ -169,7 +169,8 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 			ok = false;
 		}
 
-		if (ok)
+		//if (ok)
+		if (true)
 		try {
 			File source = new File(params.path2Model + "saved_model.pb");
 			File dest = new File(params.saveDir  + "saved_model.pb");
@@ -182,7 +183,8 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 			ok = false;
 		}
 		
-		if (ok)
+		//if (ok)
+		if (true)
 		try {
 			File source = new File(params.path2Model + "variables");
 			File dest = new File(params.saveDir + "variables");
@@ -195,7 +197,8 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 			ok = false;
 		}
 
-		if (ok)
+		//if (ok)
+		if (true)
 		try {
 			PrintWriter preprocessing = new PrintWriter(params.saveDir + "preprocessing.txt", "UTF-8");
 			preprocessing.println(params.premacro);
@@ -207,7 +210,8 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 			ok = false;
 		}
 
-		if (ok)
+		//if (ok)
+		if (true)
 		try {
 			PrintWriter postprocessing = new PrintWriter(params.saveDir + "postprocessing.txt","UTF-8");
 			postprocessing.println(params.postmacro);
@@ -219,7 +223,8 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 			ok = false;
 		}
 
-		if (ok)
+		//if (ok)
+		if (true)
 		try {
 			XmlUtils.writeXml(params.saveDir + "config.xml", dp);
 			pane.append("p", "config.xml: saved");
@@ -229,27 +234,37 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 			ok = false;
 		}
 
-		if (ok)
+		//if (ok)
+		if (true)
 		try {
-			IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + "exampleImage.tiff");
-			pane.append("p", "exampleImage.tiff: saved");
+			if (params.testImageBackup != null) {
+				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + "exampleImage.tiff");
+				pane.append("p", "exampleImage.tiff: saved");
+			} else {
+				throw new Exception();
+			}
 		} 
 		catch(Exception ex) {
 			pane.append("p", "exampleImage.tiff: not saved");
 			ok = false;
 		}
 
-		if (ok)
+		//if (ok)
+		if (true)
 		try {
-			IJ.saveAsTiff(params.testResultImage, params.saveDir + File.separator + "resultImage.tiff");
-			pane.append("p", "resultImage.tiff: saved");
+			if (params.testResultImage != null) {
+				IJ.saveAsTiff(params.testResultImage, params.saveDir + File.separator + "resultImage.tiff");
+				pane.append("p", "resultImage.tiff: saved");
+			} else {
+				throw new Exception();
+			}
 		} 
 		catch(Exception ex) {
 			pane.append("p", "resultImage.tiff:  not saved");
 			ok = false;
 		}
 
-		parent.setEnabledBackNext(ok);
+		//parent.setEnabledBackNext(ok);
 	}
 
 	private void copyWeights(File source, File dest) throws IOException {
