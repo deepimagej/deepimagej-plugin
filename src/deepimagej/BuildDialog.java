@@ -200,7 +200,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 			dispose();
 		}
 		if (e.getSource() == bnHelp) {
-			WebBrowser.open("http://bigwww.epfl.ch/");
+			WebBrowser.openDeepImageJ();
 		}
 
 		setCard("" + card);

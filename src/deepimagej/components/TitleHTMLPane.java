@@ -40,11 +40,11 @@ import deepimagej.Constants;
 public class TitleHTMLPane extends HTMLPane {
 
 	public TitleHTMLPane() {
-		super(Constants.width, 70);
-		String style1 = "color:red; font-size:30; font-weight:800; font-family:Helvetica";
-		String style2 = "color:black; font-size:30; font-weight:50; font-family:Helvetica";
+		super(Constants.width, 90);
+		String style1 = "color:black; font-size:30; font-weight:800; font-family:Helvetica";
+		String style2 = "color:red; font-size:30; font-weight:50; font-family:Helvetica";
 		String style3 = "color:black; font-size:10; font-weight:100; font-family:Helvetica";
-		this.append("center", "<span style=\"" + style1 + "\">Deep</span>" +
+		this.append("center", "<span style=\"" + style1 + "\">deep</span>" +
 				"<span style=\"" + style2 + "\">ImageJ</span>");
 		this.append("center", "<span style=\"" + style3 + "\">&nbsp;</span>");
 		this.append("center", "<span style=\"" + style3 + "\">An ImageJ plugin to run deep-learning models</span> ");

@@ -69,7 +69,7 @@ public class DeepImageJ {
 	
 	public DeepImageJ(String pathModel, String dirname, Log log, boolean isDeveloper) {
 		String p = pathModel + File.separator + dirname + File.separator;
-		this.path = p.replace("//", "/");
+		this.path = p.replace(File.separator + File.separator, File.separator);
 		this.log = log;
 		this.dirname = dirname;
 		this.valid = isDeveloper ? TensorFlowModel.check(p, msgChecks) : check(p, msgChecks);

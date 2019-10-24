@@ -83,10 +83,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		// ImagePlus imp = IJ.openImage(path + "iso_reconstruction" + File.separator +
 		// "exampleImage.tiff");
-		path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models" + File.separator;
+		path = "C:\\\\Users\\\\biig\\\\Pictures\\\\Fiji.app\\\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
 		//imp.show();
-		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\frunet\\exampleImage.tiff");
+		ImagePlus imp = IJ.openImage("C:\\Users\\biig\\Pictures\\Fiji.app\\models\\care_deconvolution_microtubules\\exampleImage.tiff");
 		if (imp != null)
 			imp.show();
 		new DeepImageJ_Run().run("");
@@ -298,6 +298,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 					String m = dir + postprocessingFile;
 					if (new File(m).exists()) {
 						log.print("start postprocessing");
+						WindowManager.setTempCurrentImage(out);
 						runMacro(m);
 						log.print("end postprocessing");
 						out = WindowManager.getCurrentImage();

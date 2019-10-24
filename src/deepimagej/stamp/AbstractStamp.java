@@ -42,7 +42,6 @@ import java.awt.BorderLayout;
 import javax.swing.JPanel;
 
 import deepimagej.BuildDialog;
-import deepimagej.DeepImageJ;
 
 public abstract class AbstractStamp {
 
