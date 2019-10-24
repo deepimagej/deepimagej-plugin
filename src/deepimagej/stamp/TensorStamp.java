@@ -150,7 +150,7 @@ public class TensorStamp extends AbstractStamp  {
 		pnDim.append("h2", "Tensor organization of " + dirname);
 		pnDim.append("i", "W for width (axis X), H for height (axis Y), N for batch, C for channel");
 		pnDim.append("p", "Input Tensor Dimensions : " + dimensions(params.inDimensions));
-		pnDim.append("p", "Input Tensor Dimensions : " + dimensions(params.outDimensions));
+		pnDim.append("p", "Output Tensor Dimensions : " + dimensions(params.outDimensions));
 	}
 
 	@Override
