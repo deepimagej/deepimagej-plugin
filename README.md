@@ -17,10 +17,10 @@ Download a bundled model (https://deepimagej.github.io/deepimagej/models.html), 
 
 ## Software requirements
 The softwares needed to run this plugin are:
- Markup : * libtensorflow-1.12.0
-          * libtensorflow_jni-1.12.0
-          * proto-1.2.0
-          * protobuf-java-3.2.0
+* libtensorflow-1.12.0
+* libtensorflow_jni-1.12.0
+* proto-1.2.0
+* protobuf-java-3.2.0
 
 ## Conditions of use
 The DeepImageJ project is an open source software (OSS) under the BSD 2-Clause License. All the resources provided here are freely available for noncommercial and research purposes. Their use for any other purpose is generally possible, but solely with the explicit permission of the authors. You are expected to include adequate references whenever you present or publish results that are based on the resources provided.
