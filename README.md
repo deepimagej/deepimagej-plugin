@@ -11,13 +11,18 @@ The ZIP file (DeepImageJ.zip) is a plugin for ImageJ or Fiji. It contains all th
 
 Unzip the ZIP file and store the 5 JAR files into the plugins folder of ImageJ or Fiji.
 
+Create the folder models inside ImageJ/Fiji directory (".../ImageJ/models/").
+
+Download a bundled model (https://deepimagej.github.io/deepimagej/models.html), unzip it into the directory 'models' and run it over your image!
+
 ## Conditions of use
-All the resources provided are freely available for noncommercial and research purposes. Their use for any other purpose is generally possible, but solely with the explicit permission of the authors. You are expected to include adequate references whenever you present or publish results that are based on the resources provided.
+The DeepImageJ project is an open source software (OSS) under the BSD 2-Clause License. All the resources provided here are freely available for noncommercial and research purposes. Their use for any other purpose is generally possible, but solely with the explicit permission of the authors. You are expected to include adequate references whenever you present or publish results that are based on the resources provided.
 
 ## References
 Cite the appropriate TensorFlow network which is bundled into DeepImageJ.
 
-=======
-E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage, "DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ" submitted 07.08.2019.
+
+E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage, "DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ" BioRxiv, 2019.
+https://www.biorxiv.org/content/10.1101/799270v2
 
 ### Further information: https://deepimagej.github.io/deepimagej
