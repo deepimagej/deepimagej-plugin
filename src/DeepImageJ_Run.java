@@ -86,7 +86,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		path = "C:\\\\Users\\\\biig\\\\Pictures\\\\Fiji.app\\\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
 		//imp.show();
-		ImagePlus imp = IJ.openImage("C:\\Users\\biig\\Pictures\\Fiji.app\\models\\care_deconvolution_microtubules\\exampleImage.tiff");
+		ImagePlus imp = IJ.openImage("C:\\Users\\biig\\Pictures\\Fiji.app\\models\\aa - Copy\\exampleImage.tiff");
 		if (imp != null)
 			imp.show();
 		new DeepImageJ_Run().run("");
@@ -246,13 +246,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 					+ dp.params.inputSize + " image of " + dp.params.pixelSize + " pixel size.");
 			labels[6].setText("The test consumed " + dp.params.memoryPeak
 					+ " of the memory.");
-			texts[0].setEnabled(dp.params.fixedPatch == false);
-			labels[7].setEnabled(dp.params.fixedPatch == false);
 			//texts[0].setText("" + dp.params.patch);
-			texts[0].setText(optimalPatch(dp));
 			texts[1].setEnabled(dp.params.fixedPadding == false);
 			labels[8].setEnabled(dp.params.fixedPadding == false);
 			texts[1].setText("" + dp.params.padding);
+			texts[0].setEnabled(dp.params.fixedPatch == false);
+			labels[7].setEnabled(dp.params.fixedPatch == false);
+			texts[0].setText(optimalPatch(dp));
 		}
 	}
 
