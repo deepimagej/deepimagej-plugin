@@ -58,13 +58,13 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import deepimagej.DeepPlugin;
+import deepimagej.DeepImageJ;
 import deepimagej.Parameters;
 import deepimagej.TensorFlowModel;;
 
 public class XmlUtils {
 
-	public static void writeXml(String filename, DeepPlugin dp) {
+	public static void writeXml(String filename, DeepImageJ dp) {
 
 		try {
 			Parameters params = dp.params;
@@ -147,7 +147,17 @@ public class XmlUtils {
 			Element runtime = document.createElement("Runtime");
 			runtime.appendChild(document.createTextNode(params.runtime));
 			modelTest.appendChild(runtime);
-
+			
+			// Time the model run lasted (child of "ModelTest")
+			double pixDepth = params.testImageBackup.getCalibration().pixelDepth;
+			double pixWidth = params.testImageBackup.getCalibration().pixelWidth;
+			double pixHeight = params.testImageBackup.getCalibration().pixelHeight;
+			String units = params.testImageBackup.getCalibration().getUnits();
+			String pixSize = Double.toString(pixWidth) + units + "x" +
+							Double.toString(pixHeight) + units;
+			Element pixelSize = document.createElement("PixelSize");
+			pixelSize.appendChild(document.createTextNode(pixSize));
+			modelTest.appendChild(pixelSize);
 			//////////////////////////////////////////////////////////////////
 			// root element-->ModelCharacteristics. This info is used to run the model
 			Element modelCharacteristics = document.createElement("ModelCharacteristics");

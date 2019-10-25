@@ -1,3 +1,40 @@
+/*
+ * DeepImageJ
+ * 
+ * https://deepimagej.github.io/deepimagej/
+ *
+ * Conditions of use: You are free to use this software for research or educational purposes. 
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
+ * 
+ * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
+ * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
+ * Submitted 2019.
+ *
+ * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
+ * Biomedical Imaging Group, Ecole polytechnique federale de Lausanne (EPFL), Switzerland
+ *
+ * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
+ *
+ */
+
+/*
+ * Copyright 2019. Universidad Carlos III, Madrid, Spain and EPFL, Lausanne, Switzerland.
+ * 
+ * This file is part of DeepImageJ.
+ * 
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
+ * 
+ * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package deepimagej;
 
 import java.util.List;
@@ -16,17 +53,18 @@ import deepimagej.tools.NumFormat;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
+import ij.plugin.ChannelSplitter;
 
 public class Runner implements Callable<ImagePlus> {
 
 	private ImagePlus		imp;
-	private DeepPlugin		dp;
+	private DeepImageJ		dp;
 	private RunnerProgress	rp;
 	private Log				log;
 	private int				currentPatch = 0;
 	private int				totalPatch = 0;
 
-	public Runner(DeepPlugin dp, RunnerProgress rp, ImagePlus imp, Log log) {
+	public Runner(DeepImageJ dp, RunnerProgress rp, ImagePlus imp, Log log) {
 		this.dp = dp;
 		this.rp = rp;
 		this.log = log;
@@ -34,7 +72,7 @@ public class Runner implements Callable<ImagePlus> {
 		log.print("constructor runner");
 	}
 
-	public Runner(DeepPlugin dp, RunnerProgress rp, Log log) {
+	public Runner(DeepImageJ dp, RunnerProgress rp, Log log) {
 		this.dp = dp;
 		this.rp = rp;
 		this.log = log;
@@ -56,6 +94,13 @@ public class Runner implements Callable<ImagePlus> {
 		int nx = imp.getWidth();
 		int ny = imp.getHeight();
 		log.print("image size " + nx + "x" + ny);
+		
+		// Now check if the image is an RGB, if it is make it composite,
+		// so ImageJ can see the 3 channels of the RGB image
+		if (imp.getType() == 4){
+			IJ.run(imp, "Make Composite", "");
+			imp = WindowManager.getCurrentImage();
+		}
 		Parameters params = dp.params;
 
 		if (3 * nx < params.patch || 3 * ny < params.patch) {

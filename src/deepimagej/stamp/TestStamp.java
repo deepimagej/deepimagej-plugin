@@ -53,7 +53,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
-import deepimagej.DeepPlugin;
+import deepimagej.DeepImageJ;
 import deepimagej.Parameters;
 import deepimagej.Runner;
 import deepimagej.RunnerProgress;
@@ -117,6 +117,8 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 			}
 		}
 		bnTest.setEnabled(parent.getDeepPlugin() != null);
+		Parameters params = parent.getDeepPlugin().params;
+		params.testImageBackup = WindowManager.getCurrentImage();
 	}
 
 	@Override
@@ -192,7 +194,7 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 	}
 
 	public void run() {
-		DeepPlugin dp = parent.getDeepPlugin();
+		DeepImageJ dp = parent.getDeepPlugin();
 
 		Log log = new Log();
 		RunnerProgress rp = new RunnerProgress(dp);
@@ -229,7 +231,7 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 	}
 
 	private ImagePlus runPostprocessingMacro(ImagePlus img) {
-		DeepPlugin dp = parent.getDeepPlugin();
+		DeepImageJ dp = parent.getDeepPlugin();
 		WindowManager.setTempCurrentImage(img);
 		if (dp.params.postmacro.equals("") == false) {
 			String result = IJ.runMacro(dp.params.postmacro);

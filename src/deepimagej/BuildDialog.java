@@ -61,6 +61,9 @@ import deepimagej.stamp.TestStamp;
 import deepimagej.stamp.WelcomeStamp;
 import deepimagej.tools.Log;
 import deepimagej.tools.WebBrowser;
+import ij.IJ;
+import ij.ImagePlus;
+import ij.WindowManager;
 import ij.gui.GUI;
 
 public class BuildDialog extends JDialog implements ActionListener {
@@ -80,7 +83,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 	private PreprocessingStamp	preproc;
 	private TestStamp			test8;
 	private SaveStamp			save;
-	private DeepPlugin			dp;
+	private DeepImageJ			dp;
 	private int					card	= 1;
 
 	public BuildDialog() {
@@ -151,7 +154,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 					String path = welcome.getModelDir();
 					String name = welcome.getModelName();
 					if (path != null) {
-						dp = new DeepPlugin(path, name, new Log(), true);
+						dp = new DeepImageJ(path, name, new Log(), true);
 						if (dp != null) {
 							dp.params.path2Model = path + File.separator + name + File.separator;
 							setEnabledBackNext(false);
@@ -177,7 +180,15 @@ public class BuildDialog extends JDialog implements ActionListener {
 				break;
 			case 7:
 				card = postproc.finish() ? card+1 : card;
+				ImagePlus imp = null;
+				imp = WindowManager.getCurrentImage();
+				if (imp == null) {
+					IJ.error("You need to open an image.");
+					card --;
+				}
 				break;
+			case 9:
+				dispose();
 			default:
 				card = Math.min(9, card + 1);
 			}
@@ -189,7 +200,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 			dispose();
 		}
 		if (e.getSource() == bnHelp) {
-			WebBrowser.open("http://bigwww.epfl.ch/");
+			WebBrowser.openDeepImageJ();
 		}
 
 		setCard("" + card);
@@ -219,7 +230,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 		bnNext.setText("Next");
 	}
 	
-	public DeepPlugin getDeepPlugin() {
+	public DeepImageJ getDeepPlugin() {
 		return dp;
 	}
 }

@@ -75,7 +75,7 @@ public class RunnerProgress extends JDialog implements ActionListener {
 	private boolean stop = false;
 	private String name;
 	
-	public RunnerProgress(DeepPlugin dp) {
+	public RunnerProgress(DeepImageJ dp) {
 		super(new JFrame(), "Run DeepImageJ");
 		name = dp.getName();
 		JPanel prog = new JPanel(layout);

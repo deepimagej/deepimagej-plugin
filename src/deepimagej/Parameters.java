@@ -84,6 +84,7 @@ public class Parameters {
 	public String		outputSize				= "";
 	public String		memoryPeak				= "";
 	public String		runtime					= "";
+	public String		pixelSize				= "";
 
 	public String		tag						= "";
 	public String		graph					= "";
@@ -142,6 +143,7 @@ public class Parameters {
 		outputSize = config.get("OutputSize") != null ? config.get("OutputSize") : "";
 		memoryPeak = config.get("MemoryPeak") != null ? config.get("MemoryPeak") : "";
 		runtime = config.get("Runtime") != null ? config.get("Runtime") : "";
+		pixelSize = config.get("PixelSize") != null ? config.get("PixelSize") : "Unknown";
 
 		nInputs = Integer.parseInt(config.get("NumberOfInputs")==null ? "0" : config.get("NumberOfInputs"));
 		nOutputs = Integer.parseInt(config.get("NumberOfOutputs")==null ? "0" : config.get("NumberOfOutputs"));

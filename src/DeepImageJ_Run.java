@@ -50,7 +50,7 @@ import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 import deepimagej.Constants;
-import deepimagej.DeepPlugin;
+import deepimagej.DeepImageJ;
 import deepimagej.Runner;
 import deepimagej.RunnerProgress;
 import deepimagej.components.BorderPanel;
@@ -70,23 +70,23 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	private Label[]						labels		= new Label[10];
 	static private String				path		= IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
 	private Thread						thread		= null;
-	private HashMap<String, DeepPlugin>	dps;
+	private HashMap<String, DeepImageJ>	dps;
 	private String						preprocessingFile;
 	private String						postprocessingFile;
 	private Log							log			= new Log();
 	private int							patch;
 	private int							overlap;
-	private DeepPlugin					dp;
+	private DeepImageJ					dp;
 	private HashMap<String, String>		fullnames	= new HashMap<String, String>();
 
 	static public void main(String args[]) {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		// ImagePlus imp = IJ.openImage(path + "iso_reconstruction" + File.separator +
 		// "exampleImage.tiff");
-		path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models" + File.separator;
+		path = "C:\\\\Users\\\\biig\\\\Pictures\\\\Fiji.app\\\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
 		//imp.show();
-		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\frunet\\exampleImage.tiff");
+		ImagePlus imp = IJ.openImage("C:\\Users\\biig\\Pictures\\Fiji.app\\models\\aa - Copy\\exampleImage.tiff");
 		if (imp != null)
 			imp.show();
 		new DeepImageJ_Run().run("");
@@ -101,7 +101,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			
 			boolean isDeveloper = false;
 	
-			dps = DeepPlugin.list(path, log, isDeveloper);
+			dps = DeepImageJ.list(path, log, isDeveloper);
 			if (dps.size() == 0) {
 				IJ.error("No available models in " + path);
 				return;
@@ -117,7 +117,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			items[0] = "<select a model from this list>";
 			int k = 1;
 			for (String dirname : dps.keySet()) {
-				DeepPlugin dp = dps.get(dirname);
+				DeepImageJ dp = dps.get(dirname);
 				if (dp != null) {
 					String fullname = dp.getName();
 					items[k++] = fullname;
@@ -132,7 +132,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			dlg.addMessage("The patch introduced needs to be a multiple "
 						+ "of a given number.");
 			dlg.addMessage("Test conditions:");
-			dlg.addMessage("The model was tested with an image of XXxYY pixels.");
+			dlg.addMessage("Model was tested with a XXxYY image of " 
+			+ "XxY pixel size.");
 			dlg.addMessage("The test consumed XXX Mb of the memory.");
 			dlg.addNumericField("Patch size [pixels]", 128, 0);
 			dlg.addNumericField("Overlap size [pixels]", 16, 0);
@@ -212,7 +213,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			String fullname = Integer.toString(choices[0].getSelectedIndex());
 			String dirname = fullnames.get(fullname);
 
-			DeepPlugin dp = dps.get(dirname);
+			DeepImageJ dp = dps.get(dirname);
 			if (dp == null)
 				return;
 			for (String msg : dp.msgChecks)
@@ -241,17 +242,17 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				labels[3].setText("The patch introduced needs to be a multiple"
 						+ " of " + dp.params.minimumSize + ".");
 			}
-			labels[5].setText("The model was tested with an image of "
-								+ dp.params.inputSize + " pixels.");
+			labels[5].setText("Model was tested with "
+					+ dp.params.inputSize + " image of " + dp.params.pixelSize + " pixel size.");
 			labels[6].setText("The test consumed " + dp.params.memoryPeak
 					+ " of the memory.");
-			texts[0].setEnabled(dp.params.fixedPatch == false);
-			labels[7].setEnabled(dp.params.fixedPatch == false);
 			//texts[0].setText("" + dp.params.patch);
-			texts[0].setText(optimalPatch(dp));
 			texts[1].setEnabled(dp.params.fixedPadding == false);
 			labels[8].setEnabled(dp.params.fixedPadding == false);
 			texts[1].setText("" + dp.params.padding);
+			texts[0].setEnabled(dp.params.fixedPatch == false);
+			labels[7].setEnabled(dp.params.fixedPatch == false);
+			texts[0].setText(optimalPatch(dp));
 		}
 	}
 
@@ -297,6 +298,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 					String m = dir + postprocessingFile;
 					if (new File(m).exists()) {
 						log.print("start postprocessing");
+						WindowManager.setTempCurrentImage(out);
 						runMacro(m);
 						log.print("end postprocessing");
 						out = WindowManager.getCurrentImage();
@@ -348,7 +350,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		thread = null;
 	}
 	
-	public String optimalPatch(DeepPlugin dp) {
+	public String optimalPatch(DeepImageJ dp) {
 		// This method looks for the optimal patch size regarding the
 		// minimum patch constraint and image size. This is then suggested
 		// to the user
@@ -401,44 +403,5 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		}
 		
 	}
-	/*
-	public static void addChangeListener(TextField text, ChangeListener changeListener) {
-		// Method used to "listen" the JTextFields
-	    Objects.requireNonNull(text);
-	    Objects.requireNonNull(changeListener);
-	    DocumentListener dl = new DocumentListener() {
-	        private int lastChange = 0, lastNotifiedChange = 0;
-
-	        @Override
-	        public void insertUpdate(DocumentEvent e) {
-	            changedUpdate(e);
-	        }
-
-	        @Override
-	        public void removeUpdate(DocumentEvent e) {
-	            changedUpdate(e);
-	        }
-
-	        @Override
-	        public void changedUpdate(DocumentEvent e) {
-	            lastChange++;
-	            SwingUtilities.invokeLater(() -> {
-	                if (lastNotifiedChange != lastChange) {
-	                    lastNotifiedChange = lastChange;
-	                    changeListener.stateChanged(new ChangeEvent(text));
-	                }
-	            });
-	        }
-	    };
-	    text.addPropertyChangeListener("document", (PropertyChangeEvent e) -> {
-	        Document d1 = (Document)e.getOldValue();
-	        Document d2 = (Document)e.getNewValue();
-	        if (d1 != null) d1.removeDocumentListener(dl);
-	        if (d2 != null) d2.addDocumentListener(dl);
-	        dl.changedUpdate(null);
-	    });
-	    Document d = (Document) text.getParent();
-	    if (d != null) d.addDocumentListener(dl);
-	}*/
 
 }

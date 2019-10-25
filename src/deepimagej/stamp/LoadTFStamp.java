@@ -53,7 +53,7 @@ import org.tensorflow.framework.SignatureDef;
 
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
-import deepimagej.DeepPlugin;
+import deepimagej.DeepImageJ;
 import deepimagej.Parameters;
 import deepimagej.TensorFlowModel;
 import deepimagej.components.HTMLPane;
