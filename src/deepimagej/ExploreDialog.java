@@ -49,7 +49,9 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
@@ -70,6 +72,7 @@ import deepimagej.components.CustomizedTable;
 import deepimagej.components.HTMLPane;
 import deepimagej.exceptions.MacrosError;
 import deepimagej.tools.FileUtils;
+import deepimagej.tools.Index;
 import deepimagej.tools.Log;
 import deepimagej.tools.WebBrowser;
 import ij.IJ;
@@ -84,17 +87,18 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	private JButton						bnClose		= new JButton("Close");
 	private JButton						bnAbout		= new JButton("About");
 	private JButton						bnArchi		= new JButton("Architecture");
-	private JButton						bnApply		= new JButton("Apply");
+	private JButton						bnApply		= new JButton("Run on Test Image");
 	private JButton						bnHelp		= new JButton("Help");
 	private String						path;
 	private String 						image; 
-	private HashMap<String, DeepPlugin>	dps;
+	private HashMap<String, DeepImageJ>	dps;
+	private HashMap<String, String>		modeNameToModelDir = new HashMap<String, String>();
 	private BoldLabel					lblName		= new BoldLabel("");
 	private HTMLPane						info		= new HTMLPane("Information");
 	private Thread						thread		= null;
 	private Log log = new Log();
 	private	ImagePlus	imp;
-	private DeepPlugin	dp;
+	private DeepImageJ	dp;
 	
 	public ExploreDialog(String path) {
 		super(new JFrame(), "DeepImageJ Explore [" + Constants.version + "]");
@@ -160,16 +164,31 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 		setVisible(true);
 
 	}
+	
 
 	private void load() {
-		// TODO added by Carlos to be consecuent with the new
-		// DeepPlugin constructor
 		boolean isDeveloper = false;
 		table.removeRows();
-		dps = DeepPlugin.list(path, log, isDeveloper);
+		dps = DeepImageJ.list(path, log, isDeveloper);
 		ArrayList<LoadThreaded> loaders = new ArrayList<LoadThreaded>();
-		for (String name : dps.keySet())
-			loaders.add(new LoadThreaded(name, dps.get(name), table));
+		modeNameToModelDir.put("", "");
+		modeNameToModelDir.clear();
+		int counter = 0; 
+		// Create srting array with all the model names to avoid repetition
+		String[] models = new String[dps.keySet().size()];
+		Arrays.fill(models,"");
+		for (String name : dps.keySet()) {
+			String modelName = dps.get(name).params.name;
+			if (Index.indexOf(models, modelName) == -1) {
+				models[counter] = modelName;
+			} else {
+				modelName = modelName + (int) Math.floor(Math.random()*1000);
+				models[counter] = modelName;
+			}
+			loaders.add(new LoadThreaded(name, dps.get(name), modelName, table));
+			modeNameToModelDir.put(modelName, name);
+			counter ++;
+		}
 		ExecutorService executor = Executors.newFixedThreadPool(2);
 		for (LoadThreaded loader : loaders)
 			executor.execute(loader);
@@ -183,14 +202,22 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	public void actionPerformed(ActionEvent e) {
 		int row = table.getSelectedRow();
 		dp = null;
-		if (row >= 0)
-			dp = dps.get(table.getCell(row, 0));
+		if (row >= 0) {
+			String modelDir = modeNameToModelDir.get(table.getCell(row, 0));
+			dp = dps.get(modelDir);
+		}
 		if (e.getSource() == bnAbout)
-			WebBrowser.open(Constants.url);
+			WebBrowser.openDeepImageJ();
 		if (e.getSource() == bnHelp) {
 			if (dp == null)
 				return;
-			WebBrowser.open(dp.params.url);
+			try {
+				WebBrowser.open(dp.params.url);
+			} catch (MalformedURLException exception) {
+				IJ.error("No information relative to the model found.\n"
+						+ "Redirecting to Deep ImageJ website.");
+				WebBrowser.openDeepImageJ();
+			}
 		}
 		if (e.getSource() == bnRefresh) {
 			load();
@@ -209,7 +236,7 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 				return;
 			if (thread != null) 
 				return;
-			image = path + table.getCell(row, 0) + File.separator + "exampleImage.tiff";
+			image = path + modeNameToModelDir.get(table.getCell(row, 0)) + File.separator + "exampleImage.tiff";
 			Log log = new Log();
 			log.print(image);
 			if (new File(image).exists()) {
@@ -223,6 +250,9 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 					}
 					
 				}
+			} else {
+				IJ.error("The DeepImageJ model is incomplete.\n"
+						+ "It is missing an the 'exampleImage.tiff'.");
 			}
 		}
 	}
@@ -265,6 +295,7 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 			m = dir + dp.params.postprocessingFile;
 			if (new File(m).exists()) {
 				log.print("start postprocessing");
+				WindowManager.setTempCurrentImage(out);
 				runMacro(m);
 				log.print("end postprocessing");
 				out = WindowManager.getCurrentImage();
@@ -352,6 +383,7 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	}
 	
 	private void updateModel(String name) {
+		name = modeNameToModelDir.get(name);
 		modelTable.removeRows();
 		String dir = path + File.separator + name + File.separator;
 		lblName.setText(dir);
@@ -359,7 +391,7 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 			modelTable.append(new String[] { "DeepPlugins", "Error" });
 			return;
 		}
-		DeepPlugin dp = dps.get(name);
+		DeepImageJ dp = dps.get(name);
 		if (dp == null) {
 			modelTable.append(new String[] { "DeepPlugins", "Error" });
 			return;
@@ -398,6 +430,7 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 		info.append("p", "Output size: " + params.outputSize);
 		info.append("p", "Memory peak: " + params.memoryPeak);
 		info.append("p", "Runtime: " + params.runtime);
+		info.append("p", "Pixel Size: " + params.pixelSize);
 
 		modelTable.append(new String[] { "Tag", dp.params.tag });
 		modelTable.append(new String[] { "Signature", dp.params.graph });
@@ -426,11 +459,13 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	
 	public class LoadThreaded implements Runnable {
 
+		private String	 		displayedName;
 		private String			name;
-		private DeepPlugin		dp;
+		private DeepImageJ		dp;
 		private CustomizedTable	table;
 
-		public LoadThreaded(String name, DeepPlugin dp, CustomizedTable table) {
+		public LoadThreaded(String name, DeepImageJ dp, String modelName, CustomizedTable table) {
+			this.displayedName = modelName;
 			this.name = name;
 			this.dp = dp;
 			this.table = table;
@@ -442,7 +477,7 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 			dp.loadModel();
 			String size = FileUtils.getFolderSizeKb(path + name + File.separator + "variables");
 			String time = String.format("%3.1f ms", (System.nanoTime() - chrono) / (1024 * 1024));
-			String row[] = { dp.dirname, size, time };
+			String row[] = { displayedName, size, time };
 			table.append(row);
 		}
 	}
