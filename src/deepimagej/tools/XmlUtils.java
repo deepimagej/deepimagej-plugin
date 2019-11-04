@@ -149,9 +149,9 @@ public class XmlUtils {
 			modelTest.appendChild(runtime);
 			
 			// Time the model run lasted (child of "ModelTest")
-			double pixDepth = params.testImageBackup.getCalibration().pixelDepth;
-			double pixWidth = params.testImageBackup.getCalibration().pixelWidth;
-			double pixHeight = params.testImageBackup.getCalibration().pixelHeight;
+			double pixDepth = Math.round(params.testImageBackup.getCalibration().pixelDepth * 100) / 100;
+			double pixWidth = Math.round(params.testImageBackup.getCalibration().pixelWidth * 100) / 100;
+			double pixHeight = Math.round(params.testImageBackup.getCalibration().pixelHeight * 100) / 100;
 			String units = params.testImageBackup.getCalibration().getUnits();
 			String pixSize = Double.toString(pixWidth) + units + "x" +
 							Double.toString(pixHeight) + units;
