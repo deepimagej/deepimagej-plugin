@@ -1,4 +1,4 @@
-# DeepImageJ - WORK IN PROGRESS
+﻿# DeepImageJ - WORK IN PROGRESS
 ---
 This is unfinished project that is still being developed
 ---
@@ -15,8 +15,13 @@ Create the folder models inside ImageJ/Fiji directory (".../ImageJ/models/").
 
 Download a bundled model (https://deepimagej.github.io/deepimagej/models.html), unzip it into the directory 'models' and run it over your image!
 
-## Software requirements
-The softwares needed to run this plugin are:
+## System requirements
+Operating systems (same requirements as for ImageJ/Fiji software).
+* Windows
+* Mac OSX
+* Linux.
+
+The java libraries insided ImageJ/Fiji needed to run this plugin are:
 * libtensorflow-1.12.0
 * libtensorflow_jni-1.12.0
 * proto-1.2.0

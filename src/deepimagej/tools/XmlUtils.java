@@ -39,6 +39,7 @@ package deepimagej.tools;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -149,12 +150,13 @@ public class XmlUtils {
 			modelTest.appendChild(runtime);
 			
 			// Time the model run lasted (child of "ModelTest")
-			double pixDepth = params.testImageBackup.getCalibration().pixelDepth;
-			double pixWidth = params.testImageBackup.getCalibration().pixelWidth;
-			double pixHeight = params.testImageBackup.getCalibration().pixelHeight;
+			float pixDepth = (float) params.testImageBackup.getCalibration().pixelDepth;
+			float pixWidth = (float) params.testImageBackup.getCalibration().pixelWidth;
+			float pixHeight = (float) params.testImageBackup.getCalibration().pixelHeight;
+			
 			String units = params.testImageBackup.getCalibration().getUnits();
-			String pixSize = Double.toString(pixWidth) + units + "x" +
-							Double.toString(pixHeight) + units;
+			String pixSize = String.format("%.2E", pixWidth) + units + "x" +
+							 String.format("%.2E", pixHeight) + units;
 			Element pixelSize = document.createElement("PixelSize");
 			pixelSize.appendChild(document.createTextNode(pixSize));
 			modelTest.appendChild(pixelSize);
