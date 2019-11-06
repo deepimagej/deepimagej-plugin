@@ -55,8 +55,10 @@ import deepimagej.Runner;
 import deepimagej.RunnerProgress;
 import deepimagej.components.BorderPanel;
 import deepimagej.exceptions.MacrosError;
+import deepimagej.tools.Index;
 import deepimagej.tools.Log;
 import ij.IJ;
+import ij.ImageJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
@@ -83,10 +85,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		// ImagePlus imp = IJ.openImage(path + "iso_reconstruction" + File.separator +
 		// "exampleImage.tiff");
-		path = "C:\\\\Users\\\\biig\\\\Pictures\\\\Fiji.app\\\\models" + File.separator;
+		path = "C:\\\\Users\\\\biig\\\\Documents\\\\Fiji.app\\\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
 		//imp.show();
-		ImagePlus imp = IJ.openImage("C:\\Users\\biig\\Pictures\\Fiji.app\\models\\aa - Copy\\exampleImage.tiff");
+		ImagePlus imp = IJ.openImage("C:\\Users\\biig\\Documents\\Fiji.app\\models\\care_deconvolution_microtubules\\exampleImage.tiff");
 		if (imp != null)
 			imp.show();
 		new DeepImageJ_Run().run("");
@@ -163,8 +165,22 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			dlg.showDialog();
 			if (dlg.wasCanceled())
 				return;
+			// This is used for the macro, as in teh macro, there is no selection from the list
 			String fullname = dlg.getNextChoice();
+			// The index is the method that is going to be used normally to select a model.
+			// The plugin looks at the index of the selection of the user and retrieves the
+			// directory associated with it. With this, it allows to have the same model with
+			// different configurations in different folders.
 			String index = Integer.toString(choices[0].getSelectedIndex());
+			// If we are running from a macro, the user does not change the model selecting
+			// it from the list. Then the selection is 0, which yields an error. So the index
+			// has to be selected again 
+			if (index.equals("0") == true) {
+				index = Integer.toString(Index.indexOf(items, fullname));
+			}
+			if (index.equals("-1") || index.equals("0")) {
+				IJ.error("Select a valid model.");
+			}
 			preprocessingFile = dlg.getNextChoice();
 			postprocessingFile = dlg.getNextChoice();
 			patch = (int) dlg.getNextNumber();
@@ -305,7 +321,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 					}
 				}
 			}
-			log.print("display " + out.getTitle());
+			texts[0].setEnabled(dp.params.fixedPatch == false);
+			labels[7].setEnabled(dp.params.fixedPatch == false);
 			out.show();
 			out.setSlice(1);
 			out.getProcessor().resetMinAndMax();
