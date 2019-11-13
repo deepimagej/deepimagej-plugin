@@ -108,17 +108,24 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 
 	@Override
 	public void init() {
-		cmb.removeAll();
+		cmb.removeAllItems();
 		int list[] = WindowManager.getIDList();
-		for (int im : list) {
-			ImagePlus imp = WindowManager.getImage(im);
-			if (imp != null) {
-				cmb.addItem(imp.getTitle());
+		if (list != null) {
+			for (int im : list) {
+				ImagePlus imp = WindowManager.getImage(im);
+				if (imp != null) {
+					cmb.addItem(imp.getTitle());
+				}
 			}
+			bnTest.setEnabled(parent.getDeepPlugin() != null);
+			Parameters params = parent.getDeepPlugin().params;
+			params.testImageBackup = WindowManager.getCurrentImage();
+		} else {
+			bnTest.setEnabled(false);
+			Parameters params = parent.getDeepPlugin().params;
+			params.testImageBackup = null;
+			cmb.addItem("No image");
 		}
-		bnTest.setEnabled(parent.getDeepPlugin() != null);
-		Parameters params = parent.getDeepPlugin().params;
-		params.testImageBackup = WindowManager.getCurrentImage();
 	}
 
 	@Override
