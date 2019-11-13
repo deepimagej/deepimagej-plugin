@@ -57,6 +57,7 @@ import deepimagej.components.BorderPanel;
 import deepimagej.exceptions.MacrosError;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
+import deepimagej.tools.WebBrowser;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
@@ -91,7 +92,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		path = "C:\\\\Users\\\\biig\\\\Documents\\\\Fiji.app\\\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
 		//imp.show();
-		ImagePlus imp = IJ.openImage("C:\\Users\\biig\\Documents\\Fiji.app\\models\\care_deconvolution_microtubules\\exampleImage.tiff");
+		ImagePlus imp = IJ.openImage("C:\\Users\\biig\\Documents\\image2.tiff");
 		if (imp != null)
 			imp.show();
 		new DeepImageJ_Run().run("");
@@ -108,7 +109,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	
 			dps = DeepImageJ.list(path, log, isDeveloper);
 			if (dps.size() == 0) {
-				IJ.error("No available models in " + path);
+				path = path.replace(File.separator + File.separator, File.separator);
+				boolean goToPage = IJ.showMessageWithCancel("no models","No available models in " + path +
+						".\nPress \"Ok\" and you will be redirected to the deepImageJ models directory.");
+				if (goToPage == true) {
+					WebBrowser.openDeepImageJ();
+				}
 				return;
 			}
 			info.setEditable(false);
