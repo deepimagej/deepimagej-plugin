@@ -72,7 +72,7 @@ import ij.IJ;
 
 public class SaveStamp extends AbstractStamp implements ActionListener, Runnable {
 
-	private JTextField	txt			= new JTextField(System.getProperty("user.home")+File.separator+"Documents"+File.separator);
+	private JTextField	txt			= new JTextField(IJ.getDirectory("imagej") + File.separator + "models"+File.separator);
 	private JButton		bnBrowse	= new JButton("Browse");
 	private JButton		bnSave	= new JButton("Save Bundled Model");
 	private HTMLPane 	pane;
@@ -153,6 +153,7 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 		DeepImageJ dp = parent.getDeepPlugin();
 		Parameters params = dp.params;
 		params.saveDir = txt.getText() + File.separator;
+		params.saveDir = params.saveDir.replace(File.separator + File.separator, File.separator);
 		File dir = new File(params.saveDir);
 		boolean ok = true;
 		if (!dir.exists()) {
