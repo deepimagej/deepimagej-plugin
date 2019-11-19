@@ -53,7 +53,6 @@ import deepimagej.tools.NumFormat;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
-import ij.plugin.ChannelSplitter;
 
 public class Runner implements Callable<ImagePlus> {
 
@@ -296,72 +295,6 @@ public class Runner implements Callable<ImagePlus> {
 		return n;
 	}
 
-	public String[] assignCharacter(String form, int[] expandedDim, int[] imPlusDim) {
-		int rank = expandedDim.length;
-		String auxKey = "empty";
-		String[] auxArray = createAuxArr(rank, auxKey);
-		int start2find = 0;
-		for (int i = 0; i < rank; i++) {
-			char dim = form.charAt(i);
-			int value = valueOfChar(imPlusDim, dim);
-			auxArray = namePosition(dim, expandedDim, value, auxArray, auxKey, start2find);
-		}
-		return auxArray;
-	}
-
-	public String[] namePosition(char dirName, int[] imageDims, int dimValue, String[] outArray, String keyWord, int start) {
-		// This method writes a character representing a dimension in the position where
-		// it corresponds.
-		// Names for the dimensions: "W"-->nx; "H"-->ny; "C"-->nc; "D"--> nz, "N"-->nb.
-		// Example: image_dims= [256, 128, 3], dim_name = 'C', dim_value = 3, out_array
-		// = ["nul, "nul", "nul"].
-		// The output will be out_array = ["nul", "nul", "C"]
-
-		int index = ArrayOperations.indexOf(imageDims, dimValue, start);
-		if (outArray[index] == keyWord) {
-			outArray[index] = String.valueOf(dirName);
-		}
-		else {
-			outArray = namePosition(dirName, imageDims, dimValue, outArray, keyWord, index + 1);
-		}
-		return outArray;
-	}
-
-	public int valueOfChar(int[] imPlusDim, char dimName) {
-		// This method takes advantage that the dimensions retrieved from an ImagePlus
-		// always have the shape [nx, ny, nc, nz, nt] in order to retrieve the value
-		// for the dimension specified by the given character. It also assumes that the
-		// batch
-		// size is always 1.
-		// "W"-->nx; "H"-->ny; "C"-->nc; "D"--> nz, "N" = 1.
-		int value = 0;
-		if (dimName == 'W') {
-			value = imPlusDim[0];
-		}
-		else if (dimName == 'H') {
-			value = imPlusDim[1];
-		}
-		else if (dimName == 'C') {
-			value = imPlusDim[2];
-		}
-		else if (dimName == 'D') {
-			value = imPlusDim[3];
-		}
-		else if (dimName == 'N') {
-			value = 1;
-		}
-		return value;
-	}
-
-	public String[] createAuxArr(int size, String keyword) {
-		// This method creates an auxiliar< string array with the where every entry is
-		// the word inputs as keyword
-		String[] aux_array = new String[size];
-		for (int i = 0; i < size; i++) {
-			aux_array[i] = keyword;
-		}
-		return aux_array;
-	}
 
 	public int getCurrentPatch() {
 		return currentPatch;
