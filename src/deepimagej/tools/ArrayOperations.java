@@ -64,31 +64,6 @@ public class ArrayOperations {
 		return imp;
 	}
 
-	public static double[][] iProcessor2matrix(ImageProcessor image) {
-		// this method transforms an image processor into a matrix
-		double pixelVal = 0;
-		int ySize = image.getHeight();
-		int xSize = image.getWidth();
-		double[][] matImage = new double[xSize][ySize];
-		for (int y = 0; y < ySize; y++) {
-			for (int x = 0; x < xSize; x++) {
-				pixelVal = (double) image.getPixelValue(x, y);
-				matImage[x][y] = pixelVal;
-			}
-		}
-		return matImage;
-	}
-
-	public static ImageProcessor matrix2iProcessor(double[][] matImage, int xSize, int ySize, ImageProcessor ip) {
-		// This method transforms a matrix of 2d into an image processor
-		for (int x = 0; x < xSize; x++) {
-			for (int y = 0; y < ySize; y++) {
-				ip.putPixelValue(x, y, matImage[x][y]);
-			}
-		}
-		return ip;
-	}
-
 	public static ImagePlus extractPatch(ImagePlus image, int sPatch, int xStart, int yStart,
 										int overlapX, int overlapY, int channels) {
 		// This method obtains a patch with the wanted size, starting at 'x_start' and
@@ -115,21 +90,6 @@ public class ArrayOperations {
 			patchImage.setProcessor(op);
 		}
 		return patchImage;
-	}
-
-	public static int findPatchSize(int minPatchMultiple, boolean fixedPatchSize) {
-		// Find the size of the patches to process the image. It will
-		// be around the defined constant 'approx_size'
-		int patchSize;
-		int estimatedSize = 200;
-		if (minPatchMultiple > estimatedSize || fixedPatchSize == true) {
-			patchSize = minPatchMultiple;
-		}
-		else {
-			int n_patches = estimatedSize / minPatchMultiple;
-			patchSize = (n_patches + 1) * minPatchMultiple;
-		}
-		return patchSize;
 	}
 
 	public static void imagePlusReconstructor(ImagePlus fImage, ImagePlus patch,
