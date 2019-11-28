@@ -102,7 +102,7 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	
 	public ExploreDialog(String path) {
 		super(new JFrame(), "DeepImageJ Explore [" + Constants.version + "]");
-		this.path = path;
+		this.path = path.replace(File.separator + File.separator, File.separator);
 		doDialog();
 		load();
 
@@ -170,6 +170,14 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 		boolean isDeveloper = false;
 		table.removeRows();
 		dps = DeepImageJ.list(path, log, isDeveloper);
+		if (dps.size() == 0) {
+			boolean goToPage = IJ.showMessageWithCancel("no models","No available models in " + path +
+					".\nPress \"Ok\" and you will be redirected to the deepImageJ models directory.");
+			if (goToPage == true) {
+				WebBrowser.openDeepImageJ();
+			}
+			return;
+		}
 		ArrayList<LoadThreaded> loaders = new ArrayList<LoadThreaded>();
 		modeNameToModelDir.put("", "");
 		modeNameToModelDir.clear();
@@ -386,6 +394,8 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 		name = modeNameToModelDir.get(name);
 		modelTable.removeRows();
 		String dir = path + File.separator + name + File.separator;
+		// Eliminate double file separators
+		dir = dir.replace(File.separator + File.separator, File.separator);
 		lblName.setText(dir);
 		if (dps == null) {
 			modelTable.append(new String[] { "DeepPlugins", "Error" });

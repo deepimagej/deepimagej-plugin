@@ -57,21 +57,25 @@ import deepimagej.components.BorderPanel;
 import deepimagej.exceptions.MacrosError;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
+import deepimagej.tools.WebBrowser;
 import ij.IJ;
-import ij.ImageJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
-public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
+public class DeepImageJ_Run implements PlugIn, ItemListener {
 
 	private TextArea					info		= new TextArea("Information on the model", 5, 48, TextArea.SCROLLBARS_VERTICAL_ONLY);
 	private Choice[]					choices		= new Choice[4];
 	private TextField[]					texts		= new TextField[3];
 	private Label[]						labels		= new Label[10];
 	static private String				path		= IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
-	private Thread						thread		= null;
 	private HashMap<String, DeepImageJ>	dps;
 	private String						preprocessingFile;
 	private String						postprocessingFile;
@@ -88,7 +92,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		path = "C:\\\\Users\\\\biig\\\\Documents\\\\Fiji.app\\\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
 		//imp.show();
-		ImagePlus imp = IJ.openImage("C:\\Users\\biig\\Documents\\Fiji.app\\models\\care_deconvolution_microtubules\\exampleImage.tiff");
+		ImagePlus imp = IJ.openImage("C:\\Users\\biig\\Documents\\image2.tiff");
 		if (imp != null)
 			imp.show();
 		new DeepImageJ_Run().run("");
@@ -105,7 +109,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	
 			dps = DeepImageJ.list(path, log, isDeveloper);
 			if (dps.size() == 0) {
-				IJ.error("No available models in " + path);
+				path = path.replace(File.separator + File.separator, File.separator);
+				boolean goToPage = IJ.showMessageWithCancel("no models","No available models in " + path +
+						".\nPress \"Ok\" and you will be redirected to the deepImageJ models directory.");
+				if (goToPage == true) {
+					WebBrowser.openDeepImageJ();
+				}
 				return;
 			}
 			info.setEditable(false);
@@ -210,15 +219,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				return;
 			}
 			//addChangeListener(texts[1], e -> optimalPatch(dp));
-	
-			if (thread == null) {
-				thread = new Thread(this);
-				thread.setPriority(Thread.MIN_PRIORITY);
-				thread.start();
-			}
-			else {
-				IJ.error("No model loaded");
-			}
+
+			calculateImage();
 		}
 	}
 
@@ -272,12 +274,14 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		}
 	}
 
-	@Override
-	public void run() {
+	
+	public void calculateImage() {
 		dp.params.padding = overlap;
 		dp.params.patch = patch;
 		String dir = dp.getPath();
 		int runStage = 0;
+		// Create parallel process for calculating the image
+		ExecutorService service = Executors.newFixedThreadPool(1);
 		try {
 			if (preprocessingFile != null) {
 				if (!preprocessingFile.trim().toLowerCase().startsWith("no")) {
@@ -291,21 +295,33 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			}
 			if (WindowManager.getCurrentWindow() == null) {
 				IJ.error("Something failed in the preprocessing.");
-				thread = null;
+				// Close the parallel processes
+			    service.shutdown();
 				return;
 			}
+			
 			runStage ++;
 			log.print("start progress");
 			RunnerProgress rp = new RunnerProgress(dp);
 			log.print("start runner");
 			Runner runner = new Runner(dp, rp, log);
 			rp.setRunner(runner);
-			ImagePlus out = runner.call();
+			Future<ImagePlus> f1 = service.submit(runner);
+			
+			ImagePlus out = null;
+			try {
+				out = f1.get();
+			} catch (InterruptedException e) {
+				IJ.error("No model loaded");
+			} catch (ExecutionException e) {
+				IJ.error("No model loaded");
+			}
 
 			if (out == null) {
 				log.print("Error, output is null");
 				IJ.error("Output is null");
-				thread = null;
+				// Close the parallel processes
+			    service.shutdown();
 				return;
 			}
 			runStage ++;
@@ -327,13 +343,16 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			out.setSlice(1);
 			out.getProcessor().resetMinAndMax();
 			
+			// Close the parallel processes
+		    service.shutdown();
 		} catch(MacrosError ex) {
 			if (runStage == 0) {
 				IJ.error("Error applying the preprocessing macro to the image.");
 			} else if (runStage == 2) {
 				IJ.error("Error applying the postprocessing macro to the image.");
 			}
-			thread = null;
+			// Close the parallel processes
+		    service.shutdown();
 			return;
 		
 		} catch (FileNotFoundException e) {
@@ -342,7 +361,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			} else if (runStage == 2) {
 				IJ.error("There was not preprocessing file found.");
 			}
-			thread = null;
+			// Close the parallel processes
+		    service.shutdown();
 			return;
 		
 		} catch (Exception ex) {
@@ -360,11 +380,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			} else if (runStage == 2) {
 				IJ.error("Error during postprocessing.");
 			}
-			thread = null;
+			// Close the parallel processes
+		    service.shutdown();
 			return;
 		}
 
-		thread = null;
+		// Close the parallel processes
+	    service.shutdown();
 	}
 	
 	public String optimalPatch(DeepImageJ dp) {

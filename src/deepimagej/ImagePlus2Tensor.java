@@ -40,6 +40,7 @@ package deepimagej;
 import org.tensorflow.Tensor;
 
 import deepimagej.tools.ArrayOperations;
+import ij.IJ;
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
 
@@ -290,6 +291,11 @@ public class ImagePlus2Tensor {
 	public static ImagePlus copyData2Image5D(Tensor<?> tensor, String form){
 		// This method copies the information from the tensor to a matrix. At first only works
 		// if the batch size is 1
+		
+		// ImagePlus dimensions in the TensorFlow style. In this case we consider N as T,
+		// as for the moment bothe are going to be 1
+		String imPlusForm = "HWCZN";
+		
 		ImagePlus imPlus = null;
 		long[] longShape = tensor.shape();
 		int batchIndex = form.indexOf("N");
@@ -308,13 +314,13 @@ public class ImagePlus2Tensor {
 			// Prepare the dimensions of the imagePlus and create a copy
 			// because method 'imgTensorAssociation' changes it
 			int[] imShape = getShape(tensorShape, form);
-			int[] imShapeCopy = {imShape[0], imShape[1], imShape[2], imShape[3], imShape[4]};
 			
 			// Create the matrix containing the image. note that the dimensions are arranged differntly because in
 			// imageJ channels go before slices
 			double[][][][][] correctImage = new double[imShape[0]][imShape[1]][imShape[2]][imShape[3]][imShape[4]];
 			// Find the association between the tensor and the image dimensions
-			int[] dimensionAssotiation = imgTensorAssociation(tensorShape6, imShape);
+			String[] n_form = findMissingDimensions(form, imPlusForm);
+			int[] dimensionAssotiation = createDimOrder(n_form, imPlusForm);
 			
 			int[] auxArray = {-1,-1,-1,-1,-1};
 			int x = -1; int y = -1; int z = -1; int c = -1; int t = -1;
@@ -339,7 +345,9 @@ public class ImagePlus2Tensor {
 					}
 				}
 			}
-			imPlus = ArrayOperations.convertArrayToImagePlus(correctImage, imShapeCopy);
+			imPlus = ArrayOperations.convertArrayToImagePlus(correctImage, imShape);
+		} else {
+			IJ.error("Sorry only batch size equal to 1 is allowed.");
 		}
 		return imPlus;
 	}
@@ -348,6 +356,11 @@ public class ImagePlus2Tensor {
 	public static ImagePlus copyData2Image4D(Tensor<?> tensor, String form){
 		// This method copies the information from the tensor to a matrix. At first only works
 		// if the batch size is 1
+		
+		// ImagePlus dimensions in the TensorFlow style. In this case we consider N as T,
+		// as for the moment both are going to be 1
+		String imPlusForm = "HWCZN";
+		
 		ImagePlus imPlus = null;
 		long[] longShape = tensor.shape();
 		int batchIndex = form.indexOf("N");
@@ -366,13 +379,13 @@ public class ImagePlus2Tensor {
 			// Prepare the dimensions of the imagePlus and create a copy
 			// because method 'imgTensorAssociation' changes it
 			int[] imShape = getShape(tensorShape, form);
-			int[] imShapeCopy = {imShape[0], imShape[1], imShape[2], imShape[3], imShape[4]};
 			
 			// Create the matrix containing the image. note that the dimensions are arranged differntly because in
 			// imageJ channels go before slices
 			double[][][][][] correctImage = new double[imShape[0]][imShape[1]][imShape[2]][imShape[3]][imShape[4]];
 			// Find the association between the tensor and the image dimensions
-			int[] dimensionAssotiation = imgTensorAssociation(tensorShape6, imShape);
+			String[] n_form = findMissingDimensions(form, imPlusForm);
+			int[] dimensionAssotiation = createDimOrder(n_form, imPlusForm);
 			
 			int[] aux_array = {-1,-1,-1,-1,-1};
 			int x = -1; int y = -1; int z = -1; int c = -1; int t = -1;
@@ -397,7 +410,9 @@ public class ImagePlus2Tensor {
 					}
 				}
 			}
-			imPlus = ArrayOperations.convertArrayToImagePlus(correctImage, imShapeCopy);
+			imPlus = ArrayOperations.convertArrayToImagePlus(correctImage, imShape);
+		} else {
+			IJ.error("Sorry only batch size equal to 1 is allowed.");
 		}
 		return imPlus;
 	}
@@ -405,6 +420,11 @@ public class ImagePlus2Tensor {
 	public static ImagePlus copyData2Image3D(Tensor<?> tensor, String form){
 		// This method copies the information from the tensor to a matrix. At first only works
 		// if the batch size is 1
+		
+		// ImagePlus dimensions in the TensorFlow style. In this case we consider N as T,
+		// as for the moment both are going to be 1
+		String imPlusForm = "HWCZN";
+		
 		ImagePlus imPlus = null;
 		long[] longShape = tensor.shape();
 		int batchIndex = form.indexOf("N");
@@ -423,13 +443,13 @@ public class ImagePlus2Tensor {
 			// Prepare the dimensions of the imagePlus and create a copy
 			// because method 'imgTensorAssociation' changes it
 			int[] imShape = getShape(tensorShape, form);
-			int[] imShapeCopy = {imShape[0], imShape[1], imShape[2], imShape[3], imShape[4]};
 			
-			// Create the matrix containing the image. note that the dimensions are arranged differntly because in
+			// Create the matrix containing the image. note that the dimensions are arranged differently because in
 			// imageJ channels go before slices
 			double[][][][][] correcImage = new double[imShape[0]][imShape[1]][imShape[2]][imShape[3]][imShape[4]];
 			// Find the association between the tensor and the image dimensions
-			int[] dimensionAssotiation = imgTensorAssociation(tensorShape6, imShape);
+			String[] n_form = findMissingDimensions(form, imPlusForm);
+			int[] dimensionAssotiation = createDimOrder(n_form, imPlusForm);
 			
 			int[] aux_array = {-1,-1,-1,-1,-1};
 			int x = -1; int y = -1; int z = -1; int c = -1; int t = -1;
@@ -454,7 +474,9 @@ public class ImagePlus2Tensor {
 					}
 				}
 			}
-			imPlus = ArrayOperations.convertArrayToImagePlus(correcImage, imShapeCopy);
+			imPlus = ArrayOperations.convertArrayToImagePlus(correcImage, imShape);
+		} else {
+			IJ.error("Sorry only batch size equal to 1 is allowed.");
 		}
 		return imPlus;
 	}
@@ -462,6 +484,11 @@ public class ImagePlus2Tensor {
 	public static ImagePlus copyData2Image2D(Tensor<?> tensor, String form){
 		// This method copies the information from the tensor to a matrix. At first only works
 		// if the batch size is 1
+		
+		// ImagePlus dimensions in the TensorFlow style. In this case we consider N as T,
+		// as for the moment both are going to be 1
+		String imPlusForm = "HWCZN";
+		
 		ImagePlus imPlus = null;
 		long[] longShape = tensor.shape();
 		int batchIndex = form.indexOf("N");
@@ -480,13 +507,13 @@ public class ImagePlus2Tensor {
 			// Prepare the dimensions of the imagePlus and create a copy
 			// because method 'imgTensorAssociation' changes it
 			int[] imShape = getShape(tensorShape, form);
-			int[] imShapeCopy = {imShape[0], imShape[1], imShape[2], imShape[3], imShape[4]};
 			
-			// Create the matrix containing the image. note that the dimensions are arranged differntly because in
+			// Create the matrix containing the image. note that the dimensions are arranged differently because in
 			// imageJ channels go before slices
 			double[][][][][] correctImage = new double[imShape[0]][imShape[1]][imShape[2]][imShape[3]][imShape[4]];
 			// Find the association between the tensor and the image dimensions
-			int[] dimensionAsociattion = imgTensorAssociation(tensorShape6, imShape);
+			String[] n_form = findMissingDimensions(form, imPlusForm);
+			int[] dimensionAsociattion = createDimOrder(n_form, imPlusForm);
 			
 			int[] auxArray = {-1,-1,-1,-1,-1};
 			int x = -1; int y = -1; int z = -1; int c = -1; int t = -1;
@@ -511,7 +538,9 @@ public class ImagePlus2Tensor {
 					}
 				}
 			}
-			imPlus = ArrayOperations.convertArrayToImagePlus(correctImage, imShapeCopy);
+			imPlus = ArrayOperations.convertArrayToImagePlus(correctImage, imShape);
+		} else {
+			IJ.error("Sorry only batch size equal to 1 is allowed.");
 		}
 		return imPlus;
 	}
@@ -550,25 +579,6 @@ public class ImagePlus2Tensor {
 	}
 	
 	
-	// TODO fix the thing about batch size
-	private static int[] imgTensorAssociation(int[] tShape, int[] imShape) {
-		// Mapping between the dimensions of the output tensor and the
-		// default dimensions of ImagePlus.
-		/// We only produce a 5 int array because we know that the first
-		/// element (batch size) is always going to be 1. Also at 'im_shape',
-		/// it corresponds with the 6th element and this is why we cannot ignore it
-		int[] shapesAssociation = new int[5];
-		// As previously stated, position 5 corresponds to batch size which is always
-		// 1, so we can ignore it.
-		int significantSize = tShape.length - 1;
-		for (int i = 0; i < significantSize; i++) {
-			int ind = ArrayOperations.indexOf(imShape, tShape[i]);
-			shapesAssociation[i] = ind;
-			// set that position in 'im_shape' array to 0 so they wont be found again
-			imShape[ind] = 0;
-		}
-		return shapesAssociation;
-	}
 	
 	//// Method for both cases
 	public static int[] createDimOrder(String[] originalOrder, String requiredOrder) {
@@ -584,6 +594,32 @@ public class ImagePlus2Tensor {
 			dimOrder[i] = pos;
 		}
 		return dimOrder;
+	}
+	
+	// TODO fix the thing about batch size
+	public static String[] findMissingDimensions(String tensorForm, String imagePlusForm) {
+		// Method that extends the form of the tensor to 5 letters in order to match the 
+		// ImagePlus form
+		String[] tForm = new String[imagePlusForm.length()];
+		String[] separatedImForm = imagePlusForm.split("");
+		
+		int extra = tensorForm.length();
+		
+		for (int i = 0; i < tForm.length; i ++) {
+			int index = tensorForm.indexOf(separatedImForm[i]);
+			if (index != -1) {
+				// If the image dimension is found in the tensor form,
+				// locate it in the same position
+				tForm[index] = separatedImForm[i];
+			} else {
+				// If the dimension is not found, locate it in the end. It 
+				// does not matter if it makes sense or not because all of them
+				// are going to be 1.
+				tForm[extra] = separatedImForm[i];
+				extra ++;
+			}
+		}
+		return tForm;
 	}
 
 }
