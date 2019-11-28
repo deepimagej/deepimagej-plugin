@@ -7,7 +7,9 @@ This is unfinished project that is still being developed
 DeepImageJ is a user-friendly plugin that enables the use of a variety of pre-trained deep learning models in ImageJ. The plugin bridges the gap between deep learning and standard life-science applications. DeepImageJ runs image-to-image operations on a standard CPU-based computer and does not require any deep learning expertise.
 
 ## One-click Installation
-The ZIP file (DeepImageJ.zip) is a plugin for ImageJ or Fiji. It contains all the necessary libraries (JAR files) to load and run TensorFlow models on any OS: Windows, Mac OSX, Linux.
+Go to releases (https://github.com/deepimagej/deepimagej-plugin/releases) and download the last version of the plugin: 
+
+- The ZIP file (DeepImageJ.zip) is a plugin for ImageJ or Fiji. It contains all the necessary libraries (JAR files) and DeepImageJ_X.X.X.jar to load and run TensorFlow models on any OS: Windows, Mac OSX, Linux.
 
 Unzip the ZIP file and store the 5 JAR files into the plugins folder of ImageJ or Fiji.
 
