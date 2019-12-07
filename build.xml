@@ -1,32 +1,69 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="DeepImageJ" default="build" basedir=".">
-	
-    <property name="src"	location="dist/${ant.project.name}-src.zip"/>
-    <property name="cls"	location="dist/${ant.project.name}-cls.zip"/>
-    <property name="jar"	location="${ant.project.name}_.jar"/>
-	
-	<!-- Compilation and distribution in zip and jar file -->
-	<target name="build">
-	
+
+	<property name="src"	location="dist/${ant.project.name}-src.zip"/>
+	<property name="cls"	location="dist/${ant.project.name}-cls.zip"/>
+	<property name="jar"	location="${ant.project.name}_.jar"/>
+
+	<target name="download-deps">
+		<mkdir dir="lib"/>
+		<exec executable="mvn">
+			<arg value="dependency:copy" />
+			<arg value="-Dartifact=net.imagej:ij:1.52p" />
+			<arg value="-DoutputDirectory=lib" />
+		</exec>
+		<exec executable="mvn">
+			<arg value="dependency:copy" />
+			<arg value="-Dartifact=org.tensorflow:libtensorflow:1.12.0" />
+			<arg value="-DoutputDirectory=lib" />
+		</exec>
+		<exec executable="mvn">
+			<arg value="dependency:copy" />
+			<arg value="-Dartifact=org.tensorflow:libtensorflow_jni:1.12.0" />
+			<arg value="-DoutputDirectory=lib" />
+		</exec>
+		<exec executable="mvn">
+			<arg value="dependency:copy" />
+			<arg value="-Dartifact=org.tensorflow:proto:1.12.0" />
+			<arg value="-DoutputDirectory=lib" />
+		</exec>
+		<exec executable="mvn">
+			<arg value="dependency:copy" />
+			<arg value="-Dartifact=com.google.protobuf:protobuf-java:3.2.0" />
+			<arg value="-DoutputDirectory=lib" />
+		</exec>
+	</target>
+
+	<path id="class.path">
+		<fileset dir="lib">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<target name="compile" depends="download-deps">
 		<mkdir dir="bin"/>
-		<mkdir dir="dist"/>
-		
 		<copy file="plugins.config" toDir="bin" />
+		<javac srcdir="src" destdir="bin">
+			<classpath refid="class.path" />
+			<compilerarg line="-encoding ISO-8859-1" />
+		</javac>
+	</target>
+
+	<!-- Compilation and distribution in zip and jar file -->
+	<target name="build" depends="compile">
+		<mkdir dir="dist"/>
 		<jar destfile="dist/DeepImageJ_.jar" basedir="bin" />
-		<copy file="dist/DeepImageJ_.jar" toDir="../../ImageJ/plugins/" />
-		<copy file="dist/DeepImageJ_.jar" toDir="../../Fiji.app/plugins/" />
-		
 		<copy file="lib/libtensorflow_jni-1.12.0.jar" toDir="dist" />
 		<copy file="lib/libtensorflow-1.12.0.jar" toDir="dist" />
 		<copy file="lib/proto-1.2.0.jar" toDir="dist" />
 		<copy file="lib/protobuf-java-3.2.0.jar" toDir="dist" />
 		<zip destfile="DeepImageJ.zip" basedir="dist" />
-		
 	</target>
-		
-    <!-- Clean classes, jar and zip -->
-    <target name="clean" description="Clean up build products">
-        <delete dir="bin"/>
-        <delete dir="dist"/>
-     </target>
+
+	<!-- Clean classes, jar and zip -->
+	<target name="clean" description="Clean up build products">
+		<delete dir="lib"/>
+		<delete dir="bin"/>
+		<delete dir="dist"/>
+	</target>
 </project>
