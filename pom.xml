@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.scijava</groupId>
+		<artifactId>pom-scijava</artifactId>
+		<version>27.0.1</version>
+		<relativePath />
+	</parent>
+
+	<groupId>io.github.deepimagej</groupId>
+	<artifactId>DeepImageJ_</artifactId>
+	<version>1.0.2-SNAPSHOT</version>
+
+	<name>DeepImageJ</name>
+	<description>A user-friendly plugin to run deep learning models in ImageJ.</description>
+	<url>https://deepimagej.github.io/deepimagej/</url>
+	<inceptionYear>2019</inceptionYear>
+	<organization>
+		<name>DeepImageJ</name>
+		<url>https://deepimagej.github.io/deepimagej/</url>
+	</organization>
+	<licenses>
+		<license>
+			<name>Simplified BSD License</name>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<id>esgomezm</id>
+			<name>Estibaliz Gómez-de-Mariscal</name>
+			<url>https://github.com/esgomezm</url>
+			<roles>
+				<role>founder</role>
+				<role>lead</role>
+				<role>developer</role>
+				<role>debugger</role>
+				<role>reviewer</role>
+				<role>support</role>
+				<role>maintainer</role>
+			</roles>
+		</developer>
+		<developer>
+			<id>carlosuc3m</id>
+			<name>Carlos García-López-de-Haro</name>
+			<url>https://github.com/carlosuc3m</url>
+			<roles>
+				<role>founder</role>
+				<role>lead</role>
+				<role>developer</role>
+				<role>debugger</role>
+				<role>reviewer</role>
+				<role>support</role>
+				<role>maintainer</role>
+			</roles>
+		</developer>
+		<developer>
+			<id>arrmunoz</id>
+			<name>Arrate Muñoz-Barrutia</name>
+			<url>https://github.com/arrmunoz</url>
+			<roles>
+				<role>founder</role>
+				<role>lead</role>
+				<role>developer</role>
+				<role>debugger</role>
+				<role>reviewer</role>
+				<role>support</role>
+				<role>maintainer</role>
+			</roles>
+		</developer>
+		<developer>
+			<id>dasv74</id>
+			<name>Daniel Sage</name>
+			<url>https://github.com/dasv74</url>
+			<roles>
+				<role>founder</role>
+				<role>lead</role>
+				<role>developer</role>
+				<role>debugger</role>
+				<role>reviewer</role>
+				<role>support</role>
+				<role>maintainer</role>
+			</roles>
+		</developer>
+	</developers>
+	<contributors>
+		<contributor>
+			<name>Curtis Rueden</name>
+			<url>https://imagej.net/User:Rueden</url>
+			<properties><id>ctrueden</id></properties>
+		</contributor>
+	</contributors>
+
+	<mailingLists>
+		<mailingList>
+			<name>Image.sc Forum</name>
+			<archive>https://forum.image.sc/tags/deepimagej</archive>
+		</mailingList>
+	</mailingLists>
+
+	<scm>
+		<connection>scm:git:git://github.com/deepimagej/deepimagej-plugin</connection>
+		<developerConnection>scm:git:git@github.com:deepimagej/deepimagej-plugin</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/deepimagej/deepimagej-plugin</url>
+	</scm>
+	<issueManagement>
+		<system>GitHub Issues</system>
+		<url>https://github.com/deepimagej/deepimagej-plugin/issues</url>
+	</issueManagement>
+	<ciManagement>
+		<system>None</system>
+	</ciManagement>
+
+	<properties>
+		<main-class>DeepImageJ_Run</main-class>
+		<automatic-module-name>io.github.deepimagej</automatic-module-name>
+
+		<license.licenseName>bsd_2</license.licenseName>
+		<license.copyrightOwners>Ecole Polytechnique Fédérale de Lausanne and
+Universidad Carlos III de Madrid.</license.copyrightOwners>
+
+		<!-- NB: Deploy releases to the SciJava Maven repository. -->
+		<releaseProfiles>deploy-to-scijava</releaseProfiles>
+
+		<protobuf.version>3.2.0</protobuf.version>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java</artifactId>
+			<version>${protobuf.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>ij</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.tensorflow</groupId>
+			<artifactId>libtensorflow</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.tensorflow</groupId>
+			<artifactId>proto</artifactId>
+		</dependency>
+
+		<!-- Runtime dependencies -->
+		<dependency>
+			<groupId>org.tensorflow</groupId>
+			<artifactId>libtensorflow_jni</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- Test scope dependencies -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+</project>
