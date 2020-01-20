@@ -1,7 +1,5 @@
-﻿# DeepImageJ - WORK IN PROGRESS
----
-This is unfinished project that is still being developed
----
+﻿# DeepImageJ
+
 ### The ImageJ plugin to run deep-learning models
 
 DeepImageJ is a user-friendly plugin that enables the use of a variety of pre-trained deep learning models in ImageJ. The plugin bridges the gap between deep learning and standard life-science applications. DeepImageJ runs image-to-image operations on a standard CPU-based computer and does not require any deep learning expertise.
@@ -30,7 +28,9 @@ The java libraries insided ImageJ/Fiji needed to run this plugin are:
 * protobuf-java-3.2.0
 
 ## Conditions of use
-The DeepImageJ project is an open source software (OSS) under the BSD 2-Clause License. All the resources provided here are freely available for noncommercial and research purposes. Their use for any other purpose is generally possible, but solely with the explicit permission of the authors. You are expected to include adequate references whenever you present or publish results that are based on the resources provided.
+The DeepImageJ project is an open source software (OSS) under the BSD 2-Clause License. All the resources provided here are freely available. 
+
+As a matter of academic integrity, we strongly encourage users to include adequate references whenever they present or publish results that are based on the resources provided here. 
 
 ## References
 Cite the appropriate TensorFlow network which is bundled into DeepImageJ.
