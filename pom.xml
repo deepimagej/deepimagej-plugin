@@ -142,6 +142,7 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 			<groupId>org.tensorflow</groupId>
 			<artifactId>libtensorflow</artifactId>
+		  	<version>1.12.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.tensorflow</groupId>
@@ -151,7 +152,8 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<!-- Runtime dependencies -->
 		<dependency>
 			<groupId>org.tensorflow</groupId>
-			<artifactId>libtensorflow_jni</artifactId>
+			<artifactId>libtensorflow_jni_gpu</artifactId>
+		  	<version>1.12.0</version>
 			<scope>runtime</scope>
 		</dependency>
 
