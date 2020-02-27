@@ -11,7 +11,7 @@
 
 	<groupId>io.github.deepimagej</groupId>
 	<artifactId>DeepImageJ_</artifactId>
-	<version>1.0.2-SNAPSHOT</version>
+	<version>1.1.0-SNAPSHOT</version>
 
 	<name>DeepImageJ</name>
 	<description>A user-friendly plugin to run deep learning models in ImageJ.</description>
@@ -142,7 +142,7 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 			<groupId>org.tensorflow</groupId>
 			<artifactId>libtensorflow</artifactId>
-		  	<version>1.12.0</version>
+		  	<version>1.15.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.tensorflow</groupId>
@@ -153,7 +153,7 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 			<groupId>org.tensorflow</groupId>
 			<artifactId>libtensorflow_jni_gpu</artifactId>
-		  	<version>1.12.0</version>
+		  	<version>1.15.0</version>
 			<scope>runtime</scope>
 		</dependency>
 
