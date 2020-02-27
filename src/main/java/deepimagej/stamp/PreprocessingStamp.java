@@ -31,7 +31,7 @@
  * 
  * You should have received a copy of the BSD 2-Clause License along with DeepImageJ. 
  * If not, see <https://opensource.org/licenses/bsd-license.php>.
- */
+ */
 
 package deepimagej.stamp;
 
