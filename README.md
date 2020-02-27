@@ -31,7 +31,7 @@ The java libraries insided ImageJ/Fiji needed to run this plugin in CPU mode are
 
 In order to run the plugin in GPU mode, the dependency *libtensorflow_jni-1.15.0* has to be substituted by *libtensorflow_jni_gpu-1.15.0*. There should only be one of those two dependencies installed in the ImageJ/Fiji directory.
 
-In order to download the needed dependencies click here.
+In order to download the needed dependencies click  [here](https://github.com/deepimagej/deepimagej-plugin/releases/tag/1.1.0).
 
 ## Conditions of use
 The DeepImageJ project is an open source software (OSS) under the BSD 2-Clause License. All the resources provided here are freely available. 
