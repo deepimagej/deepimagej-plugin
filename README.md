@@ -21,11 +21,17 @@ Operating systems (same requirements as for ImageJ/Fiji software).
 * Mac OSX
 * Linux.
 
-The java libraries insided ImageJ/Fiji needed to run this plugin are:
-* libtensorflow-1.12.0
-* libtensorflow_jni-1.12.0
-* proto-1.2.0
+The java libraries insided ImageJ/Fiji needed to run this plugin in CPU mode are:
+* libtensorflow-1.15.0
+* libtensorflow_jni-1.15.0
+* proto-1.12.0
 * protobuf-java-3.2.0
+* junit-4.12
+* hamcrest-core-1.3
+
+In order to run the plugin in GPU mode, the dependency *libtensorflow_jni-1.15.0* has to be substituted by *libtensorflow_jni_gpu-1.15.0*. There should only be one of those two dependencies installed in the ImageJ/Fiji directory.
+
+In order to download the needed dependencies click here.
 
 ## Conditions of use
 The DeepImageJ project is an open source software (OSS) under the BSD 2-Clause License. All the resources provided here are freely available. 
