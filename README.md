@@ -29,9 +29,18 @@ The java libraries insided ImageJ/Fiji needed to run this plugin in CPU mode are
 * junit-4.12
 * hamcrest-core-1.3
 
-In order to run the plugin in GPU mode, the dependency *libtensorflow_jni-1.15.0* has to be substituted by *libtensorflow_jni_gpu-1.15.0*. There should only be one of those two dependencies installed in the ImageJ/Fiji directory.
+To run the plugin in GPU mode, the dependency *libtensorflow_jni-1.15.0* has to be substituted by *libtensorflow_jni_gpu-1.15.0*. **There should only be one of those two dependencies installed in the ImageJ/Fiji directory.**
 
-In order to download the needed dependencies click  [here](https://github.com/deepimagej/deepimagej-plugin/releases/tag/1.1.0).
+The last release of the plugin including GPU connection and TensorFlow JAVA library 1.15 can be downloaded [here](https://github.com/deepimagej/deepimagej-plugin/releases/tag/1.1.0).
+
+### Required cuda version with TensorFlow JavaAPI:
+* TensorFlow 1.12: CUDA 9.0 and corresponding CUDnn and drivers. 
+* TensorFlow 1.15: CUDA 10.0 and corresponding CUDnn and drivers.
+
+Further information:
+- https://github.com/CSBDeep/CSBDeep_website/wiki/CSBDeep-in-Fiji-%E2%80%93-Installation
+- https://github.com/tensorflow/tensorflow/issues/16660
+
 
 ## Conditions of use
 The DeepImageJ project is an open source software (OSS) under the BSD 2-Clause License. All the resources provided here are freely available. 
