@@ -82,6 +82,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	private int							overlap;
 	private DeepImageJ					dp;
 	private HashMap<String, String>		fullnames	= new HashMap<String, String>();
+	
+	private boolean 					batch		= true;
 
 	static public void main(String args[]) {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
@@ -90,16 +92,24 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		path = "C:\\\\Users\\\\biig\\\\Documents\\\\Fiji.app\\\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
 		//imp.show();
-		ImagePlus imp = IJ.openImage("C:\\Users\\biig\\Documents\\image2.tiff");
+		ImagePlus imp = IJ.openImage("C:\\Users\\biig\\Documents\\Fiji.app\\models\\noise2void_denoising\\exampleImage.tiff");
+		WindowManager.setTempCurrentImage(imp);
 		if (imp != null)
-			imp.show();
+			//imp.show();
 		new DeepImageJ_Run().run("");
 	}
 
 	@Override
 	public void run(String arg) {
 		
-		if (WindowManager.getCurrentImage() == null) {
+		ImagePlus imp = WindowManager.getTempCurrentImage();
+		
+		if (imp == null) {
+			batch = false;
+			imp = WindowManager.getCurrentImage();
+		}
+		
+		if (imp == null) {
 			IJ.error("There should be an image open.");
 		} else {
 			
@@ -290,23 +300,32 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 						log.print("end preprocessing");
 					}
 				}
-			}
+			}/*
 			if (WindowManager.getCurrentWindow() == null) {
 				IJ.error("Something failed in the preprocessing.");
 				// Close the parallel processes
 			    service.shutdown();
 				return;
-			}
+			}*/
 			
 			runStage ++;
 			log.print("start progress");
+			
+			ImagePlus out = null;
+			if (batch == true) {
+				out = WindowManager.getTempCurrentImage();
+			} else {
+				out = WindowManager.getCurrentImage();
+			}
+			
 			RunnerProgress rp = new RunnerProgress(dp);
 			log.print("start runner");
-			Runner runner = new Runner(dp, rp, log);
+			Runner runner = new Runner(dp, rp, out, log);
 			rp.setRunner(runner);
 			Future<ImagePlus> f1 = service.submit(runner);
 			
-			ImagePlus out = null;
+			
+			
 			try {
 				out = f1.get();
 			} catch (InterruptedException e) {
