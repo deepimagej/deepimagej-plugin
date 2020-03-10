@@ -112,7 +112,8 @@
 		<url>https://github.com/deepimagej/deepimagej-plugin/issues</url>
 	</issueManagement>
 	<ciManagement>
-		<system>None</system>
+		<system>Travis CI</system>
+		<url>https://travis-ci.com/deepimagej/deepimagej-plugin</url>
 	</ciManagement>
 
 	<properties>
