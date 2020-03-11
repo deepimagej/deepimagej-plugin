@@ -24,7 +24,7 @@ Operating systems (same requirements as for ImageJ/Fiji software).
 The java libraries insided ImageJ/Fiji needed to run this plugin in CPU mode are:
 * libtensorflow-1.15.0
 * libtensorflow_jni-1.15.0
-* proto-1.12.0
+* proto-1.2.0
 * protobuf-java-3.2.0
 * junit-4.12
 * hamcrest-core-1.3
