@@ -76,6 +76,8 @@ import deepimagej.tools.WebBrowser;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
+import ij.gui.ImageWindow;
+import ij.macro.Interpreter;
 
 public class ExploreDialog extends JDialog implements Runnable, ActionListener, MouseListener, KeyListener {
 
@@ -267,15 +269,20 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	public void run() {
 		bnApply.setEnabled(false);
 		int runStage = 0;
+		ImagePlus im = imp.duplicate();
+		im.setTitle("tmp_" + "exampleImage.tiff");
+		ImageWindow windToClose = imp.getWindow();
+		windToClose.dispose();
+		WindowManager.setTempCurrentImage(imp);
 		try {
 			String dir = dp.getPath();
 			String m = dir + dp.params.preprocessingFile;
 			if (new File(m).exists()) {
 				log.print("start preprocessing");
-				runMacro(m);
+				imp = runMacro(m, imp);
 				log.print("end preprocessing");
-				imp = WindowManager.getCurrentImage();
 			}
+			im.show();
 			if (WindowManager.getCurrentWindow() == null) {
 				IJ.error("Something failed in the preprocessing.");
 				thread = null;
@@ -286,9 +293,12 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 			log.print("start progress");
 			RunnerProgress rp = new RunnerProgress(dp);
 			log.print("start runner");
-			Runner runner = new Runner(dp, rp, log);
+			Runner runner = new Runner(dp, rp, imp, log);
 			rp.setRunner(runner);
 			ImagePlus out = runner.call();
+			imp.changes = false;
+			imp.close();
+			im.setTitle("exampleImage.tiff");
 			
 			if (out == null) {
 				log.print("Error, output is null");
@@ -302,9 +312,8 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 			if (new File(m).exists()) {
 				log.print("start postprocessing");
 				WindowManager.setTempCurrentImage(out);
-				runMacro(m);
+				out = runMacro(m, out);
 				log.print("end postprocessing");
-				out = WindowManager.getCurrentImage();
 			}
 			log.print("display " + out.getTitle());
 			out.show();
@@ -490,23 +499,19 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 		}
 	}
 	
-	public static void runMacro(String macroFile) throws FileNotFoundException, MacrosError {
+	public ImagePlus runMacro(String macroFile, ImagePlus imp) throws FileNotFoundException, MacrosError {
 		String macro = "";
 		try {
 			macro = new Scanner(new File(macroFile)).useDelimiter("\\Z").next();
 		} catch (NoSuchElementException ex) {
 			macro ="";
 		}
-		String executionResult = "";
+		//ImagePlus result = imp;
+		Interpreter interp = new Interpreter();
 		if (macro.contentEquals("") == false) {
-			executionResult = IJ.runMacro(macro);
-			if (executionResult != null ) {
-				if (executionResult.contentEquals("[aborted]") == true) {
-					throw new MacrosError();
-				}
-			}
+			imp = interp.runBatchMacro(macro, imp);
 		}
-		
+		return imp;		
 	}
 
 
