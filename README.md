@@ -1,3 +1,5 @@
+[![](https://travis-ci.com/deepimagej/deepimagej-plugin.svg?branch=master)](https://travis-ci.com/deepimagej/deepimagej-plugin)
+
 ﻿# DeepImageJ
 
 ### The ImageJ plugin to run deep-learning models
