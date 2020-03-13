@@ -36,6 +36,7 @@
 import java.awt.BorderLayout;
 import java.awt.Choice;
 import java.awt.Component;
+import java.awt.Frame;
 import java.awt.Label;
 import java.awt.TextArea;
 import java.awt.TextField;
@@ -60,6 +61,9 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
+import ij.gui.ImageWindow;
+import ij.macro.Interpreter;
+import ij.plugin.Duplicator;
 import ij.plugin.PlugIn;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -84,18 +88,17 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	private HashMap<String, String>		fullnames	= new HashMap<String, String>();
 	
 	private boolean 					batch		= true;
+	private String						title;
 
 	static public void main(String args[]) {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
-		// ImagePlus imp = IJ.openImage(path + "iso_reconstruction" + File.separator +
-		// "exampleImage.tiff");
-		path = "C:\\\\Users\\\\biig\\\\Documents\\\\Fiji.app\\\\models" + File.separator;
+		path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
 		//imp.show();
-		ImagePlus imp = IJ.openImage("C:\\Users\\biig\\Documents\\Fiji.app\\models\\noise2void_denoising\\exampleImage.tiff");
+		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\frunet\\exampleImage.tiff");
 		WindowManager.setTempCurrentImage(imp);
 		if (imp != null)
-			//imp.show();
+			imp.show();
 		new DeepImageJ_Run().run("");
 	}
 
@@ -113,6 +116,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			IJ.error("There should be an image open.");
 		} else {
 			
+			title = imp.getTitle();
 			boolean isDeveloper = false;
 	
 			dps = DeepImageJ.list(path, log, isDeveloper);
@@ -228,7 +232,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			}
 			//addChangeListener(texts[1], e -> optimalPatch(dp));
 
-			calculateImage();
+			calculateImage(imp);
 		}
 	}
 
@@ -283,44 +287,51 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	}
 
 	
-	public void calculateImage() {
+	public void calculateImage(ImagePlus inp) {
 		dp.params.padding = overlap;
 		dp.params.patch = patch;
 		String dir = dp.getPath();
 		int runStage = 0;
 		// Create parallel process for calculating the image
 		ExecutorService service = Executors.newFixedThreadPool(1);
+		
+		ImagePlus im = inp.duplicate();
+		
+		String correctTitle = inp.getTitle();
+		//inp.setTitle("temporalImage");
+		im.setTitle("tmp_" + correctTitle);
+		ImageWindow windToClose = inp.getWindow();
+		windToClose.dispose();
+		
+		WindowManager.setTempCurrentImage(inp);
+		ImagePlus out = null;
 		try {
 			if (preprocessingFile != null) {
 				if (!preprocessingFile.trim().toLowerCase().startsWith("no")) {
 					String m = dir + preprocessingFile;
 					if (new File(m).exists()) {
 						log.print("start preprocessing");
-						runMacro(m);
+						inp = runMacro(m, inp);
 						log.print("end preprocessing");
 					}
 				}
-			}/*
-			if (WindowManager.getCurrentWindow() == null) {
-				IJ.error("Something failed in the preprocessing.");
-				// Close the parallel processes
-			    service.shutdown();
-				return;
-			}*/
+			}
+			if (batch == false) {
+				im.show();
+			}
+			WindowManager.setTempCurrentImage(null);
 			
 			runStage ++;
 			log.print("start progress");
 			
-			ImagePlus out = null;
-			if (batch == true) {
-				out = WindowManager.getTempCurrentImage();
-			} else {
-				out = WindowManager.getCurrentImage();
+			if (inp == null) {
+				IJ.error("Something failed in the preprocessing.");
+				return;
 			}
 			
 			RunnerProgress rp = new RunnerProgress(dp);
 			log.print("start runner");
-			Runner runner = new Runner(dp, rp, out, log);
+			Runner runner = new Runner(dp, rp, inp, log);
 			rp.setRunner(runner);
 			Future<ImagePlus> f1 = service.submit(runner);
 			
@@ -328,6 +339,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			
 			try {
 				out = f1.get();
+				inp.changes = false;
+				inp.close();
+				im.setTitle(correctTitle);
 			} catch (InterruptedException e) {
 				IJ.error("No model loaded");
 			} catch (ExecutionException e) {
@@ -348,17 +362,18 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 					if (new File(m).exists()) {
 						log.print("start postprocessing");
 						WindowManager.setTempCurrentImage(out);
-						runMacro(m);
+						out = runMacro(m, out);
 						log.print("end postprocessing");
-						out = WindowManager.getCurrentImage();
 					}
 				}
 			}
 			texts[0].setEnabled(dp.params.fixedPatch == false);
 			labels[7].setEnabled(dp.params.fixedPatch == false);
+			
 			out.show();
 			out.setSlice(1);
 			out.getProcessor().resetMinAndMax();
+			WindowManager.setTempCurrentImage(null);
 			
 			// Close the parallel processes
 		    service.shutdown();
@@ -441,23 +456,19 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		return patch;
 	}
 	
-	public static void runMacro(String macroFile) throws FileNotFoundException, MacrosError {
+	public ImagePlus runMacro(String macroFile, ImagePlus imp) throws FileNotFoundException, MacrosError {
 		String macro = "";
 		try {
 			macro = new Scanner(new File(macroFile)).useDelimiter("\\Z").next();
 		} catch (NoSuchElementException ex) {
 			macro ="";
 		}
-		String executionResult = "";
+		ImagePlus result = imp;
+		Interpreter interp = new Interpreter();
 		if (macro.contentEquals("") == false) {
-			executionResult = IJ.runMacro(macro);
-			if (executionResult != null ) {
-				if (executionResult.contentEquals("[aborted]") == true) {
-					throw new MacrosError();
-				}
-			}
+			result = interp.runBatchMacro(macro, imp);
 		}
-		
+		return result;		
 	}
 
 }
