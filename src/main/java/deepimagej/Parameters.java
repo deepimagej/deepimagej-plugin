@@ -47,8 +47,6 @@ import java.util.Set;
 import org.tensorflow.SavedModelBundle;
 
 import deepimagej.tools.DijTensor;
-import deepimagej.tools.DijMethod;
-import deepimagej.tools.DijVariable;
 import deepimagej.tools.YAMLUtils;
 import ij.ImagePlus;
 
@@ -118,12 +116,6 @@ public class Parameters {
 	public List<DijTensor> inputList 	= new ArrayList<>();
 	// List of output tensors of the model
 	public List<DijTensor> outputList 	= new ArrayList<>();
-	// List of all the variables created to runn the model, including pre and post processing
-	public List<DijVariable> vars		= new ArrayList<>();
-	// List of all the methods used to preprocess the image before inputing it to the model
-	public List<DijMethod> javaPreprocessing;
-	// List of all the methods used to postprocess the image before inputing it to the model
-	public List<DijMethod> javaPostprocessing;
 	
 	public boolean		fixedPatch			= false;
 	public boolean		fixedPadding			= true;
