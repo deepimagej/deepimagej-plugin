@@ -49,7 +49,6 @@ import org.tensorflow.framework.TensorInfo;
 import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.CompactMirroring;
 import deepimagej.tools.DijTensor;
-import deepimagej.tools.DijVariable;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
 import deepimagej.tools.NumFormat;
@@ -405,20 +404,6 @@ public class Runner implements Callable<ImagePlus[]> {
 			return n.substring(0, n.lastIndexOf(":0"));
 		}
 		return n;
-	}
-	
-	public void modelOutputTensor(ImagePlus[] images){
-		List<DijTensor> outputs = dp.params.outputList;
-		List<DijVariable> vars = dp.params.vars;
-		
-		int c = 0;
-		for (DijTensor tensor: outputs) {
-			
-			String name = tensor.name;
-			int ind = DijVariable.retrieveIndByName(name, vars);
-			dp.params.vars.get(ind).memoryContent = ImagePlus2Tensor.imPlus2tensor(images[c], tensor.form, images[c].getNChannels());
-			c++;
-		}
 	}
 	
 	public static int[] findTotalPadding(List<DijTensor> outputs) {
