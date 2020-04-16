@@ -4,8 +4,8 @@
  * https://deepimagej.github.io/deepimagej/
  *
  * Conditions of use: You are free to use this software for research or educational purposes. 
- * In addition, we strongly encourage you to include adequate citations and acknowledgments 
- * whenever you present or publish results that are based on it.
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
  * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
@@ -23,14 +23,16 @@
  * 
  * This file is part of DeepImageJ.
  * 
- * DeepImageJ is an open source software (OSS): you can redistribute it and/or modify it under 
- * the terms of the BSD 2-Clause License.
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
  * 
  * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
  * 
- * You should have received a copy of the BSD 2-Clause License along with DeepImageJ. 
- * If not, see <https://opensource.org/licenses/bsd-license.php>.
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package deepimagej;
@@ -40,6 +42,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -48,6 +51,8 @@ import org.tensorflow.Operation;
 import org.tensorflow.SavedModelBundle;
 
 import deepimagej.tools.Log;
+import deepimagej.tools.DijTensor;
+import deepimagej.tools.Index;
 import ij.IJ;
 import ij.ImagePlus;
 
@@ -122,7 +127,7 @@ public class DeepImageJ {
 	}
 
 
-	public boolean loadModel() {
+	public boolean loadModel(boolean archi) {
 		File dir = new File(path);
 		String[] files = dir.list();
 		log.print("load model from " + path);
@@ -150,10 +155,16 @@ public class DeepImageJ {
 		chrono = (System.nanoTime() - chrono) / 1000000.0;
 		Graph graph = model.graph();
 		Iterator<Operation> ops = graph.operations();
-		while (ops.hasNext()) {
-			Operation op = ops.next();
-			if (op != null)
-				msgArchis.add(new String[] {op.toString(), op.name(), op.type(), ""+op.numOutputs()});
+		if (archi == true) {
+			while (ops.hasNext()) {
+				Operation op = ops.next();
+				Object a = op.getClass();
+				if (op != null) {
+					msgArchis.add(new String[] {op.toString(), op.name(), op.type(), ""+op.numOutputs()});
+				}
+			}
+		} else {
+			msgArchis.add(new String[] {"Archi could not be displayed with this tf version"});
 		}
 		log.print("Loaded");
 		msgLoads.add("Metagraph size: " + model.metaGraphDef().length);
@@ -169,33 +180,37 @@ public class DeepImageJ {
 		}
 		info.append(params.name + "\n");
 		info.append(params.author + "\n");
-		info.append(params.credit + "\n");
 		info.append("----------------------\n");
 		
 		info.append("Tag: " + params.tag + "  Signature: " + params.graph + "\n");
 
 		info.append("Dimensions: ");
-		for (int dim : params.inDimensions)
-			info.append(" " + dim);
-		info.append(" Slices (" + params.slices + ") Channels (" + params.channels + ")\n");
-
+		for (DijTensor inp : params.inputList) {
+			info.append(Arrays.toString(inp.tensor_shape));
+			int slices = 1;
+			int zInd = Index.indexOf(inp.form.split(""), "D");
+			if (zInd != -1) {slices = inp.tensor_shape[zInd];}
+			int channels = 1;
+			int cInd = Index.indexOf(inp.form.split(""), "C");
+			if (cInd != -1) {channels = inp.tensor_shape[cInd];}
+			info.append(" Slices (" + slices + ") Channels (" + channels + ")\n");
+		}
 		info.append("Input:");
-		for (int i = 0; i < params.nInputs; i++)
-			info.append(" " + params.inputs[i] + " (" + params.inputForm[i] + ")");
+		for (DijTensor inp2 : params.inputList)
+			info.append(" " + inp2.name + " (" + inp2.form + ")");
 		info.append("\n");
 		info.append("Output:");
-		for (int i = 0; i < params.nOutputs; i++)
-			info.append(" " + params.outputs[i] + " (" + params.outputForm[i] + ")");
+		for (DijTensor out : params.outputList)
+			info.append(" " + out.name + " (" + out.form + ")");
 		info.append("\n");
 	}
 
 	
 	public  boolean check(String path, ArrayList<String> msg) {
 		boolean valid = TensorFlowModel.check(path, msg);
-		File configFile = new File(path + "config.xml");
+		File configFile = new File(path + "config.yaml");
 		if (!configFile.exists()) {
-			msg.add("No 'config.xml' found in " + path);
-			// TODO Test (8/10/19)
+			msg.add("No 'config.yaml' found in " + path);
 			valid = false;
 		}
 		return valid;

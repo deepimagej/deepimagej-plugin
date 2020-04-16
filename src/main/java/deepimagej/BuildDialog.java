@@ -4,8 +4,8 @@
  * https://deepimagej.github.io/deepimagej/
  *
  * Conditions of use: You are free to use this software for research or educational purposes. 
- * In addition, we strongly encourage you to include adequate citations and acknowledgments 
- * whenever you present or publish results that are based on it.
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
  * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
@@ -23,14 +23,16 @@
  * 
  * This file is part of DeepImageJ.
  * 
- * DeepImageJ is an open source software (OSS): you can redistribute it and/or modify it under 
- * the terms of the BSD 2-Clause License.
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
  * 
  * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
  * 
- * You should have received a copy of the BSD 2-Clause License along with DeepImageJ. 
- * If not, see <https://opensource.org/licenses/bsd-license.php>.
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package deepimagej;
@@ -48,9 +50,10 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 import deepimagej.components.TitleHTMLPane;
-import deepimagej.stamp.DimensionStamp;
+import deepimagej.stamp.InputDimensionStamp;
 import deepimagej.stamp.InformationStamp;
 import deepimagej.stamp.LoadTFStamp;
+import deepimagej.stamp.OutputDimensionStamp;
 import deepimagej.stamp.PostprocessingStamp;
 import deepimagej.stamp.PreprocessingStamp;
 import deepimagej.stamp.SaveStamp;
@@ -59,9 +62,6 @@ import deepimagej.stamp.TestStamp;
 import deepimagej.stamp.WelcomeStamp;
 import deepimagej.tools.Log;
 import deepimagej.tools.WebBrowser;
-import ij.IJ;
-import ij.ImagePlus;
-import ij.WindowManager;
 import ij.gui.GUI;
 
 public class BuildDialog extends JDialog implements ActionListener {
@@ -73,16 +73,17 @@ public class BuildDialog extends JDialog implements ActionListener {
 	private JPanel				pnCards	= new JPanel(new CardLayout());
 
 	private WelcomeStamp			welcome;
-	private LoadTFStamp			loader;
-	private DimensionStamp		dim3;
-	private TensorStamp			tensor;
+	private LoadTFStamp				loader;
+	private InputDimensionStamp		dim3;
+	private OutputDimensionStamp 	outputDim;
+	private TensorStamp				tensor;
 	private InformationStamp		info;
-	private PostprocessingStamp	postproc;
-	private PreprocessingStamp	preproc;
-	private TestStamp			test8;
-	private SaveStamp			save;
-	private DeepImageJ			dp;
-	private int					card	= 1;
+	private PostprocessingStamp		postproc;
+	private PreprocessingStamp		preproc;
+	private TestStamp				test2;
+	private SaveStamp				save;
+	private DeepImageJ				dp;
+	private int						card	= 1;
 
 	public BuildDialog() {
 		super(new JFrame(), "Build Bundled Model [" + Constants.version + "]");
@@ -92,12 +93,16 @@ public class BuildDialog extends JDialog implements ActionListener {
 
 		welcome = new WelcomeStamp(this);
 		loader = new LoadTFStamp(this);
-		dim3 = new DimensionStamp(this);
+		dim3 = new InputDimensionStamp(this);
 		tensor = new TensorStamp(this);
 		info = new InformationStamp(this);
+		outputDim = new OutputDimensionStamp(this);
+		//javPreproc = new JavaPreprocessingStamp(this);
+		//javPostproc = new JavaPostprocessingStamp(this);
+		//tensorSelection = new TensorSelectionStamp(this);
 		preproc = new PreprocessingStamp(this);
 		postproc = new PostprocessingStamp(this);
-		test8 = new TestStamp(this);
+		test2 = new TestStamp(this);
 		save = new SaveStamp(this);
 
 		JPanel pnButtons = new JPanel(new GridLayout(1, 4));
@@ -110,11 +115,15 @@ public class BuildDialog extends JDialog implements ActionListener {
 		pnCards.add(loader.getPanel(), "2");
 		pnCards.add(tensor.getPanel(), "3");
 		pnCards.add(dim3.getPanel(), "4");
-		pnCards.add(info.getPanel(), "5");
-		pnCards.add(preproc.getPanel(), "6");
-		pnCards.add(postproc.getPanel(), "7");
-		pnCards.add(test8.getPanel(), "8");
-		pnCards.add(save.getPanel(), "9");
+		pnCards.add(outputDim.getPanel(), "5");
+		pnCards.add(info.getPanel(), "6");
+		//pnCards.add(javPreproc.getPanel(), "7");
+		//pnCards.add(tensorSelection.getPanel(), "8");
+		//pnCards.add(javPostproc.getPanel(), "9");
+		pnCards.add(preproc.getPanel(), "7");
+		pnCards.add(postproc.getPanel(), "8");
+		pnCards.add(test2.getPanel(), "9");
+		pnCards.add(save.getPanel(), "10");
 
 		setLayout(new BorderLayout());
 		add(new TitleHTMLPane().getPane(), BorderLayout.NORTH);
@@ -171,18 +180,30 @@ public class BuildDialog extends JDialog implements ActionListener {
 				card = dim3.finish() ? card+1 : card;
 				break;
 			case 5:
-				card = info.finish() ? card+1 : card;
+				card = outputDim.finish() ? card+1 : card;
 				break;
 			case 6:
-				card = preproc.finish() ? card+1 : card;
+				card = info.finish() ? card+1 : card;
 				break;
-			case 7:
-				card = postproc.finish() ? card+1 : card;
+			/*case 7:
+				card = javPreproc.finish() ? card+1 : card;
+				break;
+			case 8:
+				card = tensorSelection.finish() ? card+1 : card;
 				break;
 			case 9:
+				card = javPostproc.finish() ? card+1 : card;
+				break;*/
+			case 7:
+				card = preproc.finish() ? card+1 : card;
+				break;
+			case 8:
+				card = postproc.finish() ? card+1 : card;
+				break;
+			case 10:
 				dispose();
 			default:
-				card = Math.min(9, card + 1);
+				card = Math.min(10, card + 1);
 			}
 		}
 		if (e.getSource() == bnBack) {
@@ -202,10 +223,26 @@ public class BuildDialog extends JDialog implements ActionListener {
 		if (card == 4)
 			dim3.init();
 		if (card == 5)
-			info.init();
+			outputDim.init();
+		if (card == 6)
+			info.init();/*
+		if (card == 7)
+			javPreproc.init();
 		if (card == 8)
-			test8.init();
-		if (card == 9) 
+			tensorSelection.init();
+		if (card == 9)
+			javPostproc.init();
+		if (card == 10)
+			test.init();
+		if (card == 11) 
+			setEnabledBackNext(true);*/
+		if (card == 7)
+			preproc.init();
+		if (card == 8)
+			postproc.init();
+		if (card == 9)
+			test2.init();
+		if (card == 10)
 			setEnabledBackNext(true);
 
 		bnNext.setText(card == 9 ? "Finish" : "Next");

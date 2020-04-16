@@ -4,8 +4,8 @@
  * https://deepimagej.github.io/deepimagej/
  *
  * Conditions of use: You are free to use this software for research or educational purposes. 
- * In addition, we strongly encourage you to include adequate citations and acknowledgments 
- * whenever you present or publish results that are based on it.
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
  * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
@@ -23,14 +23,16 @@
  * 
  * This file is part of DeepImageJ.
  * 
- * DeepImageJ is an open source software (OSS): you can redistribute it and/or modify it under 
- * the terms of the BSD 2-Clause License.
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
  * 
  * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
  * 
- * You should have received a copy of the BSD 2-Clause License along with DeepImageJ. 
- * If not, see <https://opensource.org/licenses/bsd-license.php>.
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package deepimagej;
@@ -69,7 +71,8 @@ import deepimagej.components.CustomizedColumn;
 import deepimagej.components.CustomizedTable;
 import deepimagej.components.HTMLPane;
 import deepimagej.exceptions.MacrosError;
-import deepimagej.tools.FileUtils;
+import deepimagej.tools.DijTensor;
+import deepimagej.tools.FileTools;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
 import deepimagej.tools.WebBrowser;
@@ -220,7 +223,7 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 			if (dp == null)
 				return;
 			try {
-				WebBrowser.open(dp.params.url);
+				WebBrowser.open(dp.params.doi);
 			} catch (MalformedURLException exception) {
 				IJ.error("No information relative to the model found.\n"
 						+ "Redirecting to Deep ImageJ website.");
@@ -295,7 +298,7 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 			log.print("start runner");
 			Runner runner = new Runner(dp, rp, imp, log);
 			rp.setRunner(runner);
-			ImagePlus out = runner.call();
+			ImagePlus out = runner.call()[0];
 			imp.changes = false;
 			imp.close();
 			im.setTitle("exampleImage.tiff");
@@ -414,10 +417,16 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 			return;
 		}
 		Parameters params = dp.params;
-		String patch = params.fixedPatch ? "Fix" : "" + params.minimumSize + " mini.";
+		// TODO adapt to several inputs/outputs
+		String patch = "";
 		String dimension = "";
-		for (int dim : params.inDimensions)
-			dimension += " " + dim;
+		for (DijTensor inp : params.inputList) {
+			String[] fixed = new String[inp.step.length]; int i = 0;
+			for (int d : inp.step) 
+				fixed[i++] = d == 0 ? "fixed" : "step=d";
+			patch = patch + Arrays.toString(fixed) + "\n";
+			dimension += " " + Arrays.toString(inp.tensor_shape) + "\n";
+		}
 		String mgd = "" + dp.getModel().metaGraphDef().length;
 		String gd = "" + dp.getModel().graph().toGraphDef().length;
 		info.clear();
@@ -425,14 +434,12 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 			info.append("h1", dp.getName());
 		else
 			info.append("h1", dp.dirname);
-		bnHelp.setEnabled(!params.url.equals(""));
+		bnHelp.setEnabled(!params.doi.equals(""));
 
 		if (!params.author.equals(""))
 			info.append("p", params.author);
-		if (!params.credit.equals(""))
-			info.append("p", params.credit);
-		if (!params.url.equals(""))
-			info.append("p", "<b>URL:</b> " + params.url);
+		if (!params.doi.equals(""))
+			info.append("p", "<b>URL:</b> " + params.doi);
 		if (!params.version.equals(""))
 			info.append("p", "<b>Version:</b> " + params.version);
 		if (!params.date.equals(""))
@@ -447,18 +454,23 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 		info.append("p", "Output size: " + params.outputSize);
 		info.append("p", "Memory peak: " + params.memoryPeak);
 		info.append("p", "Runtime: " + params.runtime);
-		info.append("p", "Pixel Size: " + params.pixelSize);
+		info.append("p", "Pixel Size: " + params.inputPixelSize);
 
 		modelTable.append(new String[] { "Tag", dp.params.tag });
 		modelTable.append(new String[] { "Signature", dp.params.graph });
-		modelTable.append(new String[] { "Model size", FileUtils.getFolderSizeKb(path + name + File.separator + "variables") });
+		modelTable.append(new String[] { "Model size", FileTools.getFolderSizeKb(path + name + File.separator + "variables") });
 		modelTable.append(new String[] { "Graph size", "" + gd });
 		modelTable.append(new String[] { "Metagraph size", "" + mgd });
-		modelTable.append(new String[] { "Patch policy", patch });
-		modelTable.append(new String[] { "Patch size", "" + params.patch });
-		modelTable.append(new String[] { "Padding", "" + params.padding });
-		modelTable.append(new String[] { "Dimension", dimension });
-		modelTable.append(new String[] { "Slices/Channels", "" + params.slices + "/" + params.channels });
+		for (DijTensor inp : params.inputList) {
+			modelTable.append(new String[] { "Patch policy", patch });
+			modelTable.append(new String[] { "Patch size", "" + Arrays.toString(inp.recommended_patch) });
+			modelTable.append(new String[] { "Padding", "" + Arrays.toString(Runner.findTotalPadding(params.outputList)) });
+			modelTable.append(new String[] { "Dimension", dimension });
+			int channels = 1; int cInd = Index.indexOf(inp.form.split(""), "C"); if (cInd != -1) {channels = inp.tensor_shape[cInd];}
+			int slices = 1; int zInd = Index.indexOf(inp.form.split(""), "Z"); if (zInd != -1) {slices = inp.tensor_shape[zInd];}
+			modelTable.append(new String[] { "Slices/Channels", "" + slices + "/" + channels });
+		}
+		
 		for (String p : dp.preprocessing)
 			if (dp.getInfoMacro(dir + p) != null)
 				modelTable.append(new String[] { "Preprocessing", dp.getInfoMacro(dir + p) });
@@ -468,10 +480,10 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 		modelTable.append(new String[] { "Test input image", dp.getInfoImage(dir + "exampleImage.tiff") });
 		modelTable.append(new String[] { "Test output image", dp.getInfoImage(dir + "resultImage.tiff") });
 
-		for (int i = 0; i < params.nInputs; i++)
-			modelTable.append(new String[] { "Input name(form)", params.inputs[i] + "(" + params.inputForm[i] + ")" });
-		for (int i = 0; i < params.nOutputs; i++)
-			modelTable.append(new String[] { "Output name(form)", params.outputs[i] + "(" + params.outputForm[i] + ")" });
+		for (DijTensor inp : params.inputList)
+			modelTable.append(new String[] { "Input name(form)", inp.name + "(" + inp.form + ")" });
+		for (DijTensor out : params.outputList)
+			modelTable.append(new String[] { "Output name(form)", out.name + "(" + out.form + ")" });
 	}
 	
 	public class LoadThreaded implements Runnable {
@@ -491,8 +503,8 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 		@Override
 		public void run() {
 			double chrono = System.nanoTime();
-			dp.loadModel();
-			String size = FileUtils.getFolderSizeKb(path + name + File.separator + "variables");
+			dp.loadModel(true);
+			String size = FileTools.getFolderSizeKb(path + name + File.separator + "variables");
 			String time = String.format("%3.1f ms", (System.nanoTime() - chrono) / (1024 * 1024));
 			String row[] = { displayedName, size, time };
 			table.append(row);

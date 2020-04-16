@@ -60,6 +60,7 @@ import deepimagej.components.GridPanel;
 import deepimagej.components.HTMLPane;
 import deepimagej.exceptions.IncorrectChannelsNumber;
 import deepimagej.exceptions.MacrosError;
+import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.Log;
 import ij.IJ;
 import ij.ImagePlus;
@@ -157,17 +158,21 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 			IJ.error("No selected test image.");
 			return;
 		}
+		// TODO make it more clean
+		// Set pixel size of the image
+		params.inputPixelSize = new String[1];
+		params.inputPixelSize[0] = ArrayOperations.findPixelSize(params.testImage);
+		
 		pnTest.append("Selected input image " + params.testImage.getTitle());
 	
 		try {
 			// Set Parameter params.inputSize for config.xml
-			params.inputSize = Integer.toString(params.testImage.getWidth()) + "x" + Integer.toString(params.testImage.getHeight());
 			params.testImageBackup = new Duplicator().run(params.testImage);
 			params.testImage = runPreprocessingMacro(params.testImage);
-			params.channels = TensorFlowModel.nChannels(params, params.inputForm[0]);
+			String channels = TensorFlowModel.nChannels(params, params.inputList.get(0).form);
 			int imageChannels = params.testImage.getNChannels();
-			if (params.channels.equals(Integer.toString(imageChannels)) != true) {
-				throw new IncorrectChannelsNumber(Integer.parseInt(params.channels), imageChannels);
+			if (channels.equals(Integer.toString(imageChannels)) != true) {
+				throw new IncorrectChannelsNumber(Integer.parseInt(channels), imageChannels);
 			}
 
 			Thread thread = new Thread(this);
@@ -208,11 +213,11 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		dp.params.testResultImage = runner.call();
 		// Flag to apply post processing if needed
 		if (dp.params.testResultImage != null) {
-			dp.params.testResultImage = runPostprocessingMacro(dp.params.testResultImage);
+			dp.params.testResultImage[0] = runPostprocessingMacro(dp.params.testResultImage[0]);
 			parent.endsTest();
 			bnTest.setEnabled(true);
-			dp.params.testResultImage.getProcessor().resetMinAndMax();
-			dp.params.testResultImage.show();
+			dp.params.testResultImage[0].getProcessor().resetMinAndMax();
+			dp.params.testResultImage[0].show();
 			pnTest.append("p", "Peak memory:" + dp.params.memoryPeak);
 			pnTest.append("p", "Runtime:" + dp.params.runtime);
 		}

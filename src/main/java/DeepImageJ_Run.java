@@ -4,8 +4,8 @@
  * https://deepimagej.github.io/deepimagej/
  *
  * Conditions of use: You are free to use this software for research or educational purposes. 
- * In addition, we strongly encourage you to include adequate citations and acknowledgments 
- * whenever you present or publish results that are based on it.
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
  * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
@@ -23,14 +23,16 @@
  * 
  * This file is part of DeepImageJ.
  * 
- * DeepImageJ is an open source software (OSS): you can redistribute it and/or modify it under 
- * the terms of the BSD 2-Clause License.
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
  * 
  * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
  * 
- * You should have received a copy of the BSD 2-Clause License along with DeepImageJ. 
- * If not, see <https://opensource.org/licenses/bsd-license.php>.
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 import java.awt.BorderLayout;
@@ -45,6 +47,7 @@ import java.awt.event.ItemListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
@@ -54,6 +57,7 @@ import deepimagej.Runner;
 import deepimagej.RunnerProgress;
 import deepimagej.components.BorderPanel;
 import deepimagej.exceptions.MacrosError;
+import deepimagej.tools.DijTensor;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
 import deepimagej.tools.WebBrowser;
@@ -63,9 +67,7 @@ import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.gui.ImageWindow;
 import ij.macro.Interpreter;
-import ij.plugin.Duplicator;
 import ij.plugin.PlugIn;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -75,27 +77,31 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 
 	private TextArea					info		= new TextArea("Information on the model", 5, 48, TextArea.SCROLLBARS_VERTICAL_ONLY);
 	private Choice[]					choices		= new Choice[4];
-	private TextField[]					texts		= new TextField[3];
-	private Label[]						labels		= new Label[10];
+	private TextField[]	    			texts		= new TextField[1];
+	private TextField[]	    			patchSize	= new TextField[4];
+	private Label[]	    				patchLabel	= new Label[4];
+	private TextField[]	    			padSize		= new TextField[4];
+	private Label[]	    				padLabel	= new Label[4];
+	private Label[]						labels		= new Label[12];
 	static private String				path		= IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
 	private HashMap<String, DeepImageJ>	dps;
 	private String						preprocessingFile;
 	private String						postprocessingFile;
 	private Log							log			= new Log();
-	private int							patch;
-	private int							overlap;
+	private int[]						patch;
+	private int[]						overlap;
 	private DeepImageJ					dp;
 	private HashMap<String, String>		fullnames	= new HashMap<String, String>();
 	
-	private boolean 					batch		= true;
-	private String						title;
+	private String						patchString = "Patch size [pixels]";
+	private String						padString 	= "Overlap size [pixels]";
 
+	private boolean 					batch		= true;
+	
 	static public void main(String args[]) {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models" + File.separator;
-		//ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
-		//imp.show();
-		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\frunet\\exampleImage.tiff");
+		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\ignacio\\exampleImage.tiff");
 		WindowManager.setTempCurrentImage(imp);
 		if (imp != null)
 			imp.show();
@@ -104,7 +110,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 
 	@Override
 	public void run(String arg) {
-		
+
 		ImagePlus imp = WindowManager.getTempCurrentImage();
 		
 		if (imp == null) {
@@ -112,11 +118,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			imp = WindowManager.getCurrentImage();
 		}
 		
-		if (imp == null) {
+		if (WindowManager.getCurrentImage() == null) {
 			IJ.error("There should be an image open.");
 		} else {
 			
-			title = imp.getTitle();
 			boolean isDeveloper = false;
 	
 			dps = DeepImageJ.list(path, log, isDeveloper);
@@ -148,7 +153,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 					fullnames.put(Integer.toString(index), dirname);
 				}
 			}
-	
+
 			dlg.addChoice("Model DeepImageJ", items, items[0]);
 			dlg.addChoice("Preprocessing macro", new String[] { "no preprocessing" }, "no preprocessing");
 			dlg.addChoice("Postprocessing macro", new String[] { "no postprocessing" }, "no postprocessing");
@@ -158,15 +163,34 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			dlg.addMessage("Model was tested with a XXxYY image of " 
 			+ "XxY pixel size.");
 			dlg.addMessage("The test consumed XXX Mb of the memory.");
-			dlg.addNumericField("Patch size [pixels]", 128, 0);
-			dlg.addNumericField("Overlap size [pixels]", 16, 0);
 			dlg.addChoice("Logging", new String[] { "mute", "normal", "verbose", "debug" }, "normal");
+			dlg.addMessage(patchString);
+			int[] examplePatch = new int[]{4, 128, 128, 1};
+			int[] examplePad = new int[]{1, 16, 16, 0};
+			String[] exampleDims = new String[] {"D", "H", "W", "C"};
+			for (int i = 0; i < examplePatch.length; i ++) {
+				if (i % 2 != 0)
+					dlg.addToSameRow();
+				dlg.addNumericField(exampleDims[i], examplePatch[i], 1);
+			}
+			
+			dlg.addMessage(padString);;
+			for (int i = 0; i < examplePad.length; i ++) {
+				if (i % 2 != 0)
+					dlg.addToSameRow();
+				dlg.addStringField(exampleDims[i], "" + examplePad[i], 1);
+			}
+			
 			dlg.addHelp(Constants.url);
 			dlg.addPanel(panel);
-	
+			
 			int countChoice = 0;
 			int countTextField = 0;
 			int countLabels = 0;
+			int numericFieldPatch = 0;
+			int numericFieldPad = 0;
+			int labelPatch = 0;
+			int labelPad = 0;
 			for (Component c : dlg.getComponents()) {
 				if (c instanceof Choice) {
 					Choice choice = (Choice) c;
@@ -174,15 +198,22 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 						choice.addItemListener(this);
 					choices[countChoice++] = choice;
 				}
-				if (c instanceof TextField) {
+				if (c instanceof TextField && numericFieldPatch < exampleDims.length) {
+					patchSize[numericFieldPatch++] = (TextField) c;
+				} else if (c instanceof TextField && numericFieldPad < exampleDims.length) {
+					padSize[numericFieldPad++] = (TextField) c;
+				} else if (c instanceof TextField && numericFieldPad < exampleDims.length) {
 					texts[countTextField++] = (TextField) c;
 				}
-				if (c instanceof Label) {
+				if (c instanceof Label && ((Label) c).getText().length() > 1) {
 					labels[countLabels++] = (Label) c;
+				} else if (c instanceof Label && labelPatch < exampleDims.length) {
+					patchLabel[labelPatch++] = (Label) c;
+				} else if (c instanceof Label && labelPad < exampleDims.length) {
+					padLabel[labelPad++] = (Label) c;
 				}
 			}
 			
-			// buttons[0].setEnabled(false);
 			dlg.showDialog();
 			if (dlg.wasCanceled())
 				return;
@@ -204,31 +235,44 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			}
 			preprocessingFile = dlg.getNextChoice();
 			postprocessingFile = dlg.getNextChoice();
-			patch = (int) dlg.getNextNumber();
-			overlap = (int) dlg.getNextNumber();
-			int level = dlg.getNextChoiceIndex();
-			log.setLevel(level);
-			log.reset();
-	
-			if (overlap * 3 > patch) {
-				IJ.error("Error: The overlap (" + overlap + ") should be less than 1/3 of the patch size  (" + patch + ")");
-				return;
-			}
+			
 			String dirname = fullnames.get(index);
 			log.print("Load model: " + fullname + "(" + dirname + ")");
 			dp = dps.get(dirname);
 			if (dp.getModel() == null)
-				dp.loadModel();
+				dp.loadModel(true);
 			log.print("Load model error: " + (dp.getModel() == null));
 	
 			if (dp == null) {
 				IJ.error("No valid model.");
 				return;
 			}
+
+			String tensorForm = dp.params.inputList.get(0).form;
+			int[] tensorMin = dp.params.inputList.get(0).minimum_size;
+			int[] multiple = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
+			String[] dims = DijTensor.getWorkingDims(tensorForm);
+
 			
-			if (patch % Integer.parseInt(dp.params.minimumSize) != 0) {
-				IJ.error("Patch size should be a multiple of " + dp.params.minimumSize);
-				return;
+			patch = getPatchSize(dims, dp.params.inputList.get(0).form, patchSize);
+			overlap = getPatchSize(dims, dp.params.inputList.get(0).form, padSize);
+			int level = dlg.getNextChoiceIndex();
+			log.setLevel(level);
+			log.reset();
+			
+			for (int i = 0; i < patch.length; i ++) {
+				if (overlap[i] > patch[i] * 3) {
+					IJ.error("Error: The overlap (" + overlap[i] + ") should be less than 1/3 of the patch size  (" + patch[i] + ")");
+					return;
+				}
+			}
+			for (DijTensor inp: dp.params.inputList) {
+				for (int i = 0; i < multiple.length; i ++) {
+					if (inp.minimum_size[i] != 0 && patch[i] % multiple[i] != 0) {
+						IJ.error("Patch size at dim: " + dims[i] + " should be a multiple of " + multiple[i]);
+						return;
+					}
+				}
 			}
 			//addChangeListener(texts[1], e -> optimalPatch(dp));
 
@@ -250,7 +294,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				info.append(msg + "\n");
 			info.setCaretPosition(0);
 			dp.writeParameters(info);
-			boolean ret = dp.loadModel();
+			boolean ret = dp.loadModel(true);
 			if (ret == false) {
 				IJ.error("Error in loading " + dp.getName());
 				return;
@@ -266,37 +310,69 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				for (String p : dp.postprocessing)
 					choices[2].addItem(p);
 			}
+			// Get basic information about the input from the yaml
+			String tensorForm = dp.params.inputList.get(0).form;
+			int[] tensorPatch = dp.params.inputList.get(0).recommended_patch;
+			int[] tensorMin = dp.params.inputList.get(0).minimum_size;
+			int[] haloSize = findTotalPadding(dp.params.inputList.get(0), dp.params.outputList);
+			int[] dimValue = DijTensor.getWorkingDimValues(tensorForm, tensorPatch); 
+			int[] multiple = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
+			int[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
+			String[] dim = DijTensor.getWorkingDims(tensorForm);
+			
 			if (dp.params.fixedPatch) {
 				labels[3].setText("The patch size was fixed by the developer.");
 			} else {
-				labels[3].setText("The patch introduced needs to be a multiple"
-						+ " of " + dp.params.minimumSize + ".");
+				String sentence = "Minimum multiple for each patch dimension: ";
+				for (int i = 0; i < dim.length; i ++) {
+					String val = "" + multiple[i];
+					if (multiple[i] == 0) {val = "fixed";}
+					sentence = sentence + dim[i] + ":" + val + " ";
+				}
+				labels[3].setText(sentence);
 			}
 			labels[5].setText("Model was tested with "
-					+ dp.params.inputSize + " image of " + dp.params.pixelSize + " pixel size.");
+					+ dp.params.inputSize + " image of " + dp.params.inputPixelSize + " pixel size.");
 			labels[6].setText("The test consumed " + dp.params.memoryPeak
 					+ " of the memory.");
-			//texts[0].setText("" + dp.params.patch);
-			texts[1].setEnabled(dp.params.fixedPadding == false);
-			labels[8].setEnabled(dp.params.fixedPadding == false);
-			texts[1].setText("" + dp.params.padding);
-			texts[0].setEnabled(dp.params.fixedPatch == false);
-			labels[7].setEnabled(dp.params.fixedPatch == false);
-			texts[0].setText(optimalPatch(dp));
+			
+			// Hide all the labels to show only the necessary ones
+			for (int i = 0; i < patchLabel.length; i ++) {
+				patchLabel[i].setVisible(false);
+				padLabel[i].setVisible(false);
+				patchSize[i].setVisible(false);
+				patchSize[i].setEditable(true);
+				padSize[i].setVisible(false);
+				padSize[i].setEditable(true);
+			}
+			for (int i = 0; i < dim.length; i ++) {
+				patchLabel[i].setVisible(true);
+				padLabel[i].setVisible(true);
+				patchSize[i].setVisible(true);
+				padSize[i].setVisible(true);
+				// Set the corresponding label
+				patchLabel[i].setText(dim[i]);
+				padLabel[i].setText(dim[i]);
+				// Set the corresponding value and set whether the
+				// text fields are editable or not
+				patchSize[i].setText("" + dimValue[i]);
+				patchSize[i].setEditable(multiple[i] != 0);
+				padSize[i].setText("" + haloVals[i]);
+				// TODO decide what to do with padding
+				padSize[i].setEditable(true);
+			}
 		}
 	}
 
 	
 	public void calculateImage(ImagePlus inp) {
-		dp.params.padding = overlap;
-		dp.params.patch = patch;
+		dp.params.final_halo = convertXYCZ(overlap, dp.params.inputList.get(0).form);
+		dp.params.inputList.get(0).recommended_patch = patch;
 		String dir = dp.getPath();
 		int runStage = 0;
 		// Create parallel process for calculating the image
 		ExecutorService service = Executors.newFixedThreadPool(1);
-		
 		ImagePlus im = inp.duplicate();
-		
 		String correctTitle = inp.getTitle();
 		//inp.setTitle("temporalImage");
 		im.setTitle("tmp_" + correctTitle);
@@ -304,7 +380,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		windToClose.dispose();
 		
 		WindowManager.setTempCurrentImage(inp);
-		ImagePlus out = null;
+		ImagePlus[] out = null;
 		try {
 			if (preprocessingFile != null) {
 				if (!preprocessingFile.trim().toLowerCase().startsWith("no")) {
@@ -321,21 +397,20 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			}
 			WindowManager.setTempCurrentImage(null);
 			
-			runStage ++;
-			log.print("start progress");
-			
 			if (inp == null) {
 				IJ.error("Something failed in the preprocessing.");
+				// Close the parallel processes
+			    service.shutdown();
 				return;
 			}
 			
+			runStage ++;
+			log.print("start progress");
 			RunnerProgress rp = new RunnerProgress(dp);
 			log.print("start runner");
 			Runner runner = new Runner(dp, rp, inp, log);
 			rp.setRunner(runner);
-			Future<ImagePlus> f1 = service.submit(runner);
-			
-			
+			Future<ImagePlus[]> f1 = service.submit(runner);
 			
 			try {
 				out = f1.get();
@@ -361,18 +436,18 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 					String m = dir + postprocessingFile;
 					if (new File(m).exists()) {
 						log.print("start postprocessing");
-						WindowManager.setTempCurrentImage(out);
-						out = runMacro(m, out);
+						WindowManager.setTempCurrentImage(out[0]);
+						out[0] = runMacro(m, out[0]);
 						log.print("end postprocessing");
+						out[0] = WindowManager.getCurrentImage();
 					}
 				}
 			}
-			texts[0].setEnabled(dp.params.fixedPatch == false);
-			labels[7].setEnabled(dp.params.fixedPatch == false);
-			
-			out.show();
-			out.setSlice(1);
-			out.getProcessor().resetMinAndMax();
+			//texts[0].setEnabled(dp.params.fixedPatch == false);
+			//labels[7].setEnabled(dp.params.fixedPatch == false);
+			out[0].show();
+			out[0].setSlice(1);
+			out[0].getProcessor().resetMinAndMax();
 			WindowManager.setTempCurrentImage(null);
 			
 			// Close the parallel processes
@@ -421,36 +496,42 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	    service.shutdown();
 	}
 	
-	public String optimalPatch(DeepImageJ dp) {
+	public static String optimalPatch(int minimumSize, String dimChar) {
 		// This method looks for the optimal patch size regarding the
 		// minimum patch constraint and image size. This is then suggested
 		// to the user
-		
-		String patch;
 		ImagePlus imp = null;
-		int minimumSize = Integer.parseInt(dp.params.minimumSize);
-		boolean fixed = dp.params.fixedPatch;
-		//int padding = dp.params.padding;
-		int padding = Integer.parseInt(texts[1].getText());
+		String patch;
 		if (imp == null) {
 			imp = WindowManager.getCurrentImage();
 		}
-		if (fixed == true || imp == null) {
-			patch = "" + dp.params.patch;
-			return patch;
+		if (imp == null) {
+			patch = "100";
+			return patch;	
 		}
-		int nx = imp.getWidth();
-		int ny = imp.getHeight();
-		int maxDim = nx;
-		if (nx < ny) {
-			maxDim = ny;
+		
+		int size = 0;
+		switch (dimChar) {
+			case "H":
+				size = imp.getHeight();
+				break;
+			case "W":
+				size = imp.getWidth();
+				break;
+			case "D":
+				size = imp.getNSlices();
+				break;
+			case "C":
+				size = imp.getNChannels();
+				break;
 		}
-		int optimalMult = (int)Math.ceil((double)(maxDim + 2 * padding) / (double)minimumSize) * minimumSize;
-		if (optimalMult > 3 * maxDim) {
+		
+		int optimalMult = (int)Math.ceil((double)size / (double)minimumSize) * minimumSize;
+		if (optimalMult > 3 * size) {
 			optimalMult = optimalMult - minimumSize;
 		}
-		if (optimalMult > 3 * maxDim) {
-			optimalMult = (int)Math.ceil((double)maxDim / (double)minimumSize) * minimumSize;
+		if (optimalMult > 3 * size) {
+			optimalMult = (int)Math.ceil((double)size / (double)minimumSize) * minimumSize;
 		}
 		patch = Integer.toString(optimalMult);
 		return patch;
@@ -469,6 +550,51 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			result = interp.runBatchMacro(macro, imp);
 		}
 		return result;		
+	}
+	
+	public static int[] getPatchSize(String[] dim, String form, TextField[] sizes) {
+		int[] patch = new int[form.split("").length]; // Dimensions of the patch: [x, y, c, z]
+		int batchInd = Index.indexOf(form.split(""), "N");
+		int count = 0;
+		for (int c = 0; c < patch.length; c ++) {
+			if (c != batchInd){
+				int value = Integer.parseInt(sizes[count++].getText());
+				patch[c] = value;
+			} else {
+				patch[c] = 1;
+			}
+		}
+		return patch;
+	}
+	
+	public static int[] findTotalPadding(DijTensor input, List<DijTensor> outputs) {
+		// Create an object of int[] that contains the output dimensions
+		// of each patch.
+		// This dimensions are always of the form [x, y, c, d]
+		int[] padding = {0, 0, 0, 0};
+		String[] target_form = input.form.split("");
+		for (DijTensor out: outputs) {
+			for (int i = 0; i < target_form.length; i ++) {
+				int ind = Index.indexOf(out.form.split(""), target_form[i]);
+				if (ind != -1 && (out.offset[ind] + out.halo[ind]) > padding[i] && target_form[i].equals("N") == false) {
+					padding[i] = out.offset[ind] + out.halo[ind];
+				}
+			}
+		}
+		return padding;
+	}
+	
+	public static int[] convertXYCZ(int[] dims, String form) {
+		// Convert from whatever form into "WHCD"
+		String[] target = "WHCD".split("");
+		int[] targetDim = new int[target.length];
+		for (int i = 0; i < target.length; i ++) {
+			int ind = Index.indexOf(form.split(""), target[i]);
+			if (ind != -1) {
+				targetDim[i] = dims[ind];
+			}
+		}
+		return targetDim;
 	}
 
 }

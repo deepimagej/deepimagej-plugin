@@ -4,8 +4,8 @@
  * https://deepimagej.github.io/deepimagej/
  *
  * Conditions of use: You are free to use this software for research or educational purposes. 
- * In addition, we strongly encourage you to include adequate citations and acknowledgments 
- * whenever you present or publish results that are based on it.
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
  * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
@@ -23,14 +23,16 @@
  * 
  * This file is part of DeepImageJ.
  * 
- * DeepImageJ is an open source software (OSS): you can redistribute it and/or modify it under 
- * the terms of the BSD 2-Clause License.
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
  * 
  * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
  * 
- * You should have received a copy of the BSD 2-Clause License along with DeepImageJ. 
- * If not, see <https://opensource.org/licenses/bsd-license.php>.
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package deepimagej.stamp;
@@ -51,10 +53,10 @@ import org.tensorflow.framework.SignatureDef;
 
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
-import deepimagej.DeepImageJ;
 import deepimagej.Parameters;
 import deepimagej.TensorFlowModel;
 import deepimagej.components.HTMLPane;
+import deepimagej.tools.DijTensor;
 import deepimagej.tools.Log;
 import ij.IJ;
 
@@ -147,16 +149,33 @@ public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnab
 			SavedModelBundle model = parent.getDeepPlugin().getModel();
 			params.graph = TensorFlowModel.returnStringSig((String)cmbGraphs.getSelectedItem());
 			SignatureDef sig = TensorFlowModel.getSignatureFromGraph(model, params.graph);
-			params.outputs = TensorFlowModel.returnOutputs(sig);
-			pnLoad.append("p", "Number of output: " + params.outputs.length);
+			params.inputList = new ArrayList<>();
+			params.outputList = new ArrayList<>();
+			String[] inputs = TensorFlowModel.returnInputs(sig);
+			String[] outputs = TensorFlowModel.returnOutputs(sig);
+			pnLoad.append("p", "Number of output: " + outputs.length);
 			boolean valid = true;
 			try {
+				for (int i = 0; i < inputs.length; i ++) {
+					DijTensor inp = new DijTensor(inputs[i]);
+					inp.setInDimensions(TensorFlowModel.modelEntryDimensions(sig, inputs[i]));
+					params.inputList.add(inp);
+				}
+				for (int i = 0; i < outputs.length; i ++) {
+					DijTensor out = new DijTensor(outputs[i]);
+					out.setInDimensions(TensorFlowModel.modelExitDimensions(sig, outputs[i]));
+					params.outputList.add(out);
+				}
+				// TODO remove when ready
+				/*
 				Object[] dimensions = TensorFlowModel.getDimensions(model, params.graph);
 				params.inDimensions = (int[]) dimensions[0];
 				params.outDimensions = (int[]) dimensions[1];
 				params.inputs = (String[]) dimensions[2];
 				params.outputs = (String[]) dimensions[3];
-				pnLoad.append("p", "Dimension of input: " + params.inDimensions.length + " and output: " + params.outDimensions.length);
+				*/
+				// TODO correct it for adecuate number of inputs and outputs
+				//pnLoad.append("p", "Dimension of input: " + params.inDimensions.length + " and output: " + params.outDimensions.length);
 	
 			}
 			catch (Exception ex) {
