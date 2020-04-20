@@ -84,6 +84,8 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 	private static int				outputInd		= 0;
 	private static boolean[]		completeInfo;
 	
+	private static double[] 		rangeOptions = {Double.NEGATIVE_INFINITY, (double) -1, (double) 0, (double) 1, Double.POSITIVE_INFINITY};
+	
 	private static JComboBox<String>	cmbRangeLow = new JComboBox<String>(new String [] {"-inf", "-1", "0", "1", "inf"});
 	private static JComboBox<String>	cmbRangeHigh = new JComboBox<String>(new String [] {"-inf", "-1", "0", "1", "inf"});
 	
@@ -177,7 +179,6 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		saveOutputData(params);
 		for (boolean completed: completeInfo) {
 			if (!completed){
-				IJ.error("You need to fill information of every output");
 				return false;
 			}
 		}
@@ -230,7 +231,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 			if (dimValues[i] != -1 && inputFixedSize != -1) {
 				float scale = ((float) dimValues[i]) / ((float) inputFixedSize);
 				txt1.setText("" + scale);
-				txt1.setEditable(false);
+				txt1.setEditable(true);
 			}
 
 			if (checkIsImage.isSelected()) {
@@ -275,51 +276,56 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 	public static boolean saveOutputData(Parameters params) {
 		
 		// Save all the information for the output given by the variable 'outputInd'
-		params.outputList.get(outputInd).isImage = "" + checkIsImage.isSelected();
-		params.outputList.get(outputInd).referenceImage = (String) referenceImage.getSelectedItem();
+		String ref = (String) referenceImage.getSelectedItem();
+		params.outputList.get(outputInd).referenceImage = ref;
+		// Get the reference tensor
+		DijTensor refInput = DijTensor.retrieveByName(ref, params.inputList);
 		
 		params.outputList.get(outputInd).scale = new float[params.outputList.get(outputInd).tensor_shape.length];
 		params.outputList.get(outputInd).halo = new int[params.outputList.get(outputInd).tensor_shape.length];
 		params.outputList.get(outputInd).offset = new int[params.outputList.get(outputInd).tensor_shape.length];
 		
-		int batchInd = getBatchInd(params.outputList.get(outputInd).form);
+		int batchInd = DijTensor.getBatchInd(params.outputList.get(outputInd).form);
 		
+		int[] outDimVals = params.outputList.get(outputInd).tensor_shape;
 		int textFieldInd = 0;
 		for (int i = 0; i < params.outputList.get(outputInd).scale.length; i++) {
 			try {
+				float scaleValue =  1; int haloValue = 0; int offsetValue = 0;
 				if (i == batchInd) {
 					params.outputList.get(outputInd).scale[i] = 1;
 					params.outputList.get(outputInd).halo[i] = 0;
+					params.outputList.get(outputInd).offset[i] = 0;
 				} else {
-					String firstValue = firstRowList.get(textFieldInd).getText();
-					params.outputList.get(outputInd).scale[i] = Float.valueOf(firstValue);
-					String haloValue = secondRowList.get(textFieldInd++).getText();
-					params.outputList.get(outputInd).halo[i] = Integer.valueOf(haloValue);
+					scaleValue = Float.valueOf(firstRowList.get(textFieldInd).getText());
+					params.outputList.get(outputInd).scale[i] = scaleValue;
+					haloValue = Integer.valueOf(secondRowList.get(textFieldInd).getText());
+					params.outputList.get(outputInd).halo[i] = haloValue;
+					offsetValue = Integer.parseInt(thirdRowList.get(textFieldInd++).getText());
+					params.outputList.get(outputInd).offset[i] = offsetValue;
+				}
+				// Input Patch Size * Scale factor - 2 * offset = Output Patch Size
+				// Output Patch Size - 2 * halo > 0
+				int refInd = Index.indexOf(refInput.form.split(""), params.outputList.get(outputInd).form.split("")[i]);
+				float yieldOutputPatch = (float) refInput.recommended_patch[refInd] * scaleValue - 2 * (float)offsetValue;
+				if (refInd != -1 && outDimVals[i] != -1 && yieldOutputPatch != (float)outDimVals[i]) {
+					IJ.error("The parameters introduces yield an output patch\nshape of " + yieldOutputPatch
+							 + " and the model specifies that it should be " + outDimVals[i]);
+					return false;
+				}
+				float relevantPixels = yieldOutputPatch - (float) (2 * haloValue);
+				if (relevantPixels <= 0) {
+					IJ.error("The halo chosen is too big for the output patch size.\n"
+							+ "2 * halo should be smaller than Input patch size * scale - 2 *offset");
+					return false;
 				}
 			} catch( NumberFormatException ex) {
-				IJ.error("Make sure that no text field is empty.");
+				IJ.error("Make sure that no text field is empty and\n"
+						+ "that they correspond to real numbers.");
 				return false;
 			}
 		}
-		
-		textFieldInd = 0;
-		if (checkIsImage.isSelected()) {
-			for (int i = 0; i < params.outputList.get(outputInd).scale.length; i++) {
-				try {
-					if (i == batchInd) {
-						params.outputList.get(outputInd).offset[i] = 0;
-					} else {
-						params.outputList.get(outputInd).offset[i] = Integer.parseInt(thirdRowList.get(textFieldInd++).getText());
-					}
-				} catch( NumberFormatException ex) {
-					IJ.error("Make sure that no text field is empty.");
-					return false;
-				}
-			}
-		}
 
-
-		double[] rangeOptions = {Double.NEGATIVE_INFINITY, (double) -1, (double) 0, (double) 1, Double.POSITIVE_INFINITY};
 		int lowInd = cmbRangeLow.getSelectedIndex();
 		int highInd = cmbRangeHigh.getSelectedIndex();
 		if (lowInd >= highInd) {
@@ -332,12 +338,6 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		
 		completeInfo[outputInd] = true;
 		return true;
-	}
-	
-	private static int getBatchInd(String form) {
-		String[] splitForm = form.split("");
-		int batchInd = Index.indexOf(splitForm, "N");
-		return batchInd;
 	}
 	
 	private static int findFixedInput(String referenceInput, String dim, List<DijTensor> inputTensors) {
