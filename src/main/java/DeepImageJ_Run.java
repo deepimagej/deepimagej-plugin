@@ -101,7 +101,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	static public void main(String args[]) {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models" + File.separator;
-		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\ignacio\\exampleImage.tiff");
+		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\care_deconvolution_microtubules_example\\exampleImage.tiff");
 		WindowManager.setTempCurrentImage(imp);
 		if (imp != null)
 			imp.show();
@@ -268,7 +268,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			}
 			for (DijTensor inp: dp.params.inputList) {
 				for (int i = 0; i < multiple.length; i ++) {
-					if (inp.minimum_size[i] != 0 && patch[i] % multiple[i] != 0) {
+					if (patch[i] % inp.minimum_size[i] != 0) {
 						IJ.error("Patch size at dim: " + dims[i] + " should be a multiple of " + multiple[i]);
 						return;
 					}
@@ -314,9 +314,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			String tensorForm = dp.params.inputList.get(0).form;
 			int[] tensorPatch = dp.params.inputList.get(0).recommended_patch;
 			int[] tensorMin = dp.params.inputList.get(0).minimum_size;
+			int[] tensorStep = dp.params.inputList.get(0).step;
 			int[] haloSize = findTotalPadding(dp.params.inputList.get(0), dp.params.outputList);
 			int[] dimValue = DijTensor.getWorkingDimValues(tensorForm, tensorPatch); 
 			int[] multiple = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
+			int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep); 
 			int[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
 			String[] dim = DijTensor.getWorkingDims(tensorForm);
 			
@@ -326,7 +328,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				String sentence = "Minimum multiple for each patch dimension: ";
 				for (int i = 0; i < dim.length; i ++) {
 					String val = "" + multiple[i];
-					if (multiple[i] == 0) {val = "fixed";}
+					if (step[i] == 0) {val = "fixed";}
 					sentence = sentence + dim[i] + ":" + val + " ";
 				}
 				labels[3].setText(sentence);
@@ -340,10 +342,14 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			for (int i = 0; i < patchLabel.length; i ++) {
 				patchLabel[i].setVisible(false);
 				padLabel[i].setVisible(false);
+				
 				patchSize[i].setVisible(false);
 				patchSize[i].setEditable(true);
+				patchSize[i].setEnabled(true);
+				
 				padSize[i].setVisible(false);
 				padSize[i].setEditable(true);
+				padSize[i].setEnabled(true);
 			}
 			for (int i = 0; i < dim.length; i ++) {
 				patchLabel[i].setVisible(true);
@@ -355,11 +361,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				padLabel[i].setText(dim[i]);
 				// Set the corresponding value and set whether the
 				// text fields are editable or not
-				patchSize[i].setText("" + dimValue[i]);
-				patchSize[i].setEditable(multiple[i] != 0);
+				patchSize[i].setText(optimalPatch(dimValue[i], haloVals[i], dim[i], step[i]));
+				patchSize[i].setEditable(step[i] != 0);
+				patchSize[i].setEnabled(step[i] != 0);
 				padSize[i].setText("" + haloVals[i]);
 				// TODO decide what to do with padding
-				padSize[i].setEditable(true);
+				padSize[i].setEditable(false);
+				padSize[i].setEnabled(false);
 			}
 		}
 	}
@@ -496,7 +504,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	    service.shutdown();
 	}
 	
-	public static String optimalPatch(int minimumSize, String dimChar) {
+	public static String optimalPatch(int minimumSize, int halo, String dimChar, int step) {
 		// This method looks for the optimal patch size regarding the
 		// minimum patch constraint and image size. This is then suggested
 		// to the user
@@ -526,14 +534,19 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				break;
 		}
 		
-		int optimalMult = (int)Math.ceil((double)size / (double)minimumSize) * minimumSize;
-		if (optimalMult > 3 * size) {
-			optimalMult = optimalMult - minimumSize;
+		if (step != 0) {
+			int optimalMult = (int)Math.ceil((double)(size + 2 * halo) / (double)step) * step;
+			if (optimalMult > 3 * size) {
+				optimalMult = optimalMult - step;
+			}
+			if (optimalMult > 3 * size) {
+				optimalMult = (int)Math.ceil((double)size / (double)step) * step;
+			}
+			patch = Integer.toString(optimalMult);
+
+		} else {
+			patch = "" + minimumSize;
 		}
-		if (optimalMult > 3 * size) {
-			optimalMult = (int)Math.ceil((double)size / (double)minimumSize) * minimumSize;
-		}
-		patch = Integer.toString(optimalMult);
 		return patch;
 	}
 	
