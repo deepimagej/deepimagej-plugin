@@ -27,8 +27,6 @@ public class DijTensor {
 	// Size of the step between convolutions
 	public int[]		offset;
 	public float[] 		scale;
-	// Indicate whether the input or output is an image or not
-	public String 		isImage				= "";
 	// For an image output tensor. Reference that we take to make the output image
 	public String 		referenceImage		= "";
 	
@@ -54,10 +52,6 @@ public class DijTensor {
 	
 	public void setPatch(int[] patch) {
 		this.recommended_patch = patch;
-	}
-	
-	public void setIsImage(String imageName) {
-		this.isImage = imageName;
 	}
 	
 	public static DijTensor retrieveByName(String name, List<DijTensor> tensors) {
@@ -95,6 +89,12 @@ public class DijTensor {
 			splitForm = form.split("");
 		}
 		return splitForm;
+	}
+	
+	public static int getBatchInd(String form) {
+		String[] splitForm = form.split("");
+		int batchInd = Index.indexOf(splitForm, "N");
+		return batchInd;
 	}
 
 }
