@@ -112,7 +112,8 @@
 		<url>https://github.com/deepimagej/deepimagej-plugin/issues</url>
 	</issueManagement>
 	<ciManagement>
-		<system>None</system>
+		<system>Travis CI</system>
+		<url>https://travis-ci.com/deepimagej/deepimagej-plugin</url>
 	</ciManagement>
 
 	<properties>
@@ -127,6 +128,7 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<releaseProfiles>deploy-to-scijava</releaseProfiles>
 
 		<protobuf.version>3.2.0</protobuf.version>
+		<tensorflow.version>1.15.0</tensorflow.version>
 	</properties>
 
 	<dependencies>
@@ -148,7 +150,7 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 			<groupId>org.tensorflow</groupId>
 			<artifactId>libtensorflow</artifactId>
-		  	<version>1.15.0</version>
+		  	<version>${tensorflow.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.tensorflow</groupId>
@@ -159,7 +161,7 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 			<groupId>org.tensorflow</groupId>
 			<artifactId>libtensorflow_jni_gpu</artifactId>
-		  	<version>1.15.0</version>
+		  	<version>${tensorflow.version}</version>
 			<scope>runtime</scope>
 		</dependency>
 		<!-- Test scope dependencies -->
