@@ -217,8 +217,8 @@ public class YAMLUtils {
 		// Prediction
 		Map<String, Object> prediction = new LinkedHashMap<>();
 		// TODO find a solution for including macros more elegantly
-		prediction.put(idPredictionPreprocess,  "preprocessing.txt");
-		prediction.put(idPredictionPostprocess, "postprocessing.txt");
+		prediction.put(idPredictionPreprocess,  new String[] {"preprocessing.txt"});
+		prediction.put(idPredictionPostprocess, new String[] {"postprocessing.txt"});
 		data.put(idPrediction, prediction);
         
 		Yaml yaml = new Yaml();
