@@ -138,32 +138,31 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 			<version>${protobuf.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>org.yaml</groupId>
-			<artifactId>snakeyaml</artifactId>
-			<version>1.21</version>
-		</dependency>
-		
-		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.tensorflow</groupId>
 			<artifactId>libtensorflow</artifactId>
-		  	<version>${tensorflow.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.tensorflow</groupId>
 			<artifactId>proto</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+			<version>1.21</version>
 		</dependency>
 
 		<!-- Runtime dependencies -->
 		<dependency>
 			<groupId>org.tensorflow</groupId>
 			<artifactId>libtensorflow_jni_gpu</artifactId>
-		  	<version>${tensorflow.version}</version>
+			<version>${tensorflow.version}</version>
 			<scope>runtime</scope>
 		</dependency>
+
 		<!-- Test scope dependencies -->
 		<dependency>
 			<groupId>junit</groupId>
