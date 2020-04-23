@@ -52,6 +52,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
@@ -114,7 +115,10 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		pn.place(6, 0, new JLabel("Article reference"));
 		pn.place(6, 1, txtReference);
 		pn.place(7, 0, new JLabel("<html>Short description of<br/>the model</html>"));
-		txtDescription.setPreferredSize(new Dimension(3, 24));
+		txtDescription.setSize(new Dimension(3, 24));
+		txtDescription.setLineWrap(true);
+		txtDescription.setWrapStyleWord(true);
+
 		pn.place(7, 1, txtDescription);
 
 		pn.place(8, 0, new JLabel("Link to documentation"));
@@ -130,8 +134,14 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		buttonsPn.place(0, 0, addButtonTag);
 		buttonsPn.place(0, 1, removeButtonTag);
 		JPanel p = new JPanel(new BorderLayout());
+		
+		JScrollPane scroll = new JScrollPane();
+		pn.setPreferredSize(new Dimension(pn.getWidth() + 400, pn.getWidth() + 500));
+        scroll.setPreferredSize(new Dimension(pn.getWidth() + 300, pn.getWidth() + 400));
+        scroll.setViewportView(pn);
+		
 		p.add(pane, BorderLayout.NORTH);
-		p.add(pn, BorderLayout.CENTER);
+		p.add(scroll, BorderLayout.CENTER);
 		panel.add(p);
 		txtInfoTags.addItem("deepImageJ");	
 		txtInfoTags.setSelectedIndex(-1);

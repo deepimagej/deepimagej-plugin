@@ -212,7 +212,7 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		}
 		// If every dimension is fixed, remove the possibility of editing the patch size
 		if (Index.indexOf(dimValues, -1) == -1) {
-			cmbPatches.setEnabled(false);
+			cmbPatches.setEnabled(true);
 			cmbPatches.setSelectedIndex(1);
 		}
 	}
