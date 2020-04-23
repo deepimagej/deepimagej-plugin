@@ -182,24 +182,19 @@ public class Runner implements Callable<ImagePlus[]> {
 		if (params.final_halo == null) {
 			padding = findTotalPadding(params.outputList);
 		} else {
-			padding = params.final_halo;
+			// TODO decide what to do with padding, if it is always fixed
+			// this field is not needed anymore
+			//padding = params.final_halo;
+			padding = findTotalPadding(params.outputList);
 		}
 		int roiX = px - padding[0] * 2;
 		int roiY = py - padding[1] * 2;
 		int roiZ = pz - padding[3] * 2;
 		int roiC = pc - padding[2] * 2;
-		int npx = nx / roiX;
-		int npy = ny / roiY;
-		int npc = nc / roiC;
-		int npz = nz / roiZ;
-		if (nx % roiX != 0)
-			npx++;
-		if (ny % roiY != 0)
-			npy++;
-		if (nz % roiZ != 0)
-			npz++;
-		if (nc % roiC != 0)
-			npc++;
+		int npx = (int) Math.ceil((double)nx / (double)roiX);
+		int npy = (int) Math.ceil((double)ny / (double)roiY);
+		int npc = (int) Math.ceil((double)nc / (double)roiC);
+		int npz = (int) Math.ceil((double)nz / (double)roiZ);
 		currentPatch = 0;
 		totalPatch = npx * npy * npz * npc;
 
@@ -349,11 +344,11 @@ public class Runner implements Callable<ImagePlus[]> {
 							outputImages[counter].getProcessor().resetMinAndMax();
 							outputImages[counter].show();
 						}
-						float scaleX = nx / outSize[0]; float scaleY = ny / outSize[1]; float scaleZ = nz / outSize[3];
-						ArrayOperations.imagePlusReconstructor(outputImages[counter], impatch[counter], (int) (xImageStartPatch / scaleX),
-								(int) (xImageEndPatch / scaleX), (int) (yImageStartPatch / scaleY), (int) (yImageEndPatch / scaleY),
-								(int) (zImageStartPatch / scaleZ), (int) (zImageEndPatch / scaleZ),leftoverPixelsX - allOffsets[counter][0],
-								leftoverPixelsY - allOffsets[counter][1], leftoverPixelsZ - allOffsets[counter][3]);
+						float scaleX = outSize[0] / nx; float scaleY = outSize[1] / ny; float scaleZ = outSize[3] / nz;
+						ArrayOperations.imagePlusReconstructor(outputImages[counter], impatch[counter], (int) (xImageStartPatch * scaleX),
+								(int) (xImageEndPatch * scaleX), (int) (yImageStartPatch * scaleY), (int) (yImageEndPatch * scaleY),
+								(int) (zImageStartPatch * scaleZ), (int) (zImageEndPatch * scaleZ),(int)(leftoverPixelsX * scaleX) - allOffsets[counter][0],
+								(int)(leftoverPixelsY * scaleY) - allOffsets[counter][1], (int)(leftoverPixelsZ * scaleZ) - allOffsets[counter][3]);
 						if (outputImages[counter] != null)
 							outputImages[counter].getProcessor().resetMinAndMax();
 						if (rp.isStopped()) {
@@ -415,8 +410,11 @@ public class Runner implements Callable<ImagePlus[]> {
 		for (DijTensor out: outputs) {
 			for (int i = 0; i < form.length; i ++) {
 				int ind = Index.indexOf(out.form.split(""), form[i]);
-				if (ind != -1 && (out.offset[ind] + out.halo[ind]) > padding[i] && form[i].equals("N") == false) {
-					padding[i] = out.offset[ind] + out.halo[ind];
+				if (ind != -1 && form[i].equals("N") == false) {
+					double totalPad = Math.ceil((double)out.offset[ind] / (double)out.scale[ind]) + Math.ceil((double)out.halo[ind] / (double)out.scale[ind]);
+					if ((int) totalPad > padding[i]) {
+						padding[i] = (int) totalPad;
+					}
 				}
 			}
 		}
