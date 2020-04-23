@@ -585,12 +585,15 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		// of each patch.
 		// This dimensions are always of the form [x, y, c, d]
 		int[] padding = {0, 0, 0, 0};
-		String[] target_form = input.form.split("");
+		String[] targetForm = input.form.split("");
 		for (DijTensor out: outputs) {
-			for (int i = 0; i < target_form.length; i ++) {
-				int ind = Index.indexOf(out.form.split(""), target_form[i]);
-				if (ind != -1 && (out.offset[ind] + out.halo[ind]) > padding[i] && target_form[i].equals("N") == false) {
-					padding[i] = out.offset[ind] + out.halo[ind];
+			for (int i = 0; i < targetForm.length; i ++) {
+				int ind = Index.indexOf(out.form.split(""), targetForm[i]);
+				if (ind != -1 && targetForm[i].equals("N") == false) {
+					int totalPad = out.offset[ind] + out.halo[ind];
+					if (totalPad > padding[i]) {
+						padding[i] = totalPad;
+					}
 				}
 			}
 		}
