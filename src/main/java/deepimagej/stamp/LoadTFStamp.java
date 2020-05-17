@@ -166,14 +166,6 @@ public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnab
 					out.setInDimensions(TensorFlowModel.modelExitDimensions(sig, outputs[i]));
 					params.outputList.add(out);
 				}
-				// TODO remove when ready
-				/*
-				Object[] dimensions = TensorFlowModel.getDimensions(model, params.graph);
-				params.inDimensions = (int[]) dimensions[0];
-				params.outDimensions = (int[]) dimensions[1];
-				params.inputs = (String[]) dimensions[2];
-				params.outputs = (String[]) dimensions[3];
-				*/
 				// TODO correct it for adecuate number of inputs and outputs
 				//pnLoad.append("p", "Dimension of input: " + params.inDimensions.length + " and output: " + params.outDimensions.length);
 	

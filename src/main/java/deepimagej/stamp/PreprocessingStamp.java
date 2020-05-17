@@ -82,6 +82,7 @@ public class PreprocessingStamp extends AbstractStamp implements ActionListener 
 		cmb = new JComboBox<String>();
 		txt.setBackground(Color.BLACK);
 		txt.setForeground(Color.GREEN);
+		txt.setCaretColor(Color.WHITE);
 
 		cmb.addItem("<Select a usual macro command>");
 		for (String key : commands.keySet()) {
@@ -94,9 +95,12 @@ public class PreprocessingStamp extends AbstractStamp implements ActionListener 
 				+ "The following macro will be saved in a file preprocessing.txt");
 		txt.append("// Preprocessing macro\n");
 		txt.append("print(\"Preprocessing\");\n");
-		txt.setPreferredSize(new Dimension(Constants.width, 200));
+		txt.setPreferredSize(new Dimension(Constants.width + 300, 200 + 300));
 		txt.setFont(new Font("Monaco", Font.PLAIN, 11));
-		JScrollPane scroll = new JScrollPane(txt, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		JScrollPane scroll = new JScrollPane();
+		scroll.setPreferredSize(new Dimension(Constants.width, 200));
+		scroll.setViewportView(txt);
+		//JScrollPane scroll = new JScrollPane(txt, JScrollPane..VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		JPanel pn = new JPanel(new BorderLayout());
 		pn.add(pane.getPane(), BorderLayout.NORTH);
 		pn.add(scroll, BorderLayout.CENTER);

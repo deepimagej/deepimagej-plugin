@@ -37,191 +37,231 @@
 
 package deepimagej.stamp;
 
-import java.awt.Component;
-import java.awt.GridLayout;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
-import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
+import javax.swing.JScrollPane;
 
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
 import deepimagej.Parameters;
 import deepimagej.TensorFlowModel;
-import deepimagej.components.GridPanel;
 import deepimagej.components.HTMLPane;
-import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.Index;
 import ij.IJ;
 
-public class TensorStamp extends AbstractStamp  {
+public class TensorStamp extends AbstractStamp implements ActionListener {
 
-	private List<JComboBox<String>>	cmbList	= new ArrayList<>();
+	private List<JComboBox<String>>	inputs;
+	private static List<JComboBox<String>>	outputs;
+	private List<JComboBox<String>>	inTags;
+	private static List<JComboBox<String>>	outTags;
 	private String[]				in			= { "N", "H", "W", "C", "D" };
-	private String[]				out			= { "N", "H", "W", "C", "D" };
+	private String[]				inputOptions= { "image", "parameter"};
+	private static String[]			outOptions	= { "image", "label", "list", "ignore"};
 	private HTMLPane				pnDim;
 	private JPanel					pn 			= new JPanel();
 	private JPanel 					pnInOut 	= new JPanel();
 	private int						iterateOverComboBox;
-	private boolean					reinitialise = false;
+	private String					model		  = "";
 
 	public TensorStamp(BuildDialog parent) {
 		super(parent);
-		buildPanel();
+		//buildPanel();
 	}
 
 	@Override
 	public void buildPanel() {
-		HTMLPane info = new HTMLPane(Constants.width, 60);
+		HTMLPane info = new HTMLPane(Constants.width, 150);
 		info.append("h2", "Tensor Organization");
 		info.append("p", "Each dimension of input and output tensors must"
 				+ " be specified so the image is processed correctly, i.e. "
 				+ "the first dimension of the input tensor corresponds to the batch size, "
 				+ "the second dimension to the width and so on.");
-
-		JPanel information = new JPanel();
-		information.setLayout(new GridLayout(2, 1));
-
+		info.setMaximumSize(new Dimension(Constants.width, 150));
 		
-		pnInOut.setBorder(BorderFactory.createEtchedBorder());
-		//pnInOut.setLayout(new GridLayout(2, 1));
-		pnDim = new HTMLPane(Constants.width, 120);
+		//pnInOut.setBorder(BorderFactory.createEtchedBorder());
 
-		JPanel pnInput = new JPanel(new GridLayout(1, 5));
-		JPanel pnOutput = new JPanel(new GridLayout(1, 5));
+		Parameters params = parent.getDeepPlugin().params;
+		pnInOut.removeAll();
+		List<DijTensor> inputTensors = params.inputList;
+		List<DijTensor> outputTensors = params.outputList;
 
-		pnInOut.add(pnInput);
-		pnInOut.add(pnOutput);
-
+		// Set the correct information about each tensor
+		//pnDim.clear();
+		pnDim= new HTMLPane(Constants.width, 250);
+		File file = new File(parent.getDeepPlugin().params.path2Model);
+		String dirname = "untitled";
+		if (file.exists())
+			dirname = file.getName();
+		pnDim.append("h2", "Tensor organization of " + dirname);
+		// Save the model we are using to build the interface to check if
+		// we need to rebuild the panel or not
+		model = params.path2Model;
+		
+		pnDim.append("i", "W for width (axis X), H for height (axis Y), N for batch, C for channel");
+		for (DijTensor tensor : inputTensors) 
+			pnDim.append("p", tensor.name + " Tensor Dimensions : " + Arrays.toString(tensor.tensor_shape));
+		for (DijTensor tensor : outputTensors) 
+			pnDim.append("p", tensor.name + " Tensor Dimensions : " + Arrays.toString(tensor.tensor_shape));
+		pnDim.setMaximumSize(new Dimension(Constants.width, 250));
+		//JPanel pnInput = new JPanel(new GridLayout(1, 5));
+		GridBagConstraints cTag = new GridBagConstraints ();
+		cTag.gridwidth = 3;
+		cTag.gridx = 0;
+		cTag.insets = new Insets(3, 5, 3, 5);
+		GridBagConstraints cLabel = new GridBagConstraints ();
+		cLabel.gridwidth = 3;
+		cLabel.gridx = 3;
+		cLabel.insets = new Insets(3, 5, 3, 5);
+		
+		int nTensors = 0;
+		inTags = new ArrayList<>();
+		outTags = new ArrayList<>();
+		inputs = new ArrayList<>();
+		outputs = new ArrayList<>();
+		for (DijTensor input : inputTensors) {
+			// Create the panel that will contain all the elements for a tensor
+			JPanel pnTensor = new JPanel(new GridBagLayout());
+			// Add the combo box to decide the type of input
+			JComboBox<String> cmbInType = new JComboBox<String>(inputOptions);
+			cmbInType.addActionListener(this);
+			pnTensor.add(cmbInType, cTag);
+			inTags.add(cmbInType);
+			// Add the name
+			pnTensor.add(new JLabel(input.name), cLabel);
+			// Now add the tensor specific dimensions
+			for (int j = 0; j < input.tensor_shape.length; j ++) {
+				JComboBox<String> cmbIn = new JComboBox<String>(in);
+				cmbIn.setPreferredSize(new Dimension(50, 50));
+				pnTensor.add(cmbIn);
+				inputs.add(cmbIn);
+			}
+			pnInOut.add(pnTensor);
+			nTensors ++;
+		}
+		
+		
+		for (DijTensor output : outputTensors) {
+			// Create the panel that will contain all the elements for a tensor
+			JPanel pnTensor = new JPanel(new GridBagLayout());
+			// Add the combo box to decide the type of input
+			JComboBox<String> cmbOutType = new JComboBox<String>(outOptions);
+			cmbOutType.addActionListener(this);
+			pnTensor.add(cmbOutType, cTag);
+			outTags.add(cmbOutType)
+;			// Add the name
+			pnTensor.add(new JLabel(output.name), cLabel);
+			// Now add the tensor specific dimensions
+			for (int j = 0; j < output.tensor_shape.length; j ++) {
+				JComboBox<String> cmbOut = new JComboBox<String>(in);
+				cmbOut.setPreferredSize(new Dimension(50, 50));
+				pnTensor.add(cmbOut);
+				outputs.add(cmbOut);
+			}
+			pnInOut.add(pnTensor);
+			nTensors ++;
+		}
+		JScrollPane scroll = new JScrollPane();
+		pnInOut.setPreferredSize(new Dimension(500, nTensors * 60));
+        scroll.setPreferredSize(new Dimension(600, nTensors * 70 + 50));
+        scroll.setViewportView(pnInOut);
+		pn.removeAll();
 		pn.setLayout(new BoxLayout(pn, BoxLayout.PAGE_AXIS));
 		pn.add(info.getPane());
 		pn.add(pnDim.getPane());
-		pn.add(pnInOut);
+		pn.add(scroll);
 		panel.add(pn);
+		
+		
 	}
 	
 	@Override
 	public void init() {
-		if (reinitialise == false) {
-			Parameters params = parent.getDeepPlugin().params;
-			pnInOut.removeAll();
-			List<DijTensor> inputs = params.inputList;
-			List<DijTensor> outputs = params.outputList;
-			int n_tensors = inputs.size() + outputs.size();
-			pnInOut.setLayout(new GridLayout(n_tensors, 1));
-			// Reinitialize the list
-			cmbList = new ArrayList<>();
-			
-			for (int i = 0; i < inputs.size(); i ++) {
-				JPanel pnInput = new JPanel(new GridLayout(1, inputs.get(i).tensor_shape.length));
-				pnInput.add(new JLabel(inputs.get(i).name));
-				for (int j = 0; j < inputs.get(i).tensor_shape.length; j ++) {
-					JComboBox<String> cmbIn = new JComboBox<String>(in);
-					/*if (params.inputList.get(i).form != null) {
-						cmbIn.setSelectedIndex(Index.indexOf(in, params.inputList.get(i).form[i]));
-					}*/
-					pnInput.add(cmbIn);
-					cmbList.add(cmbIn);
-				}
-				pnInOut.add(pnInput);
-				int a = 1+1;
-			}
-	
-			for (int i = 0; i < outputs.size(); i ++) {
-				JPanel pnOutput = new JPanel(new GridLayout(1, outputs.get(i).tensor_shape.length));
-				pnOutput.add(new JLabel(outputs.get(i).name));
-				for (int j = 0; j < outputs.get(i).tensor_shape.length; j ++) {
-					JComboBox<String> cmbOut = new JComboBox<String>(out);
-					/*if (params.outputList.get(i).form != null) {
-						cmbOut.setSelectedIndex(Index.indexOf(in, params.outputList.get(i).form));
-					}*/
-					pnOutput.add(cmbOut);
-					cmbList.add(cmbOut);
-				}
-				pnInOut.add(pnOutput);
-			}
-			
-			File file = new File(parent.getDeepPlugin().params.path2Model);
-			String dirname = "untitled";
-			if (file.exists())
-				dirname = file.getName();
-	
-			pnDim.clear();
-			pnDim.append("h2", "Tensor organization of " + dirname);
-			pnDim.append("i", "W for width (axis X), H for height (axis Y), N for batch, C for channel");
-			for (int i = 0; i < inputs.size(); i ++) {
-				pnDim.append("p", inputs.get(i).name + " Tensor Dimensions : " + dimensions(inputs.get(i).tensor_shape));
-			}
-			for (int i = 0; i < outputs.size(); i ++) {
-				pnDim.append("p", outputs.get(i).name + " Tensor Dimensions : " + dimensions(outputs.get(i).tensor_shape));
-			}
+		String modelOfInterest = parent.getDeepPlugin().params.path2Model;
+		if (!modelOfInterest.equals(model)) {
+			buildPanel();
 		}
 	}
 
 	@Override
 	public boolean finish() {
 		Parameters params = parent.getDeepPlugin().params;
-		List<DijTensor> inputs = params.inputList;
+		List<DijTensor> inputTensors = params.inputList;
 		iterateOverComboBox = 0;
-		for (int i = 0; i < inputs.size(); i ++) {
-			inputs.get(i).form = retrieveForm(inputs.get(i).name, inputs.get(i).tensor_shape, iterateOverComboBox);
-			iterateOverComboBox = iterateOverComboBox + inputs.get(i).tensor_shape.length;
-			if (checkRepeated(inputs.get(i).form) == false) {
+		int tagC = 0;
+		for (DijTensor tensor : inputTensors) {
+			tensor.form = "";
+			for (int i = iterateOverComboBox; i < iterateOverComboBox + tensor.tensor_shape.length; i++)
+				tensor.form = tensor.form + (String) inputs.get(i).getSelectedItem();
+			tensor.tensorType = (String) inTags.get(tagC ++).getSelectedItem();
+			iterateOverComboBox += tensor.tensor_shape.length;
+			if (checkRepeated(tensor.form) == false && tensor.tensorType.equals("ignore") == false) {
 				IJ.error("Repetition is not allower in input");
 				return false;
 			}
-			if (TensorFlowModel.nBatch(inputs.get(i).tensor_shape, inputs.get(i).form).equals("1") == false){
+			if (TensorFlowModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
 				IJ.error("The plugin only supports models with batch size (N) = 1");
-				reinitialise = true;
 				return false;
 			}
 		}
-		List<DijTensor> outputs = params.outputList;
-		for (int i = 0; i < outputs.size(); i ++) {
-			outputs.get(i).form = retrieveForm(outputs.get(i).name, outputs.get(i).tensor_shape, iterateOverComboBox);
-			iterateOverComboBox = iterateOverComboBox + outputs.get(i).tensor_shape.length;
-			if (checkRepeated(outputs.get(i).form) == false) {
+		List<DijTensor> outputTensors = params.outputList;
+		tagC = 0;
+		iterateOverComboBox = 0;
+		for (DijTensor tensor : outputTensors) {
+			tensor.form = "";
+			for (int i = iterateOverComboBox; i < iterateOverComboBox + tensor.tensor_shape.length; i++)
+				tensor.form = tensor.form + (String) outputs.get(i).getSelectedItem();
+			iterateOverComboBox += tensor.tensor_shape.length;
+			tensor.tensorType = (String) outTags.get(tagC ++).getSelectedItem();
+			if (checkRepeated(tensor.form) == false && tensor.tensorType.equals("ignore") == false) {
 				IJ.error("Repetition is not allower in input");
 				return false;
 			}
-			if (TensorFlowModel.nBatch(outputs.get(i).tensor_shape, outputs.get(i).form).equals("1") == false){
+			if (TensorFlowModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
 				IJ.error("The plugin only supports models with batch size (N) = 1");
-				reinitialise = true;
 				return false;
 			}
 		}
-		reinitialise = false;
+		for (Iterator<DijTensor> iter = params.outputList.listIterator(); iter.hasNext(); ) {
+			DijTensor tensor = iter.next();
+		    if (tensor.tensorType.contains("ignore")) {
+		        iter.remove();
+		    }
+		}
 		
 		return true;
 	}
-
-	private String dimensions(int[] vec) {
-		String string = "[";
-		for (int i = 0; i < vec.length - 1; i++) {
-			string = string + vec[i] + ",";
+	
+	public static void updateTensorDisplay(Parameters params) {
+		// Set disabled the tensors marked as 'ignore'
+		List<DijTensor> outputTensors = params.outputList;
+		// Counter for tensors
+		int c = 0;
+		int cmbCounter = 0;
+		for (JComboBox<String> cmbTag : outTags) {
+			int indSelection = cmbTag.getSelectedIndex();
+			String selection = outOptions[indSelection];
+			for (int i = cmbCounter; i < cmbCounter + outputTensors.get(c).tensor_shape.length; i++) {
+				outputs.get(i).setEnabled(!selection.equals("ignore"));
+			}
+			cmbCounter += outputTensors.get(c).tensor_shape.length;
+			c ++;
 		}
-		string = string + vec[vec.length - 1] + "]";
-		return string;
-	}
-
-	private String retrieveForm(String in_out, int[] tensor_dims, int start) {
-		
-		String dims = "";
-		JComboBox<String> focus = new JComboBox<String>();
-		for (int i = start; i < start + tensor_dims.length; i++) {
-			focus = cmbList.get(i);
-			dims = dims + (String) focus.getSelectedItem();
-		}
-		return dims;
 	}
 
 	private boolean checkRepeated(String form) {
@@ -231,10 +271,15 @@ public class TensorStamp extends AbstractStamp  {
 		for (int pos = 0; pos < form.length(); pos++) {
 			int last_index = Index.lastIndexOf(form.split(""), form.split("")[pos]);
 			if (last_index != pos) {
-				reinitialise = true;
 				return false;
 			}
 		}
 		return true;
+	}
+	
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		Parameters params = parent.getDeepPlugin().params;
+		updateTensorDisplay(params);
 	}
 }

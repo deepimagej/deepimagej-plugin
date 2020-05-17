@@ -79,6 +79,7 @@ public class PostprocessingStamp extends AbstractStamp implements ActionListener
 		cmb = new JComboBox<String>();
 		txt.setBackground(Color.BLACK);
 		txt.setForeground(Color.GREEN);
+		txt.setCaretColor(Color.WHITE);
 
 		cmb.addItem("<Select a usual macro command>");
 		for (String key : commands.keySet()) {
@@ -104,6 +105,7 @@ public class PostprocessingStamp extends AbstractStamp implements ActionListener
 	
 	@Override
 	public void init() {
+		txt.setCaretColor(Color.WHITE);
 	}
 
 	@Override
