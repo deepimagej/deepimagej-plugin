@@ -51,6 +51,7 @@ import javax.swing.JPanel;
 
 import deepimagej.components.TitleHTMLPane;
 import deepimagej.stamp.InputDimensionStamp;
+import deepimagej.stamp.JavaPreprocessingStamp;
 import deepimagej.stamp.InformationStamp;
 import deepimagej.stamp.LoadTFStamp;
 import deepimagej.stamp.OutputDimensionStamp;
@@ -80,6 +81,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 	private InformationStamp		info;
 	private PostprocessingStamp		postproc;
 	private PreprocessingStamp		preproc;
+	private JavaPreprocessingStamp  javaPreproc;
 	private TestStamp				test2;
 	private SaveStamp				save;
 	private DeepImageJ				dp;
@@ -97,7 +99,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 		tensor = new TensorStamp(this);
 		info = new InformationStamp(this);
 		outputDim = new OutputDimensionStamp(this);
-		//javPreproc = new JavaPreprocessingStamp(this);
+		javaPreproc = new JavaPreprocessingStamp(this);
 		//javPostproc = new JavaPostprocessingStamp(this);
 		//tensorSelection = new TensorSelectionStamp(this);
 		preproc = new PreprocessingStamp(this);
@@ -117,13 +119,13 @@ public class BuildDialog extends JDialog implements ActionListener {
 		pnCards.add(dim3.getPanel(), "4");
 		pnCards.add(outputDim.getPanel(), "5");
 		pnCards.add(info.getPanel(), "6");
-		//pnCards.add(javPreproc.getPanel(), "7");
 		//pnCards.add(tensorSelection.getPanel(), "8");
 		//pnCards.add(javPostproc.getPanel(), "9");
 		pnCards.add(preproc.getPanel(), "7");
-		pnCards.add(postproc.getPanel(), "8");
-		pnCards.add(test2.getPanel(), "9");
-		pnCards.add(save.getPanel(), "10");
+		pnCards.add(javaPreproc.getPanel(), "8");
+		pnCards.add(postproc.getPanel(), "9");
+		pnCards.add(test2.getPanel(), "10");
+		pnCards.add(save.getPanel(), "11");
 
 		setLayout(new BorderLayout());
 		add(new TitleHTMLPane().getPane(), BorderLayout.NORTH);
@@ -185,9 +187,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 			case 6:
 				card = info.finish() ? card+1 : card;
 				break;
-			/*case 7:
-				card = javPreproc.finish() ? card+1 : card;
-				break;
+			/*
 			case 8:
 				card = tensorSelection.finish() ? card+1 : card;
 				break;
@@ -198,12 +198,15 @@ public class BuildDialog extends JDialog implements ActionListener {
 				card = preproc.finish() ? card+1 : card;
 				break;
 			case 8:
+				card = javaPreproc.finish() ? card+1 : card;
+				break;
+			case 9:
 				card = postproc.finish() ? card+1 : card;
 				break;
-			case 10:
+			case 11:
 				dispose();
 			default:
-				card = Math.min(10, card + 1);
+				card = Math.min(11, card + 1);
 			}
 		}
 		if (e.getSource() == bnBack) {
@@ -226,8 +229,6 @@ public class BuildDialog extends JDialog implements ActionListener {
 			outputDim.init();
 		if (card == 6)
 			info.init();/*
-		if (card == 7)
-			javPreproc.init();
 		if (card == 8)
 			tensorSelection.init();
 		if (card == 9)
@@ -239,13 +240,15 @@ public class BuildDialog extends JDialog implements ActionListener {
 		if (card == 7)
 			preproc.init();
 		if (card == 8)
-			postproc.init();
+			javaPreproc.init();
 		if (card == 9)
-			test2.init();
+			postproc.init();
 		if (card == 10)
+			test2.init();
+		if (card == 11)
 			setEnabledBackNext(true);
 
-		bnNext.setText(card == 9 ? "Finish" : "Next");
+		bnNext.setText(card == 10 ? "Finish" : "Next");
 	}
 
 	public void setEnabledBackNext(boolean b) {

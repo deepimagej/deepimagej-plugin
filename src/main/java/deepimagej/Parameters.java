@@ -58,9 +58,34 @@ public class Parameters {
 	// plugin
 	public String postmacro = "";
 	public String premacro = "";
-	// Images for testing the model
-	// Image used to test the model
-	public ImagePlus testImage;
+	/*
+	 * Path to the Java preprocessing jar file
+	 */
+	public String		javaPreprocessing;
+	/*
+	 * Whether or not there is Java preprocessing
+	 */
+	public boolean		isJavaPreprocessing = false;
+	/*
+	 * Whether or not the Java preprocessing is before the preprocessing macro
+	 */
+	public boolean		preprocessingBeforeMacro = false;
+	/*
+	 * Path to the Java postprocessing jar file
+	 */
+	public String		javaPostprocessing;
+	/*
+	 * Whether or not there is Java postprocessing
+	 */
+	public boolean		isJavaPostprocessing = false;
+	/*
+	 * Whether or not the Java postprocessing is before the postprocessing macro
+	 */
+	public boolean		postprocessingBeforeMacro = true;
+	/*
+	 * Image used to test the model
+	 */
+	public ImagePlus[] testImage;
 	// Copy created to return the original image in the case
 	// that the model fails after applying the macros
 	public ImagePlus testImageBackup;

@@ -47,7 +47,8 @@ import ij.process.ImageProcessor;
 
 
 public class ImagePlus2Tensor {
-	
+	// TODO allow other types of tensors
+	// TODO allow batch size != 1
 	// Methods to transform a TensorFlow tensors into ImageJ ImagePlus
 
 	public static Tensor<?> imPlus2tensor(ImagePlus img, String form, int channels){

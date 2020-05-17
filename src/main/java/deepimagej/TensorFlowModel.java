@@ -62,6 +62,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import deepimagej.components.CustomizedColumn;
 import deepimagej.components.CustomizedTable;
 import deepimagej.exceptions.TensorDimensionsException;
+import deepimagej.tools.DijTensor;
 import deepimagej.tools.FileTools;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
@@ -326,15 +327,23 @@ public class TensorFlowModel {
 		return keysArray;
 	}
 
-	public static String nChannels(Parameters params, String inputForm) {
-		// Find the number of channels in the input
-		String nChannels;
-		int ind = Index.indexOf(inputForm.split(""), "C");
+	public static int nChannelsOrSlices(DijTensor tensor, String channelsOrSlices) {
+		// Find the number of channels or slices in the corresponding tensor
+		String letter = "";
+		if (channelsOrSlices.equals("channels")) {
+			letter = "C";
+		} else {
+			letter = "D";
+		}
+		
+		int nChannels;
+		String inputForm = tensor.form;
+		int ind = Index.indexOf(inputForm.split(""), letter);
 		if (ind == -1) {
-			nChannels = "1";
+			nChannels = 1;
 		}
 		else {
-			nChannels = Integer.toString(params.inputList.get(0).tensor_shape[ind]);
+			nChannels = tensor.tensor_shape[ind];
 		}
 		return nChannels;
 	}
