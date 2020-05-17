@@ -1,5 +1,6 @@
 package deepimagej.tools;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class DijTensor {
@@ -29,6 +30,33 @@ public class DijTensor {
 	public float[] 		scale;
 	// For an image output tensor. Reference that we take to make the output image
 	public String 		referenceImage		= "";
+	// String referring to the type of input or output the model should expect
+	// Possible input types:
+	// 	 - Image, a normal ImageJ ImagePlus
+	//   - Parameter, the parameter has to be an array provided as the output
+	//     to a external java processing method
+	// Possible output types
+	//   - Image, a normal ImageJ ImagePlus
+	//   - Label, a number in an Excel file
+	//   - List, a list in an Excel file
+	//   - Ignore, the tensor is not used and discarded
+	public String		tensorType;
+	// Path only needed for input tensors that correspond to parameters.
+	// Contains the path to the file that contains the info needed to construct
+	// the tensor
+	public String		parameterPath;
+	/*
+	 * Whether the java interface method that it is used to
+	 * retrieve the parameter tensor has an ImagePlus as argument
+	 * or not
+	 */
+	public boolean		useImage;
+	/*
+	 * Parameter that indicates that all the needed information for a
+	 *  tensor to work is completed. Used in the InputTensorStamp and 
+	 *  the OutputTensorStamp
+	 */
+	public boolean		finished = false;
 	
 	public DijTensor(String name) {
 		this.name = name;
@@ -95,6 +123,15 @@ public class DijTensor {
 		String[] splitForm = form.split("");
 		int batchInd = Index.indexOf(splitForm, "N");
 		return batchInd;
+	}
+	
+	public static List<DijTensor> getImageTensors(List<DijTensor> tensorList) {
+		List<DijTensor> imageTensors = new ArrayList<DijTensor>(); 
+		for (DijTensor tensor : tensorList) {
+			if (tensor.tensorType.contains("image"))
+				imageTensors.add(tensor);
+		}
+		return imageTensors;
 	}
 
 }
