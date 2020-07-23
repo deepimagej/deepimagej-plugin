@@ -72,7 +72,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 	private static List<JComboBox<String>>	outTags;
 	private String[]				in			= { "N", "H", "W", "C", "D" };
 	private String[]				inputOptions= { "image", "parameter"};
-	private static String[]			outOptions	= { "image", "label", "list", "ignore"};
+	private static String[]			outOptions	= { "image", "list", "ignore"};
 	private HTMLPane				pnDim;
 	private JPanel					pn 			= new JPanel();
 	private JPanel 					pnInOut 	= new JPanel();
@@ -98,8 +98,8 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 
 		Parameters params = parent.getDeepPlugin().params;
 		pnInOut.removeAll();
-		List<DijTensor> inputTensors = params.inputList;
-		List<DijTensor> outputTensors = params.outputList;
+		List<DijTensor> inputTensors = params.totalInputList;
+		List<DijTensor> outputTensors = params.totalOutputList;
 
 		// Set the correct information about each tensor
 		//pnDim.clear();
@@ -163,8 +163,8 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 			JComboBox<String> cmbOutType = new JComboBox<String>(outOptions);
 			cmbOutType.addActionListener(this);
 			pnTensor.add(cmbOutType, cTag);
-			outTags.add(cmbOutType)
-;			// Add the name
+			outTags.add(cmbOutType);
+			// Add the name
 			pnTensor.add(new JLabel(output.name), cLabel);
 			// Now add the tensor specific dimensions
 			for (int j = 0; j < output.tensor_shape.length; j ++) {
@@ -201,7 +201,11 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 	@Override
 	public boolean finish() {
 		Parameters params = parent.getDeepPlugin().params;
-		List<DijTensor> inputTensors = params.inputList;
+		// Reset 'allowPatching' parameter to its default value (true)
+		if (!params.pyramidalNetwork)
+			params.allowPatching = true;
+		params.inputList = new ArrayList<DijTensor>();
+		List<DijTensor> inputTensors = params.totalInputList;
 		iterateOverComboBox = 0;
 		int tagC = 0;
 		for (DijTensor tensor : inputTensors) {
@@ -218,8 +222,10 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 				IJ.error("The plugin only supports models with batch size (N) = 1");
 				return false;
 			}
+			params.inputList.add(tensor);
 		}
-		List<DijTensor> outputTensors = params.outputList;
+		params.outputList = new ArrayList<DijTensor>();
+		List<DijTensor> outputTensors = params.totalOutputList;
 		tagC = 0;
 		iterateOverComboBox = 0;
 		for (DijTensor tensor : outputTensors) {
@@ -228,6 +234,8 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 				tensor.form = tensor.form + (String) outputs.get(i).getSelectedItem();
 			iterateOverComboBox += tensor.tensor_shape.length;
 			tensor.tensorType = (String) outTags.get(tagC ++).getSelectedItem();
+			if (tensor.tensorType.contains("list"))
+				params.allowPatching = false;
 			if (checkRepeated(tensor.form) == false && tensor.tensorType.equals("ignore") == false) {
 				IJ.error("Repetition is not allower in input");
 				return false;
@@ -237,10 +245,10 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 				return false;
 			}
 		}
-		for (Iterator<DijTensor> iter = params.outputList.listIterator(); iter.hasNext(); ) {
+		for (Iterator<DijTensor> iter = outputTensors.listIterator(); iter.hasNext(); ) {
 			DijTensor tensor = iter.next();
-		    if (tensor.tensorType.contains("ignore")) {
-		        iter.remove();
+		    if (!tensor.tensorType.contains("ignore")) {
+				params.outputList.add(tensor);
 		    }
 		}
 		
@@ -249,7 +257,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 	
 	public static void updateTensorDisplay(Parameters params) {
 		// Set disabled the tensors marked as 'ignore'
-		List<DijTensor> outputTensors = params.outputList;
+		List<DijTensor> outputTensors = params.totalOutputList;
 		// Counter for tensors
 		int c = 0;
 		int cmbCounter = 0;

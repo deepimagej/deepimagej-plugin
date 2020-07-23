@@ -37,6 +37,9 @@
 
 package deepimagej;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -58,23 +61,25 @@ import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.ResultsTable;
 
-public class Runner implements Callable<ImagePlus[]> {
+public class Runner implements Callable<HashMap<String, Object>> {
 
-	private ImagePlus		imp;
-	private DeepImageJ		dp;
-	private RunnerProgress	rp;
-	private Log				log;
-	private int				currentPatch = 0;
-	private int				totalPatch = 0;
+	private ImagePlus				imp;
+	private HashMap<String,Object> 	inputMap;
+	private DeepImageJ				dp;
+	private RunnerProgress			rp;
+	private Log						log;
+private int							currentPatch = 0;
+	private int						totalPatch = 0;
 
-	public Runner(DeepImageJ dp, RunnerProgress rp, ImagePlus imp, Log log) {
+	public Runner(DeepImageJ dp, RunnerProgress rp,HashMap<String,Object> inputMap, Log log) {
 		this.dp = dp;
 		this.rp = rp;
 		this.log = log;
-		this.imp = imp;
+		this.inputMap = inputMap;
 		log.print("constructor runner");
 	}
 
+	// TODO remove
 	public Runner(DeepImageJ dp, RunnerProgress rp, Log log) {
 		this.dp = dp;
 		this.rp = rp;
@@ -83,32 +88,52 @@ public class Runner implements Callable<ImagePlus[]> {
 	}
 
 	@Override
-	public ImagePlus[] call() {
+	public HashMap<String, Object> call() {
 		log.print("call runner");
 
 		Parameters params = dp.params;
-		
+		// Map that contains the input tensors that are not images.
+		// TODO restrict patching (or not) if the input contains parameters
+        HashMap<String, Tensor<?>> parameterMap = new HashMap<String, Tensor<?>>(); 
+		ImagePlus imp = null;
 		// Auxiliary array with the same number of images as output tensors
 		int c = 0;
 		int inputImageInd = 0;
 		for (DijTensor tensor : params.inputList) {
 			if (tensor.tensorType.contains("image")) {
+				imp = getImageFromMap(inputMap, tensor);
+				if (imp == null) {
+					rp.stop();
+					return null;
+				}
+				String inputPixelSizeX = ((float) imp.getCalibration().pixelWidth) + " " + imp.getCalibration().getUnit();
+				String inputPixelSizeY = ((float) imp.getCalibration().pixelHeight) + " " + imp.getCalibration().getUnit();
+				String inputPixelSizeZ = ((float) imp.getCalibration().pixelDepth) + " " + imp.getCalibration().getUnit();
+				int[] dims = imp.getDimensions();
+				params.inputList.get(c).inputTestSize = Integer.toString(dims[0]) + " x " + Integer.toString(dims[1]) + " x " + Integer.toString(dims[2]) + " x " + Integer.toString(dims[3]);;
+				params.inputList.get(c).inputPixelSizeX = inputPixelSizeX;
+				params.inputList.get(c).inputPixelSizeY = inputPixelSizeY;
+				params.inputList.get(c).inputPixelSizeZ = inputPixelSizeZ;
 				inputImageInd = c;
-				break;
+			} else if (tensor.tensorType.contains("parameter")){
+				Tensor<?> tensorVal = getTensorFromMap(inputMap, tensor);
+				if (tensorVal == null) {
+					rp.stop();
+					return null;
+				}
+				parameterMap.put(tensor.name, tensorVal);
 			}
 			c ++;
 		}
+		
 		int outputImagesCount = 0;
 		for (DijTensor tensor : params.outputList) {
 			if (tensor.tensorType.contains("image"))
 				outputImagesCount ++;
 		}
 		ImagePlus[] outputImages = new ImagePlus[outputImagesCount];
+		List<ResultsTable> outputTables = new ArrayList<ResultsTable>();
 		
-		
-		if (imp == null) {
-			imp = WindowManager.getCurrentImage();
-		}
 		if (imp == null) {
 			rp.stop();
 			return null;
@@ -133,18 +158,29 @@ public class Runner implements Callable<ImagePlus[]> {
 		String[] dimLetters = "WHCD".split("");
 		for  (int i = 0; i < dimLetters.length; i ++)
 			indices[i] = Index.indexOf(params.inputList.get(inputImageInd).form.split(""), dimLetters[i]);
-		/*
-		int xInd = Index.indexOf(params.inputList.get(inputImageInd).form.split(""), "W");
-		int yInd = Index.indexOf(params.inputList.get(inputImageInd).form.split(""), "H");
-		int cInd = Index.indexOf(params.inputList.get(inputImageInd).form.split(""), "C");
-		int zInd = Index.indexOf(params.inputList.get(inputImageInd).form.split(""), "D");
-
-		int[] indices = {xInd, yInd, cInd, zInd};
-		*/
+		
 		int[] patchSize = {1, 1, 1, 1};
 		for (int i = 0; i < indices.length; i ++) {
 			if (indices[i] != -1) {
 				patchSize[i] = params.inputList.get(inputImageInd).recommended_patch[indices[i]];
+			}
+		}
+		
+		c = 0;
+		// TODO improve
+		if (params.pyramidalNetwork || !params.allowPatching) {
+			for (String dim : params.inputList.get(inputImageInd).form.split("")) {
+				int imageCorrespondentDimension = Index.indexOf(dimLetters, dim);
+				if (!dim.contains("N") && patchSize[c] == -1) {
+					patchSize[c ++] = imp.getDimensions()[imageCorrespondentDimension];
+				} else if (!dim.contains("N") && patchSize[c] != imp.getDimensions()[c]) {
+					String errorMsg = "This model only accepts images with input size:";
+						for (int i = 0; i < dimLetters.length; i ++)
+							errorMsg += "\n" + dimLetters[i] + " : " + patchSize[i];
+					IJ.error(errorMsg);
+					rp.stop();
+					return null;
+				}
 			}
 		}
 		
@@ -158,11 +194,7 @@ public class Runner implements Callable<ImagePlus[]> {
 			return null;
 		}
 		log.print("patch size " + "X: " +  px + ", Y: " +  py + ", Z: " +  pz + ", C: " +  pc);
-		// TODO decide what to do with the input info
-		/*
-		params.inputSize = new String[params.inputList.size()];
-		params.inputSize[0] = Integer.toString(nx) + "x" + Integer.toString(ny) + "x" + Integer.toString(nz);
-		*/
+		
 		// To define the runtime for config.xml. Starting time
 		long startingTime = System.nanoTime();
 		// Create the image that is going to be fed to the graph
@@ -191,13 +223,13 @@ public class Runner implements Callable<ImagePlus[]> {
 					+ "Image should have " + inputDims[channelPos] 
 							+ " instead of " + inDim[2]);
 			rp.stop();
-			return outputImages;
+			return null;
 		}
 		// Get the padding in case the image needs any
-		int[] padding;
-		if (params.final_halo == null) {
+		int[] padding = new int[4];
+		if (params.final_halo == null && !params.pyramidalNetwork) {
 			padding = findTotalPadding(params.outputList);
-		} else {
+		} else if (!params.pyramidalNetwork){
 			// TODO decide what to do with padding, if it is always fixed
 			// this field is not needed anymore
 			padding = findTotalPadding(params.outputList);
@@ -254,12 +286,12 @@ public class Runner implements Callable<ImagePlus[]> {
 		for (int i = 0; i < npx; i++) {
 			for (int j = 0; j < npy; j++) {
 				for (int z = 0; z < npz; z++) {
-					
+					// TODO reduce this mega big loop to something more modular
 					currentPatch++;
 					log.print("currentPatch " + currentPatch);
 					if (rp.isStopped()) {
 						rp.stop();
-						return outputImages;
+						return null;
 					}
 					// Variables to track when the roi starts in the mirror image
 					int xMirrorStartPatch;
@@ -325,9 +357,11 @@ public class Runner implements Callable<ImagePlus[]> {
 						patch.setTitle("Patch (" + i + "," + j + ")");
 						patch.getProcessor().resetMinAndMax();
 					}
-					// TODO Extract here the tensor after processing the patch
+					// TODO Do not allow patching when the output is a list
+					// TODO Think about what to do when output is an image but we need 
+					// parameters. For the moment only no patching
 					//Tensor<?> inputTensor = ImagePlus2Tensor.imPlus2tensor(patch, inputForm, pc);
-					Tensor<?>[] inputTensors = getInputTensors(params.inputList, patch, pc);
+					Tensor<?>[] inputTensors = getInputTensors(params.inputList, parameterMap,  patch, pc);
 					Session.Runner sess = model.session().runner();
 					
 					for (int k = 0; k < params.inputList.size(); k++) {
@@ -343,13 +377,23 @@ public class Runner implements Callable<ImagePlus[]> {
 						List<Tensor<?>> fetches = sess.run();
 						// Reinitialise counter
 						c = 0;
+						int imCounter = 0;
 						for (DijTensor outTensor : params.outputList) {
 							log.print("Session run " + (c+1) + "/"  + params.outputList.size());
 							Tensor<?> result = fetches.get(c);
-							if (outTensor.tensorType.contains("image")) {
-								impatch[c ++] = ImagePlus2Tensor.tensor2ImagePlus(result, outTensor.form);
+							if (outTensor.tensorType.contains("image") && !params.pyramidalNetwork) {
+								impatch[imCounter] = ImagePlus2Tensor.tensor2ImagePlus(result, outTensor.form);
+								imCounter ++;
+								c ++;
+							} else if (outTensor.tensorType.contains("image") && params.pyramidalNetwork) {
+								outputImages[imCounter] = ImagePlus2Tensor.tensor2ImagePlus(result, outTensor.form);
+								outputImages[imCounter].setTitle(outputTitles[imCounter]);
+								outputImages[imCounter].show();
+								imCounter ++;
+								c ++;
 							} else if (outTensor.tensorType.contains("list")){
 								ResultsTable table = Table2Tensor.tensor2Table(result, outTensor.form);
+								outputTables.add(table);
 								table.show(outputTitles[c ++] + " of patch " + currentPatch);
 							}
 						}
@@ -358,27 +402,31 @@ public class Runner implements Callable<ImagePlus[]> {
 						IJ.log("Error in the TensorFlow library");
 						IJ.log(ex.getMessage());
 						rp.stop();
-						return outputImages;
+						return null;
 					}
 					int[][] allOffsets = findOutputOffset(params.outputList);
-					for (int counter = 0; counter < outputImagesCount; counter++) {
-						float[] outSize = findOutputSize(size, params.outputList.get(counter));
-						if (outputImages[counter] == null) {
-							int[] dims = impatch[counter].getDimensions();
-							outputImages[counter] = IJ.createHyperStack(outputTitles[counter], (int)outSize[0], (int)outSize[1], (int)outSize[2], (int)outSize[3], dims[4], 32);
-							outputImages[counter].getProcessor().resetMinAndMax();
-							outputImages[counter].show();
-						}
-						float scaleX = outSize[0] / nx; float scaleY = outSize[1] / ny; float scaleZ = outSize[3] / nz;
-						ArrayOperations.imagePlusReconstructor(outputImages[counter], impatch[counter], (int) (xImageStartPatch * scaleX),
-								(int) (xImageEndPatch * scaleX), (int) (yImageStartPatch * scaleY), (int) (yImageEndPatch * scaleY),
-								(int) (zImageStartPatch * scaleZ), (int) (zImageEndPatch * scaleZ),(int)(leftoverPixelsX * scaleX) - allOffsets[counter][0],
-								(int)(leftoverPixelsY * scaleY) - allOffsets[counter][1], (int)(leftoverPixelsZ * scaleZ) - allOffsets[counter][3]);
-						if (outputImages[counter] != null)
-							outputImages[counter].getProcessor().resetMinAndMax();
-						if (rp.isStopped()) {
-							rp.stop();
-							return outputImages;
+					int imCounter = 0;
+					for (int counter = 0; counter < params.outputList.size(); counter++) {
+						if (params.outputList.get(counter).tensorType.contains("image") && !params.pyramidalNetwork) {
+							float[] outSize = findOutputSize(size, params.outputList.get(counter), params.inputList, impatch[imCounter].getDimensions());
+							if (outputImages[imCounter] == null) {
+								int[] dims = impatch[imCounter].getDimensions();
+								outputImages[imCounter] = IJ.createHyperStack(outputTitles[imCounter], (int)outSize[0], (int)outSize[1], (int)outSize[2], (int)outSize[3], dims[4], 32);
+								outputImages[imCounter].getProcessor().resetMinAndMax();
+								outputImages[imCounter].show();
+							}
+							float scaleX = outSize[0] / nx; float scaleY = outSize[1] / ny; float scaleZ = outSize[3] / nz;
+							ArrayOperations.imagePlusReconstructor(outputImages[imCounter], impatch[imCounter], (int) (xImageStartPatch * scaleX),
+									(int) (xImageEndPatch * scaleX), (int) (yImageStartPatch * scaleY), (int) (yImageEndPatch * scaleY),
+									(int) (zImageStartPatch * scaleZ), (int) (zImageEndPatch * scaleZ),(int)(leftoverPixelsX * scaleX) - allOffsets[imCounter][0],
+									(int)(leftoverPixelsY * scaleY) - allOffsets[imCounter][1], (int)(leftoverPixelsZ * scaleZ) - allOffsets[imCounter][3]);
+							if (outputImages[imCounter] != null)
+								outputImages[imCounter].getProcessor().resetMinAndMax();
+							if (rp.isStopped()) {
+								rp.stop();
+								return null;
+							}
+							imCounter ++;
 						}
 					}
 					log.print("Create Output ");
@@ -391,25 +439,62 @@ public class Runner implements Callable<ImagePlus[]> {
 		params.runtime = NumFormat.seconds(endTime - startingTime);
 		// Set Parameter params.memoryPeak
 		params.memoryPeak = NumFormat.bytes(rp.getPeakmem());
+		rp.stop();
 		// Set Parameter  params.outputSize
 		params.outputSize = new String[params.outputList.size()];
-		int i = 0;
-		for (ImagePlus im : outputImages) {
-			int[] dims = im.getDimensions();
-			params.outputSize[i++] = Integer.toString(dims[0]) + "x" + Integer.toString(dims[1]) + "x" + Integer.toString(dims[3]);
+		HashMap<String, Object> outputMap = new HashMap<String, Object>();
+		int imageCount = 0;
+		int tableCount = 0;
+		c = 0;
+		for (DijTensor tensor : params.outputList) {
+			if (tensor.tensorType.contains("image")) {
+				ImagePlus im = outputImages[imageCount];
+				// Add the image to the output map
+				outputMap.put(tensor.name, im);
+			} else if (tensor.tensorType.contains("list")) {
+				// Add the results table to the output map
+				outputMap.put(tensor.name, outputTables.get(tableCount ++));
+				}
 		}
-		rp.stop();
 		
-		return outputImages;
+		
+		return outputMap;
 	}
 	
-	private static Tensor<?>[] getInputTensors(List<DijTensor> inputTensors, ImagePlus im, int pc){
+	private static ImagePlus getImageFromMap(HashMap<String, Object> inputMap, DijTensor tensor) {
+		if (!inputMap.containsKey(tensor.name)){
+			IJ.error("Preprocessing should provide a HashMap with\n"
+					+ "the key " + tensor.name);
+			return null;
+		} else if (!(inputMap.get(tensor.name) instanceof ImagePlus)) {
+			IJ.error("The input " + tensor.name + " should"
+					+ " be an instance of an ImagePlus.");
+			return null;
+		}
+		ImagePlus imp = (ImagePlus) inputMap.get(tensor.name);
+		return imp;
+	}
+	
+	private static Tensor<?> getTensorFromMap(HashMap<String, Object> inputMap, DijTensor tensor){
+		if (!inputMap.containsKey(tensor.name)){
+			IJ.error("Preprocessing should provide a HashMap with\n"
+					+ "the key " + tensor.name);
+			return null;
+		} else if (!(inputMap.get(tensor.name) instanceof Tensor<?>)) {
+			IJ.error("The input " + tensor.name + " should"
+					+ " be an instance of a Tensor.");
+			return null;
+		}
+		return (Tensor<?>) inputMap.get(tensor.name);
+	}
+	
+	private static Tensor<?>[] getInputTensors(List<DijTensor> inputTensors, HashMap<String, Tensor<?>> paramsMap,
+												ImagePlus im, int pc){
 		Tensor<?>[] tensorsArray = new Tensor<?>[inputTensors.size()];
 		int c = 0;
 		for (DijTensor tensor : inputTensors) {
 			if (tensor.tensorType.contains("parameter")) {
-				ExternalClassManager getTensor = new ExternalClassManager(tensor);
-				tensorsArray[c ++] = getTensor.getTensorFromCode(im);
+				tensorsArray[c ++] = paramsMap.get(tensor.name);
 			} else {
 				tensorsArray[c ++] = ImagePlus2Tensor.imPlus2tensor(im, tensor.form, pc);
 			}
@@ -417,13 +502,18 @@ public class Runner implements Callable<ImagePlus[]> {
 		return tensorsArray;
 	}
 	
-	private static float[] findOutputSize(int[] inpSize, DijTensor outTensor) {
+	private static float[] findOutputSize(int[] inpSize, DijTensor outTensor, List<DijTensor> inputList, int[] patchSize) {
+		String refForOutput = outTensor.referenceImage;
+		DijTensor refTensor = DijTensor.retrieveByName(refForOutput, inputList);
 		float[] outSize = new float[inpSize.length];
 		String[] standarForm = "WHCD".split("");
 		for (int i = 0; i < outSize.length; i ++) {
-			int ind = Index.indexOf(outTensor.form.split(""), standarForm[i]);
-			if (ind != -1) {
-				outSize[i] = inpSize[i] * outTensor.scale[ind];
+			int indOut = Index.indexOf(outTensor.form.split(""), standarForm[i]);
+			int indInp = Index.indexOf(refTensor.form.split(""), standarForm[i]);
+			if (indOut != -1 && indInp != -1) {
+				outSize[i] = inpSize[i] * outTensor.scale[indOut];
+			} else if (indOut != -1 && indInp == -1) {
+				outSize[i] = patchSize[i];
 			} else {
 				outSize[i] = 1;
 			}
@@ -459,6 +549,7 @@ public class Runner implements Callable<ImagePlus[]> {
 		return padding;
 	}
 	
+	// TODO clean up method (line 559) Make it stable for pyramidal
 	public static int[][] findOutputOffset(List<DijTensor> outputs) {
 		// Create an object of int[] that contains the output dimensions
 		// of each patch.
@@ -470,7 +561,7 @@ public class Runner implements Callable<ImagePlus[]> {
 			int c2 = 0;
 			for (int i = 0; i < offsets[0].length; i ++) {
 				int ind = Index.indexOf(out.form.split(""), form[i]);
-				if (ind != -1) {
+				if (ind != -1 && out.offset != null) {
 					offsets[c1][c2] = out.offset[ind];
 				}
 				c2 ++;

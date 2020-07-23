@@ -38,21 +38,11 @@
 package deepimagej.stamp;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.GridLayout;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.dnd.DnDConstants;
-import java.awt.dnd.DropTarget;
-import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -60,10 +50,7 @@ import java.util.Objects;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
@@ -72,7 +59,6 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.Document;
 
 import deepimagej.BuildDialog;
@@ -91,12 +77,15 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	
 	private List<JTextField>			allTxtMultiple = new ArrayList<JTextField>();
 	private List<JTextField>			allTxtPatches = new ArrayList<JTextField>();
-	private JCheckBox					checkParamUseIm = new JCheckBox("The processing method retrieves the parameters from the input image");
-	private JCheckBox					checkParamNotUseIm = new JCheckBox("The processing method does not need the image to retrieve the parameters");
 		
-	private JCheckBox 					checkAllowPatching = new JCheckBox("Allow processing the image by patches.");
+
+	private static String 				allowPatches = "Allow patch decomposition";
+	private static String 				predeterminedInput = "Predetermined input size";
+	private static String 				noPatchesFixed = "Do not allow patches (fixed input size)";
+	private static String 				noPatchesVariable = "Do not allow patches (variable size)";
 	
-	private JComboBox<String>			cmbPatches	= new JComboBox<String>(new String[] { "Allow patch decomposition", "Predetermined input size" });
+	private JComboBox<String>			cmbPatches	= new JComboBox<String>(new String[] { allowPatches, predeterminedInput,
+																							noPatchesFixed, noPatchesVariable});
 	private JLabel						lblPatches	= new JLabel("Patch size");
 	private JLabel						lblMultiple	= new JLabel("Multiple factor");
 
@@ -104,15 +93,16 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	private JButton 					bnPrevOutput 	= new JButton("Previous Output");
 	private GridPanel					pnInput			= new GridPanel();
 	
-	private JTextField 					txt = new JTextField("Drop here the corresponding .jar");
-	private JButton 					bnBrowse = new JButton("Browse");
-	
 	private static JComboBox<String>	cmbRangeLow  = new JComboBox<String>(new String [] {"-inf", "-1", "0", "1", "inf"});
 	private static JComboBox<String>	cmbRangeHigh = new JComboBox<String>(new String [] {"-inf", "-1", "0", "1", "inf"});
 	private static double[] 			rangeOptions = {Double.NEGATIVE_INFINITY, (double) -1, (double) 0, (double) 1, Double.POSITIVE_INFINITY};
 
+	private List<DijTensor> 			imageTensors;
 	private static int					inputCounter = 0;
 	private String						model		  = "";
+	
+	// Whether we need to add or not action listener to the text fields
+	private boolean						listenTxtField = false;
 	
 	public InputDimensionStamp(BuildDialog parent) {
 		super(parent);
@@ -122,8 +112,6 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 
 	@Override
 	public void buildPanel() {
-		
-		//Parameters params = parent.getDeepPlugin().params;
 		
 		HTMLPane info = new HTMLPane(Constants.width, 180);
 		info.append("h2", "Input size constraints");
@@ -141,15 +129,9 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		auxTensor.tensorType = "image";
 		auxTensor.tensor_shape = new int[5];
 		auxTensor.form = "NDHWC";
-		buildPanelForImage(auxTensor);
+		boolean start = true;
+		buildPanelForImage(auxTensor, start);
 		
-		/*if (params.inputList.get(inputCounter).tensorType.equals("image")) {
-			pnInput = buildPanelForImage(params);
-			updateImageInterface();
-		}
-		else {
-			pnInput = buildPanelForParameter(params);
-		}*/
 		JPanel pn = new JPanel();
 		pn.setLayout(new BoxLayout(pn, BoxLayout.PAGE_AXIS));
 		pn.add(info.getPane());
@@ -160,14 +142,13 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 
 		bnNextOutput.addActionListener(this);
 		bnPrevOutput.addActionListener(this);
-		cmbPatches.addActionListener(this);
-		checkAllowPatching.addActionListener(this);
 	}
 	
 	@Override
 	public void init() {
 		//String modelOfInterest = parent.getDeepPlugin().params.path2Model;
 		Parameters params = parent.getDeepPlugin().params;
+		imageTensors = DijTensor.getImageTensors(params.inputList);
 		showCorrespondingInputInterface(params);
 		// Set the screen at the first input if the model changes
 		String modelOfInterest = params.path2Model;
@@ -181,57 +162,21 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	public boolean finish() {
 		Parameters params = parent.getDeepPlugin().params;
 		saveInputData(params);
-		for (DijTensor tensor : params.inputList) {
-			if (!tensor.finished){
-				IJ.error("You need to fill information for every input tensor");
-				return false;
-			}
-		}
-		
 		return true;
-	}
-	
-	private void updatePatchSize(String[] dim, int[] dimValues, String[] dimChars) {
-		// Look if any of he input dimensions is fixed. If it is, set the corresponding 
-		// value to that dimension and make editable = false.
-
-		boolean pat = cmbPatches.getSelectedIndex() == 1;
-		lblPatches.setText(pat ? "Default patch size" : "Predetermined input size");
-		
-		for (int i = 0; i < dim.length; i ++) {
-			if (dimValues[i] != -1) {
-				allTxtMultiple.get(i).setText("" + dimValues[i]);
-				allTxtMultiple.get(i).setEditable(false);
-				allTxtPatches.get(i).setText("" + dimValues[i]);
-				allTxtPatches.get(i).setEditable(false);
-			} else if (pat == true && dimValues[i] == -1) {
-				allTxtPatches.get(i).setText("" + allTxtMultiple.get(i).getText());
-				allTxtMultiple.get(i).setEditable(true);
-				allTxtPatches.get(i).setEditable(false);
-			}  else if(pat == false) {
-				allTxtMultiple.get(i).setEditable(true);
-				allTxtPatches.get(i).setEditable(true);
-				allTxtPatches.get(i).setText(optimalPatch(allTxtMultiple.get(i).getText(), dimChars[i]));
-			}
-		}
-		// If every dimension is fixed, remove the possibility of editing the patch size
-		if (Index.indexOf(dimValues, -1) == -1) {
-			cmbPatches.setEnabled(true);
-			cmbPatches.setSelectedIndex(1);
-		}
-	}
-
-	public void showCorrespondingInputInterface(Parameters params) {
+	}public void showCorrespondingInputInterface(Parameters params) {
 		
 		// Check how many outputs there are to enable or not
 		// the "next" and "back" buttons
+		int nImageTensors = imageTensors.size();
 		if (inputCounter == 0) {
 			bnPrevOutput.setEnabled(false);
 		} else {
-			bnPrevOutput.setEnabled(true);
+			//bnPrevOutput.setEnabled(true);
+			bnPrevOutput.setEnabled(false);
 		}
-		if (inputCounter < (params.inputList.size() - 1)) {
-			bnNextOutput.setEnabled(true);
+		if (inputCounter < (nImageTensors - 1)) {
+			//bnNextOutput.setEnabled(true);
+			bnPrevOutput.setEnabled(false);
 		} else {
 			bnNextOutput.setEnabled(false);
 		}
@@ -240,48 +185,97 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		allTxtMultiple = new ArrayList<JTextField>();
 		allTxtPatches = new ArrayList<JTextField>();
 		pnInput.removeAll();
-		DijTensor tensor = params.inputList.get(inputCounter);
+		DijTensor tensor = imageTensors.get(inputCounter);
 		if (tensor.tensorType.contains("image")) {
 			// Build the panel
+			// Set listenTxtField to false because we need to add new
+			// listeners to the new text fields
+			listenTxtField = false;
 			buildPanelForImage(tensor);
 			updateImageInterface(tensor);
-		} else if (tensor.tensorType.contains("parameter")) {
-			buildPanelForParameter(params);
 		} else {
 			inputCounter ++;
 		}
 		pnInput.revalidate();
 		pnInput.repaint();
 	
-	}
+	}	
 
 	private void updateImageInterface(DijTensor tensor) {
 
-		//Parameters params = parent.getDeepPlugin().params;
 		String[] dim = DijTensor.getWorkingDims(tensor.form); 
 		int[] dimValues = DijTensor.getWorkingDimValues(tensor.form, tensor.tensor_shape); 
 		cmbPatches.setEnabled(true);
 		
-		if (checkAllowPatching.isSelected() == true) {
-			
-			updatePatchSize(dim, dimValues, dim);
+		String selection = (String) cmbPatches.getSelectedItem();
 
-		} else {
-			cmbPatches.setEnabled(false);
-			// Set "Predetermined input size" in order to avoid patch decomposition
-			cmbPatches.setSelectedIndex(1);
+		// Allow patch decomposition
+		if (selection.contains(allowPatches)) {
 			
 			for (int i = 0; i < dim.length; i ++) {
-				if (dimValues[i] != -1) {
+				if (dimValues[i] != -1 && !listenTxtField) {
 					allTxtMultiple.get(i).setText("" + dimValues[i]);
 					allTxtMultiple.get(i).setEditable(false);
-					allTxtPatches.get(i).setText(" - ");
-				} else {
-					allTxtMultiple.get(i).setEditable(true);
+					allTxtPatches.get(i).setText("" + dimValues[i]);
 					allTxtPatches.get(i).setEditable(false);
-					allTxtPatches.get(i).setText(" - ");
+				} else if (dimValues[i] == -1){
+					allTxtMultiple.get(i).setEditable(true);
+					allTxtPatches.get(i).setEditable(true);
+					allTxtPatches.get(i).setText(optimalPatch(allTxtMultiple.get(i).getText(), dim[i]));
 				}
 			}
+
+		// Predetermined input size
+		} else if (selection.contains(predeterminedInput)) {
+
+			for (int i = 0; i < dim.length; i ++) {
+				if (dimValues[i] != -1 && !listenTxtField) {
+					allTxtMultiple.get(i).setText("" + dimValues[i]);
+					allTxtMultiple.get(i).setEditable(false);
+					allTxtPatches.get(i).setText("" + dimValues[i]);
+					allTxtPatches.get(i).setEditable(false);
+				} else if (dimValues[i] == -1){
+					allTxtPatches.get(i).setText("" + allTxtMultiple.get(i).getText());
+					allTxtMultiple.get(i).setEditable(true);
+					allTxtPatches.get(i).setEditable(false);
+				}
+			}
+		
+		// Do not allow patches (fixed size)
+		} else if (selection.contains(noPatchesFixed)) {
+
+			for (int i = 0; i < dim.length; i ++) {
+				if (dimValues[i] != -1 && !listenTxtField) {
+					allTxtMultiple.get(i).setText("" + dimValues[i]);
+					allTxtPatches.get(i).setText("" + dimValues[i]);
+					allTxtMultiple.get(i).setEditable(false);
+					allTxtPatches.get(i).setEditable(false);
+				} else if (dimValues[i] == -1) {
+					allTxtMultiple.get(i).setEditable(true);
+					allTxtPatches.get(i).setText(allTxtMultiple.get(i).getText());
+					allTxtPatches.get(i).setEditable(false);
+				}
+			}
+			
+		// Do not allow patches (variable input size)
+		} else if (selection.contains(noPatchesVariable)) {
+			
+			for (int i = 0; i < dim.length; i ++) {
+				if (dimValues[i] != -1 && !listenTxtField) {
+					allTxtMultiple.get(i).setText("" + dimValues[i]);
+					allTxtMultiple.get(i).setEditable(false);
+					allTxtPatches.get(i).setText("" + dimValues[i]);
+				} else if (dimValues[i] == -1) {
+					allTxtMultiple.get(i).setEditable(true);
+					allTxtPatches.get(i).setText(" - ");
+				}
+				allTxtPatches.get(i).setEditable(false);
+			}
+		}
+		if (!listenTxtField) {
+			for (int i = 0; i < allTxtMultiple.size(); i ++)
+				addChangeListener(allTxtMultiple.get(i), e -> updateImageInterface(tensor));
+			listenTxtField = true;
 		}
 	}
 	
@@ -294,8 +288,6 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		boolean wasSaved = false;
 		if (params.inputList.get(inputCounter).tensorType.contains("image")) {
 			wasSaved = saveInputDataForImage(params);
-		} else {
-			wasSaved = saveInputDataForParameter(params);
 		}
 
 		int lowInd = cmbRangeLow.getSelectedIndex();
@@ -313,32 +305,11 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	}
 	
 	/*
-	 * Method to retrieve from the UI the information necessary to build a 
-	 * parameter from the tensor inputed to the model
-	 */
-	public boolean saveInputDataForParameter(Parameters params) {
-		String filename = txt.getText();
-		File file = new File(filename);
-		if (!file.exists() || !file.isFile()) {
-			IJ.error("This directory " + filename + " doesn't exist\n"
-					+ "or does not corresponf to a a file");	
-			return false;
-		}
-		String jarExtension = filename.substring(file.getAbsolutePath().length() - 4);
-		if (!jarExtension.contains(".jar")) {
-			IJ.error("This file " + filename + " is not a jar file.");	
-			return false;
-		}
-		params.inputList.get(inputCounter).parameterPath = filename;
-		params.inputList.get(inputCounter).useImage = checkParamNotUseIm.isSelected();
-		return true;
-	}
-	
-	/*
 	 * Method to retrieve from the UI the information necessary to build an 
 	 * image from the tensor inputed to the model
 	 */
 	public boolean saveInputDataForImage(Parameters params) {
+		params.fixedInput = false;
 		int[] multiple = new int[params.inputList.get(inputCounter).form.length()];
 		int[] patch = new int[params.inputList.get(inputCounter).form.length()];
 		int[] step = new int[params.inputList.get(inputCounter).form.length()];
@@ -352,7 +323,9 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			int auxCount = 0;
 			for (int c = 0; c < params.inputList.get(inputCounter).tensor_shape.length; c ++) {
 				if (c != batchInd) {
-					patch[c] = Integer.parseInt(allTxtPatches.get(auxCount).getText());
+					String selectedPatch = allTxtPatches.get(auxCount).getText();
+					selectedPatch = selectedPatch.equals(" - ") ? "-1" : selectedPatch;
+					patch[c] = Integer.parseInt(selectedPatch);
 					auxDetectError = false;
 					multiple[c] = Integer.parseInt(allTxtMultiple.get(auxCount).getText());
 					auxDetectError = true;
@@ -365,11 +338,11 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 						IJ.error("The multiple factor size should be larger than 0");
 						return false;
 					}
-					if (patch[c] <= 0) {
+					if (patch[c] <= 0 && !params.pyramidalNetwork) {
 						IJ.error("The patch size should be larger than 0");
 						return false;
 					}
-					if (patch[c]%multiple[c] != 0) {
+					if (patch[c]%multiple[c] != 0 && !params.pyramidalNetwork) {
 						IJ.error("At dimension " + params.inputList.get(inputCounter).form.split("")[c] + " size " +
 								patch[c] + " is not a multiple of "
 								+ multiple[c]);
@@ -387,10 +360,27 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			}
 			return false;
 		}
-
-		if (cmbPatches.getSelectedIndex() == 1) {
+		
+		String selection = (String) cmbPatches.getSelectedItem();
+		
+		if (selection.contains(allowPatches)) {
+			params.allowPatching = true;
+		} else if (selection.contains(predeterminedInput)) {
+			params.allowPatching = true;
+			params.fixedInput = true;
 			step = new int[step.length];
+		} else if (selection.contains(noPatchesFixed)) {
+			// The patch is always the same. No step because
+			// no more sizes are allowed
+			params.fixedInput = true;
+			params.allowPatching = false;
+			step = new int[step.length];
+		} else if (selection.contains(noPatchesVariable)) {
+			// This means that the patch will always be the biggest possible
+			params.allowPatching = false;
+			patch = new int[patch.length];
 		}
+		
 		params.inputList.get(inputCounter).minimum_size = multiple;
 		params.inputList.get(inputCounter).recommended_patch = patch;
 		params.inputList.get(inputCounter).step = step;
@@ -398,41 +388,11 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		return true;
 	}
 	
-	private JPanel buildPanelForParameter(Parameters params) {
-		// Build panel for when the input tensor is a parameter and not an 
-		// image
-		Dimension dim = pnInput.getSize();
-		txt.setFont(new Font("Arial", Font.BOLD, 14));
-		txt.setForeground(Color.red);
-		txt.setPreferredSize(new Dimension(Constants.width, 25));
-		JPanel load = new JPanel(new BorderLayout());
-		load.setBorder(BorderFactory.createEtchedBorder());
-		load.add(txt, BorderLayout.CENTER);
-		load.add(bnBrowse, BorderLayout.EAST);
-		txt.setDropTarget(new LocalDropJar());
-		load.setDropTarget(new LocalDropJar());
-		bnBrowse.addActionListener(this);
-		
-		JPanel paramPn = new JPanel(new GridLayout(2, 1));
-		checkParamUseIm.setEnabled(false);
-		checkParamNotUseIm.setEnabled(false);
-		checkParamUseIm.setSelected(false);
-		checkParamNotUseIm.setSelected(false);
-		paramPn.add(checkParamUseIm);
-		paramPn.add(checkParamNotUseIm);
-		
-		
-		pnInput.removeAll();
-		DijTensor tensor = params.inputList.get(inputCounter);
-		pnInput.place(0, 0, 1, 2, new JLabel("Input name: " + tensor.name + "\t Input type: " + tensor.tensorType));
-		pnInput.place(2, 0, 1, 2, load);
-		pnInput.place(4, 0, 1, 2, paramPn);
-		pnInput.setPreferredSize(dim);
-		
-		return pnInput;		
+	private void buildPanelForImage(DijTensor tensor) {
+		buildPanelForImage(tensor, false);
 	}
 	
-	private void buildPanelForImage(DijTensor tensor) {
+	private void buildPanelForImage(DijTensor tensor, boolean start) {
 		// Build panel for when the input tensor is an image
 
 		allTxtMultiple = new ArrayList<JTextField>();
@@ -460,21 +420,45 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			
 			pnMultiple.add(txtMultiple);
 			allTxtMultiple.add(txtMultiple);
-			//addChangeListener(allTxtMultiple.get(i), e -> updateImageInterface());
 
 			pnPatchSize.add(txtPatches);
 			allTxtPatches.add(txtPatches);
 		}
 		
+		// If we are building the screen at the start of the plugin, 
+		// and there are no params defined, just start by default
+		if (!start) {
+			Parameters params = parent.getDeepPlugin().params;
+			int[] dimValues = DijTensor.getWorkingDimValues(tensor.form, tensor.tensor_shape); 
+			if ((!params.allowPatching || params.pyramidalNetwork) && Index.indexOf(dimValues, -1) != -1) {
+				// If we do not allow patching, do no show the corresponding options in the combobox
+				cmbPatches	= new JComboBox<String>(new String[] {noPatchesFixed, noPatchesVariable});
+			} else if ((!params.allowPatching || params.pyramidalNetwork) && Index.indexOf(dimValues, -1) == -1) {
+				// If we do not allow patching and the size is fixed by the model, show just the only option
+				cmbPatches	= new JComboBox<String>(new String[] {"Do not allow patches (fixed input size)"});
+			} else if (params.allowPatching && !params.pyramidalNetwork && Index.indexOf(dimValues, -1) == -1) {
+				// If we  allow patching but the size is fixed by the model, do not show the two options that
+				// allow freedom in the input image
+				cmbPatches	= new JComboBox<String>(new String[] {predeterminedInput, noPatchesFixed});
+			} else {
+				// With no restrictions show everything
+				cmbPatches	= new JComboBox<String>(new String[] { allowPatches, predeterminedInput,
+																	noPatchesFixed, noPatchesVariable});
+			}
+		} else {
+			cmbPatches	= new JComboBox<String>(new String[] { allowPatches, predeterminedInput,
+																noPatchesFixed, noPatchesVariable});
+		}
+		
 		pnInput.removeAll();
 		pnInput.setBorder(BorderFactory.createEtchedBorder());
-		checkAllowPatching.setSelected(true);
+		//checkAllowPatching.setSelected(true);
 		pnInput.place(0, 0, 2, 1, new JLabel("Name: " + tensor.name + "      Input type: " + tensor.tensorType));
-		pnInput.place(1, 1, checkAllowPatching);
-		pnInput.place(2, 0, lblMultiple);
-		pnInput.place(2, 1, pnMultiple);
-		pnInput.place(3, 0, 2, 1, cmbPatches);
-		pnInput.place(4, 0, lblPatches);
+		//pnInput.place(1, 1, checkAllowPatching);
+		pnInput.place(1, 0, lblMultiple);
+		pnInput.place(1, 1, pnMultiple);
+		pnInput.place(2, 0, 2, 1, cmbPatches);
+		pnInput.place(3, 0, lblPatches);
 		pnInput.place(4, 1, pnPatchSize);
 		GridPanel pnRange1 = new GridPanel(true);
 		pnRange1.place(0, 0, new JLabel("Data Range lower bound"));
@@ -487,7 +471,8 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		
 		cmbRangeLow.setEditable(false);
 		cmbRangeHigh.setEditable(false);
-		//return pnInput;
+		
+		cmbPatches.addActionListener(this);
 	}
 	
 	public String optimalPatch(String minimumSizeString, String dimChar) {
@@ -529,70 +514,27 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			optimalMult = (int)Math.ceil((double)size / (double)minimumSize) * minimumSize;
 		}
 		patch = Integer.toString(optimalMult);
+	
 		return patch;
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		Parameters params = parent.getDeepPlugin().params;
-		if (e.getSource() == bnBrowse) {
-			browse();
-		}
 		if (e.getSource() == bnNextOutput) {
 			if (saveInputData(params)) {
 				inputCounter ++;
+				showCorrespondingInputInterface(params);
 			}
 		}
 		if (e.getSource() == bnPrevOutput) {
 			inputCounter --;
+			showCorrespondingInputInterface(params);
 		}
-		showCorrespondingInputInterface(params);
-		//updateImageInterface();
-	}
-	
-	private void browse() {
-		JFileChooser chooser = new JFileChooser(txt.getText());
-		chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-		FileNameExtensionFilter filter = new FileNameExtensionFilter("JAR files", "jar");
-	    chooser.setFileFilter(filter);
-		chooser.setDialogTitle("Select .jar");
-		int ret = chooser.showOpenDialog(new JFrame());
-		if (ret == JFileChooser.APPROVE_OPTION) {
-			txt.setText(chooser.getSelectedFile().getAbsolutePath());
-			txt.setCaretPosition(1);
+		if (e.getSource() == cmbPatches) {
+			updateImageInterface(params.inputList.get(inputCounter));
 		}
 	}
-	
-	public class LocalDropJar extends DropTarget {
-
-		@Override
-		public void drop(DropTargetDropEvent e) {
-			e.acceptDrop(DnDConstants.ACTION_COPY);
-			e.getTransferable().getTransferDataFlavors();
-			Transferable transferable = e.getTransferable();
-			DataFlavor[] flavors = transferable.getTransferDataFlavors();
-			for (DataFlavor flavor : flavors) {
-				if (flavor.isFlavorJavaFileListType()) {
-					try {
-						List<File> files = (List<File>) transferable.getTransferData(flavor);
-						for (File file : files) {
-							txt.setText(file.getAbsolutePath());
-							txt.setCaretPosition(1);
-						}
-					}
-					catch (UnsupportedFlavorException ex) {
-						ex.printStackTrace();
-					}
-					catch (IOException ex) {
-						ex.printStackTrace();
-					}
-				}
-			}
-			e.dropComplete(true);
-			super.drop(e);
-		}
-	}
-
 
 	public static void addChangeListener(JTextField text, ChangeListener changeListener) {
 		// Method used to "listen" the JTextFields

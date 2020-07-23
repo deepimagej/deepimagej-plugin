@@ -39,6 +39,8 @@
 package deepimagej.processing;
 
 import java.io.*;
+import java.lang.reflect.Field;
+import java.util.Vector;
 
   /**
    * In order to impose tight security restrictions on untrusted classes but

@@ -38,50 +38,73 @@
 package deepimagej.stamp;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
 
 import javax.swing.BorderFactory;
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
 import deepimagej.Parameters;
-import deepimagej.components.GridPanel;
 import deepimagej.components.HTMLPane;
-import deepimagej.tools.Index;
 import ij.IJ;
 
 public class InformationStamp extends AbstractStamp implements ActionListener {
 
 	public JTextField	txtName			= new JTextField("", 24);
-	public JTextField	txtAuthor		= new JTextField("", 24);
 	public JTextField	txtURL			= new JTextField("", 24);
 	public JTextField	txtVersion		= new JTextField("", 24);
-	public JTextField	txtDate			= new JTextField("", 24);
-	public JTextField	txtReference		= new JTextField("", 24);
+
+	public JTextField	txtAuth		= new JTextField("", 24);
+	public JTextField	txtCite		= new JTextField("", 24);
+	public JTextField	txtTag		= new JTextField("", 24);
 
 	public JTextField	txtDocumentation	= new JTextField("", 24);
-	public JComboBox<String> txtInfoTags	= new JComboBox<String>();
 	public JTextField	txtLicense			= new JTextField("", 24);
 	public JTextField	txtSource			= new JTextField("", 24);
 	public JTextArea	txtDescription		= new JTextArea("", 3, 24);
+	
+	public JList<String>authList			= new JList<String>();
+	public JList<String>citeList		= new JList<String>();
+	public JList<String>tagList			= new JList<String>();
+	
+	private DefaultListModel<String> 	authModel;
+	private DefaultListModel<String> 	citeModel;
+	private DefaultListModel<String> 	tagModel;
 
-	public JButton		addButtonTag		= new JButton("Add tag");
-	public JButton		removeButtonTag		= new JButton("Remove");
-	public String[]		tagsArray			= {"deepImageJ"};
+	public JButton		authAddBtn		= new JButton("Add");
+	public JButton		authRmvBtn		= new JButton("Remove");
+	
+	public JButton		citeAddBtn		= new JButton("Add");
+	public JButton		citeRmvBtn		= new JButton("Remove");
+
+	public JButton		tagAddBtn		= new JButton("Add");
+	public JButton		tagRmvBtn		= new JButton("Remove");
+	
+	public ArrayList<String> introducedAuth = new ArrayList<String>();
+	public ArrayList<String> introducedCite = new ArrayList<String>();
+	public ArrayList<String> introducedTag = new ArrayList<String>();
+	
+	// Parameter to keep track of the model being used
+	public String		model			= ""; 
 
 	public InformationStamp(BuildDialog parent) {
 		super(parent);
@@ -95,59 +118,113 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		pane.append("h2", "General Information");
 		pane.append("p", "This information will be stored in the config.yaml");
 		pane.append("p", "Add the reference to properly cite the pretrained model.");
-		txtDate.setText("" + new Date());
 		txtURL.setText("http://");
-		txtInfoTags.setEditable(true);
 		txtDescription.setBorder(BorderFactory.createLineBorder(Color.gray));
-		GridPanel tagsPn = new GridPanel();
-		GridPanel buttonsPn = new GridPanel();
-		GridPanel pn = new GridPanel(true, 6);
-		pn.place(1, 0, new JLabel("Full name"));
-		pn.place(1, 1, txtName);
-		pn.place(2, 0, new JLabel("<html>Author of the<br/>bundled model</html>"));
-		pn.place(2, 1, txtAuthor);
-		pn.place(3, 0, new JLabel("DOI"));
-		pn.place(3, 1, txtURL);
-		pn.place(4, 0, new JLabel("Version"));
-		pn.place(4, 1, txtVersion);
-		pn.place(5, 0, new JLabel("Date"));
-		pn.place(5, 1, txtDate);
-		pn.place(6, 0, new JLabel("Article reference"));
-		pn.place(6, 1, txtReference);
-		pn.place(7, 0, new JLabel("<html>Short description of<br/>the model</html>"));
+
+		JFrame pnFr = new JFrame();
+		Container pn = pnFr.getContentPane();
+		pn.setLayout(new GridBagLayout()); 
+
+		GridBagConstraints  labelC = new GridBagConstraints();
+		labelC.gridwidth = 4;
+		labelC.gridheight = 1;
+		labelC.gridx = 0;
+		labelC.gridy = 0;
+		labelC.ipadx = 5;
+		labelC.weightx = 0.2;
+
+		GridBagConstraints  infoC = new GridBagConstraints();
+		infoC.gridwidth = 20;
+		infoC.gridheight = 1;
+		infoC.gridx = 4;
+		infoC.gridy = 0;
+		infoC.ipadx = 5;
+		infoC.weightx = 0.8;
+		infoC.anchor = GridBagConstraints.CENTER;
+	    infoC.fill = GridBagConstraints.BOTH;
+	    infoC.insets = new Insets(10, 0, 10, 10); 
+
+		
+		pn.add(new JLabel("Full name"), labelC);
+		pn.add(txtName, infoC);
+		JFrame authorsFr = createAddRemoveFrame(txtAuth, authAddBtn, "auth", authRmvBtn);
+		
+		labelC.gridy = 1;
+		infoC.gridy = 1;
+		pn.add(new JLabel("<html>Author of the<br/>bundled model</html>"), labelC);
+		pn.add((JComponent) authorsFr.getContentPane(), infoC);
+		labelC.gridy = 2;
+		infoC.gridy = 2;
+		pn.add(new JLabel("DOI"), labelC);
+		pn.add(txtURL, infoC);
+		labelC.gridy = 3;
+		infoC.gridy = 3;
+		pn.add(new JLabel("Version"), labelC);
+		pn.add(txtVersion, infoC);
+	   	
+		JFrame citeFr = createAddRemoveFrame(txtCite, citeAddBtn, "cite", citeRmvBtn);
+
+		labelC.gridy = 4;
+		infoC.gridy = 4;
+		pn.add(new JLabel("Article reference"), labelC);
+		pn.add((JComponent) citeFr.getContentPane(), infoC);
+		labelC.gridy = 5;
+		infoC.gridy = 5;
+		pn.add(new JLabel("<html>Short description of<br/>the model</html>"), labelC);
 		txtDescription.setSize(new Dimension(3, 24));
 		txtDescription.setLineWrap(true);
 		txtDescription.setWrapStyleWord(true);
 
-		pn.place(7, 1, txtDescription);
+		pn.add(txtDescription, infoC);
 
-		pn.place(8, 0, new JLabel("Link to documentation"));
-		pn.place(8, 1, txtDocumentation);
-		pn.place(9, 0, new JLabel("Type of license"));
-		pn.place(9, 1, txtLicense);
-		pn.place(10, 0, new JLabel("Link to model source"));
-		pn.place(10, 1, txtSource);
-		pn.place(11, 0, new JLabel("<html>Tags to describe the<br/> model in the model zoo</html>"));
-		pn.place(11, 1, tagsPn);
-		tagsPn.place(0, 0, txtInfoTags);
-		tagsPn.place(0, 1, buttonsPn);
-		buttonsPn.place(0, 0, addButtonTag);
-		buttonsPn.place(0, 1, removeButtonTag);
+		labelC.gridy = 6;
+		infoC.gridy = 6;
+		pn.add(new JLabel("Link to documentation"), labelC);
+		pn.add(txtDocumentation, infoC);
+		labelC.gridy = 7;
+		infoC.gridy = 7;
+		pn.add(new JLabel("Type of license"), labelC);
+		pn.add(txtLicense, infoC);
+		labelC.gridy = 8;
+		infoC.gridy = 8;
+		pn.add(new JLabel("Link to model source"), labelC);
+		pn.add(txtSource, infoC);
+
+		
+		JFrame tagsFr = createAddRemoveFrame(txtTag, tagAddBtn, "tag", tagRmvBtn);
+
+		labelC.gridy = 9;
+		infoC.gridy = 9;
+		pn.add(new JLabel("<html>Tags to describe the<br/> model in the model zoo</html>"), labelC);
+		pn.add((JComponent) tagsFr.getContentPane(), infoC);
+		
 		JPanel p = new JPanel(new BorderLayout());
 		
 		JScrollPane scroll = new JScrollPane();
-		pn.setPreferredSize(new Dimension(pn.getWidth() + 400, pn.getWidth() + 500));
-        scroll.setPreferredSize(new Dimension(pn.getWidth() + 300, pn.getWidth() + 400));
+		pn.setPreferredSize(new Dimension(pn.getWidth() + 400, pn.getHeight() + 800));
+        scroll.setPreferredSize(new Dimension(pn.getWidth() + 300, pn.getHeight() + 400));
         scroll.setViewportView(pn);
 		
 		p.add(pane, BorderLayout.NORTH);
 		p.add(scroll, BorderLayout.CENTER);
 		panel.add(p);
-		txtInfoTags.addItem("deepImageJ");	
-		txtInfoTags.setSelectedIndex(-1);
 		
-		addButtonTag.addActionListener(this);
-		removeButtonTag.addActionListener(this);
+
+		// Add the tad 'deepImageJ' to the tags field. This tag
+		// is not removable
+		tagModel = new DefaultListModel<String>();
+		tagModel.addElement("deepImageJ");
+		tagList.setModel(tagModel);
+		introducedTag.add("deepImageJ");
+		
+		authAddBtn.addActionListener(this);
+		authRmvBtn.addActionListener(this);
+		
+		citeAddBtn.addActionListener(this);
+		citeRmvBtn.addActionListener(this);
+		
+		tagAddBtn.addActionListener(this);
+		tagRmvBtn.addActionListener(this);
 	}
 	
 	@Override
@@ -157,6 +234,37 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		File file = new File(parent.getDeepPlugin().params.path2Model);
 		if (file.exists())
 			txtName.setText(file.getName());
+		if (model.equals(parent.getDeepPlugin().params.path2Model)) {
+			model = parent.getDeepPlugin().params.path2Model;
+
+			introducedAuth = new ArrayList<String>();
+			authModel = new DefaultListModel<String>();
+			authModel.addElement("");
+			authList.setModel(authModel);
+
+			introducedCite = new ArrayList<String>();
+			citeModel = new DefaultListModel<String>();
+			citeModel.addElement("");
+			citeList.setModel(citeModel);
+			// Add the tag 'deepImageJ' to the tags field. This tag
+			// is not removable
+			introducedTag = new ArrayList<String>();
+			tagModel = new DefaultListModel<String>();
+			citeModel.addElement("deepImageJ");
+			citeList.setModel(citeModel);
+			introducedTag.add("deepImageJ");
+			
+			// Reset all the fields
+			txtURL.setText("");
+			txtVersion.setText("");
+			txtAuth.setText("");
+			txtCite.setText("");
+			txtTag.setText("");
+			txtDocumentation.setText("");
+			txtLicense.setText("");
+			txtSource.setText("");
+			txtDescription.setText("");
+		}
 	}
 	
 	@Override
@@ -167,81 +275,253 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		}
 		Parameters params = parent.getDeepPlugin().params;
 		params.name = txtName.getText().trim();
-		params.author = txtAuthor.getText().trim();
 		params.doi = txtURL.getText().trim();
 		params.version = txtVersion.getText().trim();
-		params.date = txtDate.getText().trim();
-		params.reference = txtReference.getText().trim();
 
 		params.documentation = txtDocumentation.getText().trim();
 		params.license = txtLicense.getText().trim();
 		params.source = txtSource.getText().trim();
 		params.description = txtDescription.getText().trim();
 		
-		params.name = params.name.equals("") ? "n/a" : params.name;
-		params.author = params.author.equals("") ? "n/a" : params.author;
-		params.doi = params.doi.equals("") ? "n/a" : params.doi;
-		params.version = params.version.equals("") ? "n/a" : params.version;
-		params.date = params.date.equals("") ? "n/a" : params.date;
-		params.reference = params.reference.equals("") ? "n/a" : params.reference;
+		params.name = params.name.equals("") ? null : params.name;
+		params.author = null;
+		if (introducedAuth.size() > 0)
+			params.author = introducedAuth;
+		params.doi = params.doi.equals("") ? null : params.doi;
+		params.version = params.version.equals("") ? null : params.version;
+		params.date = params.date.equals("") ? null : params.date;
+		params.reference = null;
+		if (introducedCite.size() > 0)
+			params.reference = introducedCite;
 
-		params.documentation = params.documentation.equals("") ? "n/a" : params.documentation;
-		params.license = params.license.equals("") ? "n/a" : params.license;
-		params.source = params.source.equals("") ? "n/a" : params.source;
-		params.description = params.description.equals("") ? "n/a" : params.description;
-		params.infoTags = Arrays.asList(tagsArray);
+		params.documentation = params.documentation.equals("") ? null : params.documentation;
+		params.license = params.license.equals("") ? null : params.license;
+		params.source = params.source.equals("") ? null : params.source;
+		params.description = params.description.equals("") ? null : params.description;
+		params.infoTags = introducedTag;
 		
 		return true;
 	}
 	
-	public void addTag() {
-		String tagToAdd = (String) txtInfoTags.getSelectedItem();
-		List<String> auxList = new ArrayList<String>();
-		for (String tag : tagsArray) {
-			if (tag.equalsIgnoreCase(tagToAdd) == true) {
-				IJ.error("The tag was already added before");
-				txtInfoTags.setSelectedIndex(-1);
-				return;
-			}
-			auxList.add(tag);
+	public void addAuthor() {
+		// Get the author introduced
+		String authName = txtAuth.getText().trim();
+		if (authName.equals("")) {
+			IJ.error("Introduce a name");
+			return;
 		}
-		auxList.add(tagToAdd);
-		tagsArray =  auxList.toArray(new String[auxList.size()]);
-		txtInfoTags.addItem(tagToAdd);
-		txtInfoTags.setSelectedIndex(-1);
+		introducedAuth.add(authName);
+
+		authModel = new DefaultListModel<String>();
+		
+		// Add the elements to the list
+
+		for (String name : introducedAuth){
+			authModel.addElement(name);
+		}
+		authList.setModel(authModel);
+	}
+	public void removeAuthor() {
+		// Get the author selected
+		int authInd = authList.getSelectedIndex();
+		if (authInd == -1) {
+			IJ.error("No author selected");
+			return;
+		}
+		introducedAuth.remove(authInd);
+
+		authModel = new DefaultListModel<String>();
+		
+		// Add the elements to the list
+
+		for (String name : introducedAuth){
+			authModel.addElement(name);
+		}
+		authList.setModel(authModel);
 	}
 	
-	public void removeTag() {
-		String tagToRemove = (String) txtInfoTags.getSelectedItem();
-		int ind = Index.indexOf(tagsArray, tagToRemove);
-		
-		if (ind == -1) {
-			IJ.error("The tag did not exist, so it cannot be removed.");
-		} else if ( ind != -1 && tagToRemove.equalsIgnoreCase("deepImageJ")) {
-			IJ.error("Sorry this tag is compulsory.");
-		} else {
-			txtInfoTags.removeAllItems();
-			String[] auxArray = new String[tagsArray.length - 1];
-			int c = 0;
-			for (int i = 0; i < tagsArray.length; i ++) {
-				if (i != ind) {
-					auxArray[c++] = tagsArray[i];
-					txtInfoTags.addItem(tagsArray[i]);
-				}
-			}
-			tagsArray = new String[auxArray.length];
-			tagsArray = auxArray;
+	public void addCite() {
+		// Get the author introduced
+		String citation = txtCite.getText().trim();
+		if (citation.equals("")) {
+			IJ.error("Introduce a name");
+			return;
 		}
-		txtInfoTags.setSelectedIndex(-1);
+		introducedCite.add(citation);
+
+		citeModel = new DefaultListModel<String>();
+		
+		// Add the elements to the list
+
+		for (String name : introducedCite){
+			citeModel.addElement(name);
+		}
+		citeList.setModel(citeModel);
+	}
+	public void removeCite() {
+		// Get the author selected
+		int citation = citeList.getSelectedIndex();
+		if (citation == -1) {
+			IJ.error("No citation selected");
+			return;
+		}
+		introducedCite.remove(citation);
+
+		citeModel = new DefaultListModel<String>();
+		
+		// Add the elements to the list
+
+		for (String name : introducedCite){
+			citeModel.addElement(name);
+		}
+		citeList.setModel(citeModel);
+	}
+	
+	public void addTag() {
+		// Get the author introduced
+		String tag = txtTag.getText().trim();
+		if (tag.equals("")) {
+			IJ.error("Introduce a name");
+			return;
+		}
+		introducedTag.add(tag);
+
+		tagModel = new DefaultListModel<String>();
+		
+		// Add the elements to the list
+
+		for (String name : introducedTag){
+			tagModel.addElement(name);
+		}
+		tagList.setModel(tagModel);
+	}
+	public void removeTag() {
+		// Get the author selected
+		int tag = tagList.getSelectedIndex();
+		if (tag == -1) {
+			IJ.error("No tag selected");
+			return;
+		} else if (tag == 0) {
+			IJ.error("Cannot remove 'deepImageJ' tag");
+			return;
+		}
+		introducedTag.remove(tag);
+
+		tagModel = new DefaultListModel<String>();
+		
+		// Add the elements to the list
+
+		for (String name : introducedTag){
+			tagModel.addElement(name);
+		}
+		tagList.setModel(tagModel);
+	}
+	
+	/*
+	 * Method that creates the Gui component that allows adding and removing tags
+	 */
+	public JFrame createAddRemoveFrame(JTextField txt, JButton add, String option, JButton rmv) {
+		// Create the panel to add authors
+		JFrame authorsFr = new JFrame();
+		authorsFr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); 
+		Container authorsPn = authorsFr.getContentPane();
+		authorsPn.setLayout(new GridBagLayout()); 
+
+	    // creates a constraints object 
+	    GridBagConstraints c = new GridBagConstraints(); 
+	    c.fill = GridBagConstraints.BOTH;
+	    c.ipady = 5; 
+	    c.ipadx = 20; 
+	    c.weightx = 1;
+	    c.gridx = 0;
+	    c.gridy = 0;
+	    c.gridwidth = 7;
+	    authorsPn.add(txt, c);
+
+	    c.ipady = 0; 
+	    c.ipadx = 0; 
+	    c.weightx = 0.2;
+	    c.gridx = 7;
+	    c.gridy = 0;
+	    c.anchor = GridBagConstraints.CENTER;
+	    c.fill = GridBagConstraints.NONE;
+	    authorsPn.add(add, c);
+
+	    c.ipady = 40; 
+	    c.ipadx = 20; 
+	    c.weightx = 1;
+	    c.weighty = 1;
+	    c.gridwidth = 7;
+	    c.anchor = GridBagConstraints.CENTER;
+	    c.fill = GridBagConstraints.BOTH;
+	    c.gridx = 0;
+	    c.gridy = 1;
+	    if (option.contains("auth")) {
+			authModel = new DefaultListModel<String>();
+			authModel.addElement("");
+			authList = new JList<String>(authModel);
+			authList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			authList.setLayoutOrientation(JList.VERTICAL);
+			authList.setVisibleRowCount(2);
+			JScrollPane listScroller = new JScrollPane(authList);
+			listScroller.setPreferredSize(new Dimension(Constants.width, panel.getPreferredSize().height));
+		    authorsPn.add(listScroller, c);
+	    } else if(option.contains("cite")) {
+			citeModel = new DefaultListModel<String>();
+			citeModel.addElement("");
+			citeList = new JList<String>(citeModel);
+			citeList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			citeList.setLayoutOrientation(JList.VERTICAL);
+			citeList.setVisibleRowCount(2);
+			JScrollPane listScroller = new JScrollPane(citeList);
+			listScroller.setPreferredSize(new Dimension(Constants.width, panel.getPreferredSize().height));
+		    authorsPn.add(listScroller, c);
+	    } else if(option.contains("tag")) {
+			tagModel = new DefaultListModel<String>();
+			tagModel.addElement("");
+			tagList = new JList<String>(tagModel);
+			tagList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			tagList.setLayoutOrientation(JList.VERTICAL);
+			tagList.setVisibleRowCount(2);
+			JScrollPane listScroller = new JScrollPane(tagList);
+			listScroller.setPreferredSize(new Dimension(Constants.width, panel.getPreferredSize().height));
+		    authorsPn.add(listScroller, c);
+	    }
+
+	    c.ipady = 0; 
+	    c.ipadx = 0; 
+	    c.gridx = 7;
+	    c.gridy = 1;
+	    c.gridheight =1; 
+	    c.anchor = GridBagConstraints.CENTER;
+	    c.fill = GridBagConstraints.NONE;
+	    c.weightx = 0.2;
+	    Dimension btnDims = authAddBtn.getPreferredSize();
+	    rmv.setPreferredSize(btnDims);
+	    authorsPn.add(rmv, c);
+	    authorsFr.pack();
+	    return authorsFr;
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if (e.getSource() == addButtonTag) {
+		if (e.getSource() == tagAddBtn) {
 			addTag();
 		} 
-		if (e.getSource() == removeButtonTag) {
+		if (e.getSource() == tagRmvBtn) {
 			removeTag();
+		} 
+		if (e.getSource() == authAddBtn) {
+			addAuthor();
+		} 
+		if (e.getSource() == authRmvBtn) {
+			removeAuthor();
+		} 
+		if (e.getSource() == citeAddBtn) {
+			addCite();
+		} 
+		if (e.getSource() == citeRmvBtn) {
+			removeCite();
 		} 
 	}
 }

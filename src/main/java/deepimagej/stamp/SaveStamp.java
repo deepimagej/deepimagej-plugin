@@ -41,6 +41,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Frame;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -51,7 +52,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.swing.BorderFactory;
@@ -69,6 +70,10 @@ import deepimagej.components.HTMLPane;
 import deepimagej.tools.FileTools;
 import deepimagej.tools.YAMLUtils;
 import ij.IJ;
+import ij.ImagePlus;
+import ij.WindowManager;
+import ij.measure.ResultsTable;
+import ij.text.TextWindow;
 
 public class SaveStamp extends AbstractStamp implements ActionListener, Runnable {
 
@@ -170,8 +175,7 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 			ok = false;
 		}
 
-		//if (ok)
-		if (true)
+		// Save the model architecture
 		try {
 			File source = new File(params.path2Model + "saved_model.pb");
 			File dest = new File(params.saveDir  + "saved_model.pb");
@@ -183,9 +187,8 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 			pane.append("p", "protobuf of the model (saved_model.pb): not saved");
 			ok = false;
 		}
-		
-		//if (ok)
-		if (true)
+
+		// Save the model weights
 		try {
 			File source = new File(params.path2Model + "variables");
 			File dest = new File(params.saveDir + "variables");
@@ -198,34 +201,54 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 			ok = false;
 		}
 
-		//if (ok)
-		if (true)
-		try {
-			PrintWriter preprocessing = new PrintWriter(params.saveDir + "preprocessing.txt", "UTF-8");
-			preprocessing.println(params.premacro);
-			preprocessing.close();
-			pane.append("p", "preprocessing.txt: saved");
+		// Save preprocessing
+		if (params.firstPreprocessing != null) {
+			try {
+				File destFile = new File(params.saveDir + File.separator + new File(params.firstPreprocessing).getName());
+				FileTools.copyFile(new File(params.firstPreprocessing), destFile);
+				pane.append("p", "First preprocessing: saved");
+			}
+			catch (Exception e) {
+				pane.append("p", "First preprocessing: not saved");
+				ok = false;
+			}
 		}
-		catch (Exception e) {
-			pane.append("p", "preprocessing.txt: not saved");
-			ok = false;
-		}
-
-		//if (ok)
-		if (true)
-		try {
-			PrintWriter postprocessing = new PrintWriter(params.saveDir + "postprocessing.txt","UTF-8");
-			postprocessing.println(params.postmacro);
-			postprocessing.close();
-			pane.append("p", "postprocessing.txt: saved");
-		}
-		catch (Exception e) {
-			pane.append("p", "postprocessing.txt: not saved");
-			ok = false;
+		if (params.secondPreprocessing != null) {
+			try {
+				File destFile = new File(params.saveDir + File.separator + new File(params.secondPreprocessing).getName());
+				FileTools.copyFile(new File(params.secondPreprocessing), destFile);
+				pane.append("p", "Second preprocessing: saved");
+			}
+			catch (Exception e) {
+				pane.append("p", "Second preprocessing: not saved");
+				ok = false;
+			}
 		}
 
-		//if (ok)
-		if (true)
+		// Save postprocessing
+		if (params.firstPostprocessing != null) {
+			try {
+				File destFile = new File(params.saveDir + File.separator + new File(params.firstPostprocessing).getName());
+				FileTools.copyFile(new File(params.firstPostprocessing), destFile);
+				pane.append("p", "First postprocessing: saved");
+			}
+			catch (Exception e) {
+				pane.append("p", "First postprocessing: not saved");
+				ok = false;
+			}
+		}
+		if (params.secondPostprocessing != null) {
+			try {
+				File destFile = new File(params.saveDir + File.separator + new File(params.secondPostprocessing).getName());
+				FileTools.copyFile(new File(params.secondPostprocessing), destFile);
+				pane.append("p", "Second postprocessing: saved");
+			}
+			catch (Exception e) {
+				pane.append("p", "Second postprocessing: not saved");
+				ok = false;
+			}
+		}
+		
 		try {
 			YAMLUtils.writeYaml(dp);
 			pane.append("p", "config.yaml: saved");
@@ -235,8 +258,7 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 			ok = false;
 		}
 
-		//if (ok)
-		if (true)
+		// Save input image
 		try {
 			if (params.testImageBackup != null) {
 				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + "exampleImage.tiff");
@@ -250,19 +272,27 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 			ok = false;
 		}
 
-		//if (ok)
-		if (true)
-		try {
-			if (params.testResultImage != null) {
-				IJ.saveAsTiff(params.testResultImage[0], params.saveDir + File.separator + "resultImage.tiff");
-				pane.append("p", "resultImage.tiff: saved");
-			} else {
-				throw new Exception();
+		// Save output images and tables (tables as saved as csv)
+		for (HashMap<String, String> output : params.savedOutputs) {
+			String name = output.get("name");
+			try {
+				if (output.get("type").contains("image")) {
+					ImagePlus im = WindowManager.getImage(name);
+					IJ.saveAsTiff(im, params.saveDir + File.separator + name);
+				} else if (output.get("type").contains("ResultsTable")){
+					Frame f = WindowManager.getFrame(name);
+			        if (f!=null && (f instanceof TextWindow)) {
+			        	ResultsTable rt = ((TextWindow)f).getResultsTable();
+						rt.save(params.saveDir + File.separator + name + ".csv");
+					} else {
+						throw new Exception();					}
+				}
+				pane.append("p", name + ": saved");
+			} 
+			catch(Exception ex) {
+				pane.append("p", name + ":  not saved");
+				ok = false;
 			}
-		} 
-		catch(Exception ex) {
-			pane.append("p", "resultImage.tiff:  not saved");
-			ok = false;
 		}
 
 		//parent.setEnabledBackNext(ok);

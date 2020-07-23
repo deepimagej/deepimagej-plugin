@@ -81,11 +81,9 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 	private static GridPanel		thirdRow		= new GridPanel(true);
 	private static GridPanel		pnRange			= new GridPanel(true);
 
-	private static JComboBox<String>referenceImage 	= new JComboBox<String>();
+	private static JComboBox<String>referenceImage 	= new JComboBox<String>(new String[] {"aux"});
 	private static JLabel			lblName			= new JLabel("Name");
-	private static JLabel			lblFirst		= new JLabel("Scaling factor");
-	private static JLabel			lblSecond		= new JLabel("Halo factor");
-	private static JLabel			lblThird		= new JLabel("Offset factor");
+	
 
 	private static JButton 			bnNextOutput 	= new JButton("Next Output");
 	private static JButton 			bnPrevOutput 	= new JButton("Previous Output");
@@ -98,6 +96,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 	private static JComboBox<String>	cmbRangeLow = new JComboBox<String>(new String [] {"-inf", "-1", "0", "1", "inf"});
 	private static JComboBox<String>	cmbRangeHigh = new JComboBox<String>(new String [] {"-inf", "-1", "0", "1", "inf"});
 	
+	
 
 	public OutputDimensionStamp(BuildDialog parent) {
 		super(parent);
@@ -108,21 +107,26 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 	@Override
 	public void buildPanel() {
 		
-		HTMLPane info = new HTMLPane(Constants.width, 180);
+		HTMLPane info = new HTMLPane(Constants.width, 150);
 		info.append("h2", "Input size constraints");
 		info.append("p", "<b>Patch size (Q) </b>: If the network has not a predetermined input size, patch decomposition of default size <i>Q</i> is allowed.");
 		info.append("p", "<b>Padding (P) </b>: To preserve the input size at the output, convolutions are calculated using zero padding boundary conditions of size <i>P</i>.");
 		info.append("p", "<b>Multiple factor (m) </b>: If the network has an auto-encoder architecture, the size of each dimension of the input image, has to be multiple of a minimum size m.");
 		
 		pnOutputInfo.setBorder(BorderFactory.createEtchedBorder());
-		//checkIsImage.setSelected(true);
+		lblName.setText("aux");
 		pnOutputInfo.place(0, 0, lblName);
 		//pnOutputInfo.place(0, 1, checkIsImage);
 		pnOutputInfo.place(1, 0, referenceImage);
 		referenceImage.setEditable(false);
-		pnOutputInfo.place(2, 1, firstRow);
-		pnOutputInfo.place(3, 1, secondRow);
-		pnOutputInfo.place(4, 1, thirdRow);
+		JLabel dimLetterAux = new JLabel("aux");
+		JTextField txtAux = new JTextField("aux");
+		firstRow.place(0, 0, dimLetterAux); firstRow.place(1, 0, txtAux);
+		secondRow.place(0, 0, dimLetterAux); secondRow.place(1, 0, txtAux);
+		thirdRow.place(0, 0, dimLetterAux); thirdRow.place(1, 0, txtAux);
+		pnOutputInfo.place(2, 0, 1, 2, firstRow);
+		pnOutputInfo.place(3,  0, 1, 2, secondRow);
+		pnOutputInfo.place(4,  0, 1, 2, thirdRow);
 		
 		GridPanel pnRange1 = new GridPanel(true);
 		JLabel lblRange1 = new JLabel("Data Range lower bound");
@@ -137,7 +141,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		//pnRange = new GridPanel(true);
 		pnRange.place(0, 0, pnRange1);
 		pnRange.place(0, 1, pnRange2);
-		pnOutputInfo.place(5, 1, pnRange);
+		pnOutputInfo.place(5, 0, 2, 1, pnRange);
 		
 		lblRange1.setVisible(true);
 		lblRange2.setVisible(true);
@@ -180,9 +184,9 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		bnNextOutput.setEnabled(true);
 		bnPrevOutput.setEnabled(true);
 		referenceImage.removeAllItems();
-		for (DijTensor inp : params.inputList) {
-			if (inp.tensorType.contains("image"))
-				referenceImage.addItem(inp.name);
+		for (DijTensor in : params.inputList) {
+			if (in.tensorType.contains("image"))
+				referenceImage.addItem(in.name);
 		}
 		updateInterface(params);
 	
@@ -219,17 +223,20 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 
 		lblName.setText(params.outputList.get(outputCounter).name);
 		// Reinitialise all the params
-		firstRowList = new ArrayList<JTextField>();
-		secondRowList = new ArrayList<JTextField>();
-		thirdRowList = new ArrayList<JTextField>();
 		pnOutputInfo.removeAll();
 		firstRow.removeAll();
 		secondRow.removeAll();
 		thirdRow.removeAll();
-		if (params.outputList.get(outputCounter).tensorType.contains("image")) {
+		firstRowList = new ArrayList<JTextField>();
+		secondRowList = new ArrayList<JTextField>();
+		thirdRowList = new ArrayList<JTextField>();
+		if (params.outputList.get(outputCounter).tensorType.contains("image") && !params.pyramidalNetwork) {
 			// Build the panel
 			getPanelForImage(params);
-		} else if (params.outputList.get(outputCounter).tensorType.contains("list")) {
+		} else if (params.outputList.get(outputCounter).tensorType.contains("image") && params.pyramidalNetwork) {
+			// Build the panel
+			getPanelForImagePyramidalNet(params);
+		}else if (params.outputList.get(outputCounter).tensorType.contains("list")) {
 			getPanelForList(params);
 		} else {
 			outputCounter ++;
@@ -339,14 +346,47 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 	}
 	
 	/*
+	 * Method to retrieve from the UI the information necessary to build an 
+	 * image from the tensor outputed by the model in the case the model has
+	 * a Pyramidal structure
+	 */
+	public static boolean saveOutputDataForImagePyramidalNet(Parameters params) {
+		// Save all the information for the output given by the variable 'outputInd'
+		// Get the reference tensor
+		
+		params.outputList.get(outputCounter).sizeOutputPyramid = new int[params.outputList.get(outputCounter).tensor_shape.length];
+		int batchInd = DijTensor.getBatchInd(params.outputList.get(outputCounter).form);
+		
+		int textFieldInd = 0;
+		for (int i = 0; i < params.outputList.get(outputCounter).sizeOutputPyramid.length; i++) {
+			try {
+				int sizeOutputPyramid =  1;
+				if (i == batchInd) {
+					params.outputList.get(outputCounter).sizeOutputPyramid[i] = 1;
+				} else {
+					sizeOutputPyramid = Integer.valueOf(firstRowList.get(textFieldInd ++).getText());
+					params.outputList.get(outputCounter).sizeOutputPyramid[i] = sizeOutputPyramid;
+				}
+			} catch( NumberFormatException ex) {
+				IJ.error("Make sure that no text field is empty and\n"
+						+ "that they correspond to real numbers.");
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	/*
 	 * Method to retrieve from the UI the information necessary to build  
 	 * whatever object is needed for the output tensor
 	 */
 	public static boolean saveOutputData(Parameters params) {
 		// If the methods saving the info were successful, wasSaved=true
 		boolean wasSaved = false;
-		if (params.outputList.get(outputCounter).tensorType.contains("image")) {
+		if (params.outputList.get(outputCounter).tensorType.contains("image") && !params.pyramidalNetwork) {
 			wasSaved = saveOutputDataForImage(params);
+		} else if (params.outputList.get(outputCounter).tensorType.contains("image") && params.pyramidalNetwork) {
+			wasSaved = saveOutputDataForImagePyramidalNet(params);
 		} else {
 			wasSaved = saveOutputDataForList(params);
 		}
@@ -365,10 +405,50 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		//completeInfo[outputCounter] = wasSaved;
 		return wasSaved;
 	}
+
+	private static void getPanelForImagePyramidalNet(Parameters params) {
+		
+		//pnOutputInfo.setBorder(BorderFactory.createEtchedBorder());
+		int[] dimValues = DijTensor.getWorkingDimValues(params.outputList.get(outputCounter).form, params.outputList.get(outputCounter).tensor_shape); 
+		String[] dims = DijTensor.getWorkingDims(params.outputList.get(outputCounter).form);
+
+		for (int i = 0; i < dimValues.length; i ++) {
+			JLabel dimLetter1 = new JLabel(dims[i]);
+			JTextField txt1;
+			
+			int auxInd = params.outputList.get(outputCounter).form.indexOf(dims[i]);
+
+			txt1 = new JTextField(params.outputList.get(outputCounter).finished ? "" + params.outputList.get(outputCounter).sizeOutputPyramid[auxInd] : "1", 5);
+			txt1.setEditable(true);
+			
+			if (dimValues[i] != -1) {
+				txt1.setText("" + dimValues[i]);
+				txt1.setEditable(false);
+			} else if (dimValues[i] == -1) {
+				txt1.setText("" + 0);
+				txt1.setEditable(true);
+			}
+
+			firstRow.place(0, i + 1, dimLetter1);
+			firstRow.place(1, i + 1, txt1);
+			
+			firstRowList.add(txt1);
+		}
+		
+		JLabel lblFirst	= new JLabel("Output size");
+		firstRow.place(0, 0, lblFirst);
+		
+		pnOutputInfo.setBorder(BorderFactory.createEtchedBorder());
+		pnOutputInfo.place(0, 0, lblName);
+		//pnOutputInfo.place(1, 0, referenceImage);
+		pnOutputInfo.place(2, 0, 2, 1, firstRow);
+		pnOutputInfo.place(5, 0, 2, 1,  pnRange);
+		pnOutputInfo.setPreferredSize(new Dimension(pnOutputInfo.getWidth(), pnOutputInfo.getHeight()));
+	}
 	
 	private static void getPanelForImage(Parameters params) {
 		
-		pnOutputInfo.setBorder(BorderFactory.createEtchedBorder());
+		//pnOutputInfo.setBorder(BorderFactory.createEtchedBorder());
 		int[] dimValues = DijTensor.getWorkingDimValues(params.outputList.get(outputCounter).form, params.outputList.get(outputCounter).tensor_shape); 
 		String[] dims = DijTensor.getWorkingDims(params.outputList.get(outputCounter).form);
 
@@ -407,6 +487,9 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 			thirdRowList.add(txt3);
 		}
 
+		JLabel lblFirst	= new JLabel("Scaling factor");
+		JLabel lblSecond = new JLabel("Halo factor");
+		JLabel lblThird	= new JLabel("Offset factor");
 		firstRow.place(0, 0, lblFirst);
 		secondRow.place(0, 0, lblSecond);
 		thirdRow.place(0, 0, lblThird);
@@ -418,6 +501,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		pnOutputInfo.place(3, 0, 2, 1, secondRow);
 		pnOutputInfo.place(4, 0, 2, 1, thirdRow);
 		pnOutputInfo.place(5, 0, 2, 1,  pnRange);
+		pnOutputInfo.setPreferredSize(new Dimension(pnOutputInfo.getWidth(), pnOutputInfo.getHeight()));
 	}
 	
 	/*
@@ -427,6 +511,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		
 		Dimension dim = pnOutputInfo.getSize();
 		pnOutputInfo.removeAll();
+		cmbRowList = new ArrayList<JComboBox<String>>();
 		
 		txtExportDir.setFont(new Font("Arial", Font.BOLD, 14));
 		txtExportDir.setForeground(Color.red);
@@ -436,7 +521,6 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		String[] dims = DijTensor.getWorkingDims(params.outputList.get(outputCounter).form);
 
 		lblName.setText(params.outputList.get(outputCounter).name);
-
 		for (int i = 0; i < dimValues.length; i ++) {
 			JLabel dimLetter1 = new JLabel(""+ dims[i] + " (size=" + dimValues[i] + ")");
 			JComboBox<String> txt1;
@@ -448,9 +532,12 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 			cmbRowList.add(txt1);
 		}
 		pnOutputInfo.place(0, 0, lblName);
+		pnOutputInfo.place(1, 0, 2, 1, new JLabel("Type: list"));
+		/*
 		pnOutputInfo.place(1, 0, 2, 1, new JLabel("Set the directory where the list created will be saved."));
 		pnOutputInfo.place(2, 0, 2, 1, txtExportDir);
-		pnOutputInfo.place(3, 0, 2, 1, firstRow);
+		*/
+		pnOutputInfo.place(2, 0, 2, 1, firstRow);
 		pnOutputInfo.setPreferredSize(dim);
 	}
 	

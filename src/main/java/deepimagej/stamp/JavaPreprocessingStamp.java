@@ -41,6 +41,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GridLayout;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -68,10 +69,10 @@ import ij.IJ;
 
 public class JavaPreprocessingStamp extends AbstractStamp implements ActionListener {
 
-	private JTextField txt = new JTextField("Drop zone for the preprocessing jar");
-	private JButton bnBrowse = new JButton("Browse");
-	private JCheckBox checkJavaProc = new JCheckBox("Select if you want to apply external Java preprocessing");
-	private JCheckBox checkApplyBeforeMacro = new JCheckBox("Apply Java processing before the macro processing");
+	private JTextField txt1 = new JTextField("Drop zone for the first preprocessing");
+	private JTextField txt2 = new JTextField("Drop zone for the second preprocessing");
+	private JButton bnBrowse1 = new JButton("Browse");
+	private JButton bnBrowse2 = new JButton("Browse");
 	
 	public JavaPreprocessingStamp(BuildDialog parent) {
 		super(parent);
@@ -89,37 +90,41 @@ public class JavaPreprocessingStamp extends AbstractStamp implements ActionListe
 				+ " call if not stated otherwise by the user."
 				+ "The provided jar will be saved in the packaged model.");
 		
-		txt.setFont(new Font("Arial", Font.BOLD, 14));
-		txt.setForeground(Color.red);
-		txt.setPreferredSize(new Dimension(Constants.width, 25));
-		JPanel load = new JPanel(new BorderLayout());
-		load.setBorder(BorderFactory.createEtchedBorder());
-		load.add(txt, BorderLayout.CENTER);
-		load.add(bnBrowse, BorderLayout.EAST);
+		txt1.setFont(new Font("Arial", Font.BOLD, 14));
+		txt1.setForeground(Color.red);
+		txt1.setPreferredSize(new Dimension(Constants.width, 25));
+		JPanel load1 = new JPanel(new BorderLayout());
+		load1.setBorder(BorderFactory.createEtchedBorder());
+		load1.add(txt1, BorderLayout.CENTER);
+		load1.add(bnBrowse1, BorderLayout.EAST);
+
+		txt2.setFont(new Font("Arial", Font.BOLD, 14));
+		txt2.setForeground(Color.red);
+		txt2.setPreferredSize(new Dimension(Constants.width, 25));
+		JPanel load2 = new JPanel(new BorderLayout());
+		load2.setBorder(BorderFactory.createEtchedBorder());
+		load2.add(txt2, BorderLayout.CENTER);
+		load2.add(bnBrowse2, BorderLayout.EAST);
+		
+		JPanel load = new JPanel(new GridLayout(2,0));
+		load.add(load1);
+		load.add(load2);
 		
 		JPanel pn = new JPanel(new BorderLayout());
 		pn.add(pane.getPane(), BorderLayout.NORTH);
 		
-		JPanel subPn = new JPanel(new BorderLayout());
-		subPn.add(checkJavaProc, BorderLayout.NORTH);
-		subPn.add(load, BorderLayout.CENTER);
-		subPn.add(checkApplyBeforeMacro, BorderLayout.SOUTH);
-		
-		pn.add(subPn, BorderLayout.CENTER);
+		pn.add(load, BorderLayout.CENTER);
 		
 		panel.add(pn);
 		
-		txt.setDropTarget(new LocalDropTarget());
-		load.setDropTarget(new LocalDropTarget());
-		bnBrowse.addActionListener(this);
-		checkJavaProc.addActionListener(this);
+		txt1.setDropTarget(new LocalDropTarget1());
+		load1.setDropTarget(new LocalDropTarget1());
+		bnBrowse1.addActionListener(this);
 		
-		// Set all the components to their initial state
-		checkJavaProc.setSelected(false);
-		txt.setEnabled(false);
-		bnBrowse.setEnabled(false);
-		checkApplyBeforeMacro.setSelected(false);
-		checkApplyBeforeMacro.setEnabled(false);
+		txt2.setDropTarget(new LocalDropTarget2());
+		load2.setDropTarget(new LocalDropTarget2());
+		bnBrowse2.addActionListener(this);
+		
 	}
 
 	@Override
@@ -128,43 +133,42 @@ public class JavaPreprocessingStamp extends AbstractStamp implements ActionListe
 
 	@Override
 	public boolean finish() {
-		String filename = txt.getText();
-		File file = new File(filename);
-		if (!file.exists() && checkJavaProc.isSelected()) {
-			IJ.error("This directory " + filename + " doesn't exist");	
-			return false;
-		}
-			
-		if (!file.isFile() && checkJavaProc.isSelected()) {
-			IJ.error("The path " + filename + " does not corresponf to a a file");	
-			return false;
-		}
-		
-		if (checkJavaProc.isSelected()) {
-			String jarExtension = filename.substring(file.getAbsolutePath().length() - 4);
-			if (!jarExtension.contains(".jar")) {
-				IJ.error("This file " + filename + " is not a jar file.");	
+		String filename1 = txt1.getText();
+		String filename2 = txt2.getText();
+		parent.getDeepPlugin().params.firstPreprocessing = null;
+		parent.getDeepPlugin().params.secondPreprocessing = null;
+		if (filename1.contains(File.separator)) {
+			File file1 = new File(filename1);
+			if (!file1.exists()) {
+				IJ.error("This directory " + filename1 + " doesn't exist");	
 				return false;
 			}
+			if ((file1.isFile()) && (!file1.getAbsolutePath().contains(".ijm")) && (!file1.getAbsolutePath().contains(".class")) && (!file1.getAbsolutePath().contains(".jar"))) {
+				IJ.error("The path " + filename1 + " does not corresponf to a valid macro or Java file");	
+				return false;
+			}
+			parent.getDeepPlugin().params.firstPreprocessing = filename1;
 		}
 		
-		parent.getDeepPlugin().params.isJavaPreprocessing = checkJavaProc.isSelected();
-		parent.getDeepPlugin().params.javaPreprocessing = "";
-		if (checkJavaProc.isSelected())
-			parent.getDeepPlugin().params.javaPreprocessing = filename;
-		parent.getDeepPlugin().params.preprocessingBeforeMacro = checkApplyBeforeMacro.isSelected();
+		if (filename2.contains(File.separator)) {
+			File file2 = new File(filename2);
+			if (!file2.exists()) {
+				IJ.error("This directory " + filename2 + " doesn't exist");	
+				return false;
+			}	
+			if ((file2.isFile()) && (!file2.getAbsolutePath().contains(".ijm")) && (!file2.getAbsolutePath().contains(".class")) && (!file2.getAbsolutePath().contains(".jar"))) {
+				IJ.error("The path " + filename2 + " does not corresponf to a valid macro or Java file");	
+				return false;
+			}
+			parent.getDeepPlugin().params.secondPreprocessing = filename2;
+		}
 			
 		return true;
 	}
 	public void upadateInterface(){
-		txt.setEnabled(checkJavaProc.isSelected());
-		bnBrowse.setEnabled(checkJavaProc.isSelected());
-		checkApplyBeforeMacro.setEnabled(checkJavaProc.isSelected());
-		if (!checkJavaProc.isSelected())
-			checkApplyBeforeMacro.setSelected(false);
 	}
 
-	public class LocalDropTarget extends DropTarget {
+	public class LocalDropTarget1 extends DropTarget {
 
 		@Override
 		public void drop(DropTargetDropEvent e) {
@@ -177,8 +181,38 @@ public class JavaPreprocessingStamp extends AbstractStamp implements ActionListe
 					try {
 						List<File> files = (List<File>) transferable.getTransferData(flavor);
 						for (File file : files) {
-							txt.setText(file.getAbsolutePath());
-							txt.setCaretPosition(1);
+							txt1.setText(file.getAbsolutePath());
+							txt1.setCaretPosition(1);
+						}
+					}
+					catch (UnsupportedFlavorException ex) {
+						ex.printStackTrace();
+					}
+					catch (IOException ex) {
+						ex.printStackTrace();
+					}
+				}
+			}
+			e.dropComplete(true);
+			super.drop(e);
+		}
+	}
+
+	public class LocalDropTarget2 extends DropTarget {
+
+		@Override
+		public void drop(DropTargetDropEvent e) {
+			e.acceptDrop(DnDConstants.ACTION_COPY);
+			e.getTransferable().getTransferDataFlavors();
+			Transferable transferable = e.getTransferable();
+			DataFlavor[] flavors = transferable.getTransferDataFlavors();
+			for (DataFlavor flavor : flavors) {
+				if (flavor.isFlavorJavaFileListType()) {
+					try {
+						List<File> files = (List<File>) transferable.getTransferData(flavor);
+						for (File file : files) {
+							txt2.setText(file.getAbsolutePath());
+							txt2.setCaretPosition(1);
 						}
 					}
 					catch (UnsupportedFlavorException ex) {
@@ -196,21 +230,26 @@ public class JavaPreprocessingStamp extends AbstractStamp implements ActionListe
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if (e.getSource() == bnBrowse) {
-			browse();
-		} else if (e.getSource() == checkJavaProc) {
-				upadateInterface();
-			}
+		if (e.getSource() == bnBrowse1) {
+			browse(true);
+		} else if (e.getSource() == bnBrowse2) {
+			browse(false);
+		}
 	}
 	
-	private void browse() {
-		JFileChooser chooser = new JFileChooser(txt.getText());
-		chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+	private void browse(boolean firstProcessing) {
+		JFileChooser chooser = new JFileChooser(txt1.getText());
+		//chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 		chooser.setDialogTitle("Select preprocessing jar");
 		int ret = chooser.showOpenDialog(new JFrame());
 		if (ret == JFileChooser.APPROVE_OPTION) {
-			txt.setText(chooser.getSelectedFile().getAbsolutePath());
-			txt.setCaretPosition(1);
+			if (firstProcessing) {
+				txt1.setText(chooser.getSelectedFile().getAbsolutePath());
+				txt1.setCaretPosition(1);
+			} else {
+				txt2.setText(chooser.getSelectedFile().getAbsolutePath());
+				txt2.setCaretPosition(1);
+			}
 		}
 	}
 }

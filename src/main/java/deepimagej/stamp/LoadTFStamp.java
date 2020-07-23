@@ -37,14 +37,11 @@
 
 package deepimagej.stamp;
 import java.awt.BorderLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Set;
 
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JPanel;
 
@@ -60,16 +57,17 @@ import deepimagej.tools.DijTensor;
 import deepimagej.tools.Log;
 import ij.IJ;
 
-public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnable {
+public class LoadTFStamp extends AbstractStamp implements Runnable {
 
 	private ArrayList<String>	tags;
-	private JButton				bnArchi			= new JButton("Show the Network Architecture");
 	private JComboBox<String>	cmbTags			= new JComboBox<String>();
 	private JComboBox<String>	cmbGraphs		= new JComboBox<String>();
-	private ArrayList<String[]>	architecture	= new ArrayList<String[]>();
+	//private ArrayList<String[]>	architecture	= new ArrayList<String[]>();
 	private String				name;
 
-	private HTMLPane				pnLoad;
+	private HTMLPane			pnLoad;
+	
+	private String				tfVersion = TensorFlowModel.getTFVersion();
 
 	public LoadTFStamp(BuildDialog parent) {
 		super(parent);
@@ -96,8 +94,6 @@ public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnab
 		pn.add(cmbTags);
 		pn.add(pnGraph.getPane());
 		pn.add(cmbGraphs);
-		pn.add(bnArchi);
-		bnArchi.addActionListener(this);
 		JPanel main = new JPanel(new BorderLayout());
 		main.add(pnLoad.getPane(), BorderLayout.CENTER);
 		main.add(pn, BorderLayout.SOUTH);
@@ -119,14 +115,14 @@ public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnab
 			String tag = (String)cmbTags.getSelectedItem();
 			try {	
 				ArrayList<String> msgLoad = new ArrayList<String>();
-				SavedModelBundle model = TensorFlowModel.load(params.path2Model, tag, log, msgLoad, architecture);
+				SavedModelBundle model = TensorFlowModel.load(params.path2Model, tag, log, msgLoad);
 				parent.getDeepPlugin().setModel(model);
 				params.tag = tag;
 				cmbTags.setEditable(false);
 				for (String m : msgLoad)
 					pnLoad.append("p", m);
 				parent.getDeepPlugin().setModel(model);
-				pnLoad.append("p", "Architecture Network: " + architecture.size() + " ops");
+				//pnLoad.append("p", "Architecture Network: " + architecture.size() + " ops");
 				params.graphSet = TensorFlowModel.metaGraphsSet(model);
 				if (params.graphSet.size() > 0) {
 					Set<String> tfGraphSet = TensorFlowModel.returnTfSig(params.graphSet);
@@ -149,8 +145,8 @@ public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnab
 			SavedModelBundle model = parent.getDeepPlugin().getModel();
 			params.graph = TensorFlowModel.returnStringSig((String)cmbGraphs.getSelectedItem());
 			SignatureDef sig = TensorFlowModel.getSignatureFromGraph(model, params.graph);
-			params.inputList = new ArrayList<>();
-			params.outputList = new ArrayList<>();
+			params.totalInputList = new ArrayList<>();
+			params.totalOutputList = new ArrayList<>();
 			String[] inputs = TensorFlowModel.returnInputs(sig);
 			String[] outputs = TensorFlowModel.returnOutputs(sig);
 			pnLoad.append("p", "Number of output: " + outputs.length);
@@ -159,12 +155,12 @@ public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnab
 				for (int i = 0; i < inputs.length; i ++) {
 					DijTensor inp = new DijTensor(inputs[i]);
 					inp.setInDimensions(TensorFlowModel.modelEntryDimensions(sig, inputs[i]));
-					params.inputList.add(inp);
+					params.totalInputList.add(inp);
 				}
 				for (int i = 0; i < outputs.length; i ++) {
 					DijTensor out = new DijTensor(outputs[i]);
 					out.setInDimensions(TensorFlowModel.modelExitDimensions(sig, outputs[i]));
-					params.outputList.add(out);
+					params.totalOutputList.add(out);
 				}
 				// TODO correct it for adecuate number of inputs and outputs
 				//pnLoad.append("p", "Dimension of input: " + params.inDimensions.length + " and output: " + params.outDimensions.length);
@@ -185,8 +181,11 @@ public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnab
 		Parameters params = parent.getDeepPlugin().params;
 		cmbTags.removeAllItems();
 		cmbGraphs.removeAllItems();
-		architecture.clear();
+		//architecture.clear();
 		pnLoad.clear();
+		pnLoad.append("h2", "Tensorflow version");
+		pnLoad.append("p", "Currently using Tensorflow " + tfVersion);
+		pnLoad.append("h2", "Model info");
 		File file = new File(params.path2Model);
 		if (file.exists())
 			name = file.getName();
@@ -209,11 +208,11 @@ public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnab
 				cmbTags.addItem(tfTag);
 				cmbTags.setEditable(false);
 				ArrayList<String> msgLoad = new ArrayList<String>();
-				SavedModelBundle model = TensorFlowModel.load(params.path2Model, params.tag, log, msgLoad, architecture);
+				SavedModelBundle model = TensorFlowModel.load(params.path2Model, params.tag, log, msgLoad);
 				for (String m : msgLoad)
 					pnLoad.append("p", m);
 				parent.getDeepPlugin().setModel(model);
-				pnLoad.append("p", "Architecture Network: " + architecture.size() + " ops");
+				//pnLoad.append("p", "Architecture Network: " + architecture.size() + " ops");
 				params.graphSet = TensorFlowModel.metaGraphsSet(model);
 				if (params.graphSet.size() > 0) {
 					Set<String> tfGraphSet = TensorFlowModel.returnTfSig(params.graphSet);
@@ -231,11 +230,4 @@ public class LoadTFStamp extends AbstractStamp implements ActionListener, Runnab
 		}
 		parent.setEnabledBackNext(valid);
 	} 
-
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		if (e.getSource() == bnArchi)
-			TensorFlowModel.showArchitecture(name, architecture);
-
-	}
 }

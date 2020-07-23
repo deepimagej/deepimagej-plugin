@@ -43,11 +43,14 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.DumperOptions.FlowStyle;
@@ -80,7 +83,6 @@ public class YAMLUtils {
 	private final static String idOutputs = "outputs";
 	private final static String idNodeName = "name";
 	private final static String idNodeAxes = "axes";
-	private final static String idNodeDims = "dimensions";
 	private final static String idNodeDataType = "data_type";
 	private final static String idNodeDataRange = "data_range";
 	private final static String idNodeShape = "shape";
@@ -90,10 +92,6 @@ public class YAMLUtils {
 	private final static String idNodeShapeReferenceInput = "reference_input";
 	private final static String idNodeShapeScale = "scale";
 	private final static String idNodeShapeOffset = "offset";
-	private final static String idPrediction = "prediction";
-	private final static String idPredictionPreprocess = "preprocess";
-	private final static String idPredictionPostprocess = "postprocess";
-	private final static String idPatchSize = "patch_size";
 	private final static String idModelTag = "tensorflow_model_tag";
 	private final static String idSigDef = "tensorflow_siganture_def";
 	private final static String idMemoryPeak = "memory_peak";
@@ -101,7 +99,7 @@ public class YAMLUtils {
 	private final static String idRuntime = "runtime";
 	private final static String idInputSize = "input_size";
 	private final static String idOutputSize = "output_size";
-	private final static String idTestMetadata = "test_metadata";
+	private final static String idTestMetadata = "test_information";
 	private final static String idTfMetadata = "tensorflow_metadata";
 	
 	public static void writeYaml(DeepImageJ dp) {
@@ -109,40 +107,60 @@ public class YAMLUtils {
 
 		Map<String, Object> data = new LinkedHashMap<>();
 		
-		List<Object> modelInputMapsList = new ArrayList<>();
+		List<Map<String, Object>> modelInputMapsList = new ArrayList<>();
+		List<Map<String, Object>> inputTestInfoList = new ArrayList<>();
 		for (DijTensor inp : params.inputList) {
-			// Create dictionary for each input
-			Map<String, Object> inputTensorMap = new LinkedHashMap<>();
-			inputTensorMap.put(idNodeName, inp.name);
-			inputTensorMap.put(idNodeAxes, inp.form);
-			inputTensorMap.put(idNodeDims, inp.tensor_shape);
-			inputTensorMap.put(idNodeDataType, "float32");
-			inputTensorMap.put(idNodeDataRange, inp.dataRange);
-			Map<String, Object> shape = new LinkedHashMap<>();
-			shape.put(idPatchSize, inp.recommended_patch);
-			shape.put(idNodeShapeMin, inp.minimum_size);
-			int[] aux = new int[inp.minimum_size.length];
-			for(int i = 0; i < aux.length; i ++) {aux[i] += inp.step[i];}
-			shape.put(idNodeShapeStep, aux);
-			inputTensorMap.put(idNodeShape, shape);
-			modelInputMapsList.add(inputTensorMap);
+			if (inp.tensorType.contains("image")) {
+				// Create dictionary for each image input
+				Map<String, Object> inputTensorMap = new LinkedHashMap<>();
+				inputTensorMap.put(idNodeName, inp.name);
+				inputTensorMap.put(idNodeAxes, inp.form);
+				// TODO remove
+				//inputTensorMap.put(idNodeDims, Arrays.toString(inp.tensor_shape));
+				inputTensorMap.put(idNodeDataType, "float32");
+				inputTensorMap.put(idNodeDataRange, Arrays.toString(inp.dataRange));
+				if (params.fixedInput) {
+					inputTensorMap.put("shape", Arrays.toString(inp.recommended_patch));
+				} else if (!params.fixedInput) {
+					Map<String, Object> shape = new LinkedHashMap<>();
+					shape.put(idNodeShapeMin, Arrays.toString(inp.minimum_size));
+					int[] aux = new int[inp.minimum_size.length];
+					for(int i = 0; i < aux.length; i ++) {aux[i] += inp.step[i];}
+					shape.put(idNodeShapeStep, Arrays.toString(aux));
+					inputTensorMap.put("shape", shape);
+				}
+				modelInputMapsList.add(inputTensorMap);
+				
+				// Now write the test data info
+				Map<String, Object> inputTestInfo = new LinkedHashMap<>();
+				inputTestInfo.put("name", inp.name);
+				inputTestInfo.put("size", inp.inputTestSize);
+				Map<String, Object> pixelSize = new LinkedHashMap<>();
+				pixelSize.put("x", inp.inputPixelSizeX);
+				pixelSize.put("y", inp.inputPixelSizeY);
+				pixelSize.put("z", inp.inputPixelSizeZ);
+				inputTestInfo.put("pixel_size", pixelSize);
+				inputTestInfoList.add(inputTestInfo);
+			}
 		}
-		List<Object> modelOutputMapsList =  new ArrayList<>();
+
+		// Test output metadata
+		List<Map<String, Object>> modelOutputMapsList =  new ArrayList<>();
 		for (DijTensor out : params.outputList) {
 			// Create dictionary for each input
-			Map<String, Object> outputTensorMap = new LinkedHashMap<>();
-			outputTensorMap.put(idNodeName, out.name);
-			outputTensorMap.put(idNodeAxes, out.form);
-			outputTensorMap.put(idNodeDims, out.tensor_shape);
-			outputTensorMap.put(idNodeDataType, "float32");
-			outputTensorMap.put(idNodeDataRange, out.dataRange);
-			outputTensorMap.put(idNodeHalo,  out.halo);
-			Map<String, Object> shape = new LinkedHashMap<>();
-			shape.put(idNodeShapeReferenceInput, out.referenceImage);
-			shape.put(idNodeShapeScale, out.scale);
-			shape.put(idNodeShapeOffset, out.offset);
-			outputTensorMap.put(idNodeShape, shape);
+			Map<String, Object> outputTensorMap = getOutput(out, params.pyramidalNetwork, params.allowPatching);
 			modelOutputMapsList.add(outputTensorMap);
+		}
+		
+		// Write the info of the outputs after postprocesing
+		List<Map<String, Object>> outputTestInfoList =  new ArrayList<>();
+		for (HashMap<String, String> out : params.savedOutputs) {
+			
+			Map<String, Object> outputTestInfo = new LinkedHashMap<>();
+			outputTestInfo.put("name", out.get("name"));
+			outputTestInfo.put("type", out.get("type"));
+			outputTestInfo.put("size", out.get("size"));
+			outputTestInfoList.add(outputTestInfo);
 		}
 		
 		data.put(idName, params.name);
@@ -156,32 +174,45 @@ public class YAMLUtils {
 		data.put(idAuthors, params.author);
 		
 		// Citation
-		Map<String, Object> cite = new LinkedHashMap<>();
+		List<LinkedHashMap<String, Object>> citations = new ArrayList<LinkedHashMap<String, Object>>();
+		LinkedHashMap<String, Object> cite = new LinkedHashMap<String, Object>();
 		// Reference to the article, Github repo or other source where the model was proposed
-		cite.put(idCiteText, new String[] {params.reference});
+		cite.put("text", params.reference);
 		// Url to the paper or repo where the model was proposed
-		cite.put(idCiteDoi, new String[] {params.doi});
-		data.put(idCite, cite);
+		cite.put("doi", params.doi);
+		citations.add(cite);
+		data.put(idCite, citations);
 		
-		// TF model metadata
-		Map<String, Object> tfMetadata = new LinkedHashMap<>();
+		// Info relevant to DeepImageJ, see: https://github.com/bioimage-io/configuration/issues/23
+		Map<String, Object> config = new LinkedHashMap<>();
+		Map<String, Object> deepimagej = new LinkedHashMap<>();
+		deepimagej.put("pyramidal_model", params.pyramidalNetwork);
+		deepimagej.put("allow_tiling", params.allowPatching);
+		
+		// TF model keys
+		Map<String, Object> modelKeys = new LinkedHashMap<>();
 		// Model tag
-		tfMetadata.put(idModelTag, new String[] {TensorFlowModel.returnTfTag(params.tag)});
+		modelKeys.put(idModelTag, TensorFlowModel.returnTfTag(params.tag));
 		// Model signature definition
-		tfMetadata.put(idSigDef, new String[] {TensorFlowModel.returnTfSig(params.graph)});
-
+		modelKeys.put(idSigDef, TensorFlowModel.returnTfSig(params.graph));
+		deepimagej.put("model_keys", modelKeys);
+		
 		// Test metadata
-		Map<String, Object> testMetadata = new LinkedHashMap<>();
-		// Input size of the examples used to compose the model
-		testMetadata.put(idInputSize, params.inputSize);
-		// Pixel size of the input examples used to compose the model
-		testMetadata.put(idPixelSize, params.inputPixelSize);
+		Map<String, Object> testInformation = new LinkedHashMap<>();
+		// Test input metadata
+		testInformation.put("inputs", inputTestInfoList);
+		
+		// Test output metadata
+		testInformation.put("outputs", outputTestInfoList);
+		
 		// Output size of the examples used to compose the model
-		testMetadata.put(idOutputSize, params.outputSize);
+		testInformation.put(idMemoryPeak, params.memoryPeak);
 		// Output size of the examples used to compose the model
-		testMetadata.put(idMemoryPeak, params.memoryPeak);
-		// Output size of the examples used to compose the model
-		testMetadata.put(idRuntime, params.runtime);
+		testInformation.put(idRuntime, params.runtime);
+		// Metadata of the example used to compose the model
+		deepimagej.put("test_information", testInformation);
+		
+		config.put("deepimagej", deepimagej);
 		
 		// Link to the documentation of the model, which contains info about
 		// the model such as the images used or architecture
@@ -195,7 +226,7 @@ public class YAMLUtils {
 		String[] outputImString = {"." + File.separator + "resultImage.tiff"};
 		data.put(idTestOutput, Arrays.asList(outputImString));
 		// Tags that will be used to look for the model in the Bioimage model Zoo
-		data.put(idTags, Arrays.asList(params.infoTags));
+		data.put(idTags, params.infoTags);
 		// Type of license of the model
 		data.put(idLicense, params.license);
 		// Version of the model
@@ -206,29 +237,101 @@ public class YAMLUtils {
 		data.put(idFramework, params.framework);
 		// Link to a website where we can find the model
 		data.put(idSource, params.source);
-		// Metadata of the model used to compose the model
-		data.put(idTfMetadata, tfMetadata);
-		// Metadata of the example used to compose the model
-		data.put(idTestMetadata, testMetadata);
+		// Information relevant to deepimagej
+		data.put("config", config);
 		
 		data.put(idInputs, modelInputMapsList);
 		data.put(idOutputs, modelOutputMapsList);
 		
-		// Prediction
+		// Preprocessing
+		List<Map<String, String>> listPreprocess = new ArrayList<Map<String, String>>();
+		if (params.firstPreprocessing == null) {
+			params.firstPreprocessing = params.secondPostprocessing;
+			params.secondPreprocessing = null;
+		}
+		
+		if ((params.firstPreprocessing != null) && (params.firstPreprocessing.contains(".ijm") || params.firstPreprocessing.contains(".txt"))) {
+			Map<String, String> preprocess = new LinkedHashMap<>();
+			preprocess.put("spec", "ij.IJ::runMacroFile");
+			preprocess.put("kwargs", new File(params.firstPreprocessing).getName());
+			listPreprocess.add(preprocess);
+		} else if ((params.firstPreprocessing != null) && (params.firstPreprocessing.contains(".class") || params.firstPreprocessing.contains(".jar"))) {
+			String filename = new File(params.firstPreprocessing).getName();
+			Map<String, String> preprocess = new LinkedHashMap<>();
+			preprocess.put("spec", filename + " " + params.javaPreprocessingClass);
+			listPreprocess.add(preprocess);
+		} else if (params.firstPreprocessing == null && params.secondPreprocessing == null) {
+			Map<String, String> preprocess = new LinkedHashMap<>();
+			preprocess.put("spec", null);
+			listPreprocess.add(preprocess);
+		} 
+		if ((params.secondPreprocessing != null) && (params.secondPreprocessing.contains(".ijm") || params.secondPreprocessing.contains(".txt"))) {
+			Map<String, String> preprocess = new LinkedHashMap<>();
+			preprocess.put("spec", "ij.IJ::runMacroFile");
+			preprocess.put("kwargs", new File(params.secondPreprocessing).getName());
+			listPreprocess.add(preprocess);
+		} else if ((params.secondPreprocessing != null) && (params.secondPreprocessing.contains(".class") || params.secondPreprocessing.contains(".jar"))) {
+			String filename = new File(params.secondPreprocessing).getName();
+			Map<String, String> preprocess = new LinkedHashMap<>();
+			preprocess.put("spec", filename + " " + params.javaPreprocessingClass);
+			listPreprocess.add(preprocess);
+		}
+
+		// Postprocessing
+		List<Map<String, String>> listPostprocess = new ArrayList<Map<String, String>>();
+		if (params.firstPostprocessing == null) {
+			params.firstPostprocessing = params.secondPostprocessing;
+			params.secondPostprocessing = null;
+		}
+		if ((params.firstPostprocessing != null)  && (params.firstPostprocessing.contains(".ijm") || params.firstPostprocessing.contains(".txt"))) {
+			Map<String, String> postprocess = new LinkedHashMap<>();
+			postprocess.put("spec", "ij.IJ::runMacroFile");
+			postprocess.put("kwargs", new File(params.firstPostprocessing).getName());
+			listPostprocess.add(postprocess);
+		} else if ((params.firstPostprocessing != null)  && (params.firstPostprocessing.contains(".class") || params.firstPostprocessing.contains(".jar"))) {
+			String filename = new File(params.firstPostprocessing).getName();
+			Map<String, String> postprocess = new LinkedHashMap<>();
+			postprocess.put("spec", filename + " " + params.javaPostprocessingClass);
+			listPostprocess.add(postprocess);
+		} else if (params.firstPostprocessing == null && params.secondPostprocessing == null) {
+			Map<String, String> postprocess = new LinkedHashMap<>();
+			postprocess.put("spec", null);
+			listPostprocess.add(postprocess);
+		} 
+		if ((params.secondPostprocessing != null) && (params.secondPostprocessing.contains(".ijm") || params.secondPostprocessing.contains(".txt"))) {
+			Map<String, String> postprocess = new LinkedHashMap<>();
+			postprocess.put("spec", "ij.IJ::runMacroFile");
+			postprocess.put("kwargs", new File(params.secondPostprocessing).getName());
+			listPostprocess.add(postprocess);
+		} else if ((params.secondPostprocessing != null) && (params.secondPostprocessing.contains(".class") || params.secondPostprocessing.contains(".jar"))) {
+			String filename = new File(params.secondPostprocessing).getName();
+			Map<String, String> postprocess = new LinkedHashMap<>();
+			postprocess.put("spec", filename + " " + params.javaPostprocessingClass);
+			listPostprocess.add(postprocess);
+		}
+
+		// Prediction, preprocessing and postprocessing together
 		Map<String, Object> prediction = new LinkedHashMap<>();
-		// TODO find a solution for including macros more elegantly
-		prediction.put(idPredictionPreprocess,  new String[] {"preprocessing.txt"});
-		prediction.put(idPredictionPostprocess, new String[] {"postprocessing.txt"});
-		data.put(idPrediction, prediction);
-        
-		Yaml yaml = new Yaml();
+		prediction.put("preprocess", listPreprocess);
+		prediction.put("postprocess", listPostprocess);
+		
+		data.put("prediction", prediction);
+
+		DumperOptions options = new DumperOptions();
+		options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+		options.setDefaultScalarStyle(DumperOptions.ScalarStyle.PLAIN);
+		options.setIndent(4);
+		//options.setPrettyFlow(true);
+		Yaml yaml = new Yaml(options);
 		FileWriter writer = null;
 		try {
 			writer = new FileWriter(new File(params.saveDir, "config.yaml"));
+			yaml.dump(data, writer);
+			writer.close();
+			removeQuotes(new File(params.saveDir, "config.yaml"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		yaml.dump(data, writer);
 	}
 	
 	public static List<String> listAuthors(String authorsString) {
@@ -337,6 +440,42 @@ public class YAMLUtils {
 		return dpParams;
 	}
 	
+	/*
+	 * Method to write the output of the yaml file. The fields written
+	 * depend on the type of network that we are defining.
+	 */
+	public static Map<String, Object> getOutput(DijTensor out, boolean pyramidal, boolean allowPatching){
+		Map<String, Object> outputTensorMap = new LinkedHashMap<>();
+		outputTensorMap.put(idNodeName, out.name);
+		
+		if (!pyramidal && out.tensorType.contains("image")) {
+			outputTensorMap.put(idNodeAxes, out.form);
+			// TODO remove
+			//outputTensorMap.put(idNodeDims, Arrays.toString(out.tensor_shape));
+			outputTensorMap.put(idNodeDataType, "float32");
+			outputTensorMap.put(idNodeDataRange, Arrays.toString(out.dataRange));
+			outputTensorMap.put(idNodeHalo,  Arrays.toString(out.halo));
+			Map<String, Object> shape = new LinkedHashMap<>();
+			shape.put(idNodeShapeReferenceInput, out.referenceImage);
+			shape.put(idNodeShapeScale, Arrays.toString(out.scale));
+			shape.put(idNodeShapeOffset, Arrays.toString(out.offset));
+			outputTensorMap.put(idNodeShape, shape);
+			
+		} else if (pyramidal && out.tensorType.contains("image")) {
+			outputTensorMap.put(idNodeAxes, out.form);
+			outputTensorMap.put(idNodeDataType, "float32");
+			outputTensorMap.put(idNodeDataRange, Arrays.toString(out.dataRange));
+			outputTensorMap.put("shape", Arrays.toString(out.sizeOutputPyramid));
+			
+		}else if (out.tensorType.contains("list")) {
+			outputTensorMap.put(idNodeAxes, null);
+			outputTensorMap.put("shape", Arrays.toString(out.tensor_shape));
+			outputTensorMap.put(idNodeDataType, "float32");
+			outputTensorMap.put(idNodeDataRange, Arrays.toString(out.dataRange));
+		}
+		return outputTensorMap;
+	}
+	
 	public static String[] castListToStringArray(List list) {
 		String[] array = new String[list.size()];
 		int c = 0;
@@ -371,5 +510,30 @@ public class YAMLUtils {
 			array[c ++] = ((Double) in).floatValue();
 		}
 		return array;
+	}
+	
+	public static void removeQuotes(File file) throws FileNotFoundException {
+
+		Scanner scanner = new Scanner(file);       // create scanner to read
+
+	    // do something with that line
+	    String newLine = "";
+		while(scanner.hasNextLine()){  // while there is a next line
+		    String line = scanner.nextLine();  // line = that next line
+		
+		
+		    // replace a character
+		    for (int i = 0; i < line.length(); i++){
+		        if (line.charAt(i) != '\'') {  // or anything other character you chose
+		            newLine += line.charAt(i);
+		        }
+		    }
+		    newLine += '\n';
+		
+		}
+		scanner.close();
+		PrintWriter writer = new PrintWriter(file.getAbsolutePath()); // create file to write to
+		writer.print(newLine);
+		writer.close();
 	}
 }

@@ -296,7 +296,9 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 			log.print("start progress");
 			RunnerProgress rp = new RunnerProgress(dp);
 			log.print("start runner");
-			Runner runner = new Runner(dp, rp, imp, log);
+			// TODO redo everything related t teh runner
+			//Runner runner = new Runner(dp, rp, imp, log);
+			Runner runner = new Runner(dp, rp, log);
 			rp.setRunner(runner);
 			ImagePlus out = runner.call()[0];
 			imp.changes = false;

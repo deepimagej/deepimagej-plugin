@@ -35,12 +35,16 @@
 
 package deepimagej.stamp;
 import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.swing.BorderFactory;
@@ -64,21 +68,22 @@ import deepimagej.components.GridPanel;
 import deepimagej.components.HTMLPane;
 import deepimagej.exceptions.IncorrectChannelsSlicesNumber;
 import deepimagej.exceptions.MacrosError;
-import deepimagej.processing.ExternalClassManager;
+import deepimagej.processing.ProcessingBridge;
 import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.Log;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
-import ij.plugin.Duplicator;
 
 public class TestStamp extends AbstractStamp implements Runnable, ActionListener {
 
-	private HTMLPane			pnTest;
-	private JButton				bnTest	= new JButton("Run a test");
+	private HTMLPane				pnTest;
+	private JButton					bnTest	= new JButton("Run a test");
 	private List<JComboBox<String>>	cmbList	= new ArrayList<JComboBox<String>>();
-	private JPanel				inputsPn = new JPanel();
+	private List<JButton>			btnList	= new ArrayList<JButton>();
+	private JPanel					inputsPn = new JPanel();
+	private HashMap<String, Object> inputsMap;
 	
 	private List<DijTensor>		imageTensors;
 
@@ -98,6 +103,8 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		GridPanel pn1 = new GridPanel(true);
 		JComboBox<String> cmb = new JComboBox<String>();
 		cmbList.add(cmb);
+		JButton btn = retrieveJComboBoxArrow(cmb);
+		btnList.add(btn);
 		inputsPn.add(new JLabel("Image"));
 		inputsPn.add(cmb);
 		pn1.place(1, 0, inputsPn);
@@ -111,10 +118,11 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		JPanel pn = new JPanel(new BorderLayout());
 		pn.add(pnt, BorderLayout.NORTH);
 		pn.add(pnTest, BorderLayout.CENTER);
+		
+		pnTest.setEnabled(true);
 
 		panel.add(pn);
 		bnTest.addActionListener(this);
-		cmb.addActionListener(this);
 		});
 	}
 
@@ -125,26 +133,31 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		imageTensors = DijTensor.getImageTensors(params.inputList);
 		inputsPn.setLayout(new GridLayout(2, imageTensors.size()));
 		cmbList = new ArrayList<JComboBox<String>>();
-
+		btnList = new ArrayList<JButton>();
 		JComboBox<String> cmb = new JComboBox<String>();
+		cmb = new JComboBox<String>();
 		String[] titlesList = WindowManager.getImageTitles();
-		if (titlesList.length != 0) {
-			for (DijTensor tensor : imageTensors) {
-				cmb = new JComboBox<String>();
+		int c = 0;
+		for (DijTensor tensor : imageTensors) {
+			cmb = new JComboBox<String>();
+			if (titlesList.length != 0) {
 				for (String title : titlesList)
 					cmb.addItem(title);
 				inputsPn.add(new JLabel(tensor.name));
 				cmbList.add(cmb);
 				inputsPn.add(cmb);
+				bnTest.setEnabled(parent.getDeepPlugin() != null);
+			} else {
+				bnTest.setEnabled(false);
+				params.testImageBackup = null;
+				cmb.addItem("No image");
+				cmbList.add(cmb);
+				inputsPn.add(new JLabel("Select image"));
+				inputsPn.add(cmb);
 			}
-			bnTest.setEnabled(parent.getDeepPlugin() != null);
-		} else {
-			bnTest.setEnabled(false);
-			params.testImageBackup = null;
-			cmb.addItem("No image");
-			cmbList.add(cmb);
-			inputsPn.add(new JLabel("Select image"));
-			inputsPn.add(cmb);
+			btnList.add(retrieveJComboBoxArrow(cmb));
+			btnList.get(c).addActionListener(this);
+			cmbList.get(c ++).addActionListener(this);
 		}
 	}
 
@@ -156,12 +169,68 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if (e.getSource() == bnTest) {
-				test();
+			// Check if all the input images are associated to an image
+			// opened in ImageJ
+			String[] titlesList = WindowManager.getImageTitles();
+			for (int j = 0; j < cmbList.size(); j ++) {
+				String selectedOption = (String) cmbList.get(j).getSelectedItem();
+				if (Arrays.asList(titlesList).contains(selectedOption))
+					continue;
+				 else {
+					 IJ.error("Select images open in ImageJ");
+					return;
+				}	
+			}
+			// If all the images selected are opened in ImageJ un test
+			test();
+		}
+		
+		for (int i = 0; i < btnList.size(); i ++) {
+			if (e.getSource() == btnList.get(i)) {
+				String[] titlesList = WindowManager.getImageTitles();
+				
+				// Update the list of options provided by eac
+				cmbList.get(0).removeAllItems();//h of 
+				// the images
+				for (int j = 0; j < cmbList.size(); j ++) {
+					//cmbList.get(j).removeAllItems();
+					if (titlesList.length != 0) {
+						for (String title : titlesList)
+							cmbList.get(j).addItem(title);
+					} else {
+						cmbList.get(j).addItem("No image");
+					}	
+				}
+				
+				break;
+			}
+		}
+		
+		for (int i = 0; i < cmbList.size(); i ++) {
+			if (e.getSource() == cmbList.get(i)) {
+				// If all the selected items in every cmbBox correspond
+				// to an existing image, set the button enabled, if not, 
+				// not enabled
+				String[] titlesList = WindowManager.getImageTitles();
+				for (int j = 0; j < cmbList.size(); j ++) {
+					String selectedOption = (String) cmbList.get(j).getSelectedItem();
+					if (Arrays.asList(titlesList).contains(selectedOption))
+						continue;
+					 else {
+						 bnTest.setEnabled(false);
+						return;
+					}	
+				}
+				 bnTest.setEnabled(true);
+				
+				break;
+			}
 		}
 	}
 
 	public void test() {
 		Parameters params = parent.getDeepPlugin().params;
+		inputsMap = new HashMap<String, Object>();
 
 		File file = new File(params.path2Model);
 		if (!file.exists()) {
@@ -175,36 +244,33 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		String[] images = new String[imageTensors.size()];
 		for (int i = 0; i < images.length; i++)
 			images[i] = (String)cmbList.get(i).getSelectedItem();
-		params.testImage = new ImagePlus[imageTensors.size()];
-		int c = 0;
+		if (images.length == 1)
+			params.testImage = WindowManager.getImage(images[0]);
 		params.inputPixelSize = new String[imageTensors.size()];
-		String imagesNames = "";
-		for (String imageName : images) {
-			params.testImage[c] = WindowManager.getImage(imageName);
-			params.inputPixelSize[c] = ArrayOperations.findPixelSize(params.testImage[c]);
-			imagesNames = imagesNames + params.testImage[c].getTitle() + "\n";
-			c ++;
-		}
+		String imagesNames = Arrays.toString(images);
 
-		for (ImagePlus im : params.testImage) {
-			if (im == null) {
-				pnTest.append("p", "No selected test image");
+		int c = 0;
+		for (String im : images) {
+			if (WindowManager.getImage(im) == null) {
+				pnTest.append("p", im + " does not correspond to an open image");
 				IJ.error("No selected test image.");
 				return;
-			}	
+			} else {
+				params.inputPixelSize[c ++] = ArrayOperations.findPixelSize(WindowManager.getImage(im));
+			}
 		}
 		
-		pnTest.append("Selected input image " + imagesNames);
+		pnTest.append("Selected input images " + imagesNames);
 	
 		try {
 			// Set Parameter params.inputSize for config.xml
-			runPreprocessing(params);
+			inputsMap = ProcessingBridge.runPreprocessing(params);
 			// Check if the images have the adequate channels and slices
-			for (int i = 0; i < imageTensors.size(); i ++) {
-				int channels = TensorFlowModel.nChannelsOrSlices(imageTensors.get(i), "channels");
-				int slices = TensorFlowModel.nChannelsOrSlices(imageTensors.get(i), "slices");
-				int imageChannels = params.testImage[i].getNChannels();
-				int imageSlices = params.testImage[i].getNSlices();
+			for (DijTensor tensor : imageTensors) {
+				int channels = TensorFlowModel.nChannelsOrSlices(tensor, "channels");
+				int slices = TensorFlowModel.nChannelsOrSlices(tensor, "slices");
+				int imageChannels = ((ImagePlus) inputsMap.get(tensor.name)).getNChannels();
+				int imageSlices = ((ImagePlus) inputsMap.get(tensor.name)).getNSlices();
 				if (channels != imageChannels) {
 					throw new IncorrectChannelsSlicesNumber(channels, imageChannels, "channels");
 				}
@@ -213,9 +279,11 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 				}
 			}
 
-			Thread thread = new Thread(this);
-			thread.setPriority(Thread.MIN_PRIORITY);
-			thread.start();
+			if (inputsMap != null){
+				Thread thread = new Thread(this);
+				thread.setPriority(Thread.MIN_PRIORITY);
+				thread.start();
+			}
 		}
 		catch (MacrosError e1) {
 			pnTest.append("p", "Error in the Macro's code");
@@ -238,6 +306,7 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		catch (IncorrectChannelsSlicesNumber e) {
 			String type = e.getExceptionType();
 			pnTest.append("p", "The number of " + type + " of the input image is incorrect.");
+			IJ.error("The number of " + type + " of the input image is incorrect.");
 		}
 	}
 
@@ -246,16 +315,25 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 
 		Log log = new Log();
 		RunnerProgress rp = new RunnerProgress(dp);
-		Runner runner = new Runner(dp, rp, dp.params.testImage[0], log);
+		Runner runner = new Runner(dp, rp, inputsMap, log);
 		rp.setRunner(runner);
-		dp.params.testResultImage = runner.call();
+		// TODO decide what to store at the end of the execution
+		HashMap<String, Object> output = runner.call();
 		// Flag to apply post processing if needed
-		if (dp.params.testResultImage != null) {
-			dp.params.testResultImage[0] = runPostprocessingMacro(dp.params.testResultImage[0]);
+		if (output != null) {
+			try {
+				output = ProcessingBridge.runPostprocessing(dp.params, output);
+			} catch (MacrosError e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			parent.endsTest();
 			bnTest.setEnabled(true);
-			dp.params.testResultImage[0].getProcessor().resetMinAndMax();
-			dp.params.testResultImage[0].show();
+			//dp.params.testResultImage[0].getProcessor().resetMinAndMax();
+			//dp.params.testResultImage[0].show();
 			pnTest.append("p", "Peak memory:" + dp.params.memoryPeak);
 			pnTest.append("p", "Runtime:" + dp.params.runtime);
 		}
@@ -263,51 +341,19 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 			IJ.error("The execution of the model failed.");
 		}
 	}
-
-	private ImagePlus runPreprocessingMacro(ImagePlus img) throws MacrosError, IOException {
-		WindowManager.setTempCurrentImage(img);
-		Parameters params = parent.getDeepPlugin().params;
-
-		if (params.postmacro.equals("") == false) {
-			String result = IJ.runMacro(params.premacro);
-			if (result == "[aborted]") {
-				throw new MacrosError();
+	
+	public JButton retrieveJComboBoxArrow(Container container) {
+		if (container instanceof JButton) {
+	         return (JButton) container;
+		} else {
+			Component[] components = container.getComponents();
+			for (Component component : components) {
+				if (component instanceof Container) {
+					return retrieveJComboBoxArrow((Container)component);
+	            }
 			}
-		}
-		ImagePlus result = WindowManager.getCurrentImage();
-		return result;
+	    }
+		return null;
 	}
 	
-	// TODO decide whether to allow or not more than 1 image input to the model
-	private void runPreprocessing(Parameters params) throws MacrosError, IOException {
-		params.testImageBackup = new Duplicator().run(params.testImage[0]);
-		if (params.isJavaPreprocessing == true && params.preprocessingBeforeMacro == true) {
-			params.testImage[0] = runPreprocessingJava(params.testImage[0], params);
-			params.testImage[0] = runPreprocessingMacro(params.testImage[0]);
-		} else if (params.isJavaPreprocessing == true && params.preprocessingBeforeMacro == false) {
-			params.testImage[0] = runPreprocessingMacro(params.testImage[0]);
-			params.testImage[0] = runPreprocessingJava(params.testImage[0], params);
-		} else if (params.isJavaPreprocessing == false && params.preprocessingBeforeMacro == true) {
-			params.testImage[0] = runPreprocessingMacro(params.testImage[0]);
-		}
-	}
-
-	private ImagePlus runPostprocessingMacro(ImagePlus img) {
-		DeepImageJ dp = parent.getDeepPlugin();
-		WindowManager.setTempCurrentImage(img);
-		if (dp.params.postmacro.equals("") == false) {
-			String result = IJ.runMacro(dp.params.postmacro);
-			if (result == "[aborted]") {
-				IJ.error("The postprocessing macros did not work.\n" + "The image displayed is the raw output.");
-			}
-		}
-		ImagePlus result = WindowManager.getCurrentImage();
-		return result;
-	}
-
-	private ImagePlus runPreprocessingJava(ImagePlus img, Parameters params) {
-		ExternalClassManager processingRunner = new ExternalClassManager (params.javaPreprocessing, false);
-		ImagePlus result = processingRunner.javaProcessImage(img);
-		return result;
-	}
 }

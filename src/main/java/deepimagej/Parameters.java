@@ -40,6 +40,7 @@ package deepimagej;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,38 +55,70 @@ public class Parameters {
 	public String path2Model;
 	// Parameter that checks if the plugin is for developers or users
 	public boolean developer;
-	// Strings containing the macros used in the test, only useful for developer
-	// plugin
-	public String postmacro = "";
-	public String premacro = "";
 	/*
-	 * Path to the Java preprocessing jar file
+	 * Path to the first pre-processing applied to the image, if there is any.
+	 * It can be either a macro file ('.ijm' or '.txt'), java code (a '.class' file,
+	 * a '.jar' file or a folder containing classes) or null if there is no processing.
 	 */
-	public String		javaPreprocessing;
+	public String		firstPreprocessing = null;
 	/*
-	 * Whether or not there is Java preprocessing
+	 * Class and method called to run preprocessing
 	 */
-	public boolean		isJavaPreprocessing = false;
+	public String javaPreprocessingClass = null;
 	/*
-	 * Whether or not the Java preprocessing is before the preprocessing macro
+	 * Class and method called to run preprocessing, only exists if there are
+	 * two java preprocessings
 	 */
-	public boolean		preprocessingBeforeMacro = false;
+	public String javaAuxPreprocessingClass = null;
 	/*
-	 * Path to the Java postprocessing jar file
+	 * Path to the second pre-processing applied to the image, if there is any.
+	 * It can be either a macro file ('.ijm' or '.txt'), java code (a '.class' file,
+	 * a '.jar' file or a folder containing classes) or null if there is no processing.
 	 */
-	public String		javaPostprocessing;
+	public String		secondPreprocessing = null;
 	/*
-	 * Whether or not there is Java postprocessing
+	 * Path to the first first post-processing applied to the image, if there is any.
+	 * It can be either a macro file ('.ijm' or '.txt'), java code (a '.class' file,
+	 * a '.jar' file or a folder containing classes) or null if there is no processing.
 	 */
-	public boolean		isJavaPostprocessing = false;
+	public String		firstPostprocessing = null;
 	/*
-	 * Whether or not the Java postprocessing is before the postprocessing macro
+	 *Path to the second post-processing applied to the image, if there is any.
+	 * It can be either a macro file ('.ijm' or '.txt'), java code (a '.class' file,
+	 * a '.jar' file or a folder containing classes) or null if there is no processing.
 	 */
-	public boolean		postprocessingBeforeMacro = true;
+	public String		secondPostprocessing = null;
+	/*
+	 * Class and method called to run postprocessing
+	 */
+	public String javaPostprocessingClass = null;
+	/*
+	 * Class and method called to run postprocessing, only exists if there are
+	 * two java postprocessings
+	 */
+	public String javaAuxPostprocessingClass = null;
+	/*
+	 * Whether the network has a pyramidal pooling structure or not.
+	 * If it has it, the way to define the model changes. By default
+	 * it is false.
+	 */
+	public boolean pyramidalNetwork = false;
+	/*
+	 * Whether the model allows patching or has to use the whole image
+	 * always.
+	 */
+	public boolean allowPatching = true;
+	
 	/*
 	 * Image used to test the model
 	 */
-	public ImagePlus[] testImage;
+	public ImagePlus testImage;
+	/*
+	 * List of all the images and ResultsTables that
+	 * make the final output of the model
+	 */
+	public List<HashMap<String, String>> savedOutputs = new ArrayList<HashMap<String, String>>();
+	
 	// Copy created to return the original image in the case
 	// that the model fails after applying the macros
 	public ImagePlus testImageBackup;
@@ -101,21 +134,21 @@ public class Parameters {
 		
 	// in ModelInformation
 	public String		name					= "";
-	public String		author					= "";
+	public List<String>	author					= new ArrayList<String>();
 	public String		doi						= "";
 	public String		version					= "";
 	public String		date					= "";
-	public String		reference				= "";
+	public List<String>	reference				= new ArrayList<String>();
 	
-	public String		documentation			= "";
+	public String		documentation			= null;
 	private String[] 	deepImageJTag			= {"deepImageJ"};
 	public List<String>	infoTags				= Arrays.asList(deepImageJTag);
-	public String		license					= "";
+	public String		license					= null;
 	public String		language				= "Java";
 	public String		framework				= "Tensorflow";
-	public String		source					= "";
-	public String		coverImage				= "";
-	public String		description				= "";
+	public String		source					= null;
+	public String		coverImage				= null;
+	public String		description				= null;
 
 	// in ModelTest
 	public String[]		inputSize;
@@ -134,22 +167,32 @@ public class Parameters {
 	// properly and not to crash because of different issues such as memory.
 	// They also regard the requirements for the input image
 	
-	
-	// List of input tensors to the model
+	/*
+	 * List of the selected input tensors to the model
+	 */
 	public List<DijTensor> inputList 	= new ArrayList<>();
-	// List of output tensors of the model
+	/*
+	 * List of the selected output tensors of the model
+	 */
 	public List<DijTensor> outputList 	= new ArrayList<>();
-	
-	public boolean		fixedPatch			= false;
+	/*
+	 * List of all the input tensors to the model
+	 */
+	public List<DijTensor> totalInputList 	= new ArrayList<>();
+	/*
+	 * List of all the output tensors of the model
+	 */
+	public List<DijTensor> totalOutputList 	= new ArrayList<>();
+	/*
+	 * If the input is fixed, only show the input size in the yaml file
+	 */
+	public boolean		fixedInput			= false;
 	public boolean		fixedPadding			= true;
 
 	// Halo used to allow the user modify the halo at DIJ run
 	// TODO establish min halo, take into account scaling
 	public int[]		final_halo = null;
 	
-	// Name if the default pre and post processing files
-	public String postprocessingFile = "postprocessing.txt";
-	public String preprocessingFile = "preprocessing.txt";
 	
 	
 	public Parameters(boolean valid, String path, boolean isDeveloper) {
@@ -163,11 +206,11 @@ public class Parameters {
 		Map<String, Object> config =  YAMLUtils.readConfig(yamlFile);
 
 		name = config.get("name") != null ? (String) config.get("name") : "";
-		author = config.get("author") != null ? (String) config.get("author") : "";
+		//author = config.get("author") != null ? (String) config.get("author") : "";
 		doi = config.get("URL") != null ? (String) config.get("URL") : "";
 		version = config.get("version") != null ? (String) config.get("version") : "";
 		date = config.get("Date") != null ? (String) config.get("Date") : "";
-		reference = config.get("Reference") != null ? (String) config.get("Reference") : "";
+		//reference = config.get("Reference") != null ? (String) config.get("Reference") : "";
 		
 		List b = (List) config.get("inputSize");
 		inputSize = castListToStringArray((List) config.get("inputSize")) != null ? castListToStringArray((List) config.get("inputSize")) : new String[] {""};

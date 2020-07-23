@@ -44,10 +44,7 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 
-import org.tensorflow.Graph;
-import org.tensorflow.Operation;
 import org.tensorflow.SavedModelBundle;
 
 import deepimagej.tools.Log;
@@ -153,6 +150,8 @@ public class DeepImageJ {
 			return false;
 		}
 		chrono = (System.nanoTime() - chrono) / 1000000.0;
+		//TODO remove
+		/*
 		Graph graph = model.graph();
 		Iterator<Operation> ops = graph.operations();
 		if (archi == true) {
@@ -166,6 +165,7 @@ public class DeepImageJ {
 		} else {
 			msgArchis.add(new String[] {"Archi could not be displayed with this tf version"});
 		}
+		*/
 		log.print("Loaded");
 		msgLoads.add("Metagraph size: " + model.metaGraphDef().length);
 		msgLoads.add("Graph size: " + model.graph().toGraphDef().length);

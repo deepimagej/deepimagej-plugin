@@ -40,15 +40,12 @@ package deepimagej;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.swing.JFrame;
 
-import org.tensorflow.Graph;
-import org.tensorflow.Operation;
 import org.tensorflow.SavedModelBundle;
 import org.tensorflow.TensorFlowException;
 import org.tensorflow.framework.MetaGraphDef;
@@ -67,6 +64,7 @@ import deepimagej.tools.FileTools;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
 import deepimagej.tools.NumFormat;
+import ij.IJ;
 
 public class TensorFlowModel {
 
@@ -147,7 +145,7 @@ public class TensorFlowModel {
 		return valid;
 	}
 
-	public static SavedModelBundle load(String path, String tag, Log log, ArrayList<String> msg, ArrayList<String[]> architecture) {
+	public static SavedModelBundle load(String path, String tag, Log log, ArrayList<String> msg) {
 		log.print("load model from " + path);
 		msg.add("Load with tag: " + tag);
 
@@ -163,15 +161,7 @@ public class TensorFlowModel {
 			return null;
 		}
 		chrono = (System.nanoTime() - chrono);
-		Graph graph = model.graph();
-		Iterator<Operation> ops = graph.operations();
-		while (ops.hasNext()) {
-			Operation op = ops.next();
-			if (op != null)
-				architecture.add(new String[] { op.toString(), op.name(), op.type(), "" + op.numOutputs() });
-		}
 		log.print("Loaded");
-		msg.add("Metagraph (size=" + model.metaGraphDef().length + ") Graph (size=" + model.graph().toGraphDef().length + ")");
 		msg.add("Loading time: " + NumFormat.time(chrono));
 		return model;
 	}
@@ -460,6 +450,92 @@ public class TensorFlowModel {
 		frame.add(arch.getPane(500, 500));
 		frame.pack();
 		frame.setVisible(true);
+	}
+	
+	/*
+	 * Retrieves the TF version that is going to be used for the plugin.
+	 * In order to do that, the method searches in two locations where the 
+	 *.jars might be: in the plugins folder or in the jars folder
+	 */
+	public static String getTFVersion() {
+		String tfJni = getLibTfJar();
+		String tfVersion = getTfVersionFromJar(tfJni);
+		return tfVersion;	
+	}
+	
+	/*
+	 * Finds the directory where the tf jar is
+	 */
+	public static String getLibTfJar() {
+		
+		// Search in the plugins folder
+		String ijDirectory = IJ.getDirectory("imagej") + File.separator;
+		// TODO remove 
+		ijDirectory = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app";
+		String pluginsDirectory = ijDirectory + File.separator + "plugins" + File.separator;
+		String pluginsJar = findTFJar(pluginsDirectory);
+		
+		// Search in the jars folder
+		String jarDirectory = ijDirectory + File.separator + "jars" + File.separator;
+		String jarsJar = findTFJar(jarDirectory);
+		
+		// Check that there is only one jar file present in both folders
+		if (jarsJar.equals(pluginsJar) == true) {
+			return "invalid";
+		}
+		
+		// Find which of them is actually the TF jni jar
+		String tfJni = pluginsJar;
+		if (tfJni.equals("") == true) {
+			tfJni = jarsJar;
+		}
+		return tfJni;
+	}
+	
+	/*
+	 * Finds the file corresponding to the tf jar
+	 */
+	public static String findTFJar(String folderDir) {
+		// Find the file libtensorflow_jni.jar
+		
+		// Name of the TF jni without the version
+		String jarName = "libtensorflow_jni";
+		// Auxiliary variable to make sure we only have one TF jni
+		int nJars = 0;
+		String tfJar = "";
+		
+		File folder = new File(folderDir);
+		File[] listOfFiles = folder.listFiles();
+		
+		for (File file : listOfFiles) {
+			if (file.isFile() == true) {
+				String fileName = file.getAbsolutePath();
+				if (fileName.indexOf(jarName) != -1) {
+					nJars ++;
+					tfJar = fileName;
+				}
+			}
+		}
+		
+		if (nJars == 0) {
+			
+		} else if (nJars >1) {
+			tfJar = "";
+		}
+		
+		return tfJar;
+	}
+	
+	/*
+	 * Get the version number from the jar file
+	 */
+	public static String getTfVersionFromJar(String jar) {
+		// Name of the TF jni without the version
+		String folderName = new File(jar).getParent();
+		String jarName = folderName + File.pathSeparator + "libtensorflow_jni-";
+		String jarExt = ".jar";
+		String tfVersion = jar.substring(jarName.length(), jar.indexOf(jarExt));
+		return tfVersion;
 	}
 
 }
