@@ -114,11 +114,17 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	public void buildPanel() {
 		
 		HTMLPane info = new HTMLPane(Constants.width, 180);
-		info.append("h2", "Input size constraints");
-		info.append("p", "<b>Patch size (Q) </b>: If the network has not a predetermined input size, patch decomposition of default size <i>Q</i> is allowed.");
-		info.append("p", "<b>Padding (P) </b>: To preserve the input size at the output, convolutions are calculated using zero padding boundary conditions of size <i>P</i>.");
+		info.append("h", "<b>Input size constraints</b>");
+		info.append("p", "<b>Patch size (Q) </b>: patch size used to process the image with teh current model. "
+				+ "If <i>Allow patch decomposition</i> is selected, changes in <i>Q</i> will be allowed in inference.");
 		info.append("p", "<b>Multiple factor (m) </b>: If the network has an auto-encoder architecture, the size of each dimension of the input image, has to be multiple of a minimum size m.");
 			
+		info.append("h", "<b>Patching strategies</b>");
+		info.append("p", "<b>Allow patch decomposition</b>: <i>Q</i> will be editable by the user as long as it fulfils the <i>multiple factor</i> constraint.");
+		info.append("p", "<b>Predetermined input size</b>: <i>Q</i> will be fixed. If the image is bigger than <i>Q</i> a tiling approach will be followed.");
+		info.append("p", "<b>Do not allow patches (fixed input size)</b>: <i>Q</i> will be fixed. Only images with the same size as <i>Q</i> will be accepted.");
+		info.append("p", "<b>Do not allow patches (variable size)</b>: we cannot select <i>Q</i>. The input image will be processed as a whole (no tiling) taking into account the <i>multiple factor</i> constraint.");
+		
 		GridPanel buttons = new GridPanel(true);
 		buttons.setBorder(BorderFactory.createEtchedBorder());
 		buttons.place(0, 0, bnPrevOutput);
@@ -128,7 +134,7 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		DijTensor auxTensor = new DijTensor("aux");
 		auxTensor.tensorType = "image";
 		auxTensor.tensor_shape = new int[5];
-		auxTensor.form = "NDHWC";
+		auxTensor.form = "BZYXC";
 		boolean start = true;
 		buildPanelForImage(auxTensor, start);
 		
@@ -314,7 +320,7 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		int[] patch = new int[params.inputList.get(inputCounter).form.length()];
 		int[] step = new int[params.inputList.get(inputCounter).form.length()];
 		
-		int batchInd = Index.indexOf(params.inputList.get(0).form.split(""), "N");
+		int batchInd = Index.indexOf(params.inputList.get(0).form.split(""), "B");
 		multiple[batchInd] = 1; patch[batchInd] = 1; step[batchInd] = 0;
 		//step[batchInd] = 1;
 
@@ -492,13 +498,13 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		
 		int size = 0;
 		switch (dimChar) {
-			case "H":
+			case "Y":
 				size = imp.getHeight();
 				break;
-			case "W":
+			case "X":
 				size = imp.getWidth();
 				break;
-			case "D":
+			case "Z":
 				size = imp.getNSlices();
 				break;
 			case "C":

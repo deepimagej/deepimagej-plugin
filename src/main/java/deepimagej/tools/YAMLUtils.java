@@ -166,11 +166,7 @@ public class YAMLUtils {
 		data.put(idName, params.name);
 		// Short description of the model
 		data.put(idDescription, params.description);
-		// Credits to the lab where it was done
-		// Date when the model was produced
-		data.put(idDate, params.date);
 		// List of authors who trained/prepared the actual model which is being saved
-		//data.put(idAuthors, listAuthors(params.author));
 		data.put(idAuthors, params.author);
 		
 		// Citation
@@ -334,11 +330,12 @@ public class YAMLUtils {
 		}
 	}
 	
+	/*TODO remove
 	public static List<String> listAuthors(String authorsString) {
 		String[] authorsArray = authorsString.split(",");
 		List<String> authorsList = Arrays.asList(authorsArray);
 		return authorsList;
-	}
+	}*/
 	
 	public static Map<String, Object> readConfig(String yamlFile) {
 		File initialFile = new File(yamlFile);
@@ -396,13 +393,13 @@ public class YAMLUtils {
 		for (Object inp : inputs) {
 			DijTensor inpTensor = new DijTensor((String) ((Map<String, Object>) inp).get(idName));
 			inpTensor.form = (String) ((Map<String, Object>) inp).get(idNodeAxes);
-			List auxTensorShape = (List) ((Map<String, Object>) inp).get(idNodeDims);
+			List auxTensorShape = (List) ((Map<String, Object>) inp).get("shape");
 			inpTensor.tensor_shape = castListToIntArray(auxTensorShape);
 			//inpTensor.dataType = (String) ((Map<String, Object>) inp).get(idNodeDataType);
 			List auxDataRange = (List) ((Map<String, Object>) inp).get(idNodeDataRange);
 			inpTensor.dataRange = castListToDoubleArray(auxDataRange);
 			Map<String, Object> shape = (Map<String, Object>) ((Map<String, Object>) inp).get(idNodeShape);
-			List auxRecommendedPatch = (List) shape.get(idPatchSize);
+			List auxRecommendedPatch = (List) shape.get("shape");
 			inpTensor.recommended_patch = castListToIntArray(auxRecommendedPatch);
 			List auxMinimumSize = (List) shape.get(idNodeShapeMin);
 			inpTensor.minimum_size = castListToIntArray(auxMinimumSize);
@@ -417,7 +414,7 @@ public class YAMLUtils {
 		for (Object out : outputs) {
 			DijTensor outTensor = new DijTensor((String) ((Map<String, Object>) out).get(idName));
 			outTensor.form = (String) ((Map<String, Object>) out).get(idNodeAxes);
-			List auxTensorShape = (List) ((Map<String, Object>) out).get(idNodeDims);
+			List auxTensorShape = (List) ((Map<String, Object>) out).get("shape");
 			outTensor.tensor_shape = castListToIntArray(auxTensorShape);
 			//inpTensor.dataType = (String) ((Map<String, Object>) inp).get(idNodeDataType);
 			List auxDataRange = (List) ((Map<String, Object>) out).get(idNodeDataRange);

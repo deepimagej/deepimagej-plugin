@@ -48,7 +48,7 @@ import deepimagej.components.HTMLPane;
 
 public class SelectPyramidalStamp extends AbstractStamp  {
 
-	private JCheckBox	checkPyramidal = new JCheckBox("Check if the model uses a Pyramidal Poolibg architecture");				
+	private JCheckBox	checkPyramidal = new JCheckBox("Check if the model uses a Pyramidal Pooling architecture");				
 	private String		model = "";
 	private HTMLPane	info;
 
@@ -64,11 +64,11 @@ public class SelectPyramidalStamp extends AbstractStamp  {
 		info.append("p", "Usually, complex architectures for which more than one input is "
 				+ "required or for which the output is multidimensional. These networks are "
 				+ "used in the detection, panoptic or instance segmentation, for which the "
-				+ "combination of bounding boxes and segmentation is needed. The most famous "
+				+ "combination of bounding boxes and segmentation is needed. Some  "
 				+ "examples are RetinaNet, R-CNN, Fast-RCNN, Mask-RCNN or PanopticFPN.");
 		JPanel main = new JPanel(new BorderLayout());
 		main.add(info.getPane(), BorderLayout.CENTER);
-		main.add(checkPyramidal, BorderLayout.SOUTH);
+		main.add(checkPyramidal, BorderLayout.PAGE_END);
 		panel.add(main);
 		checkPyramidal.setSelected(false);
 	}

@@ -79,12 +79,10 @@ public class SaveOutputFilesStamp extends AbstractStamp implements ActionListene
 	@Override
 	public void buildPanel() {
 		info = new HTMLPane(Constants.width, 70);
-		info.append("h2", "Pyramidal Pooling Network selection");
-		info.append("p", "Usually, complex architectures for which more than one input is "
-				+ "required or for which the output is multidimensional. These networks are "
-				+ "used in the detection, panoptic or instance segmentation, for which the "
-				+ "combination of bounding boxes and segmentation is needed. The most famous "
-				+ "examples are RetinaNet, R-CNN, Fast-RCNN, Mask-RCNN or PanopticFPN.");
+		info.append("h2", "Model output selection");
+		info.append("p", "Select the images and tables that you want to save in"
+				+ " the Bundled Model as the output of an example execution.");
+		info.append("p", "<i>The input is saved automatically</i>.");
 		listModel = new DefaultListModel<String>();
 		listModel.addElement("example");
 		openedList = new JList<String>(listModel);

@@ -64,6 +64,7 @@ import javax.swing.JTextField;
 
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
+import deepimagej.Parameters;
 import deepimagej.components.HTMLPane;
 import deepimagej.stamp.JavaPreprocessingStamp.LocalDropTarget1;
 import deepimagej.stamp.JavaPreprocessingStamp.LocalDropTarget2;
@@ -71,10 +72,13 @@ import ij.IJ;
 
 public class JavaPostprocessingStamp extends AbstractStamp implements ActionListener {
 
-	private JTextField txt1 = new JTextField("Drop zone for the first preprocessing");
-	private JTextField txt2 = new JTextField("Drop zone for the second preprocessing");
+	private JTextField txt1 = new JTextField("Drop zone for the first postprocessing");
+	private JTextField txt2 = new JTextField("Drop zone for the second postprocessing");
 	private JButton bnBrowse1 = new JButton("Browse");
 	private JButton bnBrowse2 = new JButton("Browse");
+	
+	// Variable to keep track of the model being used
+	private String model = "";
 	
 	public JavaPostprocessingStamp(BuildDialog parent) {
 		super(parent);
@@ -86,11 +90,12 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 
 		HTMLPane pane = new HTMLPane(Constants.width, 90);
 		pane.setBorder(BorderFactory.createEtchedBorder());
-		pane.append("h2", "Preprocessing Java extension");
-		pane.append("p", "Drop a java jar that extends the plugin and implements " 
-				+ "some complex prepsrocessing. The code will be executed after the macro"
-				+ " call if not stated otherwise by the user."
-				+ "The provided jar will be saved in the packaged model.");
+		pane.append("h2", "External Postprocessing");
+		pane.append("p", "Add the wanted postprocessing for the model. The "
+				+ "postprocessing can be implemented either with a macro routine or"
+				+ " with Java code.");
+		pane.append("p", "For macro files, extensions '.txt' or '.ijm' are allowed.");
+		pane.append("p", "The Java code can be included with either '.class' or '.jar' files");
 		
 		txt1.setFont(new Font("Arial", Font.BOLD, 14));
 		txt1.setForeground(Color.red);
@@ -130,6 +135,14 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 
 	@Override
 	public void init() {
+		Parameters params = parent.getDeepPlugin().params;
+		if (!model.contentEquals(params.path2Model))
+			model = params.path2Model;
+		if (params.firstPostprocessing == null || !model.contentEquals(params.path2Model))
+			txt1.setText("Drop zone for the first postprocessing");
+		if (params.secondPostprocessing == null || !model.contentEquals(params.path2Model))
+			txt2.setText("Drop zone for the second postprocessing");
+		
 	}
 
 	@Override

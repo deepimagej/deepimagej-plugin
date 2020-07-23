@@ -137,8 +137,7 @@ public class Parameters {
 	public List<String>	author					= new ArrayList<String>();
 	public String		doi						= "";
 	public String		version					= "";
-	public String		date					= "";
-	public List<String>	reference				= new ArrayList<String>();
+	public String		reference				= "";
 	
 	public String		documentation			= null;
 	private String[] 	deepImageJTag			= {"deepImageJ"};
@@ -209,7 +208,7 @@ public class Parameters {
 		//author = config.get("author") != null ? (String) config.get("author") : "";
 		doi = config.get("URL") != null ? (String) config.get("URL") : "";
 		version = config.get("version") != null ? (String) config.get("version") : "";
-		date = config.get("Date") != null ? (String) config.get("Date") : "";
+		//date = config.get("Date") != null ? (String) config.get("Date") : "";
 		//reference = config.get("Reference") != null ? (String) config.get("Reference") : "";
 		
 		List b = (List) config.get("inputSize");

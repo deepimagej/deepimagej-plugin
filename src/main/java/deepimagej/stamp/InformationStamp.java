@@ -162,46 +162,61 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		pn.add(new JLabel("Version"), labelC);
 		pn.add(txtVersion, infoC);
 	   	
-		JFrame citeFr = createAddRemoveFrame(txtCite, citeAddBtn, "cite", citeRmvBtn);
+		//JFrame citeFr = createAddRemoveFrame(txtCite, citeAddBtn, "cite", citeRmvBtn);
 
 		labelC.gridy = 4;
 		infoC.gridy = 4;
 		pn.add(new JLabel("Article reference"), labelC);
-		pn.add((JComponent) citeFr.getContentPane(), infoC);
+		pn.add(txtCite, infoC);
+		
 		labelC.gridy = 5;
+		labelC.gridheight = 2;
+		
 		infoC.gridy = 5;
-		pn.add(new JLabel("<html>Short description of<br/>the model</html>"), labelC);
-		txtDescription.setSize(new Dimension(3, 24));
+		infoC.gridheight = 2;
+
+		infoC.ipady = 40; 
+		infoC.ipadx = 0; 
+		
+		pn.add(new JLabel("<html>Description of<br/>the model</html>"), labelC);
+		txtDescription.setPreferredSize(new Dimension(3000, 1000));
 		txtDescription.setLineWrap(true);
 		txtDescription.setWrapStyleWord(true);
+		JScrollPane txtScroller = new JScrollPane(txtDescription);
+		txtScroller.setPreferredSize(new Dimension(txtDescription.getPreferredSize().width, txtDescription.getPreferredSize().height + 50));
 
-		pn.add(txtDescription, infoC);
+		pn.add(txtScroller, infoC);
 
-		labelC.gridy = 6;
-		infoC.gridy = 6;
+		labelC.gridy = 7;
+		labelC.gridheight = 1;
+		infoC.gridy = 7;
+		infoC.gridheight = 1;
+
+		infoC.ipady = 0; 
+		infoC.ipadx = 0;
 		pn.add(new JLabel("Link to documentation"), labelC);
 		pn.add(txtDocumentation, infoC);
-		labelC.gridy = 7;
-		infoC.gridy = 7;
-		pn.add(new JLabel("Type of license"), labelC);
-		pn.add(txtLicense, infoC);
 		labelC.gridy = 8;
 		infoC.gridy = 8;
+		pn.add(new JLabel("Type of license"), labelC);
+		pn.add(txtLicense, infoC);
+		labelC.gridy = 9;
+		infoC.gridy = 9;
 		pn.add(new JLabel("Link to model source"), labelC);
 		pn.add(txtSource, infoC);
 
 		
 		JFrame tagsFr = createAddRemoveFrame(txtTag, tagAddBtn, "tag", tagRmvBtn);
 
-		labelC.gridy = 9;
-		infoC.gridy = 9;
+		labelC.gridy = 10;
+		infoC.gridy = 10;
 		pn.add(new JLabel("<html>Tags to describe the<br/> model in the model zoo</html>"), labelC);
 		pn.add((JComponent) tagsFr.getContentPane(), infoC);
 		
 		JPanel p = new JPanel(new BorderLayout());
 		
 		JScrollPane scroll = new JScrollPane();
-		pn.setPreferredSize(new Dimension(pn.getWidth() + 400, pn.getHeight() + 800));
+		pn.setPreferredSize(new Dimension(pn.getWidth() + 400, pn.getHeight() + 600));
         scroll.setPreferredSize(new Dimension(pn.getWidth() + 300, pn.getHeight() + 400));
         scroll.setViewportView(pn);
 		
@@ -277,6 +292,8 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		params.name = txtName.getText().trim();
 		params.doi = txtURL.getText().trim();
 		params.version = txtVersion.getText().trim();
+		// TODO decide if allow one or more citations
+		params.reference = txtCite.getText().trim();
 
 		params.documentation = txtDocumentation.getText().trim();
 		params.license = txtLicense.getText().trim();
@@ -289,11 +306,13 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 			params.author = introducedAuth;
 		params.doi = params.doi.equals("") ? null : params.doi;
 		params.version = params.version.equals("") ? null : params.version;
-		params.date = params.date.equals("") ? null : params.date;
+		params.reference = params.reference.equals("") ? null : params.reference;
+		// TODO see whether to allow only one or several citaions
+		/*
 		params.reference = null;
 		if (introducedCite.size() > 0)
 			params.reference = introducedCite;
-
+		*/
 		params.documentation = params.documentation.equals("") ? null : params.documentation;
 		params.license = params.license.equals("") ? null : params.license;
 		params.source = params.source.equals("") ? null : params.source;
@@ -320,6 +339,7 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 			authModel.addElement(name);
 		}
 		authList.setModel(authModel);
+		txtAuth.setText("");
 	}
 	public void removeAuthor() {
 		// Get the author selected
@@ -394,6 +414,7 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 			tagModel.addElement(name);
 		}
 		tagList.setModel(tagModel);
+		txtTag.setText("");
 	}
 	public void removeTag() {
 		// Get the author selected

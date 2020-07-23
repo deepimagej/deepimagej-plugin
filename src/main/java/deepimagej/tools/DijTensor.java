@@ -46,7 +46,7 @@ public class DijTensor {
 	public String 		name;
 	// Tensor dimensions of the input. Ex: [-1,-1, -1, 1]
 	public int[]		tensor_shape;
-	// Organization of the input. Ex: "NHWC"
+	// Organization of the input. Ex: "BYXC"
 	public String		form;
 	// Minimum size of a patch (in all dimensions). Ex: [-1,8,8,1]
 	// the same dimension organization is kept
@@ -161,7 +161,7 @@ public class DijTensor {
 	
 	public static int[] getWorkingDimValues(String form, int[] values) {
 		String[] splitForm = form.split("");
-		int batchInd = Index.indexOf(splitForm, "N");
+		int batchInd = Index.indexOf(splitForm, "B");
 		if (batchInd != -1) {
 			int c = 0;
 			int[] newValues = new int[values.length - 1];
@@ -177,7 +177,7 @@ public class DijTensor {
 	
 	public static String[] getWorkingDims(String form) {
 		String[] splitForm = form.split("");
-		int batchInd = Index.indexOf(splitForm, "N");
+		int batchInd = Index.indexOf(splitForm, "B");
 		if (batchInd != -1) {
 			form = form.substring(0, batchInd) + form.substring(batchInd + 1);
 			splitForm = form.split("");
@@ -187,7 +187,7 @@ public class DijTensor {
 	
 	public static int getBatchInd(String form) {
 		String[] splitForm = form.split("");
-		int batchInd = Index.indexOf(splitForm, "N");
+		int batchInd = Index.indexOf(splitForm, "B");
 		return batchInd;
 	}
 	

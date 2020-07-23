@@ -70,7 +70,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 	private static List<JComboBox<String>>	outputs;
 	private List<JComboBox<String>>	inTags;
 	private static List<JComboBox<String>>	outTags;
-	private String[]				in			= { "N", "H", "W", "C", "D" };
+	private String[]				in			= { "B", "Y", "X", "C", "Z" };
 	private String[]				inputOptions= { "image", "parameter"};
 	private static String[]			outOptions	= { "image", "list", "ignore"};
 	private HTMLPane				pnDim;
@@ -102,7 +102,6 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 		List<DijTensor> outputTensors = params.totalOutputList;
 
 		// Set the correct information about each tensor
-		//pnDim.clear();
 		pnDim= new HTMLPane(Constants.width, 250);
 		File file = new File(parent.getDeepPlugin().params.path2Model);
 		String dirname = "untitled";
@@ -113,7 +112,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 		// we need to rebuild the panel or not
 		model = params.path2Model;
 		
-		pnDim.append("i", "W for width (axis X), H for height (axis Y), N for batch, C for channel");
+		pnDim.append("i", "X for width (axis X), Y for height (axis Y), Z for depth (axis Z), B for batch, C for channel");
 		for (DijTensor tensor : inputTensors) 
 			pnDim.append("p", tensor.name + " Tensor Dimensions : " + Arrays.toString(tensor.tensor_shape));
 		for (DijTensor tensor : outputTensors) 

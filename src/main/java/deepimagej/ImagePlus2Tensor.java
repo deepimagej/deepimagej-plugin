@@ -108,7 +108,7 @@ public class ImagePlus2Tensor {
 		// of the ImagePlus
 		ImageProcessor ip = img.getProcessor();
 		
-		if (form.equals("HW") == true) {
+		if (form.equals("YX") == true) {
 			matImage = new float[ySize][xSize];
 			matImage = iProcessor2matrixHW(ip);
 		} else {
@@ -140,27 +140,27 @@ public class ImagePlus2Tensor {
 		// of the dimensions in the ImagePlus
 		String[] imPlusForm = new String[3];
 		
-		if (form.indexOf("N") != -1) {
-			fChannelsOrBatch = form.indexOf("N");
+		if (form.indexOf("B") != -1) {
+			fChannelsOrBatch = form.indexOf("B");
 			tensorDims[fChannelsOrBatch] = batch;
 			// The third dimension of the tensor is batch size
-			imPlusForm[0] = "N"; imPlusForm[1] =  "H";
-			imPlusForm[2] = "W";
+			imPlusForm[0] = "B"; imPlusForm[1] =  "Y";
+			imPlusForm[2] = "X";
 			}
-		if (form.indexOf("H") != -1) {
-			int fHeight = form.indexOf("H");
+		if (form.indexOf("Y") != -1) {
+			int fHeight = form.indexOf("Y");
 			tensorDims[fHeight] = ySize;
 		}
-		if (form.indexOf("W") != -1) {
-			int fWidth = form.indexOf("W");
+		if (form.indexOf("X") != -1) {
+			int fWidth = form.indexOf("X");
 			tensorDims[fWidth] = xSize;
 		}
 		if (form.indexOf("C") != -1) {
 			fChannelsOrBatch = form.indexOf("C");
 			tensorDims[fChannelsOrBatch] = nChannels;
 			// The third dimension of the tensor is channels
-			imPlusForm[0] = "C"; imPlusForm[1] =  "H";
-			imPlusForm[2] = "W";
+			imPlusForm[0] = "C"; imPlusForm[1] =  "Y";
+			imPlusForm[2] = "X";
 		}
 		matImage = new float[tensorDims[0]][tensorDims[1]][tensorDims[2]];
 	
@@ -206,18 +206,18 @@ public class ImagePlus2Tensor {
 		// of the dimensions in the ImagePlus
 		//String[] imPlusForm = {"N", "C", "H", "W"};
 		//TODO
-		String[] imPlusForm = {"N", "C", "W", "H"};
+		String[] imPlusForm = {"B", "C", "X", "Y"};
 		
-		if (form.indexOf("N") != -1) {
-			fBatch = form.indexOf("N");
+		if (form.indexOf("B") != -1) {
+			fBatch = form.indexOf("B");
 			tensorDims[fBatch] = batch;
 		}
-		if (form.indexOf("H") != -1) {
-			int fHeight = form.indexOf("H");
+		if (form.indexOf("Y") != -1) {
+			int fHeight = form.indexOf("Y");
 			tensorDims[fHeight] = ySize;
 		}
-		if (form.indexOf("W") != -1) {
-			int fWidth = form.indexOf("W");
+		if (form.indexOf("X") != -1) {
+			int fWidth = form.indexOf("X");
 			tensorDims[fWidth] = xSize;
 		}
 		if (form.indexOf("C") != -1) {
@@ -273,26 +273,26 @@ public class ImagePlus2Tensor {
 		// of the dimensions in the ImagePlus
 		//String[] imPlusForm = {"N", "C", "H", "W"};
 		//TODO
-		String[] imPlusForm = {"N", "C", "W", "H", "D"};
+		String[] imPlusForm = {"B", "C", "X", "Y", "Z"};
 		
-		if (form.indexOf("N") != -1) {
-			fBatch = form.indexOf("N");
+		if (form.indexOf("B") != -1) {
+			fBatch = form.indexOf("B");
 			tensorDims[fBatch] = batch;
 		}
-		if (form.indexOf("H") != -1) {
-			int fHeight = form.indexOf("H");
+		if (form.indexOf("Y") != -1) {
+			int fHeight = form.indexOf("Y");
 			tensorDims[fHeight] = ySize;
 		}
-		if (form.indexOf("W") != -1) {
-			int fWidth = form.indexOf("W");
+		if (form.indexOf("X") != -1) {
+			int fWidth = form.indexOf("X");
 			tensorDims[fWidth] = xSize;
 		}
 		if (form.indexOf("C") != -1) {
 			fChannel = form.indexOf("C");
 			tensorDims[fChannel] = nChannels;
 		}
-		if (form.indexOf("D") != -1) {
-			fDepth = form.indexOf("D");
+		if (form.indexOf("Z") != -1) {
+			fDepth = form.indexOf("Z");
 			tensorDims[fDepth] = zSize;
 		}
 		matImage = new float[tensorDims[0]][tensorDims[1]][tensorDims[2]][tensorDims[3]][tensorDims[4]];
@@ -386,7 +386,7 @@ public class ImagePlus2Tensor {
 		
 		ImagePlus imPlus = null;
 		long[] longShape = tensor.shape();
-		int batchIndex = form.indexOf("N");
+		int batchIndex = form.indexOf("B");
 		if (batchIndex == -1 || longShape[batchIndex] == 1) {
 			int[] tensorShape = new int[longShape.length];
 			for (int i = 0; i < tensorShape.length; i ++) {
@@ -414,11 +414,11 @@ public class ImagePlus2Tensor {
 		
 		// ImagePlus dimensions in the TensorFlow style. In this case we consider N as T,
 		// as for the moment both are going to be 1
-		String imPlusForm = "WHCDN";
+		String imPlusForm = "XYCZB";
 		
 		ImagePlus imPlus = null;
 		long[] longShape = tensor.shape();
-		int batchIndex = form.indexOf("N");
+		int batchIndex = form.indexOf("B");
 		if (batchIndex == -1 || longShape[batchIndex] == 1) {
 			int[] tensorShape = new int[longShape.length];
 			for (int i = 0; i < tensorShape.length; i ++) {
@@ -478,11 +478,11 @@ public class ImagePlus2Tensor {
 		
 		// ImagePlus dimensions in the TensorFlow style. In this case we consider N as T,
 		// as for the moment both are going to be 1
-		String imPlusForm = "WHCDN";
+		String imPlusForm = "XYCZB";
 		
 		ImagePlus imPlus = null;
 		long[] longShape = tensor.shape();
-		int batchIndex = form.indexOf("N");
+		int batchIndex = form.indexOf("B");
 		if (batchIndex == -1 || longShape[batchIndex] == 1) {
 			int[] tensorShape = new int[longShape.length];
 			for (int i = 0; i < tensorShape.length; i ++) {
@@ -542,11 +542,11 @@ public class ImagePlus2Tensor {
 		
 		// ImagePlus dimensions in the TensorFlow style. In this case we consider N as T,
 		// as for the moment both are going to be 1
-		String imPlusForm = "WHCDN";
+		String imPlusForm = "XYCZB";
 		
 		ImagePlus imPlus = null;
 		long[] longShape = tensor.shape();
-		int batchIndex = form.indexOf("N");
+		int batchIndex = form.indexOf("B");
 		if (batchIndex == -1 || longShape[batchIndex] == 1) {
 			int[] tensorShape = new int[longShape.length];
 			for (int i = 0; i < tensorShape.length; i ++) {
@@ -617,7 +617,7 @@ public class ImagePlus2Tensor {
 		// img_shape = [nx,ny,nc,nz,nt, batch_size]
 		int[] shape = { 1, 1, 1, 1, 1, 1 };
 		// Define the mapping and position in the ImagePlus and the letter
-		String[] dimList = { "W", "H", "C", "D", "N" };
+		String[] dimList = { "X", "Y", "C", "Z", "B" };
 		int[] positionMapping = { 0, 1, 2, 3, 5 };
 		String dimLetter;
 		int position;
@@ -689,11 +689,11 @@ public class ImagePlus2Tensor {
 		
 		// ImagePlus dimensions in the TensorFlow style. In this case we consider N as T,
 		// as for the moment both are going to be 1
-		String imPlusForm = "WHCDN";
+		String imPlusForm = "XYCZB";
 		
 		double[][][][][] correctImage = null;
 		long[] longShape = tensor.shape();
-		int batchIndex = form.indexOf("N");
+		int batchIndex = form.indexOf("B");
 		if (batchIndex == -1 || longShape[batchIndex] == 1) {
 			int[] tensorShape = new int[longShape.length];
 			for (int i = 0; i < tensorShape.length; i ++) {

@@ -155,7 +155,7 @@ private int							currentPatch = 0;
 		}
 		
 		int[] indices = new int[4];
-		String[] dimLetters = "WHCD".split("");
+		String[] dimLetters = "XYCZ".split("");
 		for  (int i = 0; i < dimLetters.length; i ++)
 			indices[i] = Index.indexOf(params.inputList.get(inputImageInd).form.split(""), dimLetters[i]);
 		
@@ -171,9 +171,9 @@ private int							currentPatch = 0;
 		if (params.pyramidalNetwork || !params.allowPatching) {
 			for (String dim : params.inputList.get(inputImageInd).form.split("")) {
 				int imageCorrespondentDimension = Index.indexOf(dimLetters, dim);
-				if (!dim.contains("N") && patchSize[c] == -1) {
+				if (!dim.contains("B") && patchSize[c] == -1) {
 					patchSize[c ++] = imp.getDimensions()[imageCorrespondentDimension];
-				} else if (!dim.contains("N") && patchSize[c] != imp.getDimensions()[c]) {
+				} else if (!dim.contains("B") && patchSize[c] != imp.getDimensions()[c]) {
 					String errorMsg = "This model only accepts images with input size:";
 						for (int i = 0; i < dimLetters.length; i ++)
 							errorMsg += "\n" + dimLetters[i] + " : " + patchSize[i];
@@ -506,7 +506,7 @@ private int							currentPatch = 0;
 		String refForOutput = outTensor.referenceImage;
 		DijTensor refTensor = DijTensor.retrieveByName(refForOutput, inputList);
 		float[] outSize = new float[inpSize.length];
-		String[] standarForm = "WHCD".split("");
+		String[] standarForm = "XYCZ".split("");
 		for (int i = 0; i < outSize.length; i ++) {
 			int indOut = Index.indexOf(outTensor.form.split(""), standarForm[i]);
 			int indInp = Index.indexOf(refTensor.form.split(""), standarForm[i]);
@@ -534,11 +534,11 @@ private int							currentPatch = 0;
 		// of each patch.
 		// This dimensions are always of the form [x, y, c, d]
 		int[] padding = {0, 0, 0, 0};
-		String[] form = "WHCD".split("");
+		String[] form = "XYCZ".split("");
 		for (DijTensor out: outputs) {
 			for (int i = 0; i < form.length; i ++) {
 				int ind = Index.indexOf(out.form.split(""), form[i]);
-				if (ind != -1 && form[i].equals("N") == false) {
+				if (ind != -1 && form[i].equals("B") == false) {
 					double totalPad = Math.ceil((double)out.offset[ind] / (double)out.scale[ind]) + Math.ceil((double)out.halo[ind] / (double)out.scale[ind]);
 					if ((int) totalPad > padding[i]) {
 						padding[i] = (int) totalPad;
@@ -555,7 +555,7 @@ private int							currentPatch = 0;
 		// of each patch.
 		// This dimensions are always of the form [x, y, c, d]
 		int[][] offsets = new int[outputs.size()][4];
-		String[] form = "WHCD".split("");
+		String[] form = "XYCZ".split("");
 		int c1 = 0;
 		for (DijTensor out: outputs) {
 			int c2 = 0;

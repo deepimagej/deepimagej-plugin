@@ -58,7 +58,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import deepimagej.components.CustomizedColumn;
 import deepimagej.components.CustomizedTable;
-import deepimagej.exceptions.TensorDimensionsException;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.FileTools;
 import deepimagej.tools.Index;
@@ -239,28 +238,6 @@ public class TensorFlowModel {
 		}
 		return sig;
 	}
-	
-	// TODO check if this method can be removed
-	public static Object[] getDimensions(SavedModelBundle model, String sigDef) throws TensorDimensionsException {
-		// Retrieve the output tensor dimensions from the beginning
-		int[] outDims = null;
-		int[] inDims = null;
-		SignatureDef sig = getSignatureFromGraph(model, sigDef);
-		String[] outNames = returnOutputs(sig);
-		if (outNames.length == 1) {
-			outDims = modelExitDimensions(sig, outNames[0]);
-		}
-		String[] inNames = returnInputs(sig);
-		if (inNames.length == 1) {
-			inDims = modelEntryDimensions(sig, inNames[0]);
-		}
-
-		if (inDims.length > 4) {
-			throw new TensorDimensionsException();
-		}
-		Object[] dims = { inDims, outDims, inNames, outNames };
-		return dims;
-	}
 
 	public static int[] modelExitDimensions(SignatureDef sig, String entryName) {
 		// This method returns the dimensions of the tensor defined by
@@ -323,7 +300,7 @@ public class TensorFlowModel {
 		if (channelsOrSlices.equals("channels")) {
 			letter = "C";
 		} else {
-			letter = "D";
+			letter = "Z";
 		}
 		
 		int nChannels;
@@ -341,7 +318,7 @@ public class TensorFlowModel {
 	public static String hSize(Parameters params, String inputForm) {
 		// Find the number of channels in the input
 		String nChannels;
-		int ind = Index.indexOf(inputForm.split(""), "H");
+		int ind = Index.indexOf(inputForm.split(""), "Y");
 		if (ind == -1) {
 			nChannels = "-1";
 		}
@@ -354,7 +331,7 @@ public class TensorFlowModel {
 	public static String wSize(Parameters params, String inputForm) {
 		// Find the number of channels in the input
 		String nChannels;
-		int ind = Index.indexOf(inputForm.split(""), "W");
+		int ind = Index.indexOf(inputForm.split(""), "X");
 		if (ind == -1) {
 			nChannels = "-1";
 		}
@@ -368,7 +345,7 @@ public class TensorFlowModel {
 	public static String nBatch(int[] dims, String inputForm) {
 		// Find the number of channels in the input
 		String inBatch;
-		int ind = Index.indexOf(inputForm.split(""), "N");
+		int ind = Index.indexOf(inputForm.split(""), "B");
 		if (ind == -1) {
 			inBatch = "1";
 		} else {

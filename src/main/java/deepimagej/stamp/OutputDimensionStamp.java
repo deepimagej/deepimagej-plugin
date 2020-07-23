@@ -53,6 +53,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 
 import deepimagej.BuildDialog;
@@ -80,6 +81,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 	private static GridPanel		secondRow		= new GridPanel(true);
 	private static GridPanel		thirdRow		= new GridPanel(true);
 	private static GridPanel		pnRange			= new GridPanel(true);
+	private static JPanel 			pn				 = new JPanel();
 
 	private static JComboBox<String>referenceImage 	= new JComboBox<String>(new String[] {"aux"});
 	private static JLabel			lblName			= new JLabel("Name");
@@ -108,10 +110,10 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 	public void buildPanel() {
 		
 		HTMLPane info = new HTMLPane(Constants.width, 150);
-		info.append("h2", "Input size constraints");
-		info.append("p", "<b>Patch size (Q) </b>: If the network has not a predetermined input size, patch decomposition of default size <i>Q</i> is allowed.");
-		info.append("p", "<b>Padding (P) </b>: To preserve the input size at the output, convolutions are calculated using zero padding boundary conditions of size <i>P</i>.");
-		info.append("p", "<b>Multiple factor (m) </b>: If the network has an auto-encoder architecture, the size of each dimension of the input image, has to be multiple of a minimum size m.");
+		info.append("h2", "Output size constraints");
+		info.append("p", "<b>Scaling factor</b>: ???");
+		info.append("p", "<b>Halo facto</b>: ???");
+		info.append("p", "<b>Offset factor</b>: ???");
 		
 		pnOutputInfo.setBorder(BorderFactory.createEtchedBorder());
 		lblName.setText("aux");
@@ -158,13 +160,12 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		buttons.place(0, 0, bnPrevOutput);
 		buttons.place(0, 1, bnNextOutput);
 		
-		JPanel pn = new JPanel();
+		pn = new JPanel();
 		pn.setLayout(new BoxLayout(pn, BoxLayout.PAGE_AXIS));
 		pn.add(info.getPane());
 		pn.add(pnOutputInfo);
 		pn.add(buttons, BorderLayout.SOUTH);
 		
-		panel.removeAll();
 		panel.add(pn);
 		
 		bnNextOutput.addActionListener(this);
@@ -230,13 +231,29 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		firstRowList = new ArrayList<JTextField>();
 		secondRowList = new ArrayList<JTextField>();
 		thirdRowList = new ArrayList<JTextField>();
+		pn.remove(0);
 		if (params.outputList.get(outputCounter).tensorType.contains("image") && !params.pyramidalNetwork) {
 			// Build the panel
+			HTMLPane info = new HTMLPane(Constants.width, 150);
+			info.append("h", "<b>Output size constraints</b>");
+			info.append("p", "<b>Scaling factor</b>: ???");
+			info.append("p", "<b>Halo facto</b>: ???");
+			info.append("p", "<b>Offset factor</b>: ???");
+			pn.add(info.getPane(), 0);
 			getPanelForImage(params);
 		} else if (params.outputList.get(outputCounter).tensorType.contains("image") && params.pyramidalNetwork) {
 			// Build the panel
+			HTMLPane info = new HTMLPane(Constants.width, 150);
+			info.append("h", "<b>Output size constraints</b>");
+			info.append("p", "<b>Output size</b>: ???");
+			pn.add(info.getPane(), 0);
 			getPanelForImagePyramidalNet(params);
 		}else if (params.outputList.get(outputCounter).tensorType.contains("list")) {
+			HTMLPane info = new HTMLPane(Constants.width, 150);
+			info.append("h", "<b>Output size constraints</b>");
+			info.append("p", "<b>Choose the dimension corresponding to rows and the dimension "
+					+ "corresponding to columns.");
+			pn.add(info.getPane(), 0);
 			getPanelForList(params);
 		} else {
 			outputCounter ++;
@@ -269,7 +286,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		int cmbCount = 0;
 		for (int i = 0; i < params.outputList.get(outputCounter).scale.length; i++) {
 			if (i == batchInd) {
-				newForm = newForm + "N";
+				newForm = newForm + "B";
 			} else {
 				String selectedItem = String.valueOf(cmbRowList.get(cmbCount).getSelectedItem());
 				String letter = selectedItem.split("")[0];

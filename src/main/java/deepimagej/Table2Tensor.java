@@ -83,7 +83,7 @@ public class Table2Tensor {
 	public static ResultsTable copyData2table1D(Tensor<?> tensor, String form){
 		// TODO support batch size different to 1
 		ResultsTable table = null;
-		int batchInd = form.indexOf("N");
+		int batchInd = form.indexOf("B");
 		long[] tensorShape = tensor.shape();
 		//  Create array from tensor
 		float[][] tableMat2D = new float[(int) tensorShape[0]][(int) tensorShape[1]];
@@ -92,7 +92,7 @@ public class Table2Tensor {
 		} else if (batchInd == -1) {
 			float[][][] auxArray = new float[1][(int) tensorShape[0]][(int) tensorShape[1]];
 			auxArray[0] = tableMat2D;
-			table = getTablefrom3DArray(auxArray, (int)tensorShape[form.indexOf("R")], form, "NRC".split(""));
+			table = getTablefrom3DArray(auxArray, (int)tensorShape[form.indexOf("R")], form, "BRC".split(""));
 		} else {
 			tensor.copyTo(tableMat2D);
 			table = new ResultsTable();
@@ -113,8 +113,8 @@ public class Table2Tensor {
 	public static ResultsTable copyData2table2D(Tensor<?> tensor, String form){
 		// TODO support batch size different to 1
 		ResultsTable table = null;
-		String[] tableForm = "NRC".split("");
-		int batchInd = form.indexOf("N");
+		String[] tableForm = "BRC".split("");
+		int batchInd = form.indexOf("B");
 		long[] tensorShape = tensor.shape();
 		if (batchInd == -1 || tensorShape[batchInd] != 1) {
 			IJ.error("For the moment DeepImageJ only supports batch size of 1.");
