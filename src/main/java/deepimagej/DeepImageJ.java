@@ -42,14 +42,14 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Set;
 
 import org.tensorflow.SavedModelBundle;
 
 import deepimagej.tools.Log;
 import deepimagej.tools.DijTensor;
-import deepimagej.tools.Index;
+import deepimagej.tools.FileTools;
 import ij.IJ;
 import ij.ImagePlus;
 
@@ -59,23 +59,26 @@ public class DeepImageJ {
 	private Log 					log;
 	public String				dirname;
 	public Parameters			params;
-	private boolean				valid;
+	private boolean				valid = true;
 	public ArrayList<String>		msgChecks		= new ArrayList<String>();
 	public ArrayList<String>		msgLoads			= new ArrayList<String>();
 	public ArrayList<String[]>	msgArchis		= new ArrayList<String[]>();
 	private SavedModelBundle		model			= null;
-	public ArrayList<String>		preprocessing	= new ArrayList<String>();
-	public ArrayList<String>		postprocessing	= new ArrayList<String>();
 	
 	public DeepImageJ(String pathModel, String dirname, Log log, boolean isDeveloper) {
 		String p = pathModel + File.separator + dirname + File.separator;
 		this.path = p.replace(File.separator + File.separator, File.separator);
 		this.log = log;
 		this.dirname = dirname;
-		this.valid = isDeveloper ? TensorFlowModel.check(p, msgChecks) : check(p, msgChecks);
-		this.params = new Parameters(valid, path, isDeveloper);
-		preprocessing.add("no preprocessing");
-		postprocessing.add("no postprocessing");
+		// TODO adapt to new. 
+		//this.valid = isDeveloper ? TensorFlowModel.check(p, msgChecks) : check(p, msgChecks);
+		if (!isDeveloper && new File(path, "config.yaml").isFile()) {
+			this.params = new Parameters(valid, path, isDeveloper);
+			this.params.path2Model = this.path;
+		} else if (isDeveloper) {
+			this.params = new Parameters(valid, path, isDeveloper);
+		}
+		this.valid = check(p, msgChecks);
 	}
 
 	public String getPath() {
@@ -125,17 +128,8 @@ public class DeepImageJ {
 
 
 	public boolean loadModel(boolean archi) {
-		File dir = new File(path);
-		String[] files = dir.list();
 		log.print("load model from " + path);
-		for(String filename : files) {
-			if (filename.toLowerCase().startsWith("preprocessing"))
-				preprocessing.add(filename);
-			if (filename.toLowerCase().startsWith("postprocessing"))
-				postprocessing.add(filename);
-		}
-		
-		msgLoads.add("----------------------");
+
 		double chrono = System.nanoTime();
 		SavedModelBundle model;
 		try {
@@ -150,51 +144,53 @@ public class DeepImageJ {
 			return false;
 		}
 		chrono = (System.nanoTime() - chrono) / 1000000.0;
-		//TODO remove
-		/*
-		Graph graph = model.graph();
-		Iterator<Operation> ops = graph.operations();
-		if (archi == true) {
-			while (ops.hasNext()) {
-				Operation op = ops.next();
-				Object a = op.getClass();
-				if (op != null) {
-					msgArchis.add(new String[] {op.toString(), op.name(), op.type(), ""+op.numOutputs()});
-				}
-			}
-		} else {
-			msgArchis.add(new String[] {"Archi could not be displayed with this tf version"});
-		}
-		*/
 		log.print("Loaded");
-		msgLoads.add("Metagraph size: " + model.metaGraphDef().length);
-		msgLoads.add("Graph size: " + model.graph().toGraphDef().length);
-		msgLoads.add("Loading time: " + chrono + "ms");
+		if (msgLoads.size() == 0) {
+			msgLoads.add("Metagraph size: " + model.metaGraphDef().length);
+			msgLoads.add("Graph size: " + model.graph().toGraphDef().length);
+			msgLoads.add("Loading time: " + chrono + "ms");
+		}
 		return true;
 	}
 
-	public void writeParameters(TextArea info) {
+	public void writeParameters(TextArea info, ArrayList<String> checks) {
 		if (params == null) {
 			info.append("No params\n");
 			return;
 		}
-		info.append(params.name + "\n");
-		info.append(params.author + "\n");
-		info.append("----------------------\n");
+		info.append("----------- BASIC INFO -----------\n");
+		info.append("Name: " + params.name + "\n");
+		info.append(checks.get(0) + "\n");
+		info.append("Size: " + checks.get(1).substring(18) + "\n");
+		info.append("Authors" + "\n");
+		for (String auth : params.author)
+			info.append("  - " + auth + "\n");
+		info.append("References" + "\n");
+		for (HashMap<String, String> ref : params.cite) {
+			info.append("  - Article: " + ref.get("text") + "\n");
+			info.append("    Doi: " + ref.get("doi") + "\n");
+		}
+		info.append("Framework:" + params.framework + "\n");
 		
-		info.append("Tag: " + params.tag + "  Signature: " + params.graph + "\n");
+
+		info.append("------------ METADATA ------------\n");
+		info.append("Tag: " + params.tag + "\n");
+		info.append("Signature: " + params.graph + "\n");
+		info.append("Allow tiling: " + params.allowPatching + "\n");
 
 		info.append("Dimensions: ");
+		/* TODO remove
 		for (DijTensor inp : params.inputList) {
 			info.append(Arrays.toString(inp.tensor_shape));
 			int slices = 1;
-			int zInd = Index.indexOf(inp.form.split(""), "D");
+			int zInd = Index.indexOf(inp.form.split(""), "Z");
 			if (zInd != -1) {slices = inp.tensor_shape[zInd];}
 			int channels = 1;
 			int cInd = Index.indexOf(inp.form.split(""), "C");
 			if (cInd != -1) {channels = inp.tensor_shape[cInd];}
 			info.append(" Slices (" + slices + ") Channels (" + channels + ")\n");
 		}
+		*/
 		info.append("Input:");
 		for (DijTensor inp2 : params.inputList)
 			info.append(" " + inp2.name + " (" + inp2.form + ")");
@@ -203,16 +199,74 @@ public class DeepImageJ {
 		for (DijTensor out : params.outputList)
 			info.append(" " + out.name + " (" + out.form + ")");
 		info.append("\n");
+
+		info.append("------------ TEST INFO -----------\n");
+		info.append("Inputs:" + "\n");
+		for (DijTensor inp : params.inputList) {
+			info.append("  - Name: " + inp.exampleInput + "\n");
+			info.append("    Size: " + inp.inputTestSize + "\n");
+			info.append("      x: " + inp.inputPixelSizeX  + "\n");
+			info.append("      y: " + inp.inputPixelSizeY  + "\n");
+			info.append("      z: " + inp.inputPixelSizeZ  + "\n");			
+		}
+		info.append("Outputs:" + "\n");
+		for (HashMap<String, String> out : params.savedOutputs) {
+			// TODO Deicde info.append("  - Name: " + out.name + "\n");
+			info.append("  - Type: " + out.get("type") + "\n");
+			info.append("     Size: " + out.get("size")  + "\n");		
+		}
+		info.append("Memory peak: " + params.memoryPeak + "\n");
+		info.append("Runtime: " + params.runtime + "\n");
+		
 	}
 
-	
+	// TODO what we do with this??
 	public  boolean check(String path, ArrayList<String> msg) {
-		boolean valid = TensorFlowModel.check(path, msg);
+		msg.add("Path: " + path);
+		File dir = new File(path);
+		if (!dir.exists()) {
+			msg.add("Not found " + path);
+			return false;
+		}
+		if (!dir.isDirectory()) {
+			msg.add("Not found " + path);
+			return false;
+		}
+		boolean valid = true;
+		
 		File configFile = new File(path + "config.yaml");
 		if (!configFile.exists()) {
 			msg.add("No 'config.yaml' found in " + path);
 			valid = false;
+			return valid;
 		}
+
+		File modelFile = new File(path + "saved_model.pb");
+		if (!modelFile.exists()) {
+			msg.add("No 'saved_model.pb' found in " + path);
+			valid = false;
+		}
+		
+		Set<String> versions = this.params.previousVersions.keySet();
+		boolean isThereBiozoo = false;
+		for (String v : versions) {
+			if (v.contains("weights_" + v + ".zip")) 
+				isThereBiozoo = true;
+		}
+		if (isThereBiozoo) {
+			valid = true;
+			return valid;
+		}
+
+		File variableFile = new File(path + "variables");
+		if (!variableFile.exists()) {
+			msg.add("No 'variables' directory found in " + path);
+			valid = false;
+		}
+		else {
+			msg.add("TensorFlow model " + FileTools.getFolderSizeKb(path + "variables"));
+		}
+		
 		return valid;
 	}
 	

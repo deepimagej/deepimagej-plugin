@@ -48,11 +48,11 @@ public class DijTensor {
 	public int[]		tensor_shape;
 	// Organization of the input. Ex: "BYXC"
 	public String		form;
-	// Minimum size of a patch (in all dimensions). Ex: [-1,8,8,1]
-	// the same dimension organization is kept
+	// Minimum size of a patch (in all dimensions). Ex: [1,8,8,1]
+	// minimum of 8 for Y and X and 1 for B and C
 	public int[]		minimum_size;
 	// Whether each of the dimensions is fixed or not. Ex: [0, 1, 1, 0]
-	// means that H and W are fixed.
+	// means that H and W are not and can increase by 1 pixel fixed.
 	public int[]	step;
 	// Size of the padding in every axis. Ex: [null, 50, 50, 0]
 	// means removing 50 pixels in H and W. The organisation is the same as 
@@ -78,16 +78,6 @@ public class DijTensor {
 	//   - List, a list in an Excel file
 	//   - Ignore, the tensor is not used and discarded
 	public String		tensorType;
-	// Path only needed for input tensors that correspond to parameters.
-	// Contains the path to the file that contains the info needed to construct
-	// the tensor
-	public String		parameterPath;
-	/*
-	 * Whether the java interface method that it is used to
-	 * retrieve the parameter tensor has an ImagePlus as argument
-	 * or not
-	 */
-	public boolean		useImage;
 	/*
 	 * Parameter that indicates that all the needed information for a
 	 *  tensor to work is completed. Used in the InputTensorStamp and 
@@ -122,6 +112,20 @@ public class DijTensor {
 	 * Pixel size in Z of the input image used to create the bundled model
 	 */
 	public String inputPixelSizeZ;
+	/*
+	 * Data type of the tensor
+	 */
+	public String dataType;
+	/*
+	 * Name of the image used as input while creating the model.
+	 */
+	public String exampleInput = null;
+	/*
+	 * Copy of the tensor form for type list outputs. This
+	 * is used because the in lists the letters used change to
+	 * R (rows) and C (columns)
+	 */
+	public String auxForm;
 	
 	
 	public DijTensor(String name) {

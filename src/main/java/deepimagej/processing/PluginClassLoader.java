@@ -102,7 +102,12 @@ public class PluginClassLoader extends ClassLoader {
 
           // Create a File object. Interpret the filename relative to the
           // directory specified for this ClassLoader.
-          File f = new File(directory, filename);
+          File f;
+          if (directory.isDirectory()) {
+        	  f = new File(directory, filename);
+          } else {
+        	  f = directory;
+          }
 
           // Get the length of the class file, allocate an array of bytes for
           // it, and read it in all at once.

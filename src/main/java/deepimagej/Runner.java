@@ -79,19 +79,33 @@ private int							currentPatch = 0;
 		log.print("constructor runner");
 	}
 
-	// TODO remove
-	public Runner(DeepImageJ dp, RunnerProgress rp, Log log) {
-		this.dp = dp;
-		this.rp = rp;
-		this.log = log;
-		this.imp = null;
-	}
-
 	@Override
 	public HashMap<String, Object> call() {
 		log.print("call runner");
+		if (log.getLevel() >= 1)
+			rp.setVisible(true);
+
 
 		Parameters params = dp.params;
+		// Load the model first
+		SavedModelBundle model = dp.getModel();
+		log.print("model " + (model == null));
+		
+		String sigeDefTag = params.developer ? params.graph : TensorFlowModel.returnStringSig(params.graph);
+		SignatureDef sig = TensorFlowModel.getSignatureFromGraph(model, TensorFlowModel.returnStringSig(sigeDefTag));
+		log.print("sig " + (sig == null));
+		
+		if (!params.developer) {
+			String[] inputs = TensorFlowModel.returnInputs(sig);
+			for (int i = 0; i < inputs.length; i ++) {
+				if (DijTensor.retrieveByName(inputs[i], params.inputList) == null) {
+					DijTensor inp = new DijTensor(inputs[i]);
+					inp.tensorType = "parameter";
+					inp.setInDimensions(TensorFlowModel.modelEntryDimensions(sig, inputs[i]));
+					params.inputList.add(inp);
+				}
+			}
+		}
 		// Map that contains the input tensors that are not images.
 		// TODO restrict patching (or not) if the input contains parameters
         HashMap<String, Tensor<?>> parameterMap = new HashMap<String, Tensor<?>>(); 
@@ -138,9 +152,6 @@ private int							currentPatch = 0;
 			rp.stop();
 			return null;
 		}
-		if (log.getLevel() >= 1)
-			rp.setVisible(true);
-
 		int nx = imp.getWidth();
 		int ny = imp.getHeight();
 		int nc = imp.getNChannels();
@@ -207,12 +218,6 @@ private int							currentPatch = 0;
 			outputTitles[c++] = outName.name  + " " + dp.getName() + " of " + imp.getTitle();
 		}
 
-		SavedModelBundle model = dp.getModel();
-		log.print("model " + (model == null));
-		
-		SignatureDef sig = TensorFlowModel.getSignatureFromGraph(model, TensorFlowModel.returnStringSig(dp.params.graph));
-		log.print("sig " + (sig == null));
-
 		// Order of the dimensions. For example "NHWC"-->Batch size, Height, Width, Channels
 		String inputForm = params.inputList.get(inputImageInd).form;
 		int[] inputDims = params.inputList.get(inputImageInd).tensor_shape;
@@ -227,11 +232,7 @@ private int							currentPatch = 0;
 		}
 		// Get the padding in case the image needs any
 		int[] padding = new int[4];
-		if (params.final_halo == null && !params.pyramidalNetwork) {
-			padding = findTotalPadding(params.outputList);
-		} else if (!params.pyramidalNetwork){
-			// TODO decide what to do with padding, if it is always fixed
-			// this field is not needed anymore
+		if (!params.pyramidalNetwork) {
 			padding = findTotalPadding(params.outputList);
 		}
 		int roiX = px - padding[0] * 2;
@@ -399,6 +400,7 @@ private int							currentPatch = 0;
 						}
 					}
 					catch (Exception ex) {
+						// TODO MAKE THIS EXCEPTION MORE ESPECIFIC	
 						IJ.log("Error in the TensorFlow library");
 						IJ.log(ex.getMessage());
 						rp.stop();
@@ -441,7 +443,6 @@ private int							currentPatch = 0;
 		params.memoryPeak = NumFormat.bytes(rp.getPeakmem());
 		rp.stop();
 		// Set Parameter  params.outputSize
-		params.outputSize = new String[params.outputList.size()];
 		HashMap<String, Object> outputMap = new HashMap<String, Object>();
 		int imageCount = 0;
 		int tableCount = 0;

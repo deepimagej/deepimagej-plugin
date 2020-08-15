@@ -176,5 +176,25 @@ public class Table2Tensor {
 		}
 		return table;
 	}		
+	
+	/*TODO add exception for 3D tables ([8,7,9])
+	 * Method to infer automatically which dimension corresponds to rows and 
+	 * which to columns. 
+	 */
+	public static String findTableForm(int[] shape) {
+		String form = "";
+		if (shape.length == 1) {
+			form = "R";
+		} else if (shape.length == 2 && (Index.indexOf(shape, 1) == -1)) {
+			form = "RC";
+		} else if (shape.length == 2 && (Index.indexOf(shape, 1) != -1)) {
+			int batchInd = Index.indexOf(shape, 1);
+			form = batchInd == 0 ? "BR" : "RB";
+		} else if (shape.length == 3) {
+			// TODO complete
+			form = "BRC";
+		}
+		return form;
+	}
 
 }

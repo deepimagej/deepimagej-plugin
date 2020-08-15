@@ -233,8 +233,10 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 				tensor.form = tensor.form + (String) outputs.get(i).getSelectedItem();
 			iterateOverComboBox += tensor.tensor_shape.length;
 			tensor.tensorType = (String) outTags.get(tagC ++).getSelectedItem();
-			if (tensor.tensorType.contains("list"))
+			if (tensor.tensorType.contains("list")) {
 				params.allowPatching = false;
+				tensor.auxForm = tensor.form;
+			}
 			if (checkRepeated(tensor.form) == false && tensor.tensorType.equals("ignore") == false) {
 				IJ.error("Repetition is not allower in input");
 				return false;

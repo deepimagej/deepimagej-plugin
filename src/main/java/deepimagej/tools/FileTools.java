@@ -37,15 +37,22 @@
 
 package deepimagej.tools;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.FileChannel;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 public class FileTools {
 
@@ -172,12 +179,115 @@ public class FileTools {
 	    }
 	  }
 	
-	public static void deleteDir(File element) {
+	public static boolean deleteDir(File element) {
 	    if (element.isDirectory()) {
 	        for (File sub : element.listFiles()) {
-	        	deleteDir(sub);
+	        	boolean deleted = deleteDir(sub);
+	        	if (!deleted) {
+	        		return deleted;
+	        	}
 	        }
 	    }
-	    element.delete();
+	    boolean deleted = element.delete();
+
+	    return deleted;
+	}
+	
+	public static void zipFolder(File srcFolder, File destZipFile) throws Exception {
+        try (FileOutputStream fileWriter = new FileOutputStream(destZipFile);
+                ZipOutputStream zip = new ZipOutputStream(fileWriter)) {
+
+            addFolderToZip(srcFolder, srcFolder, zip);
+        }
+    }
+	
+    private static void addFileToZip(File rootPath, File srcFile, ZipOutputStream zip) throws Exception {
+
+        if (srcFile.isDirectory()) {
+            addFolderToZip(rootPath, srcFile, zip);
+        } else {
+            byte[] buf = new byte[4096];
+            int len;
+            try (FileInputStream in = new FileInputStream(srcFile)) {
+                String name = srcFile.getPath();
+                name = name.replace(rootPath.getPath(), "");
+                zip.putNextEntry(new ZipEntry(name));
+                while ((len = in.read(buf)) > 0) {
+                    zip.write(buf, 0, len);
+                }
+            }
+        }
+    }
+
+    private static void addFolderToZip(File rootPath, File srcFolder, ZipOutputStream zip) throws Exception {
+        for (File fileName : srcFolder.listFiles()) {
+            addFileToZip(rootPath, fileName, zip);
+        }
+    }
+	
+    public static void unzipFolder(File source, String outPath) throws IOException {
+ 	    try (ZipInputStream zis = new ZipInputStream(new FileInputStream(source))) {
+
+ 	        ZipEntry entry = zis.getNextEntry();
+
+ 	        while (entry != null) {
+
+ 	            File file = new File(outPath, entry.getName());
+
+ 	            if (entry.isDirectory()) {
+ 	                file.mkdirs();
+ 	            } else {
+ 	                File parent = file.getParentFile();
+
+ 	                if (!parent.exists()) {
+ 	                    parent.mkdirs();
+ 	                }
+
+ 	                try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(file))) {
+
+ 	                    int bufferSize = Math.toIntExact(entry.getSize());
+ 	                    byte[] buffer = new byte[bufferSize > 0 ? bufferSize : 4096];
+ 	                    int location;
+
+ 	                    while ((location = zis.read(buffer)) != -1) {
+ 	                        bos.write(buffer, 0, location);
+ 	                    }
+ 	                }
+ 	            }
+ 	            entry = zis.getNextEntry();
+ 	        }
+ 	    }
+ 	}
+    
+    public static String createSHA256(String fileName) throws IOException {
+        byte[] buffer= new byte[8192];
+        int count;
+        MessageDigest digest;
+        String sha256 = "error";
+		try {
+			digest = MessageDigest.getInstance("SHA-256");
+	        BufferedInputStream bis = new BufferedInputStream(new FileInputStream(fileName));
+	        while ((count = bis.read(buffer)) > 0) {
+	            digest.update(buffer, 0, count);
+	        }
+	        bis.close();
+
+	        byte[] hash = digest.digest();
+	        sha256 = bytesToHex(hash);
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        return sha256;
+    }
+    
+	private static String bytesToHex(byte[] hash) {
+	    StringBuffer hexString = new StringBuffer();
+	    for (int i = 0; i < hash.length; i++) {
+	    String hex = Integer.toHexString(0xff & hash[i]);
+	    if(hex.length() == 1) hexString.append('0');
+	        hexString.append(hex);
+	    }
+	    return hexString.toString();
 	}
 }

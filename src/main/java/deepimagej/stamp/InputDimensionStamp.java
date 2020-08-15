@@ -101,6 +101,8 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	private static int					inputCounter = 0;
 	private String						model		  = "";
 	
+	private String						shortForm;
+	
 	// Whether we need to add or not action listener to the text fields
 	private boolean						listenTxtField = false;
 	
@@ -408,6 +410,7 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		JPanel pnMultiple = new JPanel(new GridLayout(2, dims.length));
 		JPanel pnPatchSize = new JPanel(new GridLayout(2, dims.length));
 		
+		shortForm = "";
 		for (String dim: dims) {
 			JLabel dimLetter1 = new JLabel(dim);
 			dimLetter1.setPreferredSize( new Dimension( 10, 20 ));
@@ -416,6 +419,8 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			
 			pnMultiple.add(dimLetter1);
 			pnPatchSize.add(dimLetter2);
+			
+			shortForm += dim;
 		}
 		
 		for (int i = 0; i < dims.length; i ++) {
@@ -486,12 +491,23 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		// minimum patch constraint and image size. This is then suggested
 		// to the user
 		ImagePlus imp = null;
+		int ind = shortForm.indexOf(dimChar);
+		int currentSize = Integer.parseInt(allTxtPatches.get(ind).getText().trim());
 		String patch;
+		if (minimumSizeString.equals(""))
+			return "" + currentSize;
 		int minimumSize = Integer.parseInt(minimumSizeString);
+		
 		if (imp == null) {
 			imp = WindowManager.getCurrentImage();
 		}
-		if (imp == null) {
+		if (imp == null && currentSize % minimumSize == 0) {
+			patch = "" + currentSize;
+			return patch;	
+		} else if (imp == null && currentSize % minimumSize != 0) {
+			patch = "" + (((int) currentSize / minimumSize) + 1) * minimumSize;
+			return patch;	
+		} else if (imp == null) {
 			patch = "100";
 			return patch;	
 		}

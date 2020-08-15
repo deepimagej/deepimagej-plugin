@@ -53,54 +53,28 @@ import java.util.Map;
 import java.util.Scanner;
 
 import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.DumperOptions.FlowStyle;
 import org.yaml.snakeyaml.Yaml;
 
 import deepimagej.DeepImageJ;
 import deepimagej.Parameters;
 import deepimagej.TensorFlowModel;
+import ij.IJ;
 
 public class YAMLUtils {
 
 	private final static String idName = "name";
 	private final static String idDescription = "description";
-	private final static String idCite = "cite";
-	private final static String idCiteText = "text";
-	private final static String idCiteDoi = "doi";
 	private final static String idAuthors = "authors";
-	private final static String idDocumentation = "documentation";
-	private final static String idDate = "date";
-	private final static String idTags = "tags";
-	private final static String idTestInput = "test_input";
-	private final static String idTestOutput = "test_output";
-	private final static String idCoverImage = "cover";
-	private final static String idLicense = "license";
-	private final static String idFormatVersion = "format_version";
-	private final static String idLanguage = "language";
-	private final static String idFramework = "framework";
-	private final static String idSource = "source";
-	private final static String idInputs = "inputs";
-	private final static String idOutputs = "outputs";
 	private final static String idNodeName = "name";
 	private final static String idNodeAxes = "axes";
 	private final static String idNodeDataType = "data_type";
 	private final static String idNodeDataRange = "data_range";
-	private final static String idNodeShape = "shape";
 	private final static String idNodeShapeMin = "min";
 	private final static String idNodeShapeStep = "step";
-	private final static String idNodeHalo = "halo";
-	private final static String idNodeShapeReferenceInput = "reference_input";
-	private final static String idNodeShapeScale = "scale";
-	private final static String idNodeShapeOffset = "offset";
 	private final static String idModelTag = "tensorflow_model_tag";
 	private final static String idSigDef = "tensorflow_siganture_def";
 	private final static String idMemoryPeak = "memory_peak";
-	private final static String idPixelSize = "pixel_size";
 	private final static String idRuntime = "runtime";
-	private final static String idInputSize = "input_size";
-	private final static String idOutputSize = "output_size";
-	private final static String idTestMetadata = "test_information";
-	private final static String idTfMetadata = "tensorflow_metadata";
 	
 	public static void writeYaml(DeepImageJ dp) {
 		Parameters params = dp.params;
@@ -114,9 +88,8 @@ public class YAMLUtils {
 				// Create dictionary for each image input
 				Map<String, Object> inputTensorMap = new LinkedHashMap<>();
 				inputTensorMap.put(idNodeName, inp.name);
-				inputTensorMap.put(idNodeAxes, inp.form);
-				// TODO remove
-				//inputTensorMap.put(idNodeDims, Arrays.toString(inp.tensor_shape));
+				inputTensorMap.put(idNodeAxes, inp.form.toLowerCase());
+
 				inputTensorMap.put(idNodeDataType, "float32");
 				inputTensorMap.put(idNodeDataRange, Arrays.toString(inp.dataRange));
 				if (params.fixedInput) {
@@ -133,7 +106,7 @@ public class YAMLUtils {
 				
 				// Now write the test data info
 				Map<String, Object> inputTestInfo = new LinkedHashMap<>();
-				inputTestInfo.put("name", inp.name);
+				inputTestInfo.put("name", params.testImageBackup.getTitle());
 				inputTestInfo.put("size", inp.inputTestSize);
 				Map<String, Object> pixelSize = new LinkedHashMap<>();
 				pixelSize.put("x", inp.inputPixelSizeX);
@@ -170,14 +143,7 @@ public class YAMLUtils {
 		data.put(idAuthors, params.author);
 		
 		// Citation
-		List<LinkedHashMap<String, Object>> citations = new ArrayList<LinkedHashMap<String, Object>>();
-		LinkedHashMap<String, Object> cite = new LinkedHashMap<String, Object>();
-		// Reference to the article, Github repo or other source where the model was proposed
-		cite.put("text", params.reference);
-		// Url to the paper or repo where the model was proposed
-		cite.put("doi", params.doi);
-		citations.add(cite);
-		data.put(idCite, citations);
+		data.put("cite", params.cite);
 		
 		// Info relevant to DeepImageJ, see: https://github.com/bioimage-io/configuration/issues/23
 		Map<String, Object> config = new LinkedHashMap<>();
@@ -210,34 +176,73 @@ public class YAMLUtils {
 		
 		config.put("deepimagej", deepimagej);
 		
+		// Save the model
+		// Architecture
+		Map<String, Object> model = new LinkedHashMap<>();
+		model.put("source", "./saved_model.pb");
+		try {
+			model.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + "saved_model.pb"));
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		// Weights
+		Map<String, Object> weights = params.previousVersions;
+		// Version
+		Map<String, Object> version = new LinkedHashMap<>();
+		String weightsVersion = "v" + params.version.trim();
+		version.put("source", "./weights_" + weightsVersion + ".zip");
+		String zipFile = params.saveDir + File.separator + "weights_" + weightsVersion + ".zip";
+		if (new File(zipFile).isFile())
+			try {
+				version.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + "weights_" + weightsVersion + ".zip"));
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		weights.put(weightsVersion, version);
+		
+		
+		
 		// Link to the documentation of the model, which contains info about
 		// the model such as the images used or architecture
-		data.put(idDocumentation, params.documentation);
+		data.put("documentation", params.documentation);
 		// Path to the image that will be used as the cover picture in the Bioimage model Zoo
-		data.put(idCoverImage, Arrays.asList(params.coverImage));
+		data.put("cover", Arrays.asList(params.coverImage));
 		// Path to the test inputs
-		String[] inputImString = {"." + File.separator + "exampleImage.tiff"};
-		data.put(idTestInput, Arrays.asList(inputImString));
+		ArrayList<String> inputExamples = new ArrayList<String>();
+		for (DijTensor in : params.inputList) {
+			if (in.exampleInput != null)
+				inputExamples.add("./" + in.exampleInput);
+		}
+		data.put("test_input", inputExamples);
 		// Path to the test outputs
-		String[] outputImString = {"." + File.separator + "resultImage.tiff"};
-		data.put(idTestOutput, Arrays.asList(outputImString));
+		ArrayList<String> outputExamples = new ArrayList<String>();
+		for (HashMap<String, String> out : params.savedOutputs)
+			outputExamples.add("./" + out.get("name"));
+		data.put("test_output", outputExamples);
 		// Tags that will be used to look for the model in the Bioimage model Zoo
-		data.put(idTags, params.infoTags);
+		data.put("tags", params.infoTags);
 		// Type of license of the model
-		data.put(idLicense, params.license);
+		data.put("license", params.license);
 		// Version of the model
-		data.put(idFormatVersion, params.version);
+		data.put("format_version", params.version);
 		// Programming language in which the model was prepared for the Bioimage model zoo
-		data.put(idLanguage, params.language);
+		data.put("language", params.language);
 		// Deep Learning framework with which the model was obtained
-		data.put(idFramework, params.framework);
+		data.put("framework", params.framework);
 		// Link to a website where we can find the model
-		data.put(idSource, params.source);
+		data.put("source", params.source);
+		// Link to the folder containing the architecture
+		data.put("model", model);
+		// Link to the folder containing the weights
+		data.put("weights", weights);
 		// Information relevant to deepimagej
 		data.put("config", config);
 		
-		data.put(idInputs, modelInputMapsList);
-		data.put(idOutputs, modelOutputMapsList);
+		data.put("inputs", modelInputMapsList);
+		data.put("outputs", modelOutputMapsList);
 		
 		// Preprocessing
 		List<Map<String, String>> listPreprocess = new ArrayList<Map<String, String>>();
@@ -330,111 +335,24 @@ public class YAMLUtils {
 		}
 	}
 	
-	/*TODO remove
-	public static List<String> listAuthors(String authorsString) {
-		String[] authorsArray = authorsString.split(",");
-		List<String> authorsList = Arrays.asList(authorsArray);
-		return authorsList;
-	}*/
-	
 	public static Map<String, Object> readConfig(String yamlFile) {
 		File initialFile = new File(yamlFile);
 		InputStream targetStream = null;
 	    try {
 			targetStream = new FileInputStream(initialFile);
+			Yaml yaml = new Yaml();
+			Map<String, Object> obj = yaml.load(targetStream);
+			targetStream.close();
+			
+			return obj;
 		} catch (FileNotFoundException e) {
+			IJ.error("Invalid YAML file");
+			return null;
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return null;
 		}
-		Yaml yaml = new Yaml();
-		Map<Object, Object> obj = yaml.load(targetStream);
-		
-		Map<String, Object> dpParams = new LinkedHashMap<>();
-		
-		String name = (String) obj.get(idName);
-		//List<String> authors = (List<String>) obj.get(idAuthors);
-		String authors = (String) obj.get(idAuthors);
-
-		String version = (String) obj.get(idFormatVersion);
-		String date = (String) obj.get(idDate);
-		
-		// Citation
-		Map<String, Object> cite = (Map<String, Object>) obj.get(idCite);
-		String reference = castListToStringArray((List) cite.get(idCiteText))[0];
-		String doi = castListToStringArray((List) cite.get(idCiteDoi))[0];
-		// Model metadata
-		Map<String, Object> modelMeta = (Map<String, Object>) obj.get(idTfMetadata);
-		String tag = castListToStringArray((List) modelMeta.get(idModelTag))[0];
-		String sigDef = castListToStringArray((List) modelMeta.get(idSigDef))[0];
-		// Test metadata
-		Map<String, Object> testMetadata = (Map<String, Object>) obj.get(idTestMetadata);
-		String memPeak = (String) testMetadata.get(idMemoryPeak);
-		String runtime = (String) testMetadata.get(idRuntime);
-		List pixelSize = (List) testMetadata.get(idPixelSize);
-		List inputSize = (List) testMetadata.get(idInputSize);
-		List outputSize = (List) testMetadata.get(idOutputSize);
-
-		dpParams.put("name", name);
-		dpParams.put("author", authors);
-		dpParams.put("tag", tag);
-		dpParams.put("sigDef", sigDef);
-		dpParams.put("URL", doi);
-		dpParams.put("reference", reference);
-		dpParams.put("version", version);
-		dpParams.put("date", date);
-		dpParams.put("memoryPeak", memPeak);
-		dpParams.put("runtime", runtime);
-		dpParams.put("pixelSize", pixelSize);
-		dpParams.put("inputSize", inputSize);
-		dpParams.put("outputSize", outputSize);
-		
-		List inputs = (List) obj.get(idInputs);
-		List<Object> inputList = new ArrayList<Object>();
-		for (Object inp : inputs) {
-			DijTensor inpTensor = new DijTensor((String) ((Map<String, Object>) inp).get(idName));
-			inpTensor.form = (String) ((Map<String, Object>) inp).get(idNodeAxes);
-			List auxTensorShape = (List) ((Map<String, Object>) inp).get("shape");
-			inpTensor.tensor_shape = castListToIntArray(auxTensorShape);
-			//inpTensor.dataType = (String) ((Map<String, Object>) inp).get(idNodeDataType);
-			List auxDataRange = (List) ((Map<String, Object>) inp).get(idNodeDataRange);
-			inpTensor.dataRange = castListToDoubleArray(auxDataRange);
-			Map<String, Object> shape = (Map<String, Object>) ((Map<String, Object>) inp).get(idNodeShape);
-			List auxRecommendedPatch = (List) shape.get("shape");
-			inpTensor.recommended_patch = castListToIntArray(auxRecommendedPatch);
-			List auxMinimumSize = (List) shape.get(idNodeShapeMin);
-			inpTensor.minimum_size = castListToIntArray(auxMinimumSize);
-			List auxStepSize = (List) shape.get(idNodeShapeStep);
-			inpTensor.step = castListToIntArray(auxStepSize);
-			inputList.add(inpTensor);
-		}
-		dpParams.put("inputList", inputList);
-
-		List outputs = (List) obj.get(idOutputs);
-		List<Object> outputList = new ArrayList<Object>();
-		for (Object out : outputs) {
-			DijTensor outTensor = new DijTensor((String) ((Map<String, Object>) out).get(idName));
-			outTensor.form = (String) ((Map<String, Object>) out).get(idNodeAxes);
-			List auxTensorShape = (List) ((Map<String, Object>) out).get("shape");
-			outTensor.tensor_shape = castListToIntArray(auxTensorShape);
-			//inpTensor.dataType = (String) ((Map<String, Object>) inp).get(idNodeDataType);
-			List auxDataRange = (List) ((Map<String, Object>) out).get(idNodeDataRange);
-			outTensor.dataRange = castListToDoubleArray(auxDataRange);
-			List auxHalo = (List) ((Map<String, Object>) out).get(idNodeHalo);
-			outTensor.halo = castListToIntArray(auxHalo);
-			Map<String, Object> shape = (Map<String, Object>) ((Map<String, Object>) out).get(idNodeShape);
-			outTensor.referenceImage = (String) shape.get(idNodeShapeReferenceInput);
-			List auxScale = (List) shape.get(idNodeShapeScale);
-			outTensor.scale = castListToFloatArray(auxScale);
-			List auxOffset = (List) shape.get(idNodeShapeOffset);
-			outTensor.offset = castListToIntArray(auxOffset);
-			outputList.add(outTensor);
-		}
-		dpParams.put("outputList", outputList);
-		
-		Map<String, Object> inputObj = (Map<String, Object>) inputs.get(0);
-		String axesObj = (String) inputObj.get(idNodeAxes);
-		if(axesObj == null) return null;
-		return dpParams;
 	}
 	
 	/*
@@ -443,70 +361,32 @@ public class YAMLUtils {
 	 */
 	public static Map<String, Object> getOutput(DijTensor out, boolean pyramidal, boolean allowPatching){
 		Map<String, Object> outputTensorMap = new LinkedHashMap<>();
-		outputTensorMap.put(idNodeName, out.name);
+		outputTensorMap.put("name", out.name);
 		
 		if (!pyramidal && out.tensorType.contains("image")) {
-			outputTensorMap.put(idNodeAxes, out.form);
-			// TODO remove
-			//outputTensorMap.put(idNodeDims, Arrays.toString(out.tensor_shape));
-			outputTensorMap.put(idNodeDataType, "float32");
-			outputTensorMap.put(idNodeDataRange, Arrays.toString(out.dataRange));
-			outputTensorMap.put(idNodeHalo,  Arrays.toString(out.halo));
+			outputTensorMap.put("axes", out.form.toLowerCase());
+			outputTensorMap.put("data_type", "float32");
+			outputTensorMap.put("data_range", Arrays.toString(out.dataRange));
+			outputTensorMap.put("halo",  Arrays.toString(out.halo));
 			Map<String, Object> shape = new LinkedHashMap<>();
-			shape.put(idNodeShapeReferenceInput, out.referenceImage);
-			shape.put(idNodeShapeScale, Arrays.toString(out.scale));
-			shape.put(idNodeShapeOffset, Arrays.toString(out.offset));
-			outputTensorMap.put(idNodeShape, shape);
+			shape.put("reference_input", out.referenceImage);
+			shape.put("scale", Arrays.toString(out.scale));
+			shape.put("offset", Arrays.toString(out.offset));
+			outputTensorMap.put("shape", shape);
 			
 		} else if (pyramidal && out.tensorType.contains("image")) {
-			outputTensorMap.put(idNodeAxes, out.form);
-			outputTensorMap.put(idNodeDataType, "float32");
-			outputTensorMap.put(idNodeDataRange, Arrays.toString(out.dataRange));
+			outputTensorMap.put("axes", out.form.toLowerCase());
+			outputTensorMap.put("data_type", "float32");
+			outputTensorMap.put("data_range", Arrays.toString(out.dataRange));
 			outputTensorMap.put("shape", Arrays.toString(out.sizeOutputPyramid));
 			
 		}else if (out.tensorType.contains("list")) {
-			outputTensorMap.put(idNodeAxes, null);
+			outputTensorMap.put("axes", null);
 			outputTensorMap.put("shape", Arrays.toString(out.tensor_shape));
-			outputTensorMap.put(idNodeDataType, "float32");
-			outputTensorMap.put(idNodeDataRange, Arrays.toString(out.dataRange));
+			outputTensorMap.put("data_type", "float32");
+			outputTensorMap.put("data_range", Arrays.toString(out.dataRange));
 		}
 		return outputTensorMap;
-	}
-	
-	public static String[] castListToStringArray(List list) {
-		String[] array = new String[list.size()];
-		int c = 0;
-		for (Object in : list) {
-			array[c ++] = (String) in;
-		}
-		return array;
-	}
-	
-	public static int[] castListToIntArray(List list) {
-		int[] array = new int[list.size()];
-		int c = 0;
-		for (Object in : list) {
-			array[c ++] = (int) in;
-		}
-		return array;
-	}
-	
-	public static double[] castListToDoubleArray(List list) {
-		double[] array = new double[list.size()];
-		int c = 0;
-		for (Object in : list) {
-			array[c ++] = (double) in;
-		}
-		return array;
-	}
-	
-	public static float[] castListToFloatArray(List list) {
-		float[] array = new float[list.size()];
-		int c = 0;
-		for (Object in : list) {
-			array[c ++] = ((Double) in).floatValue();
-		}
-		return array;
 	}
 	
 	public static void removeQuotes(File file) throws FileNotFoundException {

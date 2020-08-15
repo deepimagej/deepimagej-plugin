@@ -49,73 +49,72 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.ResultsTable;
-import ij.plugin.Duplicator;
 import ij.text.TextWindow;
 
 public class ProcessingBridge {
 	
 	// TODO decide whether to allow or not more than 1 image input to the model
-	public static HashMap<String, Object> runPreprocessing(Parameters params) throws MacrosError, IOException {
+	public static HashMap<String, Object> runPreprocessing(ImagePlus im, Parameters params) throws MacrosError, IOException {
 		HashMap<String, Object> map = new HashMap<String, Object>();
-		params.testImageBackup = new Duplicator().run(params.testImage);
+		// Assume that the image selected will result in the input image to the model
+		// Assumes 'im' will be the input to the model
+		map.put(params.inputList.get(0).name, im);
 		if (params.firstPreprocessing != null && (params.firstPreprocessing.contains(".txt") || params.firstPreprocessing.contains(".ijm"))) {
-			params.testImage = runProcessingMacro(params.testImage, params.firstPreprocessing);
+			im = runProcessingMacro(im, params.firstPreprocessing);
+			map = manageInputs(map, false, params);
 		} else if (params.firstPreprocessing != null && (params.firstPreprocessing.contains(".jar") || params.firstPreprocessing.contains(".class") || new File(params.firstPreprocessing).isDirectory())) {
-			map = runPreprocessingJava(params.testImage, params.firstPreprocessing, params);
+			map = runPreprocessingJava(map, params.firstPreprocessing, params);
 		}
 		
 
 		if (params.secondPreprocessing != null && (params.secondPreprocessing.contains(".txt") || params.secondPreprocessing.contains(".ijm"))) {
-			params.testImage = runProcessingMacro(params.testImage, params.secondPreprocessing);
-			map = manageInputs(params.testImage, params);
+			im = runProcessingMacro(im, params.secondPreprocessing);
+			map = manageInputs(map, true,  params);
 		} else if (params.secondPreprocessing != null && (params.secondPreprocessing.contains(".jar") || params.secondPreprocessing.contains(".class") || new File(params.secondPreprocessing).isDirectory())) {
-			map = runPreprocessingJava(params.testImage, params.secondPreprocessing, params);
+			map = runPreprocessingJava(map, params.secondPreprocessing, params);
 		} else if (params.secondPreprocessing == null && (params.firstPreprocessing == null || params.firstPreprocessing.contains(".txt") || params.firstPreprocessing.contains(".ijm"))) {
-			map = manageInputs(params.testImage, params);
+			map = manageInputs(map, true, params);
 		} else if (params.secondPreprocessing == null && (params.firstPreprocessing.contains(".jar") || new File(params.firstPreprocessing).isDirectory())) {
 			//TODO check if an input is missing. If it is missing try to recover it from the workspace.
 		}
 		return map;
 	}
 	
-	private static HashMap<String, Object> manageInputs(ImagePlus imp, Parameters params) {
-		HashMap<String, Object> map = new HashMap<String, Object>();
-		if (params.inputList.size() == 1) {
-			map.put(params.inputList.get(0).name, params.testImage);
-		} else {
-			for (DijTensor tensor : params.inputList) {
-				if (tensor.tensorType == "image") {
-					ImagePlus inputImage = WindowManager.getImage(tensor.name);
-					if (inputImage == null) {
-			        	IJ.error("There is no ResultsTable named: " + tensor.name + 
-			        			"\n. There should be as it is one of the inputs required\n"
-			        			+ "by the model.");
-			        	return null;
-			        }
+	/*
+	 * Updates the map containing the inputs. In principle, this is used only if there has not
+	 * beeen Java processing before (Java processing should already output a map). 
+	 * This method assumes that each model input has an ImageJ object associated. Except for
+	 * the main image, where if it is not named correctly, assumes it is the originally referenced
+	 * image (line 62).
+	 */
+	private static HashMap<String, Object> manageInputs(HashMap<String, Object> map, boolean lastStep, Parameters params) {
+		for (DijTensor tensor : params.inputList) {
+			if (tensor.tensorType == "image") {
+				ImagePlus inputImage = WindowManager.getImage(tensor.name);
+				if (inputImage != null) {
 					map.put(tensor.name, inputImage);
-				} else if (tensor.tensorType == "parameter") {
-					Frame f = WindowManager.getFrame(tensor.name);
-			        if (f!=null && (f instanceof TextWindow)) {
-			        	 ResultsTable inputTable = ((TextWindow)f).getResultsTable();
-						map.put(tensor.name, inputTable);
-			        } else {
-			        	IJ.error("There is no ResultsTable named: " + tensor.name + ".\n" +
-			        			"There should be as it is one of the inputs required\n"
-			        			+ "by the model.");
-			        	return null;
-			        }
-				}
+		        }
+			} else if (tensor.tensorType == "parameter") {
+				Frame f = WindowManager.getFrame(tensor.name);
+		        if (f!=null && (f instanceof TextWindow)) {
+		        	 ResultsTable inputTable = ((TextWindow)f).getResultsTable();
+					map.put(tensor.name, inputTable);
+		        } else if (lastStep){
+		        	IJ.error("There is no ResultsTable named: " + tensor.name + ".\n" +
+		        			"There should be as it is one of the inputs required\n"
+		        			+ "by the model.");
+		        	return null;
+		        }
 			}
 		}
 		
 		return map;
 	}
 
-	private static HashMap<String, Object> runPreprocessingJava(ImagePlus img, String processingPath, Parameters params) {
-		HashMap<String, Object> map = new HashMap<String, Object>();
+	private static HashMap<String, Object> runPreprocessingJava(HashMap<String, Object> map, String processingPath, Parameters params) {
 		boolean preprocessing = true;
 		ExternalClassManager processingRunner = new ExternalClassManager (processingPath, preprocessing, params);
-		map = processingRunner.javaProcessImage(img);
+		map = processingRunner.javaPreprocess(map);
 		return map;
 	}
 
@@ -144,7 +143,7 @@ public class ProcessingBridge {
 	public static HashMap<String, Object> runPostprocessing(Parameters params, HashMap<String, Object> map) throws MacrosError, IOException {
 		
 		if (params.firstPostprocessing != null && (params.firstPostprocessing.contains(".txt") || params.firstPostprocessing.contains(".ijm"))) {
-			runPostprocessingMacro(params.firstPreprocessing);
+			runPostprocessingMacro(params.firstPostprocessing);
 			map = manageOutputs();
 		} else if (params.firstPostprocessing != null && (params.firstPostprocessing.contains(".jar") || params.firstPostprocessing.contains(".class") || new File(params.firstPostprocessing).isDirectory())) {
 			map = runPostprocessingJava(map, params.firstPostprocessing, params);
@@ -173,7 +172,7 @@ public class ProcessingBridge {
 	private static HashMap<String, Object> runPostprocessingJava(HashMap<String, Object> map, String processingPath, Parameters params) {
 		boolean preprocessing = false;
 		ExternalClassManager processingRunner = new ExternalClassManager (processingPath, preprocessing, params);
-		map = processingRunner.javaPostprocessImage(map);
+		map = processingRunner.javaPostprocess(map);
 		return map;
 	}
 

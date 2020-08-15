@@ -38,7 +38,9 @@
 package deepimagej;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +65,7 @@ import deepimagej.tools.FileTools;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
 import deepimagej.tools.NumFormat;
+import deepimagej.tools.YAMLUtils;
 import ij.IJ;
 
 public class TensorFlowModel {
@@ -113,35 +116,135 @@ public class TensorFlowModel {
 												   	     "tf.saved_model.signature_constants.SUPERVISED_EVAL_METHOD_NAME"};
 
 
-	public static boolean check(String path, ArrayList<String> msg) {
+	/* TODO fix doc
+	 * Checks if there is a model in the directory and what kind of model.
+	 * Here we make a difference between a Tensorflow SavedModel 
+	 * bundle (saved_model.pb + variables) and a Bioiamage Zoo model 
+	 * (saved_model.pb + weights_vX.zip).
+	 * It can return 4 strings:
+	 *  - "": no model found
+	 *  - "tf": the folder contains a Tensorflow model, but not a Biomage Zoo one
+	 *  - "biozoo": the folder contains a Bioimage Zoo model, regardless of Tf
+	 *  - "biozoos": the folder contains several Bioimage Zoo models, regardless
+	 *     of Tf
+	 */
+	public static HashMap<String, Object> check(Parameters params, ArrayList<String> msg) {
+		// Reset the parameters of the previous model
+		params.saved_modelSha256 = "";
+		params.previousVersions = new HashMap<String, Object>();
+		String path = params.path2Model;
 		msg.add("Path: " + path);
 		File dir = new File(path);
+		
+		boolean tf = false;
+		boolean biozoo = false;
+		HashMap<String, Object> map = new HashMap<String, Object>();
+		map.put("tf", tf);
+		map.put("biozoo", biozoo);
+		
 		if (!dir.exists()) {
 			msg.add("Not found " + path);
-			return false;
+			return map;
 		}
 		if (!dir.isDirectory()) {
 			msg.add("Not found " + path);
-			return false;
+			return map;
 		}
-		boolean valid = true;
 
 		File modelFile = new File(path + "saved_model.pb");
 		if (!modelFile.exists()) {
 			msg.add("No 'saved_model.pb' found in " + path);
-			valid = false;
+			return map;
 		}
 
 		File variableFile = new File(path + "variables");
 		if (!variableFile.exists()) {
 			msg.add("No 'variables' directory found in " + path);
-			valid = false;
 		}
 		else {
 			msg.add("TensorFlow model " + FileTools.getFolderSizeKb(path + "variables"));
+			tf = true;
 		}
 
-		return valid;
+		File yamlFile = new File(path + "config.yaml");
+		File ymlFile = new File(path + "config.yml");
+		if (yamlFile.exists() || ymlFile.exists()) {
+			Map<String, Object> yamlMap = YAMLUtils.readConfig(yamlFile.getAbsolutePath());
+			try {
+				params.saved_modelSha256 = (String) ((Map<String, Object>) yamlMap.get("model")).get("sha256");
+				params.previousVersions = (Map<String, Object>) yamlMap.get("weights");
+				boolean saved_model =  checkSumSavedModel(params);
+				// TODO rename method correctly
+				HashMap<String, List<String>> versions = checkSumWeighst(params);
+				if (saved_model && versions.get("correct").size() > 0) {
+					biozoo = true;
+				}
+				map.put("v" , versions);
+			} catch (Exception ex){
+				biozoo = false;
+			}
+		} else {
+			msg.add("No 'config.yaml' found in " + path);
+			ArrayList<String> noYaml = new ArrayList<String>();
+			for (File f : new File(path).listFiles()) {
+				if (f.getName().contains("weights_v") && f.getName().substring(f.getName().length() - 4).equals(".zip")) {
+					noYaml.add(f.getName());
+				}
+			}
+			if (noYaml.size() > 0)
+				map.put("noYaml" , noYaml);
+		}
+		map.put("tf", tf);
+		map.put("biozoo", biozoo);
+
+		return map;
+	}
+	
+	/*
+	 * For Bioimage Zoo models, checks that the saved_model.pb coincides
+	 * with what is specified inn the config.yaml
+	 */
+	public static boolean checkSumSavedModel(Parameters params) {
+		String newSha256;
+		try {
+			newSha256 = FileTools.createSHA256(params.path2Model + File.separator + "saved_model.pb");
+		} catch (IOException e) {
+			return false;
+		}
+		if (!params.saved_modelSha256.equals(newSha256)) 
+			return false;
+		return true;
+	}
+	
+	/*
+	 * For Bioimage Zoo models, checks that the weights_vX.zip files coincide
+	 * with what is specified inn the config.yaml
+	 */
+	public static HashMap<String, List<String>> checkSumWeighst(Parameters params) {
+		Set<String> prevVersions = params.previousVersions.keySet();
+		List<String> missingWeights = new ArrayList<String>();
+		List<String> faultyWeights = new ArrayList<String>();
+		List<String> corectWeights = new ArrayList<String>();
+		for (String key : prevVersions) {
+			String newSha256 = "";
+			try {
+				newSha256 = FileTools.createSHA256(params.path2Model + File.separator + "weights_" + key + ".zip");
+			} catch (IOException e) {
+				missingWeights.add(key);
+			}
+			String oldSha256 = (String) ((Map<String, Object>) params.previousVersions.get(key)).get("sha256");
+			
+			if (!newSha256.equals(oldSha256) && !newSha256.equals("")) {
+				faultyWeights.add(key);
+			} else if (newSha256.equals(oldSha256)) {
+				corectWeights.add(key);
+			}
+		}
+		HashMap<String, List<String>> map = new HashMap<String, List<String>>();
+		map.put("faulty", faultyWeights);
+		map.put("missing", missingWeights);
+		map.put("correct", corectWeights);
+		return map;
 	}
 
 	public static SavedModelBundle load(String path, String tag, Log log, ArrayList<String> msg) {

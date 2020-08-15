@@ -44,6 +44,7 @@ import org.tensorflow.Tensor;
 
 import deepimagej.Parameters;
 import deepimagej.tools.DijTensor;
+import ij.IJ;
 import ij.ImagePlus;
 
 public class ExternalClassManager {
@@ -130,18 +131,6 @@ public class ExternalClassManager {
 			}
 		}
 	}
-
-	public HashMap<String, Object> javaProcessImage(ImagePlus im) {
-		HashMap<String, Object> map = new HashMap<String, Object>();
-		ImagePlus  result = null;
-		try {
-			PreProcessingInterface pf = (PreProcessingInterface) preProcessingClass;
-			map = pf.processingRoutineUsingImage(im);
-		} catch (SecurityException secEx) {
-			System.err.println("Procesing plugin tried to do something illegal");
-		}
-		return map;
-	}
 	
 	public List<String> listFilesForFolder(final File folder, List<String> fileList, int relPathLength) {
 	    for (final File fileEntry : folder.listFiles()) {
@@ -154,12 +143,41 @@ public class ExternalClassManager {
 	    return fileList;
 	}
 
-	public HashMap<String, Object> javaPostprocessImage(HashMap<String, Object> map) {
+	// TODO
+	public HashMap<String, Object> javaPreprocess(HashMap<String, Object> map) {
+		try {
+			PreProcessingInterface pf = (PreProcessingInterface) preProcessingClass;
+			map = pf.preProcessingRoutineUsingMap(map);
+		} catch (SecurityException secEx) {
+			System.err.println("Procesing plugin tried to do something illegal");
+		} catch (Exception ex) {
+			IJ.log("Error in the Java preprocessing class");
+			IJ.log("Exception " + ex.toString());
+			for (StackTraceElement ste : ex.getStackTrace()) {
+				IJ.log(ste.getClassName());
+				IJ.log(ste.getMethodName());
+				IJ.log("line:" + ste.getLineNumber());
+			}
+			IJ.log("Exception " + ex.getMessage());
+		}
+		return map;
+	}
+
+	public HashMap<String, Object> javaPostprocess(HashMap<String, Object> map) {
 		try {
 			PostProcessingInterface pf = (PostProcessingInterface) postProcessingClass;
 			map = pf.postProcessingRoutineUsingMap(map);
 		} catch (SecurityException secEx) {
 			System.err.println("Procesing plugin tried to do something illegal");
+		} catch (Exception ex) {
+			IJ.log("Error in the Java postprocessing class");
+			IJ.log("Exception " + ex.toString());
+			for (StackTraceElement ste : ex.getStackTrace()) {
+				IJ.log(ste.getClassName());
+				IJ.log(ste.getMethodName());
+				IJ.log("line:" + ste.getLineNumber());
+			}
+			IJ.log("Exception " + ex.getMessage());
 		}
 		return map;
 	}

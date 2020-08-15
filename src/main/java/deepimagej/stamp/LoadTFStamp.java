@@ -37,9 +37,14 @@
 
 package deepimagej.stamp;
 import java.awt.BorderLayout;
+import java.awt.TextField;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 
 import javax.swing.BoxLayout;
 import javax.swing.JComboBox;
@@ -54,8 +59,10 @@ import deepimagej.Parameters;
 import deepimagej.TensorFlowModel;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.DijTensor;
+import deepimagej.tools.FileTools;
 import deepimagej.tools.Log;
 import ij.IJ;
+import ij.gui.GenericDialog;
 
 public class LoadTFStamp extends AbstractStamp implements Runnable {
 
@@ -70,6 +77,8 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 	private String				tfVersion = TensorFlowModel.getTFVersion();
 
 	public LoadTFStamp(BuildDialog parent) {
+		// TODO add loading message to screen
+		// TODO review messages
 		super(parent);
 		tags = new ArrayList<String>();
 		tags.add("Serve");
@@ -177,6 +186,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		}
 	}
 
+	// TODO separate in methods
 	public void run() {
 		Parameters params = parent.getDeepPlugin().params;
 		cmbTags.removeAllItems();
@@ -192,14 +202,88 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 
 		pnLoad.append("h2", "Load " + name);
 		ArrayList<String> msg = new ArrayList<String>();
-		boolean valid = TensorFlowModel.check(params.path2Model, msg);
+		HashMap<String, Object> dirInfo = TensorFlowModel.check(params, msg);
+		params.biozoo = (boolean) dirInfo.get("biozoo");
+		boolean tf = (boolean) dirInfo.get("tf");
 		for (String m : msg)
 			pnLoad.append("p", m);
 
 		Log log = new Log();
 		params.tag = null;
-
-		if (valid) {
+		
+		if (params.biozoo) {
+			HashMap<String, List<String>> allVersions = (HashMap<String, List<String>>) dirInfo.get("v");
+			List<String> usableVersions = allVersions.get("correct");
+			List<String> faultyVersions = allVersions.get("faulty");
+			List<String> missingVersions = allVersions.get("missing");
+			String[] versionNames = new String[usableVersions.size() + faultyVersions.size() + missingVersions.size()];
+			
+			String selectedVersion = "";
+			boolean selected = false;
+			if (usableVersions.size() > 0 && versionNames.length > 1) {
+				while (!selected) {
+					GenericDialog dlg = new GenericDialog("Choose the weights version");
+					dlg.addMessage("Choose the weight version of the model you want to use.");
+					dlg.addMessage("Regard that faulty or missing weights versions cannot be chosen.");
+					int n = 0;
+					for (String usable : usableVersions)
+						versionNames[n ++] = usable;
+					for (String faulty : faultyVersions)
+						versionNames[n ++] = faulty + " (faulty weights)";
+					for (String missing : missingVersions)
+						versionNames[n ++] = missing + " (missing weights)";
+					dlg.addChoice("Available versions", versionNames, versionNames[0]);
+					dlg.showDialog();
+					if (dlg.wasCanceled()) {
+						return;
+					}
+					selectedVersion = dlg.getNextChoice();
+					if (selectedVersion.contains(" (faulty weights)")) {
+						IJ.error("Cannot select this version. The weights\nwere modified after the model was created.");
+					} else if (selectedVersion.contains(" (missing weights)")) {
+						IJ.error("Cannot select this version. The weights\nare missing from the folder.");
+					} else {
+						selected = true;
+					}
+				}
+			}
+			
+			// Now unzip the selected weights folder into a variables folder.
+			if (tf) {
+				GenericDialog dlg = new GenericDialog("Overwrite existing model");
+				dlg.addMessage("There already exists a 'variables' folder in the model.");
+				dlg.addMessage("If you select 'Ok' the folder will be overwritten.");
+				dlg.showDialog();
+				if (dlg.wasCanceled()) {
+					return;
+				}
+				for (File w : new File(params.path2Model + File.separator + "variables").listFiles())
+					w.delete();
+			} else {
+				new File(params.path2Model + File.separator + "variables").mkdir();
+			}
+			String weightsPath = params.path2Model + File.separatorChar + "weights_" + selectedVersion + ".zip";
+			try {
+				FileTools.unzipFolder(new File(weightsPath), params.path2Model + File.separator + "variables");
+			} catch (IOException e) {
+				IJ.error("Could not extract the weights");
+				return;
+			}
+				
+		}
+		// Block back button while loading
+		parent.setEnabledBackNext(!(tf || params.biozoo));
+		if (tf || params.biozoo) {
+			// TODO should we inform this?
+			if (dirInfo.containsKey("noYaml")) {
+				// If a Bioimage Zoo model was found, but there was no confi.yaml
+				// produce a popup informing about that
+				String message = "The following weight folders were found in the directory.\n"
+							+ "But as ther was no config.yaml attached the 'varibles'folder was loaded instead\n";
+				for (String zip : (ArrayList<String>) dirInfo.get("noYaml")) 
+					message += " - " + zip + "\n";
+				IJ.error(message);
+			}
 			Object[] info = TensorFlowModel.findTag(params.path2Model);
 			String tag = (String) info[0];
 			if (tag != null) {
@@ -228,6 +312,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 				cmbGraphs.setEditable(false);
 			}
 		}
-		parent.setEnabledBackNext(valid);
+		// If we loaded either a Bioimage Zoo or Tensoflow model we continue
+		parent.setEnabledBackNext(tf || params.biozoo);
 	} 
 }

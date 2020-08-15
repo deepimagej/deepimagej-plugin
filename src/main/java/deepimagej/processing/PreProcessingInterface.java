@@ -40,12 +40,8 @@ package deepimagej.processing;
 
 import java.util.HashMap;
 
-import ij.ImagePlus;
 
 public interface PreProcessingInterface {
-
-	// retrieve the wanted parameter processing the given image
-	public HashMap<String, Object> processingRoutineUsingImage(ImagePlus im);
 	/*
 	// retrieve the wanted parameter processing the given image
 	public ImagePlus processingRoutineWithoutImage();
@@ -60,6 +56,8 @@ public interface PreProcessingInterface {
 	
 	// let the application pass in a parameter
 	public void setParameter (int param);
+
+	public HashMap<String, Object> preProcessingRoutineUsingMap(HashMap<String, Object> map);
 
 
 }

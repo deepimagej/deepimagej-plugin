@@ -69,7 +69,6 @@ import deepimagej.components.HTMLPane;
 import deepimagej.exceptions.IncorrectChannelsSlicesNumber;
 import deepimagej.exceptions.MacrosError;
 import deepimagej.processing.ProcessingBridge;
-import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.Log;
 import ij.IJ;
@@ -246,25 +245,22 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 			images[i] = (String)cmbList.get(i).getSelectedItem();
 		if (images.length == 1)
 			params.testImage = WindowManager.getImage(images[0]);
-		params.inputPixelSize = new String[imageTensors.size()];
 		String imagesNames = Arrays.toString(images);
 
-		int c = 0;
 		for (String im : images) {
 			if (WindowManager.getImage(im) == null) {
 				pnTest.append("p", im + " does not correspond to an open image");
 				IJ.error("No selected test image.");
 				return;
-			} else {
-				params.inputPixelSize[c ++] = ArrayOperations.findPixelSize(WindowManager.getImage(im));
 			}
+			params.testImageBackup = WindowManager.getImage(im).duplicate();;
 		}
 		
 		pnTest.append("Selected input images " + imagesNames);
 	
 		try {
-			// Set Parameter params.inputSize for config.xml
-			inputsMap = ProcessingBridge.runPreprocessing(params);
+			// Create a HashMap of the inputs to feed it to the Runner class
+			inputsMap = ProcessingBridge.runPreprocessing(params.testImage, params);
 			// Check if the images have the adequate channels and slices
 			for (DijTensor tensor : imageTensors) {
 				int channels = TensorFlowModel.nChannelsOrSlices(tensor, "channels");

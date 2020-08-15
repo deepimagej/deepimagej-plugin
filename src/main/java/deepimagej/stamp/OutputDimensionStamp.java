@@ -39,8 +39,11 @@ package deepimagej.stamp;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
@@ -51,6 +54,7 @@ import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -140,7 +144,6 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		pnRange2.place(0, 0, lblRange2);
 		pnRange2.place(0, 1, cmbRangeHigh);
 
-		//pnRange = new GridPanel(true);
 		pnRange.place(0, 0, pnRange1);
 		pnRange.place(0, 1, pnRange2);
 		pnOutputInfo.place(5, 0, 2, 1, pnRange);
@@ -159,12 +162,43 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		buttons.setBorder(BorderFactory.createEtchedBorder());
 		buttons.place(0, 0, bnPrevOutput);
 		buttons.place(0, 1, bnNextOutput);
-		
+		/*
 		pn = new JPanel();
 		pn.setLayout(new BoxLayout(pn, BoxLayout.PAGE_AXIS));
 		pn.add(info.getPane());
 		pn.add(pnOutputInfo);
 		pn.add(buttons, BorderLayout.SOUTH);
+		*/
+		JFrame main = new JFrame();
+		Container mainPn = main.getContentPane();
+		mainPn.setLayout(new GridBagLayout());
+
+	    // creates a constraints object 
+	    GridBagConstraints c = new GridBagConstraints(); 
+	    c.fill = GridBagConstraints.BOTH;
+	    c.ipady = 20; 
+	    c.ipadx = 20; 
+	    c.weightx = 1;
+	    c.weighty = 0.9;
+	    c.gridx = 0;
+	    c.gridy = 0;
+	    c.gridheight = 9;
+	    mainPn.add(pnOutputInfo, c);
+	    c.fill = GridBagConstraints.BOTH;
+	    c.ipady = 0; 
+	    c.ipadx = 0; 
+	    c.weightx = 1;
+	    c.weighty = 0.1;
+	    c.gridx = 0;
+	    c.gridy = 9;
+	    c.gridheight = 1;
+	    mainPn.add(buttons, c);
+		
+
+		pn = new JPanel();
+		pn.setLayout(new BoxLayout(pn, BoxLayout.PAGE_AXIS));
+		pn.add(info.getPane());
+		pn.add(mainPn);
 		
 		panel.add(pn);
 		
@@ -535,7 +569,12 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		txtExportDir.setPreferredSize(new Dimension(Constants.width, 25));
 		
 		int[] dimValues = DijTensor.getWorkingDimValues(params.outputList.get(outputCounter).form, params.outputList.get(outputCounter).tensor_shape); 
-		String[] dims = DijTensor.getWorkingDims(params.outputList.get(outputCounter).form);
+		String[] dims = DijTensor.getWorkingDims(params.outputList.get(outputCounter).auxForm);
+		
+		String[] newDims = null;
+		if (params.outputList.get(outputCounter).form.contains("R") || params.outputList.get(outputCounter).form.contains("C")) {
+			newDims = DijTensor.getWorkingDims(params.outputList.get(outputCounter).form);
+		}
 
 		lblName.setText(params.outputList.get(outputCounter).name);
 		for (int i = 0; i < dimValues.length; i ++) {
@@ -543,6 +582,8 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 			JComboBox<String> txt1;
 
 			txt1 = new JComboBox<String>(new String[] {"Rows", "Columns"});
+			if (newDims != null)
+				txt1.setSelectedIndex(newDims[i].equals("R") ? 0 : 1);
 			txt1.setEditable(false);
 			firstRow.place(0, i + 1, dimLetter1);
 			firstRow.place(1, i + 1, txt1);
