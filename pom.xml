@@ -130,6 +130,12 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<protobuf.version>3.2.0</protobuf.version>
 		<tensorflow.version>1.15.0</tensorflow.version>
 	</properties>
+	<repositories>
+		<repository>
+			<id>scijava.public</id>
+			<url>https://maven.scijava.org/content/groups/public</url>
+		</repository>
+	</repositories>
 
 	<dependencies>
 		<dependency>
@@ -138,36 +144,75 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 			<version>${protobuf.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>net.imagej</groupId>
-			<artifactId>ij</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.tensorflow</groupId>
-			<artifactId>libtensorflow</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>org.tensorflow</groupId>
 			<artifactId>proto</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.yaml</groupId>
-			<artifactId>snakeyaml</artifactId>
-			<version>1.21</version>
+			<groupId>org.tensorflow</groupId>
+			<artifactId>libtensorflow</artifactId>
+    		<version>1.15.0</version>
 		</dependency>
-
-		<!-- Runtime dependencies -->
 		<dependency>
 			<groupId>org.tensorflow</groupId>
-			<artifactId>libtensorflow_jni_gpu</artifactId>
-			<version>${tensorflow.version}</version>
-			<scope>runtime</scope>
+			<artifactId>libtensorflow_jni</artifactId>
+    		<version>1.15.0</version>
 		</dependency>
-
+		<dependency>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>ij</artifactId>
+		</dependency>
+		<dependency>
+		    <groupId>net.imagej</groupId>
+		    <artifactId>imagej-tensorflow</artifactId>
+    		<version>1.1.6</version>
+		</dependency>
+		
 		<!-- Test scope dependencies -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Test scope dependencies -->
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>imagej</artifactId>
+		</dependency>
+
+		<dependency>
+		    <groupId>ai.djl</groupId>
+		    <artifactId>api</artifactId>
+		    <version>0.6.0</version>
+		</dependency>
+		<dependency>
+		    <groupId>ai.djl.pytorch</groupId>
+		    <artifactId>pytorch-native-cpu</artifactId>
+		    <classifier>win-x86_64</classifier>
+		    <version>1.5.0</version>
+	      	<scope>runtime</scope>
+		</dependency>
+	    <dependency>
+	      <groupId>ai.djl.pytorch</groupId>
+	      <artifactId>pytorch-engine</artifactId>
+		    <version>0.6.0</version>
+	    </dependency>
+
+       <!-- https://mvnrepository.com/artifact/ai.djl.pytorch/pytorch-model-zoo -->
+       <dependency>
+           <groupId>ai.djl.pytorch</groupId>
+           <artifactId>pytorch-model-zoo</artifactId>
+           <version>0.6.0</version>
+       </dependency>
+		<!-- 
+	    <dependency>
+	      <groupId>ai.djl.pytorch</groupId>
+	      <artifactId>pytorch-model-zoo</artifactId>
+	      <version>${djl.version}</version>
+	    </dependency>
+	    -->
 	</dependencies>
 </project>
