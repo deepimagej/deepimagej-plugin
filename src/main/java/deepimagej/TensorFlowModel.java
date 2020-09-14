@@ -48,6 +48,7 @@ import java.util.Set;
 
 import javax.swing.JFrame;
 
+import org.scijava.Context;
 import org.tensorflow.SavedModelBundle;
 import org.tensorflow.TensorFlowException;
 import org.tensorflow.framework.MetaGraphDef;
@@ -67,6 +68,8 @@ import deepimagej.tools.Log;
 import deepimagej.tools.NumFormat;
 import deepimagej.tools.YAMLUtils;
 import ij.IJ;
+import net.imagej.tensorflow.TensorFlowService;
+import net.imagej.tensorflow.TensorFlowVersion;
 
 public class TensorFlowModel {
 
@@ -115,6 +118,26 @@ public class TensorFlowModel {
 												   	     "tf.saved_model.signature_constants.SUPERVISED_TRAIN_METHOD_NAME",
 												   	     "tf.saved_model.signature_constants.SUPERVISED_EVAL_METHOD_NAME"};
 
+	
+	private static TensorFlowService tfService;
+	static {
+	  Context ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
+	  if (ctx == null) ctx = new Context(TensorFlowService.class);
+	  tfService = ctx.service(TensorFlowService.class);
+	}
+	
+	public static String loadLibrary() {
+		if (!tfService.getStatus().isLoaded()) {
+			tfService.initialize();
+			tfService.loadLibrary();
+			if (tfService.getStatus().isLoaded()) {
+				return tfService.getStatus().getInfo();
+			} else {
+				return "";
+			}
+		}
+		return tfService.getStatus().getInfo();
+	}
 
 	/* TODO fix doc
 	 * Checks if there is a model in the directory and what kind of model.
@@ -221,10 +244,23 @@ public class TensorFlowModel {
 	 * with what is specified inn the config.yaml
 	 */
 	public static HashMap<String, List<String>> checkSumWeighst(Parameters params) {
+		return checkSumWeighst(params, null);
+	}
+	
+	/*
+	 * For Bioimage Zoo models, checks that the weights_vX.zip files coincide
+	 * with what is specified inn the config.yaml
+	 */
+	public static HashMap<String, List<String>> checkSumWeighst(Parameters params, String interestVersion) {
 		Set<String> prevVersions = params.previousVersions.keySet();
 		List<String> missingWeights = new ArrayList<String>();
 		List<String> faultyWeights = new ArrayList<String>();
 		List<String> corectWeights = new ArrayList<String>();
+		if (interestVersion != null) {
+			prevVersions = new HashSet<String>();
+			prevVersions.add(interestVersion);
+		}
+			
 		for (String key : prevVersions) {
 			String newSha256 = "";
 			try {
@@ -247,6 +283,7 @@ public class TensorFlowModel {
 		return map;
 	}
 
+	// TODO remove
 	public static SavedModelBundle load(String path, String tag, Log log, ArrayList<String> msg) {
 		log.print("load model from " + path);
 		msg.add("Load with tag: " + tag);
@@ -413,7 +450,7 @@ public class TensorFlowModel {
 			nChannels = 1;
 		}
 		else {
-			nChannels = tensor.tensor_shape[ind];
+			nChannels = tensor.minimum_size[ind];
 		}
 		return nChannels;
 	}
@@ -533,89 +570,11 @@ public class TensorFlowModel {
 	}
 	
 	/*
-	 * Retrieves the TF version that is going to be used for the plugin.
-	 * In order to do that, the method searches in two locations where the 
-	 *.jars might be: in the plugins folder or in the jars folder
-	 */
-	public static String getTFVersion() {
-		String tfJni = getLibTfJar();
-		String tfVersion = getTfVersionFromJar(tfJni);
-		return tfVersion;	
-	}
-	
-	/*
-	 * Finds the directory where the tf jar is
-	 */
-	public static String getLibTfJar() {
-		
-		// Search in the plugins folder
-		String ijDirectory = IJ.getDirectory("imagej") + File.separator;
-		// TODO remove 
-		ijDirectory = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app";
-		String pluginsDirectory = ijDirectory + File.separator + "plugins" + File.separator;
-		String pluginsJar = findTFJar(pluginsDirectory);
-		
-		// Search in the jars folder
-		String jarDirectory = ijDirectory + File.separator + "jars" + File.separator;
-		String jarsJar = findTFJar(jarDirectory);
-		
-		// Check that there is only one jar file present in both folders
-		if (jarsJar.equals(pluginsJar) == true) {
-			return "invalid";
-		}
-		
-		// Find which of them is actually the TF jni jar
-		String tfJni = pluginsJar;
-		if (tfJni.equals("") == true) {
-			tfJni = jarsJar;
-		}
-		return tfJni;
-	}
-	
-	/*
-	 * Finds the file corresponding to the tf jar
-	 */
-	public static String findTFJar(String folderDir) {
-		// Find the file libtensorflow_jni.jar
-		
-		// Name of the TF jni without the version
-		String jarName = "libtensorflow_jni";
-		// Auxiliary variable to make sure we only have one TF jni
-		int nJars = 0;
-		String tfJar = "";
-		
-		File folder = new File(folderDir);
-		File[] listOfFiles = folder.listFiles();
-		
-		for (File file : listOfFiles) {
-			if (file.isFile() == true) {
-				String fileName = file.getAbsolutePath();
-				if (fileName.indexOf(jarName) != -1) {
-					nJars ++;
-					tfJar = fileName;
-				}
-			}
-		}
-		
-		if (nJars == 0) {
-			
-		} else if (nJars >1) {
-			tfJar = "";
-		}
-		
-		return tfJar;
-	}
-	
-	/*
 	 * Get the version number from the jar file
 	 */
-	public static String getTfVersionFromJar(String jar) {
-		// Name of the TF jni without the version
-		String folderName = new File(jar).getParent();
-		String jarName = folderName + File.pathSeparator + "libtensorflow_jni-";
-		String jarExt = ".jar";
-		String tfVersion = jar.substring(jarName.length(), jar.indexOf(jarExt));
-		return tfVersion;
+	public static String getTFVersion() {
+		TensorFlowVersion tfVersion = tfService.getTensorFlowVersion();
+		return tfVersion.getVersionNumber();
 	}
 
 }

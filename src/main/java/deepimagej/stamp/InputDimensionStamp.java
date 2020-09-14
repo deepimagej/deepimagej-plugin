@@ -79,15 +79,15 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	private List<JTextField>			allTxtPatches = new ArrayList<JTextField>();
 		
 
-	private static String 				allowPatches = "Allow patch decomposition";
-	private static String 				predeterminedInput = "Predetermined input size";
+	private static String 				allowPatches = "Allow tilling";
+	private static String 				predeterminedInput = "Fixed input size";
 	private static String 				noPatchesFixed = "Do not allow patches (fixed input size)";
 	private static String 				noPatchesVariable = "Do not allow patches (variable size)";
 	
-	private JComboBox<String>			cmbPatches	= new JComboBox<String>(new String[] { allowPatches, predeterminedInput,
+	private JComboBox<String>			cmbPatches	= new JComboBox<String>(new String[] { predeterminedInput, allowPatches, 
 																							noPatchesFixed, noPatchesVariable});
 	private JLabel						lblPatches	= new JLabel("Patch size");
-	private JLabel						lblMultiple	= new JLabel("Multiple factor");
+	private JLabel						lblMultiple	= new JLabel("Step");
 
 	private JButton 					bnNextOutput 	= new JButton("Next Output");
 	private JButton 					bnPrevOutput 	= new JButton("Previous Output");
@@ -117,15 +117,18 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		
 		HTMLPane info = new HTMLPane(Constants.width, 180);
 		info.append("h", "<b>Input size constraints</b>");
-		info.append("p", "<b>Patch size (Q) </b>: patch size used to process the image with teh current model. "
-				+ "If <i>Allow patch decomposition</i> is selected, changes in <i>Q</i> will be allowed in inference.");
-		info.append("p", "<b>Multiple factor (m) </b>: If the network has an auto-encoder architecture, the size of each dimension of the input image, has to be multiple of a minimum size m.");
+		info.append("p", "<b>Input tile size (Q) </b>: Input size of the model. If <i>Allow tiling</i> or"
+				+ " <i>Do not allow tiling (variable input size)</i> is selected, <i>Q</i> will automatically "
+				+ "change for each image during the inference.");
+		info.append("p", "<b>Step (m) </b>: If the network has an auto-encoder architecture, the size of each dimension of the input image (Q), has to be multiple of a minimum size m.");
 			
-		info.append("h", "<b>Patching strategies</b>");
-		info.append("p", "<b>Allow patch decomposition</b>: <i>Q</i> will be editable by the user as long as it fulfils the <i>multiple factor</i> constraint.");
-		info.append("p", "<b>Predetermined input size</b>: <i>Q</i> will be fixed. If the image is bigger than <i>Q</i> a tiling approach will be followed.");
+		info.append("h", "<b>Tiling strategies</b>");
+		info.append("p", "<b>Allow tiling (variable input size)</b>: <i>Q</i> is editable by the user as long as it "
+				+ "fulfills the <i>step (m)</i> constraint. Large images are processed using a tiling strategy.");
+		info.append("p", "<b>Allow tiling (fixed input size)</b>: <i>Q</i> is fixed. Only images with the same size as <i>Q</i> will be accepted.");
 		info.append("p", "<b>Do not allow patches (fixed input size)</b>: <i>Q</i> will be fixed. Only images with the same size as <i>Q</i> will be accepted.");
-		info.append("p", "<b>Do not allow patches (variable size)</b>: we cannot select <i>Q</i>. The input image will be processed as a whole (no tiling) taking into account the <i>multiple factor</i> constraint.");
+		info.append("p", "<b>Do not allow patches (variable input size)</b>: The input size will be processed as a whole (no tiling) taking into "
+				+ "account the <i>step (m)</i> constraint to adapt its size (<i>Q</i>) by mirroring along the borders.");
 		
 		GridPanel buttons = new GridPanel(true);
 		buttons.setBorder(BorderFactory.createEtchedBorder());
@@ -157,10 +160,10 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		//String modelOfInterest = parent.getDeepPlugin().params.path2Model;
 		Parameters params = parent.getDeepPlugin().params;
 		imageTensors = DijTensor.getImageTensors(params.inputList);
-		showCorrespondingInputInterface(params);
 		// Set the screen at the first input if the model changes
 		String modelOfInterest = params.path2Model;
 		if (!modelOfInterest.equals(model)) {
+			showCorrespondingInputInterface(params);
 			model = modelOfInterest;
 			inputCounter = 0;
 		}
@@ -170,6 +173,10 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	public boolean finish() {
 		Parameters params = parent.getDeepPlugin().params;
 		saveInputData(params);
+		for (DijTensor inp : params.inputList) {
+			if (inp.tensorType.contains("image") && !inp.finished)
+				return false;
+		}
 		return true;
 	}public void showCorrespondingInputInterface(Parameters params) {
 		
@@ -229,7 +236,8 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 				} else if (dimValues[i] == -1){
 					allTxtMultiple.get(i).setEditable(true);
 					allTxtPatches.get(i).setEditable(true);
-					allTxtPatches.get(i).setText(optimalPatch(allTxtMultiple.get(i).getText(), dim[i]));
+					// TODO improve the intial guess of the patch
+					allTxtPatches.get(i).setText("100");
 				}
 			}
 
@@ -280,9 +288,25 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 				allTxtPatches.get(i).setEditable(false);
 			}
 		}
+		int c0 = 0;
+		int c1 = 1;
+		int c2 = 2;
+		int c3 = 3;
 		if (!listenTxtField) {
-			for (int i = 0; i < allTxtMultiple.size(); i ++)
-				addChangeListener(allTxtMultiple.get(i), e -> updateImageInterface(tensor));
+			// TODO improve
+			addChangeListener(allTxtMultiple.get(c0), e -> optimalPatch(allTxtMultiple.get(c0).getText(), dim[c0]));
+			if (allTxtMultiple.size() >1)
+				addChangeListener(allTxtMultiple.get(c1), e -> optimalPatch(allTxtMultiple.get(c1).getText(), dim[c1]));
+			if (allTxtMultiple.size() >2)
+				addChangeListener(allTxtMultiple.get(c2), e -> optimalPatch(allTxtMultiple.get(c2).getText(), dim[c2]));
+			if (allTxtMultiple.size() >3)
+				addChangeListener(allTxtMultiple.get(c3), e -> optimalPatch(allTxtMultiple.get(c3).getText(), dim[c3]));
+			/* TODO remove
+			for (int i = 0; i < allTxtMultiple.size(); i ++) {
+				addChangeListener(allTxtMultiple.get(i), e -> optimalPatch(allTxtMultiple.get(c).getText(), dim[c]));
+				c ++;
+			}*/
+			//addChangeListener(allTxtMultiple.get(i), e -> updateImageInterface(tensor));
 			listenTxtField = true;
 		}
 	}
@@ -323,9 +347,13 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		int[] step = new int[params.inputList.get(inputCounter).form.length()];
 		
 		int batchInd = Index.indexOf(params.inputList.get(0).form.split(""), "B");
-		multiple[batchInd] = 1; patch[batchInd] = 1; step[batchInd] = 0;
-		//step[batchInd] = 1;
+		if (batchInd != -1) {
+			multiple[batchInd] = 1; patch[batchInd] = 1; step[batchInd] = 0;
+		}
 
+		// Selected tiling option
+		String selection = (String) cmbPatches.getSelectedItem();
+		
 		boolean auxDetectError = true;
 		try {
 			int auxCount = 0;
@@ -343,14 +371,14 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 						step[c] = 0;
 					}
 					if (multiple[c] <= 0) {
-						IJ.error("The multiple factor size should be larger than 0");
+						IJ.error("The step should be larger than 0");
 						return false;
 					}
-					if (patch[c] <= 0 && !params.pyramidalNetwork) {
+					if (patch[c] <= 0 && !selection.equals(noPatchesVariable)) {
 						IJ.error("The patch size should be larger than 0");
 						return false;
 					}
-					if (patch[c]%multiple[c] != 0 && !params.pyramidalNetwork) {
+					if (patch[c]%multiple[c] != 0 && !selection.equals(noPatchesVariable)) {
 						IJ.error("At dimension " + params.inputList.get(inputCounter).form.split("")[c] + " size " +
 								patch[c] + " is not a multiple of "
 								+ multiple[c]);
@@ -364,12 +392,11 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			if (auxDetectError) {
 				IJ.error("The patch size is not a correct integer");
 			} else if (!auxDetectError) {
-				IJ.error("The multiple factor size is not a correct integer");
+				IJ.error("The step is not a correct integer");
 			}
 			return false;
 		}
 		
-		String selection = (String) cmbPatches.getSelectedItem();
 		
 		if (selection.contains(allowPatches)) {
 			params.allowPatching = true;
@@ -463,12 +490,10 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		
 		pnInput.removeAll();
 		pnInput.setBorder(BorderFactory.createEtchedBorder());
-		//checkAllowPatching.setSelected(true);
 		pnInput.place(0, 0, 2, 1, new JLabel("Name: " + tensor.name + "      Input type: " + tensor.tensorType));
-		//pnInput.place(1, 1, checkAllowPatching);
-		pnInput.place(1, 0, lblMultiple);
-		pnInput.place(1, 1, pnMultiple);
-		pnInput.place(2, 0, 2, 1, cmbPatches);
+		pnInput.place(1, 0, 2, 1, cmbPatches);
+		pnInput.place(2, 0, lblMultiple);
+		pnInput.place(2, 1, pnMultiple);
 		pnInput.place(3, 0, lblPatches);
 		pnInput.place(4, 1, pnPatchSize);
 		GridPanel pnRange1 = new GridPanel(true);
@@ -486,58 +511,26 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		cmbPatches.addActionListener(this);
 	}
 	
-	public String optimalPatch(String minimumSizeString, String dimChar) {
+	public void optimalPatch(String minimumSizeString, String dimChar) {
 		// This method looks for the optimal patch size regarding the
 		// minimum patch constraint and image size. This is then suggested
 		// to the user
-		ImagePlus imp = null;
 		int ind = shortForm.indexOf(dimChar);
 		int currentSize = Integer.parseInt(allTxtPatches.get(ind).getText().trim());
-		String patch;
+		String patch = "100";
+		String selection = (String) cmbPatches.getSelectedItem();
 		if (minimumSizeString.equals(""))
-			return "" + currentSize;
+			patch =  "" + currentSize;
 		int minimumSize = Integer.parseInt(minimumSizeString);
 		
-		if (imp == null) {
-			imp = WindowManager.getCurrentImage();
-		}
-		if (imp == null && currentSize % minimumSize == 0) {
+		if (currentSize % minimumSize == 0 && selection.contains(allowPatches)) {
 			patch = "" + currentSize;
-			return patch;	
-		} else if (imp == null && currentSize % minimumSize != 0) {
+		} else if (currentSize % minimumSize != 0 && selection.contains(allowPatches)) {
 			patch = "" + (((int) currentSize / minimumSize) + 1) * minimumSize;
-			return patch;	
-		} else if (imp == null) {
-			patch = "100";
-			return patch;	
+		} else if (selection.contains(predeterminedInput) ||selection.contains(noPatchesFixed)) {
+			patch = "" + minimumSizeString;
 		}
-		
-		int size = 0;
-		switch (dimChar) {
-			case "Y":
-				size = imp.getHeight();
-				break;
-			case "X":
-				size = imp.getWidth();
-				break;
-			case "Z":
-				size = imp.getNSlices();
-				break;
-			case "C":
-				size = imp.getNChannels();
-				break;
-		}
-		
-		int optimalMult = (int)Math.ceil((double)size / (double)minimumSize) * minimumSize;
-		if (optimalMult > 3 * size) {
-			optimalMult = optimalMult - minimumSize;
-		}
-		if (optimalMult > 3 * size) {
-			optimalMult = (int)Math.ceil((double)size / (double)minimumSize) * minimumSize;
-		}
-		patch = Integer.toString(optimalMult);
-	
-		return patch;
+		allTxtPatches.get(ind).setText(patch);
 	}
 
 	@Override

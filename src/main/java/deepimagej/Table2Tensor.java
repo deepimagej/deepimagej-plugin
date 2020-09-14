@@ -186,7 +186,9 @@ public class Table2Tensor {
 		if (shape.length == 1) {
 			form = "R";
 		} else if (shape.length == 2 && (Index.indexOf(shape, 1) == -1)) {
+			// TODO mega, hacer algo para la forma de listas. Ejemplo de labels deepcell
 			form = "RC";
+			form = "BR";
 		} else if (shape.length == 2 && (Index.indexOf(shape, 1) != -1)) {
 			int batchInd = Index.indexOf(shape, 1);
 			form = batchInd == 0 ? "BR" : "RB";

@@ -57,6 +57,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -65,6 +66,7 @@ import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 
 import deepimagej.BuildDialog;
@@ -84,10 +86,11 @@ import ij.text.TextWindow;
 
 public class SaveStamp extends AbstractStamp implements ActionListener, Runnable {
 
-	private JTextField	txt			= new JTextField(IJ.getDirectory("imagej") + File.separator + "models"+File.separator);
+	private JTextField	txt			= new JTextField(IJ.getDirectory("imagej") + File.separator + "models" + File.separator);
 	private JButton		bnBrowse	= new JButton("Browse");
 	private JButton		bnSave	= new JButton("Save Bundled Model");
 	private HTMLPane 	pane;
+	private ArrayList<String> repeatedFiles;
 	
 	public SaveStamp(BuildDialog parent) {
 		super(parent);
@@ -98,6 +101,8 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 		pane = new HTMLPane(Constants.width, 320);
 		pane.setBorder(BorderFactory.createEtchedBorder());
 		pane.append("h2", "Saving Bundled Model");
+		JScrollPane infoPane = new JScrollPane(pane);
+		infoPane.setPreferredSize(new Dimension(Constants.width, pane.getPreferredSize().height));
 		DeepImageJ dp = parent.getDeepPlugin();
 
 		if (dp != null)
@@ -114,7 +119,8 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 
 		JPanel pn = new JPanel(new BorderLayout());
 		pn.add(load, BorderLayout.NORTH);
-		pn.add(pane.getPane(), BorderLayout.CENTER);
+		//pn.add(pane.getPane(), BorderLayout.CENTER);
+		pn.add(infoPane, BorderLayout.CENTER);
 		pn.add(bnSave, BorderLayout.SOUTH);
 		panel.add(pn);
 
@@ -168,12 +174,13 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 		params.saveDir = params.saveDir.replace(File.separator + File.separator, File.separator);
 		File dir = new File(params.saveDir);
 		boolean ok = true;
-		ArrayList<String> repeatedFiles = new ArrayList<String>();
+
+		repeatedFiles = new ArrayList<String>();
 		if (!dir.exists()) {
 			dir.mkdir();
 			pane.append("p", "Make a directory: " + params.saveDir);
 		} else {
-			repeatedFiles = checkFolder(params.saveDir);
+			params.biozoo = checkFolder(params.saveDir);
 		}
 		
 		if (repeatedFiles.size() > 0 && repeatedFiles.size() < 3) {
@@ -193,9 +200,9 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 			for (String f : repeatedFiles) {
 				boolean deleted = true;
 				if (f.contains(".")) {
-					deleted = new File(f).delete();
+					deleted = new File(dir + File.separator + f).delete();
 				} else {
-					deleted = FileTools.deleteDir(new File(f));
+					deleted = FileTools.deleteDir(new File(dir + File.separator + f));
 				}
 				if (!deleted) {
 					IJ.error("Could not remove " + f + ".\nSave cancelled.");
@@ -203,6 +210,7 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 				}
 			}
 		}
+		
 		dir = new File(params.saveDir);
 		
 		// Check if save directory already has a version of the same model. If it does
@@ -329,6 +337,7 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 			String zipName = "weights_v" + params.version + ".zip";
 			File source = new File(params.path2Model + "variables");
 			File dest = new File(params.saveDir + zipName);
+			pane.append("p", "Writting zip file...");
 			FileTools.zipFolder(source, dest);
 			pane.append("p", "weights of the network (variables): saved");
 			// TODO add check to ensure each pair of weights is unique
@@ -387,6 +396,7 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 			}
 		}
 		
+		// Save yaml
 		try {
 			YAMLUtils.writeYaml(dp);
 			pane.append("p", "config.yaml: saved");
@@ -399,7 +409,8 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 		// Save input image
 		try {
 			if (params.testImageBackup != null) {
-				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + "exampleImage.tiff");
+				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + params.testImageBackup.getTitle().substring(4));
+				params.testImageBackup.setTitle("DUP_" + params.testImageBackup.getTitle());
 				pane.append("p", "exampleImage.tiff: saved");
 			} else {
 				throw new Exception();
@@ -418,6 +429,7 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 					ImagePlus im = WindowManager.getImage(name);
 					IJ.saveAsTiff(im, params.saveDir + File.separator + name);
 				} else if (output.get("type").contains("ResultsTable")){
+					name = name.substring(0, name.length() - 4);
 					Frame f = WindowManager.getFrame(name);
 			        if (f!=null && (f instanceof TextWindow)) {
 			        	ResultsTable rt = ((TextWindow)f).getResultsTable();
@@ -432,6 +444,7 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 				ok = false;
 			}
 		}
+		pane.append("p", "Done!!");
 
 		//parent.setEnabledBackNext(ok);
 	}
@@ -473,7 +486,9 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 	 */
 	public static boolean getModelVersion(String dir, Parameters params){
 		
-		//Map<String, Object> obj =  YAMLUtils.readConfig(dir + File.separator + "config.yaml");
+		Map<String, Object> obj =  YAMLUtils.readConfig(dir + File.separator + "config.yaml");
+		params.previousVersions = (Map<String, Object>) obj.get("weights");
+		
 		Set<String> keyset = params.previousVersions.keySet();
 		String[] versions = new String[keyset.size()];
 		int c = 0;
@@ -488,24 +503,31 @@ public class SaveStamp extends AbstractStamp implements ActionListener, Runnable
 		return repeated;
 	}
 	
-	public static ArrayList<String> checkFolder(String dir){
-		ArrayList<String> files = new ArrayList<String>();
-		if (new File(dir, "saved_model.pb").isFile())
-			files.add("saved_model.pb");
-		if (new File(dir, "config.yaml").isFile()) {
-			files.add("config.yaml");
-		} else if (new File(dir, "config.yml").isFile()) {
-			files.add("config.yml");
+	public boolean checkFolder(String dir){
+		repeatedFiles = new ArrayList<String>();
+		boolean model = false;
+		if (new File(dir, "saved_model.pb").isFile()) {
+			repeatedFiles.add("saved_model.pb");
+			model = true;
 		}
+		boolean yaml = false;
+		if (new File(dir, "config.yaml").isFile()) {
+			repeatedFiles.add("config.yaml");
+			yaml = true;
+		} else if (new File(dir, "config.yml").isFile()) {
+			repeatedFiles.add("config.yml");
+			yaml = true;
+		}
+		boolean weights = false;
 		String[] fList = new File(dir).list();
 		for (String f : fList) {
 			if (f.contains("weights_v") && f.contains(".zip")) {
-				files.add(f);
-				break;
+				repeatedFiles.add(f);
+				weights = true;
 			}
 		}
 		
-		return files;
+		return model && yaml && weights;
 	}
 
 	public class LocalDropTarget extends DropTarget {

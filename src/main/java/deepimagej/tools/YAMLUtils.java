@@ -61,20 +61,6 @@ import deepimagej.TensorFlowModel;
 import ij.IJ;
 
 public class YAMLUtils {
-
-	private final static String idName = "name";
-	private final static String idDescription = "description";
-	private final static String idAuthors = "authors";
-	private final static String idNodeName = "name";
-	private final static String idNodeAxes = "axes";
-	private final static String idNodeDataType = "data_type";
-	private final static String idNodeDataRange = "data_range";
-	private final static String idNodeShapeMin = "min";
-	private final static String idNodeShapeStep = "step";
-	private final static String idModelTag = "tensorflow_model_tag";
-	private final static String idSigDef = "tensorflow_siganture_def";
-	private final static String idMemoryPeak = "memory_peak";
-	private final static String idRuntime = "runtime";
 	
 	public static void writeYaml(DeepImageJ dp) {
 		Parameters params = dp.params;
@@ -87,26 +73,26 @@ public class YAMLUtils {
 			if (inp.tensorType.contains("image")) {
 				// Create dictionary for each image input
 				Map<String, Object> inputTensorMap = new LinkedHashMap<>();
-				inputTensorMap.put(idNodeName, inp.name);
-				inputTensorMap.put(idNodeAxes, inp.form.toLowerCase());
+				inputTensorMap.put("name", inp.name);
+				inputTensorMap.put("axes", inp.form.toLowerCase());
 
-				inputTensorMap.put(idNodeDataType, "float32");
-				inputTensorMap.put(idNodeDataRange, Arrays.toString(inp.dataRange));
+				inputTensorMap.put("data_type", "float32");
+				inputTensorMap.put("data_range", Arrays.toString(inp.dataRange));
 				if (params.fixedInput) {
 					inputTensorMap.put("shape", Arrays.toString(inp.recommended_patch));
 				} else if (!params.fixedInput) {
 					Map<String, Object> shape = new LinkedHashMap<>();
-					shape.put(idNodeShapeMin, Arrays.toString(inp.minimum_size));
+					shape.put("min", Arrays.toString(inp.minimum_size));
 					int[] aux = new int[inp.minimum_size.length];
 					for(int i = 0; i < aux.length; i ++) {aux[i] += inp.step[i];}
-					shape.put(idNodeShapeStep, Arrays.toString(aux));
+					shape.put("step", Arrays.toString(aux));
 					inputTensorMap.put("shape", shape);
 				}
 				modelInputMapsList.add(inputTensorMap);
 				
 				// Now write the test data info
 				Map<String, Object> inputTestInfo = new LinkedHashMap<>();
-				inputTestInfo.put("name", params.testImageBackup.getTitle());
+				inputTestInfo.put("name", params.testImageBackup.getTitle().substring(4));
 				inputTestInfo.put("size", inp.inputTestSize);
 				Map<String, Object> pixelSize = new LinkedHashMap<>();
 				pixelSize.put("x", inp.inputPixelSizeX);
@@ -136,11 +122,11 @@ public class YAMLUtils {
 			outputTestInfoList.add(outputTestInfo);
 		}
 		
-		data.put(idName, params.name);
+		data.put("name", params.name);
 		// Short description of the model
-		data.put(idDescription, params.description);
+		data.put("description", params.description);
 		// List of authors who trained/prepared the actual model which is being saved
-		data.put(idAuthors, params.author);
+		data.put("authors", params.author);
 		
 		// Citation
 		data.put("cite", params.cite);
@@ -154,9 +140,9 @@ public class YAMLUtils {
 		// TF model keys
 		Map<String, Object> modelKeys = new LinkedHashMap<>();
 		// Model tag
-		modelKeys.put(idModelTag, TensorFlowModel.returnTfTag(params.tag));
+		modelKeys.put("tensorflow_model_tag", TensorFlowModel.returnTfTag(params.tag));
 		// Model signature definition
-		modelKeys.put(idSigDef, TensorFlowModel.returnTfSig(params.graph));
+		modelKeys.put("tensorflow_siganture_def", TensorFlowModel.returnTfSig(params.graph));
 		deepimagej.put("model_keys", modelKeys);
 		
 		// Test metadata
@@ -168,9 +154,9 @@ public class YAMLUtils {
 		testInformation.put("outputs", outputTestInfoList);
 		
 		// Output size of the examples used to compose the model
-		testInformation.put(idMemoryPeak, params.memoryPeak);
+		testInformation.put("memory_peak", params.memoryPeak);
 		// Output size of the examples used to compose the model
-		testInformation.put(idRuntime, params.runtime);
+		testInformation.put("runtime", params.runtime);
 		// Metadata of the example used to compose the model
 		deepimagej.put("test_information", testInformation);
 		
@@ -188,7 +174,9 @@ public class YAMLUtils {
 		}
 		
 		// Weights
-		Map<String, Object> weights = params.previousVersions;
+		Map<String, Object> weights = new HashMap<String, Object>();
+		if (params.biozoo)
+			weights = params.previousVersions;
 		// Version
 		Map<String, Object> version = new LinkedHashMap<>();
 		String weightsVersion = "v" + params.version.trim();
@@ -196,7 +184,8 @@ public class YAMLUtils {
 		String zipFile = params.saveDir + File.separator + "weights_" + weightsVersion + ".zip";
 		if (new File(zipFile).isFile())
 			try {
-				version.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + "weights_" + weightsVersion + ".zip"));
+				String zipSha = FileTools.createSHA256(params.saveDir + File.separator + "weights_" + weightsVersion + ".zip");
+				version.put("sha256", zipSha);
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -212,10 +201,8 @@ public class YAMLUtils {
 		data.put("cover", Arrays.asList(params.coverImage));
 		// Path to the test inputs
 		ArrayList<String> inputExamples = new ArrayList<String>();
-		for (DijTensor in : params.inputList) {
-			if (in.exampleInput != null)
-				inputExamples.add("./" + in.exampleInput);
-		}
+		// TODO generalize for several input images
+		inputExamples.add("./" + params.testImageBackup.getTitle().substring(4));
 		data.put("test_input", inputExamples);
 		// Path to the test outputs
 		ArrayList<String> outputExamples = new ArrayList<String>();
@@ -251,6 +238,7 @@ public class YAMLUtils {
 			params.secondPreprocessing = null;
 		}
 		
+		int c = 0;
 		if ((params.firstPreprocessing != null) && (params.firstPreprocessing.contains(".ijm") || params.firstPreprocessing.contains(".txt"))) {
 			Map<String, String> preprocess = new LinkedHashMap<>();
 			preprocess.put("spec", "ij.IJ::runMacroFile");
@@ -259,7 +247,7 @@ public class YAMLUtils {
 		} else if ((params.firstPreprocessing != null) && (params.firstPreprocessing.contains(".class") || params.firstPreprocessing.contains(".jar"))) {
 			String filename = new File(params.firstPreprocessing).getName();
 			Map<String, String> preprocess = new LinkedHashMap<>();
-			preprocess.put("spec", filename + " " + params.javaPreprocessingClass);
+			preprocess.put("spec", filename + " " + params.javaPreprocessingClass.get(c ++) + "::preProcessingRoutineUsingImage");
 			listPreprocess.add(preprocess);
 		} else if (params.firstPreprocessing == null && params.secondPreprocessing == null) {
 			Map<String, String> preprocess = new LinkedHashMap<>();
@@ -274,7 +262,7 @@ public class YAMLUtils {
 		} else if ((params.secondPreprocessing != null) && (params.secondPreprocessing.contains(".class") || params.secondPreprocessing.contains(".jar"))) {
 			String filename = new File(params.secondPreprocessing).getName();
 			Map<String, String> preprocess = new LinkedHashMap<>();
-			preprocess.put("spec", filename + " " + params.javaPreprocessingClass);
+			preprocess.put("spec", filename + " " + params.javaPreprocessingClass.get(c ++) + "::preProcessingRoutineUsingImage");
 			listPreprocess.add(preprocess);
 		}
 
@@ -284,6 +272,7 @@ public class YAMLUtils {
 			params.firstPostprocessing = params.secondPostprocessing;
 			params.secondPostprocessing = null;
 		}
+		c = 0;
 		if ((params.firstPostprocessing != null)  && (params.firstPostprocessing.contains(".ijm") || params.firstPostprocessing.contains(".txt"))) {
 			Map<String, String> postprocess = new LinkedHashMap<>();
 			postprocess.put("spec", "ij.IJ::runMacroFile");
@@ -292,7 +281,7 @@ public class YAMLUtils {
 		} else if ((params.firstPostprocessing != null)  && (params.firstPostprocessing.contains(".class") || params.firstPostprocessing.contains(".jar"))) {
 			String filename = new File(params.firstPostprocessing).getName();
 			Map<String, String> postprocess = new LinkedHashMap<>();
-			postprocess.put("spec", filename + " " + params.javaPostprocessingClass);
+			postprocess.put("spec", filename + " " + params.javaPostprocessingClass.get(c ++) + "::postProcessingRoutineUsingImage");
 			listPostprocess.add(postprocess);
 		} else if (params.firstPostprocessing == null && params.secondPostprocessing == null) {
 			Map<String, String> postprocess = new LinkedHashMap<>();
@@ -307,7 +296,7 @@ public class YAMLUtils {
 		} else if ((params.secondPostprocessing != null) && (params.secondPostprocessing.contains(".class") || params.secondPostprocessing.contains(".jar"))) {
 			String filename = new File(params.secondPostprocessing).getName();
 			Map<String, String> postprocess = new LinkedHashMap<>();
-			postprocess.put("spec", filename + " " + params.javaPostprocessingClass);
+			postprocess.put("spec", filename + " " + params.javaPostprocessingClass.get(c ++) + "::postProcessingRoutineUsingImage");
 			listPostprocess.add(postprocess);
 		}
 

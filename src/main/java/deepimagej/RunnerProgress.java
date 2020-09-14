@@ -71,7 +71,7 @@ public class RunnerProgress extends JDialog implements ActionListener {
 	private Clock				clock;
 	private GridBagLayout		layout		= new GridBagLayout();
 	private GridBagConstraints	constraint	= new GridBagConstraints();
-	private Runner runner;
+	private Object runner;
 	private boolean stop = false;
 	private String name;
 	
@@ -102,7 +102,7 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		stop = false;
 	}
 
-	public void setRunner(Runner runner) {
+	public void setRunner(Object runner) {
 		this.runner = runner;
 	}
 	
@@ -148,8 +148,10 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		memory.setText("Used memory: " + NumFormat.bytes(mem) + " / " + SystemUsage.getMaxMemory());
 		peak.setText("Peak memory: " + NumFormat.bytes(peakmem));
 		processor.setText("Load CPU: " + String.format("%1.3f", SystemUsage.getLoad()) + "%");
-		if (runner != null)
-			patches.setText("Patches: " + runner.getCurrentPatch() + "/" + runner.getTotalPatch());
+		if (runner != null && (runner instanceof RunnerTf))
+			patches.setText("Patches: " + ((RunnerTf) runner).getCurrentPatch() + "/" + ((RunnerTf) runner).getTotalPatch());
+		if (runner != null && (runner instanceof RunnerPt))
+			patches.setText("Patches: " + ((RunnerPt) runner).getCurrentPatch() + "/" + ((RunnerPt) runner).getTotalPatch());
 	}
 	public double getPeakmem() {
 		return this.peakmem;

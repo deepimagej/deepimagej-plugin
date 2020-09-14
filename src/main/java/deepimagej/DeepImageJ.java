@@ -42,11 +42,14 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Set;
 
 import org.tensorflow.SavedModelBundle;
 
+import ai.djl.ndarray.NDList;
+import ai.djl.repository.zoo.ZooModel;
 import deepimagej.tools.Log;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.FileTools;
@@ -63,7 +66,8 @@ public class DeepImageJ {
 	public ArrayList<String>		msgChecks		= new ArrayList<String>();
 	public ArrayList<String>		msgLoads			= new ArrayList<String>();
 	public ArrayList<String[]>	msgArchis		= new ArrayList<String[]>();
-	private SavedModelBundle		model			= null;
+	private SavedModelBundle		tfModel			= null;
+	private ZooModel<NDList, NDList> torchModel			= null;
 	
 	public DeepImageJ(String pathModel, String dirname, Log log, boolean isDeveloper) {
 		String p = pathModel + File.separator + dirname + File.separator;
@@ -89,12 +93,20 @@ public class DeepImageJ {
 		return params.name.equals("n.a.") ? dirname : params.name;
 	}
 	
-	public SavedModelBundle getModel() {
-		return model;
+	public ZooModel<NDList, NDList> getTorchModel() {
+		return torchModel;
 	}
 
-	public void setModel(SavedModelBundle model) {
-		this.model = model;
+	public void setTorchModel(ZooModel<NDList, NDList> model) {
+		this.torchModel = model;
+	}
+	
+	public SavedModelBundle getTfModel() {
+		return tfModel;
+	}
+
+	public void setTfModel(SavedModelBundle model) {
+		this.tfModel = model;
 	}
 
 	public boolean getValid() {
@@ -117,7 +129,7 @@ public class DeepImageJ {
 					list.put(dp.dirname, dp);
 				} else if (dp.valid && dp.params.completeConfig != true) {
 					IJ.error("Model " + dp.dirname + " could not load\n"
-							+ "because its config.xml file did not correspond\n"
+							+ "because its config.yaml file did not correspond\n"
 							+ "to this version of the plugin.");
 				}
 				
@@ -134,7 +146,7 @@ public class DeepImageJ {
 		SavedModelBundle model;
 		try {
 			model = SavedModelBundle.load(path, TensorFlowModel.returnStringTag(params.tag));
-			setModel(model);
+			setTfModel(model);
 		}
 		catch (Exception e) {
 			IJ.log("Exception in loading model " + dirname);
@@ -161,7 +173,12 @@ public class DeepImageJ {
 		info.append("----------- BASIC INFO -----------\n");
 		info.append("Name: " + params.name + "\n");
 		info.append(checks.get(0) + "\n");
-		info.append("Size: " + checks.get(1).substring(18) + "\n");
+		// TODO remove
+		if (checks.size() == 2) {
+			info.append("Size: " + checks.get(1).substring(18) + "\n");
+		} else {
+			info.append("Size: " + FileTools.getFolderSizeKb(path + "variables") + "\n");
+		}
 		info.append("Authors" + "\n");
 		for (String auth : params.author)
 			info.append("  - " + auth + "\n");
@@ -228,7 +245,11 @@ public class DeepImageJ {
 			msg.add("Not found " + path);
 			return false;
 		}
-		if (!dir.isDirectory()) {
+		if (!dir.isDirectory() && (dir.getName().contains(".pt") || dir.getName().contains(".pth"))) {
+			this.params.framework = "Pytorch";
+			this.params.torchscriptPath = dir.getAbsolutePath();
+			return true;
+		}else if (!dir.isDirectory()) {
 			msg.add("Not found " + path);
 			return false;
 		}
@@ -249,9 +270,11 @@ public class DeepImageJ {
 		
 		Set<String> versions = this.params.previousVersions.keySet();
 		boolean isThereBiozoo = false;
+		String allFiles = Arrays.toString(dir.list());
 		for (String v : versions) {
-			if (v.contains("weights_" + v + ".zip")) 
+			if (allFiles.contains("weights_" + v + ".zip")) 
 				isThereBiozoo = true;
+			this.params.framework = "Tensorflow";
 		}
 		if (isThereBiozoo) {
 			valid = true;
@@ -265,6 +288,19 @@ public class DeepImageJ {
 		}
 		else {
 			msg.add("TensorFlow model " + FileTools.getFolderSizeKb(path + "variables"));
+			this.params.framework = "Tensorflow";
+		}
+		
+		// If no tf model has been found. Look for a pytorch torchscript model
+		if (!valid) {
+			for (File f : new File(path).listFiles()) {
+				if (!f.getName().contains(".pt") || !f.getName().contains(".pth"))
+					continue;
+				this.params.framework = "Pytorch";
+				this.params.torchscriptPath = f.getAbsolutePath();
+				valid = true;
+				break;
+			}
 		}
 		
 		return valid;

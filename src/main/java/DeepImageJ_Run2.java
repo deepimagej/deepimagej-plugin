@@ -45,6 +45,7 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -70,7 +71,9 @@ import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.gui.ImageWindow;
+import ij.measure.ResultsTable;
 import ij.plugin.PlugIn;
+import ij.text.TextWindow;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -78,10 +81,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 
-public class DeepImageJ_Run implements PlugIn, ItemListener {
+public class DeepImageJ_Run2 implements PlugIn, ItemListener {
 
 	private TextArea					info		= new TextArea("Information on the model", 10, 58, TextArea.SCROLLBARS_BOTH);
-	private Choice[]					choices		= new Choice[5];
+	private Choice[]					choices		= new Choice[4];
 	private TextField[]	    			texts		= new TextField[1];
 	private TextField[]	    			patchSize	= new TextField[5];
 	private Label[]	    				patchLabel	= new Label[4];
@@ -105,9 +108,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		WindowManager.setTempCurrentImage(imp);
 		if (imp != null)
 			imp.show();
-		new DeepImageJ_Run().run("");
+		new DeepImageJ_Run2().run("");
 	}
 
+	// TODO should we just indicate the name along with the version at the begining?
 	@Override
 	public void run(String arg) {
 
@@ -141,21 +145,24 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			panel.add(info, BorderLayout.CENTER);
 	
 			GenericDialog dlg = new GenericDialog("DeepImageJ Run [" + Constants.version + "]");
-			String[] items = new String[dps.size() + 1];
-			items[0] = "<select a model from this list>";
+			ArrayList<String> items = new ArrayList<String>();
+			items.add("<select a model from this list>");
 			int k = 1;
 			for (String dirname : dps.keySet()) {
 				DeepImageJ dp = dps.get(dirname);
 				if (dp != null) {
 					String fullname = dp.getName();
-					items[k++] = fullname;
-					int index = k - 1;
-					fullnames.put(Integer.toString(index), dirname);
+					Set<String> allVersions = dp.params.previousVersions.keySet();
+					for (String v : allVersions) {
+						String extension = allVersions.size() == 1 ? " (default)" : " (" + v + ")";
+						items.add(fullname + extension);
+						fullnames.put(Integer.toString(k ++), dirname);
+					}
 				}
 			}
+			String[] itemsArray = items.toArray(new String[items.size()]);
 
-			dlg.addChoice("Model DeepImageJ", items, items[0]);
-			dlg.addChoice("Model version", new String[] {"------------Select version------------"}, "------------Select version------------");
+			dlg.addChoice("Model DeepImageJ", itemsArray, itemsArray[0]);
 			dlg.addChoice("Preprocessing ", new String[] { "no preprocessing" }, "no preprocessing");
 			dlg.addChoice("Postprocessing", new String[] { "no postprocessing" }, "no postprocessing");
 			dlg.addMessage("Minimum size for each patch:");
@@ -225,52 +232,19 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			// it from the list. Then the selection is 0, which yields an error. So the index
 			// has to be selected again 
 			if (index.equals("0") == true) {
-				index = Integer.toString(Index.indexOf(items, fullname));
+				index = Integer.toString(Index.indexOf(itemsArray, fullname));
 			}
 			if (index.equals("-1") || index.equals("0")) {
 				IJ.error("Select a valid model.");
 			}
-
-			String dirname = fullnames.get(index);
-			
-			log.print("Load model: " + fullname + "(" + dirname + ")");
-			dp = dps.get(dirname);
-			
-			String version = dlg.getNextChoice();
-			
-			//  Check ig the version has the extension " (default)" and remove it
-			int startOfExtension = version.length() - " (default)".length();
-			if (dp.params.previousVersions.keySet().size() == 1 && version.substring(startOfExtension).equals(" (default)"))
-				version = version.substring(0, startOfExtension);
-
-			if (!version.equals("default (not bioimage.io format)") && !version.contains(" (missing") && !version.contains(" (faulty)")) {
-				String weightsPath = dp.getPath() + File.separatorChar + "weights_" + version + ".zip";
-				try {
-					info.setText("");
-					info.setCaretPosition(0);
-					info.append("Unzipping the weight. Please wait...\n");
-					FileTools.unzipFolder(new File(weightsPath), dp.getPath() + File.separator + "variables");
-				} catch (IOException e) {
-					e.printStackTrace();
-					IJ.error("Could not extract the weights");
-					return;
-				}
-			} else if (version.contains(" (missing") && !version.contains(" (faulty")){
-				IJ.error("Please choose a viable version.");
-			} 
 			
 			for (int i = 0; i < processingFile.length; i ++)
 				processingFile[i] = dlg.getNextChoice();
 			
-			info.setText("");
-			info.setCaretPosition(0);
-			info.append("Loading model. Please wait...\n");
-			boolean ret = dp.loadModel(true);
-			if (ret == false) {
-				IJ.error("Error in loading " + dp.getName() + 
-						"\nTry using another Tensorflow version.");
-				return;
-			}
+			String dirname = fullnames.get(index);
+			
+			log.print("Load model: " + fullname + "(" + dirname + ")");
+			dp = dps.get(dirname);
 			if (dp.getTfModel() == null)
 				dp.loadModel(true);
 			log.print("Load model error: " + (dp.getTfModel() == null));
@@ -364,85 +338,143 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			String fullname = Integer.toString(choices[0].getSelectedIndex());
 			String dirname = fullnames.get(fullname);
 
+
 			DeepImageJ dp = dps.get(dirname);
 			if (dp == null) {
 				info.setCaretPosition(0);
 				info.append("<Please select a model>\n");
+				choices[1].removeAll();
+				choices[1].addItem("no postprocessing");
 				choices[2].removeAll();
 				choices[2].addItem("no preprocessing");
-				choices[3].removeAll();
-				choices[3].addItem("no postprocessing");
 				labels[3].setText("Minimum size for each patch: ");
 				labels[4].setText("Step: ");
 				return;
 			}
+			
+			info.setCaretPosition(0);
+			info.append("Loading model info. Please wait...\n");
+			// Find out the selected version
+			String selectedModelAndVersion = choices[0].getSelectedItem();
+			String selectedVersion = selectedModelAndVersion.substring(dp.getName().length() + 2, selectedModelAndVersion.length() - 1);
+			
 			boolean samePbModel = TensorFlowModel.checkSumSavedModel(dp.params);
 			if (!samePbModel) {
 				info.setCaretPosition(0);
 				info.setText("");
-				info.append("Model: " + dp.getName() + "\n");
+				info.append("Model: " + selectedModelAndVersion + "\n");
 				info.append("DeepImageJ Run cannot open this model.\n");
 				info.append("The saved_model.pb has been modified "
 						+ "after creating the Bundled Model.\n");
 				info.append("Please select another option.\n");
 				choices[0].select(0);
+				choices[1].removeAll();
+				choices[1].addItem("no postprocessing");
 				choices[2].removeAll();
 				choices[2].addItem("no preprocessing");
-				choices[3].removeAll();
-				choices[3].addItem("no postprocessing");
 				labels[3].setText("Minimum size for each patch: ");
 				labels[4].setText("Step: ");
 				return;
 			}
+			
+			if (selectedVersion.equals("default")) {
+				Set<String> keys = dp.params.previousVersions.keySet();
+				for (String k : keys)
+					selectedVersion = k;
+			}
+			
+			boolean existsVersion = new File(dp.getPath() + File.separator + "weights_" + selectedVersion + ".zip").isFile();
+			
+			if (!existsVersion) {
+				GenericDialog dlg = new GenericDialog("Weights version not found in the model path");
+				dlg.addMessage("The wanted weights version was not found in the model folder.");
+				dlg.addMessage("However, an already decompressed 'variables' folder was found.");
+				dlg.addMessage("If you are sure that it corresponds to the wanted weights,");
+				dlg.addMessage("select 'Ok' to continue the execution.");
+				dlg.showDialog();
+				if (dlg.wasCanceled()) {
+					info.setText("");
+					info.setCaretPosition(0);
+					info.append(selectedModelAndVersion + " model missing weights");
+					choices[0].select(0);
+					choices[1].removeAll();
+					choices[1].addItem("no postprocessing");
+					choices[2].removeAll();
+					choices[2].addItem("no preprocessing");
+					labels[3].setText("Minimum size for each patch: ");
+					labels[4].setText("Step: ");
+					return;
+				} 
+			}
+			
 
-			info.setCaretPosition(0);
-			info.append("Loading model info. Please wait...\n");
-			
-			HashMap<String, List<String>> versions = TensorFlowModel.checkSumWeighst(dp.params);
-			
-			if (versions.get("correct").size() == 0 && new File(dp.getPath() + File.separator + "variables").isDirectory()) {
-				choices[1].removeAll();
-				choices[1].addItem("default (not bioimage.io format)");
-				for (String v : versions.get("faulty"))
-					choices[1].addItem(v + " (faulty)");
-				for (String v : versions.get("missing"))
-					choices[1].addItem(v + " (missing)");
-			} else if (versions.get("correct").size() == 1) {
-				choices[1].removeAll();
-				choices[1].addItem(versions.get("correct").get(0) + " (default)");
-				for (String v : versions.get("faulty"))
-					choices[1].addItem(v + " (faulty)");
-				for (String v : versions.get("missing"))
-					choices[1].addItem(v + " (missing)");
-			} else if (versions.get("correct").size() > 1) {
-				choices[1].removeAll();
-				for (String v : versions.get("correct"))
-					choices[1].addItem(v);
-				for (String v : versions.get("faulty"))
-					choices[1].addItem(v + " (faulty)");
-				for (String v : versions.get("missing"))
-					choices[1].addItem(v + " (missing)");
-			} else if (versions.get("correct").size() == 0 && !new File(dp.getPath() + File.separator + "variables").isDirectory()) {
-				choices[1].removeAll();
-				for (String v : versions.get("faulty"))
-					choices[1].addItem(v + " (faulty)");
-				for (String v : versions.get("missing"))
-					choices[1].addItem(v + " (missing)");		
+			HashMap<String, List<String>> versions = null;
+			if (existsVersion)
+				versions = TensorFlowModel.checkSumWeighst(dp.params, selectedVersion);			
+
+			boolean overwrite = true;
+			if (existsVersion && versions.get("correct").size() == 1 && overwrite) {
+				String weightsPath = dp.getPath() + File.separatorChar + "weights_" + selectedVersion + ".zip";
+				try {
+					FileTools.unzipFolder(new File(weightsPath), dp.getPath() + File.separator + "variables");
+				} catch (IOException ex) {
+					ex.printStackTrace();
+					IJ.error("Could not extract the weights");
+					info.setCaretPosition(0);
+					info.setText("");
+					info.append("Model: " + selectedModelAndVersion + "\n");
+					info.append("DeepImageJ Run cannot extract this version of the weights.\n");
+					info.append("Please select another option.\n");
+					choices[0].select(0);
+					choices[1].removeAll();
+					choices[1].addItem("no postprocessing");
+					choices[2].removeAll();
+					choices[2].addItem("no preprocessing");
+					labels[3].setText("Minimum size for each patch: ");
+					labels[4].setText("Step: ");
+					return;
+				}
+			} else if (existsVersion && versions.get("correct").size() == 0){
+				info.setCaretPosition(0);
 				info.setText("");
-				info.setCaretPosition(0);		
-				info.append("Name: " + dp.getName() + "\n");
-				info.append("Path: " + dp.getPath() + "\n");
-				info.append("Could not find a viable version of the weights.");
+				info.append("Model: " + selectedModelAndVersion + "\n");
+				info.append("DeepImageJ Run cannot open this version of the weights.\n");
+				info.append("The file weights_" + selectedVersion + ".zip has been modified "
+						+ "after creating the Bundled Model.\\n");
+				info.append("Please select another option.\n");
+				choices[0].select(0);
+				choices[1].removeAll();
+				choices[1].addItem("no postprocessing");
 				choices[2].removeAll();
 				choices[2].addItem("no preprocessing");
-				choices[3].removeAll();
-				choices[3].addItem("no postprocessing");
+				labels[3].setText("Minimum size for each patch: ");
+				labels[4].setText("Step: ");
+				return;
+			} 
+
+			boolean ret = dp.loadModel(true);
+			if (ret == false) {
+				IJ.error("Error in loading " + dp.getName());
+				info.setCaretPosition(0);
+				info.setText("");
+				info.append("Model: " + selectedModelAndVersion + "\n");
+				info.append("The model cannot be loaded.\n");
+				info.append("The issue might be related to the Tensorflow version, please try to change it.\n");
+				info.append("It can also be related to the tags used to open the model.\n");
+				info.append("Please select another option.\n");
+				choices[0].select(0);
+				choices[1].removeAll();
+				choices[1].addItem("no postprocessing");
+				choices[2].removeAll();
+				choices[2].addItem("no preprocessing");
 				labels[3].setText("Minimum size for each patch: ");
 				labels[4].setText("Step: ");
 				return;
 			}
+			if (dp.getTfModel() == null)
+				dp.loadModel(true);
+			log.print("Load model error: " + (dp.getTfModel() == null));
 			
-
 			info.setText("");
 			info.setCaretPosition(0);
 			dp.writeParameters(info, dp.msgChecks);
@@ -451,16 +483,16 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				info.append(msg + "\n");
 			
 			if (dp != null) {
+				choices[1].removeAll();
 				choices[2].removeAll();
-				choices[3].removeAll();
 				Set<String> preKeys = dp.params.pre.keySet();
 				Set<String> postKeys = dp.params.post.keySet();
 				for (String p : preKeys) 
-					choices[2].addItem(p);
+					choices[1].addItem(p);
 				for (String p : postKeys) 
-					choices[3].addItem(p);
-				choices[2].addItem("no preprocessing");
-				choices[3].addItem("no postprocessing");
+					choices[2].addItem(p);
+				choices[1].addItem("no preprocessing");
+				choices[2].addItem("no postprocessing");
 			}
 			// Get basic information about the input from the yaml
 			String tensorForm = dp.params.inputList.get(0).form;
@@ -479,8 +511,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			
 			
 			if (Arrays.equals(tensorStep, new int[tensorStep.length])) {
-				labels[5].setText("The patch size was fixed by the developer.");
-				labels[6].setText("");
+				labels[3].setText("The patch size was fixed by the developer.");
+				labels[4].setText("");
 			} else {
 				String minSize = "Minimum size for each dimension: ";
 				String stepSize = "Step for each dimension: ";
@@ -491,8 +523,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 					minSize = minSize + dim[i] + ":" + val + " ";
 					stepSize = stepSize + dim[i] + ":" + s + " ";
 				}
-				labels[5].setText(minSize);
-				labels[6].setText(stepSize);
+				labels[3].setText(minSize);
+				labels[4].setText(stepSize);
 			}
 			// Hide all the labels to show only the necessary ones
 			for (int i = 0; i < patchLabel.length; i ++) {
@@ -555,7 +587,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			if (output == null) 
 				throw new Exception();
 			runStage ++;
+			log.print("Postprocessing");
 			output = ProcessingBridge.runPostprocessing(dp.params, output);
+			log.print("End postprocessing");
 
 			// Print the outputs of the postprocessing
 			// Retrieve the opened windows and compare them to what the model has outputed
@@ -566,16 +600,15 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			ArrayOperations.displayMissingOutputs(finalImages, finalFrames, output);
 			
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 			// Close the parallel processes
 		    service.shutdown();
 			return;
 		} catch(MacrosError ex) {
 			if (runStage == 0) {
-				IJ.error("Error during Macro preprocessing.");
+				IJ.error("Errorduring preprocessing.");
 			} else if (runStage == 2) {
-				IJ.error("Error during Macro postprocessing.");
+				IJ.error("Error during postprocessing.");
 			}
 			// Close the parallel processes
 		    service.shutdown();
@@ -591,7 +624,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		    service.shutdown();
 			return;
 		} catch (InterruptedException ex) {
-			IJ.log("Exception " + ex.toString());
+			ex.printStackTrace();
 			for (StackTraceElement ste : ex.getStackTrace()) {
 				IJ.log("line:" + "Error during the application of the model.");
 				IJ.log(ste.getClassName());
@@ -602,7 +635,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		    service.shutdown();
 			return;
 		} catch (ExecutionException ex) {
-			IJ.log("Exception " + ex.toString());
+			ex.printStackTrace();
 			for (StackTraceElement ste : ex.getStackTrace()) {
 				IJ.log("line:" + "Error during the application of the model.");
 				IJ.log(ste.getClassName());
@@ -613,7 +646,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		    service.shutdown();
 			return;
 		} catch (Exception ex) {
-			IJ.log("Exception " + ex.toString());
+			ex.printStackTrace();
 			for (StackTraceElement ste : ex.getStackTrace()) {
 				IJ.log(ste.getClassName());
 				IJ.log(ste.getMethodName());

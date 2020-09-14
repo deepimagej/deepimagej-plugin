@@ -40,7 +40,7 @@ public class LoadJar {
     					if (intf[j].getName().contains("PostProcessingInterface")){
 							// the following line assumes that PluginFunction has a no-argument constructor
 							pf = (PostProcessingInterface) c.newInstance();
-							params.javaPostprocessingClass = className;
+							params.javaPostprocessingClass.add(className);
 							continue;
     					}
     				}
@@ -92,7 +92,7 @@ public class LoadJar {
     					if (intf[j].getName().contains("PreProcessingInterface")){
 							// the following line assumes that PluginFunction has a no-argument constructor
 							pf = (PreProcessingInterface) c.newInstance();
-							params.javaPreprocessingClass = className;
+							params.javaPreprocessingClass.add(className);
 							continue;
 						}
     				}

@@ -37,9 +37,18 @@
 
 package deepimagej.tools;
 
+import java.awt.Frame;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+
 import ij.IJ;
 import ij.ImagePlus;
+import ij.WindowManager;
+import ij.gui.ImageWindow;
+import ij.measure.ResultsTable;
 import ij.process.ImageProcessor;
+import ij.text.TextWindow;
 
 public class ArrayOperations {
 
@@ -172,6 +181,82 @@ public class ArrayOperations {
 						 String.format("%.2E", pixHeight) + units+ "x" +
 						 String.format("%.2E", pixDepth) + units;
 		return pixSize;
+	}
+
+	/*
+	 * Method that displays the outputs that have not been shown
+	 */
+	public static void displayMissingOutputs(String[] finalImages, String[] finalFrames,
+												HashMap<String, Object> output) {
+
+		List<String> frameList = Arrays.asList(finalFrames);
+		List<String> framesList = Arrays.asList(finalImages);
+		
+		for (String outs : output.keySet()) {
+			Object f = output.get(outs);
+			if (f != null && (f instanceof ResultsTable)) {
+	        	ResultsTable table = (ResultsTable) f;
+				String title = table.getTitle();
+				
+				// Check that the output does not correspond to any
+				// of the already displayed tables
+				boolean alreadyDisplayed = false;
+				for (String displayedFrame : frameList) {
+					if (!displayedFrame.contains(title)) 
+						continue;
+					Frame displayedRT = WindowManager.getFrame(title);
+		        	ResultsTable alreadyDisplayedTable = null;
+			        if (displayedRT!=null && (displayedRT instanceof TextWindow)) 
+			        	alreadyDisplayedTable = ((TextWindow)displayedRT).getResultsTable();
+			        if (alreadyDisplayedTable.getResultsTable().equals(table.getResultsTable())) {
+						alreadyDisplayed = true;
+						break;
+					}					
+				}
+				if (alreadyDisplayed)
+					continue;
+				String newTitle = title;
+				int c = 1;
+				// While we find a table that is called thesame
+				while (frameList.contains(newTitle)) {
+					newTitle = title + "-" + c;
+					c ++;
+				}
+				title = newTitle;
+				table.show(title);
+			} else if (f != null && f instanceof ImagePlus) {
+				String title = ((ImagePlus) f).getTitle();
+
+				// Check that the output does not correspond to any
+				// of the already displayed tables
+				boolean alreadyDisplayed = false;
+				for (String displayedIm : framesList) {
+					if (!displayedIm.contains(title)) 
+						continue;
+					ImagePlus displayedImP = WindowManager.getImage(title);
+			        if (displayedImP != null) 
+			        	alreadyDisplayed = displayedImP.equals(((ImagePlus) f));
+					if (alreadyDisplayed && displayedImP.getWindow() == null) {
+						ImageWindow ww = new ImageWindow(displayedImP);
+						ww.setVisible(true);
+						break;	
+					} else if (alreadyDisplayed) {
+						break;
+					}
+				}
+				if (alreadyDisplayed)
+					continue;
+				String newTitle = title;
+				int c = 1;
+				// While we find a table that is called thesame
+				while (frameList.contains(newTitle)) {
+					newTitle = title + "-" + c;
+					c ++;
+				}
+				((ImagePlus) f).setTitle(newTitle);
+				((ImagePlus) f).getWindow().setVisible(true);
+			}
+		}
 	}
 
 }

@@ -43,6 +43,7 @@ import java.util.*;
 import org.tensorflow.Tensor;
 
 import deepimagej.Parameters;
+import deepimagej.exceptions.JavaProcessingError;
 import deepimagej.tools.DijTensor;
 import ij.IJ;
 import ij.ImagePlus;
@@ -86,13 +87,11 @@ public class ExternalClassManager {
 			postProcessingClass = LoadJar.loadPostProcessingInterface(jarDir, params);
 		} else {
 			// TODO allow .class files to be loaded
-			getClasses(interfaceOfInterest);
+			getClasses(interfaceOfInterest, params);
 		}
-		params.javaPreprocessingClass += "::" + "processingRoutineUsingImage"; 
-		params.javaPostprocessingClass += "::" + "postProcessingRoutineUsingMap";
 	}
 
-	protected void getClasses(String interfaceOfInterest) {
+	protected void getClasses(String interfaceOfInterest, Parameters params) {
 		File dir = new File(processingDir);
 		List<String> fileList = new ArrayList<String>();
 		if (processingDir.contains(".class")) {
@@ -117,11 +116,13 @@ public class ExternalClassManager {
 							// the following line assumes that PluginFunction has a no-argument constructor
 							PreProcessingInterface pf = (PreProcessingInterface) c.newInstance();
 							preProcessingClass = pf;
+							params.javaPreprocessingClass.add(className);
 							continue;
 						} else {
 							// the following line assumes that PluginFunction has a no-argument constructor
 							PostProcessingInterface pf = (PostProcessingInterface) c.newInstance();
 							postProcessingClass = pf;
+							params.javaPostprocessingClass.add(className);
 							continue;
 						}
 					}
@@ -144,13 +145,16 @@ public class ExternalClassManager {
 	}
 
 	// TODO
-	public HashMap<String, Object> javaPreprocess(HashMap<String, Object> map) {
+	public HashMap<String, Object> javaPreprocess(HashMap<String, Object> map) throws JavaProcessingError {
 		try {
 			PreProcessingInterface pf = (PreProcessingInterface) preProcessingClass;
 			map = pf.preProcessingRoutineUsingMap(map);
 		} catch (SecurityException secEx) {
+			secEx.printStackTrace();
 			System.err.println("Procesing plugin tried to do something illegal");
+			throw new JavaProcessingError();
 		} catch (Exception ex) {
+			ex.printStackTrace();
 			IJ.log("Error in the Java preprocessing class");
 			IJ.log("Exception " + ex.toString());
 			for (StackTraceElement ste : ex.getStackTrace()) {
@@ -159,18 +163,10 @@ public class ExternalClassManager {
 				IJ.log("line:" + ste.getLineNumber());
 			}
 			IJ.log("Exception " + ex.getMessage());
-		}
-		return map;
-	}
-
-	public HashMap<String, Object> javaPostprocess(HashMap<String, Object> map) {
-		try {
-			PostProcessingInterface pf = (PostProcessingInterface) postProcessingClass;
-			map = pf.postProcessingRoutineUsingMap(map);
-		} catch (SecurityException secEx) {
-			System.err.println("Procesing plugin tried to do something illegal");
-		} catch (Exception ex) {
-			IJ.log("Error in the Java postprocessing class");
+			throw new JavaProcessingError();
+		} catch (AbstractMethodError ex) {
+			ex.printStackTrace();
+			IJ.log("Error in the Java preprocessing class");
 			IJ.log("Exception " + ex.toString());
 			for (StackTraceElement ste : ex.getStackTrace()) {
 				IJ.log(ste.getClassName());
@@ -178,6 +174,41 @@ public class ExternalClassManager {
 				IJ.log("line:" + ste.getLineNumber());
 			}
 			IJ.log("Exception " + ex.getMessage());
+			throw new JavaProcessingError();
+		}
+		return map;
+	}
+
+	public HashMap<String, Object> javaPostprocess(HashMap<String, Object> map) throws JavaProcessingError {
+		try {
+			PostProcessingInterface pf = (PostProcessingInterface) postProcessingClass;
+			map = pf.postProcessingRoutineUsingMap(map);
+		} catch (SecurityException secEx) {
+			secEx.printStackTrace();
+			System.err.println("Procesing plugin tried to do something illegal");
+			throw new JavaProcessingError();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			IJ.log("Error in the Java preprocessing class");
+			IJ.log("Exception " + ex.toString());
+			for (StackTraceElement ste : ex.getStackTrace()) {
+				IJ.log(ste.getClassName());
+				IJ.log(ste.getMethodName());
+				IJ.log("line:" + ste.getLineNumber());
+			}
+			IJ.log("Exception " + ex.getMessage());
+			throw new JavaProcessingError();
+		} catch (AbstractMethodError ex) {
+			ex.printStackTrace();
+			IJ.log("Error in the Java preprocessing class");
+			IJ.log("Exception " + ex.toString());
+			for (StackTraceElement ste : ex.getStackTrace()) {
+				IJ.log(ste.getClassName());
+				IJ.log(ste.getMethodName());
+				IJ.log("line:" + ste.getLineNumber());
+			}
+			IJ.log("Exception " + ex.getMessage());
+			throw new JavaProcessingError();
 		}
 		return map;
 	}

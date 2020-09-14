@@ -156,12 +156,16 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		JFrame authorsFr = createAddRemoveFrame(txtAuth, authAddBtn, "auth", authRmvBtn);
 		
 		labelC.gridy = 1;
+		labelC.ipadx = 50;
+		labelC.ipady = 50;
 		infoC.gridy = 1;
-		pn.add(new JLabel("<html>Author of the<br/>bundled model</html>"), labelC);
+		pn.add(new JLabel("<html>Author of the bundled model</html>"), labelC);
 		pn.add((JComponent) authorsFr.getContentPane(), infoC);
 		
 		// Next field
 		labelC.gridy = 2;
+		labelC.ipadx = 0;
+		labelC.ipady = 0;
 		infoC.gridy = 2;
 	    infoC.insets = new Insets(0, 0, 0, 0);
 		infoC.ipady = 50; 
@@ -183,6 +187,8 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		// Next field
 		labelC.gridy = 4;
 		labelC.gridheight = 3;
+		labelC.ipadx = 50;
+		labelC.ipady = 50;
 		
 		infoC.gridy = 4;
 		infoC.gridheight = 3;
@@ -192,7 +198,7 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		infoC.ipadx = 0; 
 	    infoC.insets = new Insets(0, 0, 0, 0);
 		
-		pn.add(new JLabel("<html>Description of<br/>the model</html>"), labelC);
+		pn.add(new JLabel("<html>Description of the         model</html>"), labelC);
 		txtDescription.setLineWrap(true);
 		txtDescription.setWrapStyleWord(true);
 		JScrollPane txtScroller = new JScrollPane(txtDescription);
@@ -203,6 +209,8 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		// Next field
 		labelC.gridy = 7;
 		labelC.gridheight = 1;
+		labelC.ipadx = 0;
+		labelC.ipady = 0;
 		infoC.gridy = 7;
 		infoC.gridheight = 1;
 	    infoC.insets = new Insets(10, 0, 10, 10);
@@ -228,8 +236,10 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		JFrame tagsFr = createAddRemoveFrame(txtTag, tagAddBtn, "tag", tagRmvBtn);
 
 		labelC.gridy = 10;
+		labelC.ipadx = 60;
+		labelC.ipady = 60;
 		infoC.gridy = 10;
-		pn.add(new JLabel("<html>Tags to describe the<br/> model in the model zoo</html>"), labelC);
+		pn.add(new JLabel("<html>Tags to describe the model in the Bioimage Model Zoo</html>"), labelC);
 		pn.add((JComponent) tagsFr.getContentPane(), infoC);
 		
 		JPanel p = new JPanel(new BorderLayout());
@@ -247,9 +257,9 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		// Add the tad 'deepImageJ' to the tags field. This tag
 		// is not removable
 		tagModel = new DefaultListModel<String>();
-		tagModel.addElement("deepImageJ");
+		tagModel.addElement("deepimagej");
 		tagList.setModel(tagModel);
-		introducedTag.add("deepImageJ");
+		introducedTag.add("deepimagej");
 		
 		authAddBtn.addActionListener(this);
 		authRmvBtn.addActionListener(this);
@@ -280,9 +290,9 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 			// is not removable
 			introducedTag = new ArrayList<String>();
 			tagModel = new DefaultListModel<String>();
-			tagModel.addElement("deepImageJ");
+			tagModel.addElement("deepimagej");
 			tagList.setModel(tagModel);
-			introducedTag.add("deepImageJ");
+			introducedTag.add("deepimagej");
 			
 			// Reset all the fields
 			txtVersion.setText("1");
@@ -305,22 +315,24 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		params.name = txtName.getText().trim();
 		params.version = txtVersion.getText().trim();
 
+		// TODO check if we need to cover here
 		params.documentation = txtDocumentation.getText().trim();
 		params.license = txtLicense.getText().trim();
+		// TODO check if we need to cover here
 		params.source = txtSource.getText().trim();
 		params.description = txtDescription.getText().trim();
 		
-		params.name = params.name.equals("") ? null : params.name;
+		params.name = params.name.equals("") ? null : coverForbiddenSymbols(params.name);
 		params.author = null;
 		if (introducedAuth.size() > 0)
 			params.author = introducedAuth;
-		params.version = params.version.equals("") ? null : params.version;
+		params.version = params.version.equals("") ? null : coverForbiddenSymbols(params.version);
 		params.cite = introducedCitation;
 		
 		params.documentation = params.documentation.equals("") ? null : params.documentation;
-		params.license = params.license.equals("") ? null : params.license;
+		params.license = params.license.equals("") ? null : coverForbiddenSymbols(params.license);
 		params.source = params.source.equals("") ? null : params.source;
-		params.description = params.description.equals("") ? null : params.description;
+		params.description = params.description.equals("") ? null : coverForbiddenSymbols(params.description);
 		params.infoTags = introducedTag;
 		
 		if(params.version.equals("")) {
@@ -331,9 +343,23 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		return true;
 	}
 	
+	// TODO find more forbidden characters
+	public static String coverForbiddenSymbols(String txt) {
+		String[] forbidenCharacters = {":", "{", "}", "[", "]", ">", "=", "!",
+									",", "&", "*", "#", "?", "|", "-", "<",
+									"¡", "¿", "%", "@", "Ñ", "ñ"};
+		for (String forbidenChar : forbidenCharacters) {
+			if (txt.contains(forbidenChar)) {
+				txt = "\"" + txt +  "\"";
+				break;
+			}
+		}
+		return txt;
+	}
+	
 	public void addAuthor() {
 		// Get the author introduced
-		String authName = txtAuth.getText().trim();
+		String authName = coverForbiddenSymbols(txtAuth.getText().trim());
 		if (authName.equals("")) {
 			IJ.error("Introduce a name");
 			return;
@@ -381,7 +407,8 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		TextField refField = (TextField) strField.get(0);
 		TextField doiField = (TextField) strField.get(1);
 		HashMap<String, String> refAndDoi = new HashMap<String, String>();
-		refAndDoi.put("text", refField.getText().trim());
+		String txt = coverForbiddenSymbols(refField.getText().trim());
+		refAndDoi.put("text", txt);
 		refAndDoi.put("doi", doiField.getText().trim());
         /* Try creating a valid URL */
 		boolean url = false;
@@ -413,6 +440,7 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		citationList.setModel(citationModel);
 		citationList.setCellRenderer(new MyListCellRenderer());
 	}
+	
 	public void removeCite() {
 		// Get the author selected
 		int citation = citationList.getSelectedIndex();
@@ -436,7 +464,7 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 	
 	public void addTag() {
 		// Get the author introduced
-		String tag = txtTag.getText().trim();
+		String tag = coverForbiddenSymbols(txtTag.getText().trim());
 		if (tag.equals("")) {
 			IJ.error("Introduce a name");
 			return;
@@ -460,7 +488,7 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 			IJ.error("No tag selected");
 			return;
 		} else if (tag == 0) {
-			IJ.error("Cannot remove 'deepImageJ' tag");
+			IJ.error("Cannot remove 'deepimagej' tag");
 			return;
 		}
 		introducedTag.remove(tag);

@@ -39,10 +39,11 @@ package deepimagej.processing;
 
 import java.awt.Frame;
 import java.io.File;
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import deepimagej.Parameters;
+import deepimagej.exceptions.JavaProcessingError;
 import deepimagej.exceptions.MacrosError;
 import deepimagej.tools.DijTensor;
 import ij.IJ;
@@ -54,13 +55,14 @@ import ij.text.TextWindow;
 public class ProcessingBridge {
 	
 	// TODO decide whether to allow or not more than 1 image input to the model
-	public static HashMap<String, Object> runPreprocessing(ImagePlus im, Parameters params) throws MacrosError, IOException {
+	public static HashMap<String, Object> runPreprocessing(ImagePlus im, Parameters params) throws MacrosError, JavaProcessingError {
 		HashMap<String, Object> map = new HashMap<String, Object>();
+		params.javaPreprocessingClass = new ArrayList<String>();
 		// Assume that the image selected will result in the input image to the model
 		// Assumes 'im' will be the input to the model
 		map.put(params.inputList.get(0).name, im);
 		if (params.firstPreprocessing != null && (params.firstPreprocessing.contains(".txt") || params.firstPreprocessing.contains(".ijm"))) {
-			im = runProcessingMacro(im, params.firstPreprocessing);
+			im = runProcessingMacro(im, params.firstPreprocessing, params.developer);
 			map = manageInputs(map, false, params);
 		} else if (params.firstPreprocessing != null && (params.firstPreprocessing.contains(".jar") || params.firstPreprocessing.contains(".class") || new File(params.firstPreprocessing).isDirectory())) {
 			map = runPreprocessingJava(map, params.firstPreprocessing, params);
@@ -68,7 +70,7 @@ public class ProcessingBridge {
 		
 
 		if (params.secondPreprocessing != null && (params.secondPreprocessing.contains(".txt") || params.secondPreprocessing.contains(".ijm"))) {
-			im = runProcessingMacro(im, params.secondPreprocessing);
+			im = runProcessingMacro(im, params.secondPreprocessing, params.developer);
 			map = manageInputs(map, true,  params);
 		} else if (params.secondPreprocessing != null && (params.secondPreprocessing.contains(".jar") || params.secondPreprocessing.contains(".class") || new File(params.secondPreprocessing).isDirectory())) {
 			map = runPreprocessingJava(map, params.secondPreprocessing, params);
@@ -107,18 +109,17 @@ public class ProcessingBridge {
 		        }
 			}
 		}
-		
 		return map;
 	}
 
-	private static HashMap<String, Object> runPreprocessingJava(HashMap<String, Object> map, String processingPath, Parameters params) {
+	private static HashMap<String, Object> runPreprocessingJava(HashMap<String, Object> map, String processingPath, Parameters params) throws JavaProcessingError {
 		boolean preprocessing = true;
 		ExternalClassManager processingRunner = new ExternalClassManager (processingPath, preprocessing, params);
 		map = processingRunner.javaPreprocess(map);
 		return map;
 	}
 
-	private static ImagePlus runProcessingMacro(ImagePlus img, String macroPath) throws MacrosError, IOException {
+	private static ImagePlus runProcessingMacro(ImagePlus img, String macroPath, boolean developer) throws MacrosError {
 		WindowManager.setTempCurrentImage(img);
 
 		String aborted = IJ.runMacroFile(macroPath);
@@ -127,6 +128,9 @@ public class ProcessingBridge {
 		}
 		
 		ImagePlus result = WindowManager.getCurrentImage();
+		// If the macro opens the image, close it
+		if (result.isVisible() && !developer)
+			result.getWindow().dispose();
 		return result;
 	}
 	
@@ -138,9 +142,11 @@ public class ProcessingBridge {
 	 * 	given by the model to each of the outputs. And the values are either ImagePlus or ResultsTable.
 	 * @return map: map containing all the paths to the processing files
 	 * @throws MacrosError is thrown if the Macro file does not work
-	 * @throws IOException is thrown if the java processing does not work
+	 * @throws JavaProcessingError 
 	 */
-	public static HashMap<String, Object> runPostprocessing(Parameters params, HashMap<String, Object> map) throws MacrosError, IOException {
+	public static HashMap<String, Object> runPostprocessing(Parameters params, HashMap<String, Object> map) throws MacrosError, JavaProcessingError {
+
+		params.javaPostprocessingClass = new ArrayList<String>();
 		
 		if (params.firstPostprocessing != null && (params.firstPostprocessing.contains(".txt") || params.firstPostprocessing.contains(".ijm"))) {
 			runPostprocessingMacro(params.firstPostprocessing);
@@ -168,8 +174,9 @@ public class ProcessingBridge {
 	 * being the title of the window
 	 * @param processingPath: path to the java file that specifies the processing
 	 * @return map: hashmap containing the results of the processing routine
+	 * @throws JavaProcessingError 
 	 */
-	private static HashMap<String, Object> runPostprocessingJava(HashMap<String, Object> map, String processingPath, Parameters params) {
+	private static HashMap<String, Object> runPostprocessingJava(HashMap<String, Object> map, String processingPath, Parameters params) throws JavaProcessingError {
 		boolean preprocessing = false;
 		ExternalClassManager processingRunner = new ExternalClassManager (processingPath, preprocessing, params);
 		map = processingRunner.javaPostprocess(map);

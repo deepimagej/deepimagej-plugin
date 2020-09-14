@@ -33,43 +33,16 @@
  * 
  * You should have received a copy of the GNU General Public License along with DeepImageJ. 
  * If not, see <http://www.gnu.org/licenses/>.
- */
+ */package deepimagej.exceptions;
 
-import java.io.File;
-
-import deepimagej.BuildDialog;
-import deepimagej.TensorFlowModel;
-import ij.IJ;
-import ij.ImageJ;
-import ij.ImagePlus;
-import ij.WindowManager;
-import ij.plugin.PlugIn;
-
-public class DeepImageJ_Build_BundledModel implements PlugIn {
-
-	public void run(String arg) {
-		// If there is no models directory inside Fiji folder, create it
-		String path = IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
+public class JavaProcessingError extends Exception {
+	
+	public JavaProcessingError() {
 		
-		if (!(new File(path).isDirectory()))
-				new File(path).mkdirs();
-
-		BuildDialog bd = new BuildDialog();
-		bd.showDialog();
+	}
+	
+	public String toString() {
+		return "Error in the external Java code.";
 	}
 
-	public static void main(String args[]) {
-		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\exemplary-image-data\\tribolium.tif");
-		if (imp != null)
-			imp.show();
-		new ImageJ();
-		BuildDialog bd = new BuildDialog();
-		bd.showDialog();/*
-		if (WindowManager.getCurrentImage() == null) {
-			IJ.error("There should be an image open.");
-		} else {
-			BuildDialog bd = new BuildDialog();
-			bd.showDialog();
-		}*/
-	}
 }

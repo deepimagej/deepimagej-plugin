@@ -37,6 +37,10 @@
 
 package deepimagej.stamp;
 import java.awt.BorderLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+
 import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 
@@ -48,7 +52,7 @@ import deepimagej.components.HTMLPane;
 
 public class SelectPyramidalStamp extends AbstractStamp  {
 
-	private JCheckBox	checkPyramidal = new JCheckBox("Check if the model uses a Pyramidal Pooling architecture");				
+	private JCheckBox	checkPyramidal = new JCheckBox("Select if the model uses a Pyramidal Pooling architecture");				
 	private String		model = "";
 	private HTMLPane	info;
 
@@ -60,15 +64,34 @@ public class SelectPyramidalStamp extends AbstractStamp  {
 	@Override
 	public void buildPanel() {
 		info = new HTMLPane(Constants.width, 70);
-		info.append("h2", "Pyramidal Pooling Network selection");
-		info.append("p", "Usually, complex architectures for which more than one input is "
-				+ "required or for which the output is multidimensional. These networks are "
-				+ "used in the detection, panoptic or instance segmentation, for which the "
-				+ "combination of bounding boxes and segmentation is needed. Some  "
-				+ "examples are RetinaNet, R-CNN, Fast-RCNN, Mask-RCNN or PanopticFPN.");
+		info.append("h2", "Pyramidal Feature Pooling Network selection");
+		info.append("p", "Deep learning architectures that combine feature extraction and multilevel "
+				+ "detection to infer bounding boxes. These networks are fed with more than one input "
+				+ "and return outputs at different levels and dimensions. "
+				+ "Examples: RetineNet, R-CNN, Fast-RCNN, Mask-RCNN or PanopticFPN.");
 		JPanel main = new JPanel(new BorderLayout());
-		main.add(info.getPane(), BorderLayout.CENTER);
-		main.add(checkPyramidal, BorderLayout.PAGE_END);
+		main.setLayout(new GridBagLayout());
+		GridBagConstraints  c = new GridBagConstraints();
+		c.gridheight = 10;
+		c.gridx = 0;
+		c.gridy = 0;
+		c.ipadx = 70;
+		c.ipady = 70;
+		c.weightx = 1;
+		c.weighty = 1;
+		c.anchor = GridBagConstraints.NORTH;
+	    c.fill = GridBagConstraints.HORIZONTAL;
+		main.add(info.getPane(), c);
+		c.gridheight = 1;
+		c.gridx = 0;
+		c.gridy = 10;
+		c.ipadx = 0;
+		c.ipady = 0;
+		c.weighty = 1;
+		c.anchor = GridBagConstraints.NORTH;
+	    c.fill = GridBagConstraints.HORIZONTAL;
+	    c.insets = new Insets(0, 50, 250, 10); 
+		main.add(checkPyramidal, c);
 		panel.add(main);
 		checkPyramidal.setSelected(false);
 	}
@@ -83,6 +106,8 @@ public class SelectPyramidalStamp extends AbstractStamp  {
 	@Override
 	public boolean finish() {
 		DeepImageJ dp = parent.getDeepPlugin();
+		dp.params.pyramidalNetwork = false;
+		dp.params.allowPatching = true;
 		if (checkPyramidal.isSelected()) {
 			dp.params.pyramidalNetwork = true;
 			dp.params.allowPatching = false;

@@ -72,8 +72,8 @@ import ij.IJ;
 
 public class JavaPostprocessingStamp extends AbstractStamp implements ActionListener {
 
-	private JTextField txt1 = new JTextField("Drop zone for the first postprocessing");
-	private JTextField txt2 = new JTextField("Drop zone for the second postprocessing");
+	private JTextField txt1 = new JTextField("Drop zone for the first postprocessing file");
+	private JTextField txt2 = new JTextField("Drop zone for the second postprocessing file");
 	private JButton bnBrowse1 = new JButton("Browse");
 	private JButton bnBrowse2 = new JButton("Browse");
 	
@@ -91,10 +91,9 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 		HTMLPane pane = new HTMLPane(Constants.width, 90);
 		pane.setBorder(BorderFactory.createEtchedBorder());
 		pane.append("h2", "External Postprocessing");
-		pane.append("p", "Add the wanted postprocessing for the model. The "
-				+ "postprocessing can be implemented either with a macro routine or"
-				+ " with Java code.");
-		pane.append("p", "For macro files, extensions '.txt' or '.ijm' are allowed.");
+		pane.append("p", "(Optional) Add the required preprocessing for the input image.\n"
+				+ "It supports ImageJ macro routines or Java code.\n" + 
+				"Macro routines allow '.txt' or '.ijm' extensions.");
 		pane.append("p", "The Java code can be included with either '.class' or '.jar' files");
 		
 		txt1.setFont(new Font("Arial", Font.BOLD, 14));
@@ -157,7 +156,7 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 				IJ.error("This directory " + filename1 + " doesn't exist");	
 				return false;
 			}
-			if ((file1.isFile()) && (!file1.getAbsolutePath().contains(".ijm")) && (!file1.getAbsolutePath().contains(".class")) && (!file1.getAbsolutePath().contains(".jar"))) {
+			if ((file1.isFile()) && (!file1.getAbsolutePath().contains(".txt") && !file1.getAbsolutePath().contains(".ijm")) && (!file1.getAbsolutePath().contains(".class")) && (!file1.getAbsolutePath().contains(".jar"))) {
 				IJ.error("The path " + filename1 + " does not corresponf to a valid macro or Java file");	
 				return false;
 			}
@@ -170,7 +169,7 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 				IJ.error("This directory " + filename2 + " doesn't exist");	
 				return false;
 			}	
-			if ((file2.isFile()) && (!file2.getAbsolutePath().contains(".ijm")) && (!file2.getAbsolutePath().contains(".class")) && (!file2.getAbsolutePath().contains(".jar"))) {
+			if ((file2.isFile()) && (!file2.getAbsolutePath().contains(".txt") && !file2.getAbsolutePath().contains(".ijm")) && (!file2.getAbsolutePath().contains(".class")) && (!file2.getAbsolutePath().contains(".jar"))) {
 				IJ.error("The path " + filename2 + " does not corresponf to a valid macro or Java file");	
 				return false;
 			}

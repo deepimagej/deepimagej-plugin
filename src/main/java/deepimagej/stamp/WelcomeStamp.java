@@ -132,16 +132,17 @@ public class WelcomeStamp extends AbstractStamp implements ActionListener {
 			return false;
 		}
 			
-		if (!file.isDirectory()) {
-			IJ.error("This directory " + filename + " is not a directory folder");	
+		if (!file.isDirectory() && !file.getName().contains(".pt") && !file.getName().contains(".pth")) {
+			IJ.error("This file " + filename + " does not correspond to a Pytorch or Tensorflow model.");	
 			return false;
 		}
-		
+		/* TODO remove
 		File pb = new File(filename + File.separator + "saved_model.pb");
 		if (!pb.exists()) {
 			IJ.error("This directory " + filename + " is not a protobuf model (no saved_model.pb)");	
 			return false;
 		}
+		*/
 		return true;
 	}
 

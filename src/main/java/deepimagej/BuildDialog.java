@@ -53,12 +53,14 @@ import deepimagej.components.TitleHTMLPane;
 import deepimagej.stamp.InputDimensionStamp;
 import deepimagej.stamp.JavaPostprocessingStamp;
 import deepimagej.stamp.JavaPreprocessingStamp;
+import deepimagej.stamp.LoadPytorchStamp;
 import deepimagej.stamp.InformationStamp;
 import deepimagej.stamp.LoadTFStamp;
 import deepimagej.stamp.OutputDimensionStamp;
 import deepimagej.stamp.SaveOutputFilesStamp;
 import deepimagej.stamp.SaveStamp;
 import deepimagej.stamp.SelectPyramidalStamp;
+import deepimagej.stamp.TensorPytorchTmpStamp;
 import deepimagej.stamp.TensorStamp;
 import deepimagej.stamp.TestStamp;
 import deepimagej.stamp.WelcomeStamp;
@@ -75,11 +77,13 @@ public class BuildDialog extends JDialog implements ActionListener {
 	private JPanel				pnCards	= new JPanel(new CardLayout());
 
 	private WelcomeStamp			welcome;
-	private LoadTFStamp				loader;
+	private LoadTFStamp				loaderTf;
+	private LoadPytorchStamp				loaderPt;
 	private SelectPyramidalStamp	selectPyramid;
 	private InputDimensionStamp		dim3;
 	private OutputDimensionStamp 	outputDim;
-	private TensorStamp				tensor;
+	private TensorStamp				tensorTf;
+	private TensorPytorchTmpStamp	tensorPt;
 	private InformationStamp		info;
 	private JavaPreprocessingStamp  javaPreproc;
 	private JavaPostprocessingStamp  javaPostproc;
@@ -96,10 +100,12 @@ public class BuildDialog extends JDialog implements ActionListener {
 	public void showDialog() {
 
 		welcome = new WelcomeStamp(this);
-		loader = new LoadTFStamp(this);
+		loaderTf = new LoadTFStamp(this);
+		loaderPt = new LoadPytorchStamp(this);
 		selectPyramid = new SelectPyramidalStamp(this);
 		dim3 = new InputDimensionStamp(this);
-		tensor = new TensorStamp(this);
+		tensorTf = new TensorStamp(this);
+		tensorPt = new TensorPytorchTmpStamp(this);
 		info = new InformationStamp(this);
 		outputDim = new OutputDimensionStamp(this);
 		javaPreproc = new JavaPreprocessingStamp(this);
@@ -115,9 +121,11 @@ public class BuildDialog extends JDialog implements ActionListener {
 		pnButtons.add(bnNext);
 
 		pnCards.add(welcome.getPanel(), "1");
-		pnCards.add(loader.getPanel(), "2");
+		pnCards.add(loaderTf.getPanel(), "2");
+		pnCards.add(loaderPt.getPanel(), "2");
 		pnCards.add(selectPyramid.getPanel(), "3");
-		pnCards.add(tensor.getPanel(), "4");
+		pnCards.add(tensorTf.getPanel(), "4");
+		pnCards.add(tensorPt.getPanel(), "4");
 		pnCards.add(dim3.getPanel(), "5");
 		pnCards.add(outputDim.getPanel(), "6");
 		pnCards.add(info.getPanel(), "7");
@@ -167,19 +175,31 @@ public class BuildDialog extends JDialog implements ActionListener {
 						if (dp != null) {
 							dp.params.path2Model = path + File.separator + name + File.separator;
 							setEnabledBackNext(false);
-							loader.init();
+							if (dp.params.framework.contains("Tensorflow")) {
+								loaderTf.init();
+							} else if (dp.params.framework.contains("Pytorch")) {
+								loaderPt.init();
+							}
 						}
 					}
 				}
 				break;
 			case 2:
-				card = loader.finish() ? card+1 : card;
+				if (dp.params.framework.contains("Tensorflow")) {
+					card = loaderTf.finish() ? card+1 : card;
+				} else if (dp.params.framework.contains("Pytorch")) {
+					card = loaderPt.finish() ? card+1 : card;
+				}
 				break;
 			case 3:
 				card = selectPyramid.finish() ? card+1 : card;
 				break;
 			case 4:
-				card = tensor.finish() ? card+1 : card;
+				if (dp.params.framework.contains("Tensorflow")) {
+					card = tensorTf.finish() ? card+1 : card;
+				} else if (dp.params.framework.contains("Pytorch")) {
+					card = tensorPt.finish() ? card+1 : card;
+				}
 				break;
 			case 5:
 				card = dim3.finish() ? card+1 : card;
@@ -217,8 +237,10 @@ public class BuildDialog extends JDialog implements ActionListener {
 
 		setCard("" + card);
 		bnBack.setEnabled(card > 1);
-		if (card == 4)
-			tensor.init();
+		if (card == 4 && dp.params.framework.contains("Tensorflow"))
+			tensorTf.init();
+		if (card == 4 && dp.params.framework.contains("Pytorch"))
+			tensorPt.init();
 		if (card == 5)
 			dim3.init();
 		if (card == 6)
@@ -242,6 +264,14 @@ public class BuildDialog extends JDialog implements ActionListener {
 	public void setEnabledBackNext(boolean b) {
 		bnBack.setEnabled(b);
 		bnNext.setEnabled(b);
+	}
+
+	public void setEnabledNext(boolean b) {
+		bnNext.setEnabled(b);
+	}
+
+	public void setEnabledBack(boolean b) {
+		bnBack.setEnabled(b);
 	}
 
 	public void endsTest() {

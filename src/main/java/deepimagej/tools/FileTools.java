@@ -198,6 +198,8 @@ public class FileTools {
                 ZipOutputStream zip = new ZipOutputStream(fileWriter)) {
 
             addFolderToZip(srcFolder, srcFolder, zip);
+            zip.close();
+            fileWriter.close();
         }
     }
 	
@@ -215,6 +217,7 @@ public class FileTools {
                 while ((len = in.read(buf)) > 0) {
                     zip.write(buf, 0, len);
                 }
+                in.close();
             }
         }
     }

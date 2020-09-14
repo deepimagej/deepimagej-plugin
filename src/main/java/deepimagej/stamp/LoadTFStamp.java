@@ -74,10 +74,8 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 
 	private HTMLPane			pnLoad;
 	
-	private String				tfVersion = TensorFlowModel.getTFVersion();
 
 	public LoadTFStamp(BuildDialog parent) {
-		// TODO add loading message to screen
 		// TODO review messages
 		super(parent);
 		tags = new ArrayList<String>();
@@ -91,7 +89,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 
 		HTMLPane pnTag = new HTMLPane(Constants.width / 2, 70);
 		pnTag.append("h2", "Model Tag");
-		pnTag.append("p", "Tag used to save the TensorFlow SavedModel. If the tag plugin cannot automatically find , you will need to edit it.");
+		pnTag.append("p", "Tag used to save the TensorFlow SavedModel. If the plugin cannot automatically find it, you will need to edit it.");
 
 		HTMLPane pnGraph = new HTMLPane(2 * Constants.width / 2, 70);
 		pnGraph.append("h2", "SignatureDef");
@@ -125,13 +123,12 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			try {	
 				ArrayList<String> msgLoad = new ArrayList<String>();
 				SavedModelBundle model = TensorFlowModel.load(params.path2Model, tag, log, msgLoad);
-				parent.getDeepPlugin().setModel(model);
+				parent.getDeepPlugin().setTfModel(model);
 				params.tag = tag;
 				cmbTags.setEditable(false);
 				for (String m : msgLoad)
 					pnLoad.append("p", m);
-				parent.getDeepPlugin().setModel(model);
-				//pnLoad.append("p", "Architecture Network: " + architecture.size() + " ops");
+				parent.getDeepPlugin().setTfModel(model);
 				params.graphSet = TensorFlowModel.metaGraphsSet(model);
 				if (params.graphSet.size() > 0) {
 					Set<String> tfGraphSet = TensorFlowModel.returnTfSig(params.graphSet);
@@ -151,7 +148,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			}
 			return false;
 		} else {
-			SavedModelBundle model = parent.getDeepPlugin().getModel();
+			SavedModelBundle model = parent.getDeepPlugin().getTfModel();
 			params.graph = TensorFlowModel.returnStringSig((String)cmbGraphs.getSelectedItem());
 			SignatureDef sig = TensorFlowModel.getSignatureFromGraph(model, params.graph);
 			params.totalInputList = new ArrayList<>();
@@ -188,13 +185,27 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 
 	// TODO separate in methods
 	public void run() {
+		pnLoad.setCaretPosition(0);
+		pnLoad.setText("");
+		pnLoad.append("p", "Loading available Tensorflow version.");
+		String loadInfo = TensorFlowModel.loadLibrary();
+		pnLoad.setCaretPosition(0);
+		pnLoad.setText("");
+		if (loadInfo.equals("")) {
+			pnLoad.append("p", "Unable to load find any Tensorflow distribution.");
+			pnLoad.append("p", "Please, install a valid Tensorflow version.");
+			return;
+		}
+		
 		Parameters params = parent.getDeepPlugin().params;
 		cmbTags.removeAllItems();
 		cmbGraphs.removeAllItems();
 		//architecture.clear();
+		String tfVersion = TensorFlowModel.getTFVersion();
 		pnLoad.clear();
 		pnLoad.append("h2", "Tensorflow version");
 		pnLoad.append("p", "Currently using Tensorflow " + tfVersion);
+		pnLoad.append("p", loadInfo);
 		pnLoad.append("h2", "Model info");
 		File file = new File(params.path2Model);
 		if (file.exists())
@@ -246,6 +257,8 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 						selected = true;
 					}
 				}
+			} else if (usableVersions.size() == 1 && versionNames.length == 1) {
+				selectedVersion = usableVersions.get(0);
 			}
 			
 			// Now unzip the selected weights folder into a variables folder.
@@ -262,11 +275,15 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			} else {
 				new File(params.path2Model + File.separator + "variables").mkdir();
 			}
-			String weightsPath = params.path2Model + File.separatorChar + "weights_" + selectedVersion + ".zip";
+			String weightsPath = params.path2Model + "weights_" + selectedVersion + ".zip";
 			try {
 				FileTools.unzipFolder(new File(weightsPath), params.path2Model + File.separator + "variables");
 			} catch (IOException e) {
 				IJ.error("Could not extract the weights");
+				pnLoad.append("h2", "Could not unzip weights folder: " + weightsPath + ".\n");
+				// Let the developer go back, but no forward
+				parent.setEnabledBack(true);
+				parent.setEnabledNext(false);
 				return;
 			}
 				
@@ -284,7 +301,21 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 					message += " - " + zip + "\n";
 				IJ.error(message);
 			}
-			Object[] info = TensorFlowModel.findTag(params.path2Model);
+			Object[] info = null;
+			try {
+				info = TensorFlowModel.findTag(params.path2Model);
+			} catch (Exception ex) {
+				ex.printStackTrace();
+				IJ.error("DeepImageJ could not load the model,\n"
+						+ "try with another Tensorflow version");
+				pnLoad.append("h2", "DeepImageJ could not load the model.\n");
+				pnLoad.append("h2", "Try with another Tensorflow version.\n");
+				// Let the developer go back, but no forward
+				parent.setEnabledBack(true);
+				parent.setEnabledNext(false);
+				return;
+			}
+			
 			String tag = (String) info[0];
 			if (tag != null) {
 				params.tag = tag;
@@ -292,12 +323,30 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 				cmbTags.addItem(tfTag);
 				cmbTags.setEditable(false);
 				ArrayList<String> msgLoad = new ArrayList<String>();
-				SavedModelBundle model = TensorFlowModel.load(params.path2Model, params.tag, log, msgLoad);
+				// TODO remove SavedModelBundle model = TensorFlowModel.load(params.path2Model, params.tag, log, msgLoad);
+				SavedModelBundle model = null;
+				if (!(info[2] instanceof SavedModelBundle)) {
+					model = TensorFlowModel.load(params.path2Model, params.tag, log, msgLoad);
+				} else {
+					// TODO add info as in TensorFlowmodel.load
+					model = (SavedModelBundle) info[2];
+				}
 				for (String m : msgLoad)
 					pnLoad.append("p", m);
-				parent.getDeepPlugin().setModel(model);
-				//pnLoad.append("p", "Architecture Network: " + architecture.size() + " ops");
-				params.graphSet = TensorFlowModel.metaGraphsSet(model);
+				parent.getDeepPlugin().setTfModel(model);
+				try {
+					params.graphSet = TensorFlowModel.metaGraphsSet(model);
+				} catch (Exception ex) {
+					ex.printStackTrace();
+					IJ.error("DeepImageJ could not load the model,\n"
+							+ "try with another Tensorflow version");
+					pnLoad.append("h2", "DeepImageJ could not load the model.\n");
+					pnLoad.append("h2", "Try with another Tensorflow version.\n");
+					// Let the developer go back, but no forward
+					parent.setEnabledBack(true);
+					parent.setEnabledNext(false);
+					return;
+				}
 				if (params.graphSet.size() > 0) {
 					Set<String> tfGraphSet = TensorFlowModel.returnTfSig(params.graphSet);
 					for (int i = 0; i < params.graphSet.size(); i++) {
@@ -310,6 +359,8 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 				cmbTags.setEditable(true);
 				cmbGraphs.addItem("");
 				cmbGraphs.setEditable(false);
+				pnLoad.append("p", "The plugin could not load the model automatically,<br>"
+						+ "please introduce the needed information to load the model.");
 			}
 		}
 		// If we loaded either a Bioimage Zoo or Tensoflow model we continue

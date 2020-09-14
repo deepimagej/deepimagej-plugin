@@ -63,14 +63,17 @@ import deepimagej.components.HTMLPane;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.Index;
 import ij.IJ;
+import ij.gui.GenericDialog;
 
-public class TensorStamp extends AbstractStamp implements ActionListener {
+// TODO remove this class when DJL includes the functionality of finding inputs and outputs
+// of a model
+public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListener {
 
 	private List<JComboBox<String>>	inputs;
 	private static List<JComboBox<String>>	outputs;
 	private List<JComboBox<String>>	inTags;
 	private static List<JComboBox<String>>	outTags;
-	private String[]				in			= { "B", "Y", "X", "C", "Z" };
+	private String[]				in			= { "B", "Y", "X", "C", "Z", "ignore" };
 	private String[]				inputOptions= { "image", "parameter"};
 	private static String[]			outOptions	= { "image", "list", "ignore"};
 	private HTMLPane				pnDim;
@@ -79,7 +82,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 	private int						iterateOverComboBox;
 	private String					model		  = "";
 
-	public TensorStamp(BuildDialog parent) {
+	public TensorPytorchTmpStamp(BuildDialog parent) {
 		super(parent);
 		//buildPanel();
 	}
@@ -113,11 +116,14 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 		model = params.path2Model;
 		
 		pnDim.append("i", "X for width (axis X), Y for height (axis Y), Z for depth (axis Z), B for batch, C for channel");
+		/*
 		for (DijTensor tensor : inputTensors) 
 			pnDim.append("p", tensor.name + " Tensor Dimensions : " + Arrays.toString(tensor.tensor_shape));
 		for (DijTensor tensor : outputTensors) 
 			pnDim.append("p", tensor.name + " Tensor Dimensions : " + Arrays.toString(tensor.tensor_shape));
-		pnDim.setMaximumSize(new Dimension(Constants.width, 250));
+		*/
+		//pnDim.setMaximumSize(new Dimension(Constants.width, 250));
+		pnDim.setMaximumSize(new Dimension(Constants.width, 150));
 		//JPanel pnInput = new JPanel(new GridLayout(1, 5));
 		GridBagConstraints cTag = new GridBagConstraints ();
 		cTag.gridwidth = 3;
@@ -144,7 +150,8 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 			// Add the name
 			pnTensor.add(new JLabel(input.name), cLabel);
 			// Now add the tensor specific dimensions
-			for (int j = 0; j < input.tensor_shape.length; j ++) {
+			// TODO fix this when DJL adds retrieving sizes from model
+			for (int j = 0; j < 5; j ++) {
 				JComboBox<String> cmbIn = new JComboBox<String>(in);
 				cmbIn.setPreferredSize(new Dimension(50, 50));
 				pnTensor.add(cmbIn);
@@ -166,7 +173,8 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 			// Add the name
 			pnTensor.add(new JLabel(output.name), cLabel);
 			// Now add the tensor specific dimensions
-			for (int j = 0; j < output.tensor_shape.length; j ++) {
+			// TODO fix this when DJL adds retrieving sizes from model
+			for (int j = 0; j < 5; j ++) {
 				JComboBox<String> cmbOut = new JComboBox<String>(in);
 				cmbOut.setPreferredSize(new Dimension(50, 50));
 				pnTensor.add(cmbOut);
@@ -194,7 +202,15 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 		String modelOfInterest = parent.getDeepPlugin().params.path2Model;
 		if (!modelOfInterest.equals(model)) {
 			buildPanel();
+			return;
 		}
+
+		int inpCells = inTags.size();
+		int newInpCells = parent.getDeepPlugin().params.totalInputList.size();
+		int outCells = outTags.size();
+		int newOutCells = parent.getDeepPlugin().params.totalOutputList.size();
+		if (inpCells != newInpCells || outCells != newOutCells)
+			buildPanel();
 	}
 
 	@Override
@@ -209,12 +225,19 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 		int tagC = 0;
 		for (DijTensor tensor : inputTensors) {
 			tensor.form = "";
-			for (int i = iterateOverComboBox; i < iterateOverComboBox + tensor.tensor_shape.length; i++)
-				tensor.form = tensor.form + (String) inputs.get(i).getSelectedItem();
+			for (int i = iterateOverComboBox; i < iterateOverComboBox + 5; i++) {
+				String selection = (String) inputs.get(i).getSelectedItem();
+				if (!selection.contains("ignore")) {
+					tensor.form = tensor.form + selection;
+				}
+			}
+			int[] shape = new int[tensor.form.length()];
+			for (int i = 0; i < shape.length; i ++) { shape[i] = -1;}
+			tensor.tensor_shape = shape;
 			tensor.tensorType = (String) inTags.get(tagC ++).getSelectedItem();
 			iterateOverComboBox += tensor.tensor_shape.length;
 			if (checkRepeated(tensor.form) == false && tensor.tensorType.equals("ignore") == false) {
-				IJ.error("Dimension repetition is not allowed");
+				IJ.error("Repetition is not allower in input");
 				return false;
 			}
 			if (TensorFlowModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
@@ -229,22 +252,29 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 		iterateOverComboBox = 0;
 		for (DijTensor tensor : outputTensors) {
 			tensor.form = "";
-			for (int i = iterateOverComboBox; i < iterateOverComboBox + tensor.tensor_shape.length; i++) {
-				tensor.form = tensor.form + (String) outputs.get(i).getSelectedItem();
+			// TODO for (int i = iterateOverComboBox; i < iterateOverComboBox + tensor.tensor_shape.length; i++) {
+			for (int i = iterateOverComboBox; i < iterateOverComboBox + 5; i++) {
+				String selection = (String) outputs.get(i).getSelectedItem();
+				if (!selection.contains("ignore")) {
+					tensor.form = tensor.form + selection;
+				}
 			}
+			int[] shape = new int[tensor.form.length()];
+			for (int i = 0; i < shape.length; i ++) { shape[i] = -1;}
+			tensor.tensor_shape = shape;
 			tensor.auxForm = tensor.form;
-			iterateOverComboBox += tensor.tensor_shape.length;
+			// TODO iterateOverComboBox += tensor.tensor_shape.length;
+			iterateOverComboBox += 5;
 			tensor.tensorType = (String) outTags.get(tagC ++).getSelectedItem();
-			if (tensor.tensorType.contains("list")) {
+			if (tensor.tensorType.contains("list"))
 				params.allowPatching = false;
-				// TODO remove tensor.auxForm = tensor.form;
-			}
+			
 			if (checkRepeated(tensor.form) == false && tensor.tensorType.equals("ignore") == false) {
-				IJ.error("Dimension repetition is not allowed");
+				IJ.error("Repetition is not allower in input");
 				return false;
 			}
 			if (TensorFlowModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
-				IJ.error("The plugin only supports models with batch size (B) = 1");
+				IJ.error("The plugin only supports models with batch size (N) = 1");
 				return false;
 			}
 		}
@@ -254,6 +284,21 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 				params.outputList.add(tensor);
 		    }
 		}
+		String msg = "The model has the following dimensions:\n";
+		for (DijTensor tensor : params.inputList) 
+			msg += " - " + tensor.name + ": " + tensor.form + "\n";
+		for (DijTensor tensor : params.outputList) 
+			msg += " - " + tensor.name + ": " + tensor.form + "\n";
+		msg += "\n";
+		msg += "Press 'Ok' if the dimensions are correct";
+		
+		GenericDialog dlg = new GenericDialog("Model dimensions");
+		dlg.addMessage(msg);
+		dlg.showDialog();
+		
+		if (dlg.wasCanceled())
+			return false;
+ 
 		
 		return true;
 	}
@@ -267,7 +312,8 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 		for (JComboBox<String> cmbTag : outTags) {
 			int indSelection = cmbTag.getSelectedIndex();
 			String selection = outOptions[indSelection];
-			for (int i = cmbCounter; i < cmbCounter + outputTensors.get(c).tensor_shape.length; i++) {
+			// TODO for (int i = cmbCounter; i < cmbCounter + outputTensors.get(c).tensor_shape.length; i++) {
+			for (int i = cmbCounter; i < cmbCounter + 5; i++) {
 				if (selection.contains("ignore")) {
 					outputs.get(i).setEnabled(!selection.equals("ignore"));
 				} else if (selection.contains("list") && outputs.get(i).getItemAt(1).equals("Y")) {
@@ -275,6 +321,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					outputs.get(i).addItem("B");
 					outputs.get(i).addItem("R");
 					outputs.get(i).addItem("C");
+					outputs.get(i).addItem("ignore");
 					outputs.get(i).setEnabled(true);
 					String form = outputTensors.get(c).form;
 					if (form != null)
@@ -288,6 +335,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					outputs.get(i).addItem("X");
 					outputs.get(i).addItem("C");
 					outputs.get(i).addItem("Z");
+					outputs.get(i).addItem("ignore");
 					outputs.get(i).setEnabled(true);
 					String form = outputTensors.get(c).form;
 					if (form != null)
@@ -296,7 +344,8 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					outputs.get(i).setEnabled(true);
 				}
 			}
-			cmbCounter += outputTensors.get(c).tensor_shape.length;
+			//cmbCounter += outputTensors.get(c).tensor_shape.length;
+			cmbCounter += 5;
 			c ++;
 		}
 	}

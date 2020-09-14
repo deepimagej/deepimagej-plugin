@@ -46,6 +46,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import ai.djl.ndarray.NDList;
+import ai.djl.repository.zoo.ZooModel;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.Index;
 import deepimagej.tools.YAMLUtils;
@@ -95,21 +97,11 @@ public class Parameters {
 	/*
 	 * Class and method called to run preprocessing
 	 */
-	public String javaPreprocessingClass = null;
-	/*
-	 * Class and method called to run preprocessing, only exists if there are
-	 * two java preprocessings
-	 */
-	public String javaAuxPreprocessingClass = null;
+	public ArrayList<String> javaPreprocessingClass = new ArrayList<String>();
 	/*
 	 * Class and method called to run postprocessing
 	 */
-	public String javaPostprocessingClass = null;
-	/*
-	 * Class and method called to run postprocessing, only exists if there are
-	 * two java postprocessings
-	 */
-	public String javaAuxPostprocessingClass = null;
+	public ArrayList<String> javaPostprocessingClass = new ArrayList<String>();
 	/*
 	 * Whether the network has a pyramidal pooling structure or not.
 	 * If it has it, the way to define the model changes. By default
@@ -223,6 +215,11 @@ public class Parameters {
 	 * the yaml file
 	 */
 	public HashMap<String, String[]> post;
+	/*
+	 * Path to the model, in the case a Pytorch model is used. The Pytorch model
+	 * is always a .pt or .pth file 
+	 */
+	public String torchscriptPath;
 	
 	
 	
@@ -268,6 +265,11 @@ public class Parameters {
 
 		
 		List<Map<String, Object>> inputs = (List<Map<String, Object>>) obj.get("inputs");
+		// Check that the previous version field is complete
+		if (inputs == null) {
+			completeConfig = false;
+			return;
+		}
 		inputList = new ArrayList<DijTensor>();
 		
 		Map<String, Object> test_information = (Map<String, Object>) deepimagej.get("test_information");
@@ -310,6 +312,13 @@ public class Parameters {
 				}
 				fixedInput = false;
 			}
+
+			// Check that the output definition fields are complete
+			if (inpTensor.form == null || inpTensor.dataType == null || inpTensor.minimum_size == null
+					|| inpTensor.tensor_shape == null || inpTensor.step == null || inpTensor.recommended_patch == null) {
+				completeConfig = false;
+				return;
+			}
 			
 			// Now find the test information of this tensor
 			LinkedHashMap<String, Object> info = input_information.get(tensorCounter ++);
@@ -324,6 +333,11 @@ public class Parameters {
 		}
 
 		List<Map<String, Object>> outputs = (List<Map<String, Object>>) obj.get("outputs");
+		// Check that the previous version field is complete
+		if (outputs == null) {
+			completeConfig = false;
+			return;
+		}
 		outputList = new ArrayList<DijTensor>();
 		
 		for (Map<String, Object> out : outputs) {
@@ -355,9 +369,15 @@ public class Parameters {
 				outTensor.scale = castListToFloatArray(auxScale);
 				List auxOffset = (List) shape.get("offset");
 				outTensor.offset = castListToIntArray(auxOffset);
-			}			
+			}		
+			outTensor.form = outTensor.form == null ? Table2Tensor.findTableForm(outTensor.recommended_patch) : outTensor.form;	
 
-			outTensor.form = outTensor.form == null ? Table2Tensor.findTableForm(outTensor.recommended_patch) : outTensor.form;
+			// Check that the output definition fields are complete
+			if (outTensor.form == null || outTensor.dataType == null || outTensor.scale == null
+					|| outTensor.offset == null) {
+				completeConfig = false;
+				return;
+			}
 			
 			outputList.add(outTensor);
 		}
@@ -447,7 +467,37 @@ public class Parameters {
 		graph = graph != null ? graph : "serving_default";
 		
 		previousVersions = (Map<String, Object>) obj.get("weights");
+		
+		// Check that the previous version field is complete
+		if (previousVersions == null) {
+			completeConfig = false;
+			return;
+		} else {
+
+			for (String k : previousVersions.keySet()) {
+				HashMap<String, String> vInfo;
+				try {
+					vInfo = (HashMap<String, String>) previousVersions.get(k);
+				} catch (Exception ex) {
+					completeConfig = false;
+					return;
+				}
+				if (vInfo.get("source") == null) {
+					completeConfig = false;
+					return;
+				} else if (vInfo.get("sha256") == null){
+					completeConfig = false;
+					return;
+				}
+			}
+		}
+		
+		// Check that the model sha256 is complete
 		saved_modelSha256 = (String) ((Map<String, Object>) obj.get("model")).get("sha256");
+		if (saved_modelSha256 == null) {
+			completeConfig = false;
+			return;
+		}
 	}
 	
 	public static String[] castListToStringArray(List list) {
