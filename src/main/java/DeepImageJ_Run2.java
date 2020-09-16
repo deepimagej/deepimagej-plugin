@@ -328,6 +328,19 @@ public class DeepImageJ_Run2 implements PlugIn, ItemListener {
 			}
 
 			calculateImage(imp);
+			
+			// Free memory allocated by the plugin 
+			this.dp = null;
+			this.dps = null;
+			imp = null;
+			try {
+				this.finalize();
+			} catch (Throwable e) {
+				e.printStackTrace();
+				IJ.log("Non critical error");
+				IJ.log("Unable to clean memory after plugin execution");
+			}
+			System.gc();
 		}
 	}
 
