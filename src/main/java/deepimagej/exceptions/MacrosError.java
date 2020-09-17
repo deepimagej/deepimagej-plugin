@@ -42,7 +42,7 @@ public class MacrosError extends Exception {
 	}
 	
 	public String toString() {
-		return "Macros in the Macro's code";
+		return "Error in the Macro's code";
 	}
 
 }

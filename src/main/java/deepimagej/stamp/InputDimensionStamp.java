@@ -69,8 +69,6 @@ import deepimagej.components.HTMLPane;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.Index;
 import ij.IJ;
-import ij.ImagePlus;
-import ij.WindowManager;
 
 public class InputDimensionStamp extends AbstractStamp implements ActionListener {
 
@@ -99,7 +97,10 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 
 	private List<DijTensor> 			imageTensors;
 	private static int					inputCounter = 0;
+	// Parameters to know if something changed and we have to rebuild the GUI
 	private String						model		  = "";
+	private List<DijTensor>				savedInputs   = null;
+	private boolean						tiling;
 	
 	private String						shortForm;
 	
@@ -162,10 +163,41 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		imageTensors = DijTensor.getImageTensors(params.inputList);
 		// Set the screen at the first input if the model changes
 		String modelOfInterest = params.path2Model;
+		// Repaint interface if model has changed
 		if (!modelOfInterest.equals(model)) {
 			showCorrespondingInputInterface(params);
+			tiling = params.allowPatching;
+			savedInputs = params.inputList;
 			model = modelOfInterest;
 			inputCounter = 0;
+			return;
+		}
+		// Repaint interface if the number of input tensors
+		if (params.inputList.size() != savedInputs.size()) {
+			showCorrespondingInputInterface(params);
+			tiling = params.allowPatching;
+			savedInputs = params.inputList;
+			inputCounter = 0;
+			return;
+		}
+		// If the number of inputs is the same, check if their shape or type have changed
+		for (int i = 0; i < params.inputList.size(); i ++) {
+			if (!params.inputList.get(i).tensorType.equals(savedInputs.get(i).tensorType) 
+				|| !params.inputList.get(i).form.equals(savedInputs.get(i).form)) {
+				showCorrespondingInputInterface(params);
+				tiling = params.allowPatching;
+				savedInputs = params.inputList;
+				inputCounter = 0;
+				return;
+			}
+		}
+		// If the model has changed from allow patching to not allow patching
+		// or from pyramidal to not pyramidal, repaint again.
+		if (tiling != params.allowPatching) {
+			showCorrespondingInputInterface(params);
+			tiling = params.allowPatching;
+			inputCounter = 0;
+			return;
 		}
 	}
 
@@ -177,6 +209,9 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			if (inp.tensorType.contains("image") && !inp.finished)
 				return false;
 		}
+		// Save to know when to repaint the interface
+		savedInputs = params.inputList;
+		tiling = params.allowPatching;
 		return true;
 	}public void showCorrespondingInputInterface(Parameters params) {
 		
@@ -236,8 +271,8 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 				} else if (dimValues[i] == -1){
 					allTxtMultiple.get(i).setEditable(true);
 					allTxtPatches.get(i).setEditable(true);
-					// TODO improve the intial guess of the patch
-					allTxtPatches.get(i).setText("100");
+					String initialGuess = dim[i].equals("C") ? "1" : "256";
+					allTxtPatches.get(i).setText(initialGuess);
 				}
 			}
 
@@ -281,9 +316,12 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 					allTxtMultiple.get(i).setText("" + dimValues[i]);
 					allTxtMultiple.get(i).setEditable(false);
 					allTxtPatches.get(i).setText("" + dimValues[i]);
-				} else if (dimValues[i] == -1) {
+				} else if (dimValues[i] == -1 && !dim[i].contentEquals("C")) {
 					allTxtMultiple.get(i).setEditable(true);
 					allTxtPatches.get(i).setText(" - ");
+				} else if (dimValues[i] == -1 && dim[i].contentEquals("C")) {
+					allTxtMultiple.get(i).setEditable(true);
+					allTxtPatches.get(i).setText(allTxtMultiple.get(i).getText());
 				}
 				allTxtPatches.get(i).setEditable(false);
 			}
@@ -301,12 +339,6 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 				addChangeListener(allTxtMultiple.get(c2), e -> optimalPatch(allTxtMultiple.get(c2).getText(), dim[c2]));
 			if (allTxtMultiple.size() >3)
 				addChangeListener(allTxtMultiple.get(c3), e -> optimalPatch(allTxtMultiple.get(c3).getText(), dim[c3]));
-			/* TODO remove
-			for (int i = 0; i < allTxtMultiple.size(); i ++) {
-				addChangeListener(allTxtMultiple.get(i), e -> optimalPatch(allTxtMultiple.get(c).getText(), dim[c]));
-				c ++;
-			}*/
-			//addChangeListener(allTxtMultiple.get(i), e -> updateImageInterface(tensor));
 			listenTxtField = true;
 		}
 	}
@@ -414,6 +446,13 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			// This means that the patch will always be the biggest possible
 			params.allowPatching = false;
 			patch = new int[patch.length];
+			// The channels dimension will only be the only limitation of 
+			for (int i = 0; i < params.inputList.get(inputCounter).tensor_shape.length; i ++) {
+				if (params.inputList.get(inputCounter).tensor_shape[i] != -1)
+					patch[i] = params.inputList.get(inputCounter).tensor_shape[i];
+				else if (params.inputList.get(inputCounter).form.indexOf("C") == i)
+					patch[i] = multiple[i];
+			}
 		}
 		
 		params.inputList.get(inputCounter).minimum_size = multiple;
@@ -515,22 +554,29 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		// This method looks for the optimal patch size regarding the
 		// minimum patch constraint and image size. This is then suggested
 		// to the user
-		int ind = shortForm.indexOf(dimChar);
-		int currentSize = Integer.parseInt(allTxtPatches.get(ind).getText().trim());
-		String patch = "100";
-		String selection = (String) cmbPatches.getSelectedItem();
-		if (minimumSizeString.equals(""))
-			patch =  "" + currentSize;
-		int minimumSize = Integer.parseInt(minimumSizeString);
-		
-		if (currentSize % minimumSize == 0 && selection.contains(allowPatches)) {
-			patch = "" + currentSize;
-		} else if (currentSize % minimumSize != 0 && selection.contains(allowPatches)) {
-			patch = "" + (((int) currentSize / minimumSize) + 1) * minimumSize;
-		} else if (selection.contains(predeterminedInput) ||selection.contains(noPatchesFixed)) {
-			patch = "" + minimumSizeString;
+		try {
+			int ind = shortForm.indexOf(dimChar);
+			int currentSize = Integer.parseInt(allTxtPatches.get(ind).getText().trim());
+			String patch = "100";
+			String selection = (String) cmbPatches.getSelectedItem();
+			if (minimumSizeString.equals(""))
+				patch =  "" + currentSize;
+			int minimumSize = Integer.parseInt(minimumSizeString);
+			
+			if (minimumSize != 0 && dimChar.equals("C")) {
+				patch = "" + minimumSizeString;
+			} else if (minimumSize != 0 && currentSize % minimumSize == 0 && selection.contains(allowPatches)) {
+				patch = "" + currentSize;
+			} else if (minimumSize != 0 && currentSize % minimumSize != 0 && selection.contains(allowPatches)) {
+				patch = "" + (((int) currentSize / minimumSize) + 1) * minimumSize;
+			} else if (minimumSize != 0 && selection.contains(predeterminedInput) ||selection.contains(noPatchesFixed)) {
+				patch = "" + minimumSizeString;
+			}
+			if (minimumSize != 0)
+				allTxtPatches.get(ind).setText(patch);
+		} catch (NumberFormatException ex) {
+			return;
 		}
-		allTxtPatches.get(ind).setText(patch);
 	}
 
 	@Override

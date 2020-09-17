@@ -60,6 +60,7 @@ import ai.djl.repository.zoo.Criteria;
 import ai.djl.repository.zoo.ModelZoo;
 import ai.djl.repository.zoo.ZooModel;
 import ai.djl.training.util.ProgressBar;
+import deepimagej.exceptions.IncorrectNumberOfDimensions;
 import deepimagej.processing.ExternalClassManager;
 import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.CompactMirroring;
@@ -378,7 +379,7 @@ private int							currentPatch = 0;
 
 						Predictor<NDList, NDList> predictor = model.newPredictor();
 						NDList outputTensors = predictor.predict(inputTensors);
-					
+
 						// Close inputTensors to avoid memory leak
 						inputTensors.close();
 						c = 0;
@@ -387,11 +388,11 @@ private int							currentPatch = 0;
 							log.print("Session run " + (c+1) + "/"  + params.outputList.size());
 							NDArray result = outputTensors.get(c);
 							if (outTensor.tensorType.contains("image") && !params.pyramidalNetwork) {
-								impatch[imCounter] = ImagePlus2TensorPt.tensor2ImagePlus(result, outTensor.form);
+								impatch[imCounter] = ImagePlus2TensorPt.NDArray2ImagePlus(result, outTensor.form, outTensor.name);
 								imCounter ++;
 								c ++;
-							} else if (outTensor.tensorType.contains("image") && params.pyramidalNetwork) {
-								outputImages[imCounter] = ImagePlus2TensorPt.tensor2ImagePlus(result, outTensor.form);
+							} else if (outTensor.tensorType.contains("image") && (params.pyramidalNetwork || !params.allowPatching)) {
+								outputImages[imCounter] = ImagePlus2TensorPt.NDArray2ImagePlus(result, outTensor.form, outTensor.name);
 								outputImages[imCounter].setTitle(outputTitles[imCounter]);
 								outputImages[imCounter].show();
 								imCounter ++;
@@ -419,6 +420,15 @@ private int							currentPatch = 0;
 								}
 							}
 						}
+					} catch (IncorrectNumberOfDimensions ex) {
+						ex.printStackTrace();	
+						IJ.log("Error applying the model");
+						IJ.log(ex.getMessage());
+						IJ.log("The dimensions specified for the '" + ex.getName() 
+								+ "' (" + ex.getDims() + ") should match the number of dimensions"
+								+ " output tensor " + Arrays.toString(ex.getShape()));
+						rp.stop();
+						return null;
 					} catch (Exception ex) {
 						// TODO MAKE THIS EXCEPTION MORE ESPECIFIC
 						ex.printStackTrace();	
@@ -430,7 +440,8 @@ private int							currentPatch = 0;
 					int[][] allOffsets = findOutputOffset(params.outputList);
 					int imCounter = 0;
 					for (int counter = 0; counter < params.outputList.size(); counter++) {
-						if (params.outputList.get(counter).tensorType.contains("image") && !params.pyramidalNetwork) {
+						// TODO decide what to do when pyramidal && !allowPatching
+						if (params.outputList.get(counter).tensorType.contains("image") && !params.pyramidalNetwork && params.allowPatching) {
 							float[] outSize = findOutputSize(size, params.outputList.get(counter), params.inputList, impatch[imCounter].getDimensions());
 							if (outputImages[imCounter] == null) {
 								int[] dims = impatch[imCounter].getDimensions();

@@ -66,6 +66,7 @@ import deepimagej.stamp.TestStamp;
 import deepimagej.stamp.WelcomeStamp;
 import deepimagej.tools.Log;
 import deepimagej.tools.WebBrowser;
+import ij.IJ;
 import ij.gui.GUI;
 
 public class BuildDialog extends JDialog implements ActionListener {
@@ -122,10 +123,10 @@ public class BuildDialog extends JDialog implements ActionListener {
 
 		pnCards.add(welcome.getPanel(), "1");
 		pnCards.add(loaderTf.getPanel(), "2");
-		pnCards.add(loaderPt.getPanel(), "2");
+		pnCards.add(loaderPt.getPanel(), "20");
 		pnCards.add(selectPyramid.getPanel(), "3");
 		pnCards.add(tensorTf.getPanel(), "4");
-		pnCards.add(tensorPt.getPanel(), "4");
+		pnCards.add(tensorPt.getPanel(), "40");
 		pnCards.add(dim3.getPanel(), "5");
 		pnCards.add(outputDim.getPanel(), "6");
 		pnCards.add(info.getPanel(), "7");
@@ -155,6 +156,10 @@ public class BuildDialog extends JDialog implements ActionListener {
 
 	private void setCard(String name) {
 		CardLayout cl = (CardLayout) (pnCards.getLayout());
+		if (dp.params.framework.equals("Pytorch") && name.equals("2"))
+			name = "20";
+		if (dp.params.framework.equals("Pytorch") && name.equals("4"))
+			name = "40";
 		cl.show(pnCards, name);
 	}
 
@@ -174,11 +179,13 @@ public class BuildDialog extends JDialog implements ActionListener {
 						dp = new DeepImageJ(path, name, new Log(), true);
 						if (dp != null) {
 							dp.params.path2Model = path + File.separator + name + File.separator;
-							setEnabledBackNext(false);
-							if (dp.params.framework.contains("Tensorflow")) {
+							if (dp.params.framework.contains("Tensorflow") && dp.getValid()) {
 								loaderTf.init();
-							} else if (dp.params.framework.contains("Pytorch")) {
+							} else if (dp.params.framework.contains("Pytorch") && dp.getValid()) {
 								loaderPt.init();
+							} else if (!dp.getValid()) {
+								IJ.error("This directory " + dp.getPath() + " is not a protobuf model (no saved_model.pb) or Torchscript model");
+								card = 1;
 							}
 						}
 					}

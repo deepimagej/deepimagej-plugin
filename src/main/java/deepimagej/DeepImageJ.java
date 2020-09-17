@@ -58,22 +58,24 @@ import ij.ImagePlus;
 
 public class DeepImageJ {
 
-	private String				path;
+	private String					path;
 	private Log 					log;
-	public String				dirname;
-	public Parameters			params;
-	private boolean				valid = true;
+	public String					dirname;
+	public Parameters				params;
+	private boolean					valid 			= true;
+	private boolean					developer		= true;
 	public ArrayList<String>		msgChecks		= new ArrayList<String>();
-	public ArrayList<String>		msgLoads			= new ArrayList<String>();
-	public ArrayList<String[]>	msgArchis		= new ArrayList<String[]>();
+	public ArrayList<String>		msgLoads		= new ArrayList<String>();
+	public ArrayList<String[]>		msgArchis		= new ArrayList<String[]>();
 	private SavedModelBundle		tfModel			= null;
-	private ZooModel<NDList, NDList> torchModel			= null;
+	private ZooModel<NDList, NDList>torchModel		= null;
 	
 	public DeepImageJ(String pathModel, String dirname, Log log, boolean isDeveloper) {
 		String p = pathModel + File.separator + dirname + File.separator;
 		this.path = p.replace(File.separator + File.separator, File.separator);
 		this.log = log;
 		this.dirname = dirname;
+		this.developer = isDeveloper;
 		// TODO adapt to new. 
 		//this.valid = isDeveloper ? TensorFlowModel.check(p, msgChecks) : check(p, msgChecks);
 		if (!isDeveloper && new File(path, "config.yaml").isFile()) {
@@ -256,7 +258,7 @@ public class DeepImageJ {
 		boolean valid = true;
 		
 		File configFile = new File(path + "config.yaml");
-		if (!configFile.exists()) {
+		if (!configFile.exists() && !developer) {
 			msg.add("No 'config.yaml' found in " + path);
 			valid = false;
 			return valid;

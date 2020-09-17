@@ -4,10 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
+import ai.djl.Application;
 import ai.djl.MalformedModelException;
 import ai.djl.Model;
 import ai.djl.inference.Predictor;
 import ai.djl.modality.Classifications;
+import ai.djl.modality.Classifications.Classification;
 import ai.djl.modality.cv.Image;
 import ai.djl.modality.cv.Image.Flag;
 import ai.djl.modality.cv.ImageFactory;
@@ -22,6 +24,7 @@ import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.nn.Block;
 import ai.djl.nn.Parameter;
+import ai.djl.pytorch.zoo.PtModelZoo;
 import ai.djl.repository.zoo.Criteria;
 import ai.djl.repository.zoo.ModelNotFoundException;
 import ai.djl.repository.zoo.ModelZoo;
@@ -39,6 +42,13 @@ import java.awt.image.*;
 public class DJLExample {
 	
 	public static void main(String args[]) throws IOException, TranslateException, ModelNotFoundException, MalformedModelException {
+		PtModelZoo.SSD.loadModel(new ProgressBar());
+		Criteria<Image, Classification> criteria =
+		            Criteria.builder()
+		                    .setTypes(Image.class, Classification.class)
+		    		        .optProgress(new ProgressBar())
+		                    .build();
+		ZooModel<Image, Classification> ssd = ModelZoo.loadModel(criteria);
 		DownloadUtils.download("https://djl-ai.s3.amazonaws.com/ml"
 				+ "repo/model/cv/image_classification/ai/djl/pytorch/resnet/0.0.1/"
 				+ "traced_resnet18.pt.gz", "C:\\Users\\Carlos(tfg)\\Documents\\DJL\\resnet18\\resnet18.pt",
@@ -68,7 +78,7 @@ public class DJLExample {
 
 
 		
-		Criteria<NDList, NDList> criteria = Criteria.builder()
+		Criteria<NDList, NDList> criteria2 = Criteria.builder()
 		        .setTypes(NDList.class, NDList.class)
 		         // only search the model in local directory
 		         // "ai.djl.localmodelzoo:{name of the model}"
@@ -78,7 +88,7 @@ public class DJLExample {
 		        //.optTranslator(translator)
 		        .optProgress(new ProgressBar()).build();
 
-		ZooModel model = ModelZoo.loadModel(criteria);
+		ZooModel model = ModelZoo.loadModel(criteria2);
 		Block block = model.getBlock();
 		
 

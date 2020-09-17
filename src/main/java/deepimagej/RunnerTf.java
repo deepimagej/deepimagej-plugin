@@ -161,7 +161,6 @@ private int							currentPatch = 0;
 		// so ImageJ can see the 3 channels of the RGB image
 		if (imp.getType() == 4){
 			IJ.run(imp, "Make Composite", "");
-			//imp = WindowManager.getCurrentImage();
 		}
 		
 		int[] indices = new int[4];
@@ -387,7 +386,7 @@ private int							currentPatch = 0;
 								impatch[imCounter] = ImagePlus2Tensor.tensor2ImagePlus(result, outTensor.form);
 								imCounter ++;
 								c ++;
-							} else if (outTensor.tensorType.contains("image") && params.pyramidalNetwork) {
+							} else if (outTensor.tensorType.contains("image") && (params.pyramidalNetwork  || !params.allowPatching)) {
 								outputImages[imCounter] = ImagePlus2Tensor.tensor2ImagePlus(result, outTensor.form);
 								outputImages[imCounter].setTitle(outputTitles[imCounter]);
 								outputImages[imCounter].show();
@@ -411,6 +410,14 @@ private int							currentPatch = 0;
 						rp.stop();
 						return null;
 					}
+					catch(IllegalStateException ex) {
+						ex.printStackTrace();	
+						IJ.log("Error applying the model");
+						IJ.log("Uninitialized weights.");
+						IJ.log("Check that the variables/weights folder contains a correct version of the weights");
+						rp.stop();
+						return null;
+					}
 					catch (Exception ex) {
 						// TODO MAKE THIS EXCEPTION MORE ESPECIFIC
 						ex.printStackTrace();	
@@ -422,7 +429,7 @@ private int							currentPatch = 0;
 					int[][] allOffsets = findOutputOffset(params.outputList);
 					int imCounter = 0;
 					for (int counter = 0; counter < params.outputList.size(); counter++) {
-						if (params.outputList.get(counter).tensorType.contains("image") && !params.pyramidalNetwork) {
+						if (params.outputList.get(counter).tensorType.contains("image") && !params.pyramidalNetwork && params.allowPatching) {
 							float[] outSize = findOutputSize(size, params.outputList.get(counter), params.inputList, impatch[imCounter].getDimensions());
 							if (outputImages[imCounter] == null) {
 								int[] dims = impatch[imCounter].getDimensions();

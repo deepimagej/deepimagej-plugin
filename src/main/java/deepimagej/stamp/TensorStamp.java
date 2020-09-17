@@ -237,7 +237,6 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 			tensor.tensorType = (String) outTags.get(tagC ++).getSelectedItem();
 			if (tensor.tensorType.contains("list")) {
 				params.allowPatching = false;
-				// TODO remove tensor.auxForm = tensor.form;
 			}
 			if (checkRepeated(tensor.form) == false && tensor.tensorType.equals("ignore") == false) {
 				IJ.error("Dimension repetition is not allowed");
@@ -258,7 +257,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 		return true;
 	}
 	
-	public static void updateTensorDisplay(Parameters params) {
+	public void updateTensorDisplay(Parameters params) {
 		// Set disabled the tensors marked as 'ignore'
 		List<DijTensor> outputTensors = params.totalOutputList;
 		// Counter for tensors
@@ -276,6 +275,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					outputs.get(i).addItem("R");
 					outputs.get(i).addItem("C");
 					outputs.get(i).setEnabled(true);
+					outputs.get(i).addActionListener(this);
 					String form = outputTensors.get(c).form;
 					if (form != null)
 						outputTensors.get(c).form = form.substring(0, i) + "B" + form.substring(i+1);
@@ -289,6 +289,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					outputs.get(i).addItem("C");
 					outputs.get(i).addItem("Z");
 					outputs.get(i).setEnabled(true);
+					outputs.get(i).addActionListener(this);
 					String form = outputTensors.get(c).form;
 					if (form != null)
 						outputTensors.get(c).form = form.substring(0, i) + "B" + form.substring(i+1);

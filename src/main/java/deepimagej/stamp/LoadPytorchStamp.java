@@ -198,6 +198,11 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 			        //.optArtifactId("ai.djl.localmodelzoo:resnet_18") // defines which model to load
 			        .optModelName(modelName)
 			        .optProgress(new ProgressBar()).build();
+			/*Criteria<NDList, NDList> criteria = Criteria.builder()
+			        .setTypes(NDList.class, NDList.class)
+			        .optModelUrls(url.toString()) // search models in specified path
+			        .optArtifactId("ai.djl.localmodelzoo:" + modelName) // defines which model to load
+			        .build();*/
 
 			ZooModel<NDList, NDList> model = ModelZoo.loadModel(criteria);
 			parent.getDeepPlugin().setTorchModel(model);
@@ -228,6 +233,11 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 			parent.setEnabledBack(true);
 			e.printStackTrace();
 		} catch (IOException e) {
+			pnLoad.append("p", "DeepImageJ could not load the model");
+			pnLoad.append("p", "Error whie accessing the model file.");
+			parent.setEnabledBack(true);
+			e.printStackTrace();
+		} catch (Exception e) {
 			pnLoad.append("p", "DeepImageJ could not load the model");
 			pnLoad.append("p", "Error whie accessing the model file.");
 			parent.setEnabledBack(true);

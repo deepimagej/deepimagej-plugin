@@ -237,7 +237,7 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 			tensor.tensorType = (String) inTags.get(tagC ++).getSelectedItem();
 			iterateOverComboBox += tensor.tensor_shape.length;
 			if (checkRepeated(tensor.form) == false && tensor.tensorType.equals("ignore") == false) {
-				IJ.error("Repetition is not allower in input");
+				IJ.error("Repetition is not allowed in input");
 				return false;
 			}
 			if (TensorFlowModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
@@ -270,7 +270,7 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 				params.allowPatching = false;
 			
 			if (checkRepeated(tensor.form) == false && tensor.tensorType.equals("ignore") == false) {
-				IJ.error("Repetition is not allower in input");
+				IJ.error("Repetition is not allowed in input");
 				return false;
 			}
 			if (TensorFlowModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
