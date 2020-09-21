@@ -41,6 +41,9 @@ import java.awt.TextArea;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -48,13 +51,19 @@ import java.util.Set;
 
 import org.tensorflow.SavedModelBundle;
 
+import ai.djl.MalformedModelException;
 import ai.djl.ndarray.NDList;
+import ai.djl.repository.zoo.Criteria;
+import ai.djl.repository.zoo.ModelNotFoundException;
+import ai.djl.repository.zoo.ModelZoo;
 import ai.djl.repository.zoo.ZooModel;
+import ai.djl.training.util.ProgressBar;
 import deepimagej.tools.Log;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.FileTools;
 import ij.IJ;
 import ij.ImagePlus;
+import ij.gui.GenericDialog;
 
 public class DeepImageJ {
 
@@ -70,21 +79,21 @@ public class DeepImageJ {
 	private SavedModelBundle		tfModel			= null;
 	private ZooModel<NDList, NDList>torchModel		= null;
 	
-	public DeepImageJ(String pathModel, String dirname, Log log, boolean isDeveloper) {
+	public DeepImageJ(String pathModel, String dirname, Log log, boolean dev) {
 		String p = pathModel + File.separator + dirname + File.separator;
 		this.path = p.replace(File.separator + File.separator, File.separator);
 		this.log = log;
 		this.dirname = dirname;
-		this.developer = isDeveloper;
+		this.developer = dev;
 		// TODO adapt to new. 
 		//this.valid = isDeveloper ? TensorFlowModel.check(p, msgChecks) : check(p, msgChecks);
-		if (!isDeveloper && new File(path, "config.yaml").isFile()) {
-			this.params = new Parameters(valid, path, isDeveloper);
+		if (!dev && new File(path, "config.yaml").isFile()) {
+			this.params = new Parameters(valid, path, dev);
 			this.params.path2Model = this.path;
-		} else if (isDeveloper) {
-			this.params = new Parameters(valid, path, isDeveloper);
+		} else if (dev) {
+			this.params = new Parameters(valid, path, dev);
 		}
-		this.valid = check(p, msgChecks);
+		this.valid = check(p);
 	}
 
 	public String getPath() {
@@ -141,7 +150,7 @@ public class DeepImageJ {
 	}
 
 
-	public boolean loadModel(boolean archi) {
+	public boolean loadTfModel(boolean archi) {
 		log.print("load model from " + path);
 
 		double chrono = System.nanoTime();
@@ -167,6 +176,49 @@ public class DeepImageJ {
 		return true;
 	}
 
+
+	public boolean loadPtModel(String path) {
+		try {
+			URL url = new File(new File(path).getParent()).toURI().toURL();
+			
+			String modelName = new File(path).getName();
+			modelName = modelName.substring(0, modelName.indexOf(".pt"));
+			long startTime = System.nanoTime();
+			Criteria<NDList, NDList> criteria = Criteria.builder()
+			        .setTypes(NDList.class, NDList.class)
+			         // only search the model in local directory
+			         // "ai.djl.localmodelzoo:{name of the model}"
+			        .optModelUrls(url.toString()) // search models in specified path
+			        //.optArtifactId("ai.djl.localmodelzoo:resnet_18") // defines which model to load
+			        .optModelName(modelName)
+			        .optProgress(new ProgressBar()).build();
+	
+			ZooModel<NDList, NDList> model = ModelZoo.loadModel(criteria);
+			this.setTorchModel(model);
+			String torchscriptSize = FileTools.getFolderSizeKb(params.torchscriptPath);
+			long stopTime = System.nanoTime();
+			// Convert nanoseconds into seconds
+			String loadingTime = "" + ((stopTime - startTime) / (float) 1000000000);
+			
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+			return false;
+		} catch (ModelNotFoundException e) {
+			e.printStackTrace();
+			return false;
+		} catch (MalformedModelException e) {
+			e.printStackTrace();
+			return false;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+
 	public void writeParameters(TextArea info, ArrayList<String> checks) {
 		if (params == null) {
 			info.append("No params\n");
@@ -174,17 +226,20 @@ public class DeepImageJ {
 		}
 		info.append("----------- BASIC INFO -----------\n");
 		info.append("Name: " + params.name + "\n");
-		info.append(checks.get(0) + "\n");
+		/* TODO remove
+		 * info.append(checks.get(0) + "\n");
 		// TODO remove
 		if (checks.size() == 2) {
 			info.append("Size: " + checks.get(1).substring(18) + "\n");
 		} else {
 			info.append("Size: " + FileTools.getFolderSizeKb(path + "variables") + "\n");
 		}
+		 */
 		info.append("Authors" + "\n");
 		for (String auth : params.author)
 			info.append("  - " + auth + "\n");
 		info.append("References" + "\n");
+		// TODO robustness
 		for (HashMap<String, String> ref : params.cite) {
 			info.append("  - Article: " + ref.get("text") + "\n");
 			info.append("    Doi: " + ref.get("doi") + "\n");
@@ -240,113 +295,93 @@ public class DeepImageJ {
 	}
 
 	// TODO what we do with this??
-	public  boolean check(String path, ArrayList<String> msg) {
-		msg.add("Path: " + path);
+	public  boolean check(String path) {
 		File dir = new File(path);
 		if (!dir.exists()) {
-			msg.add("Not found " + path);
 			return false;
 		}
-		if (!dir.isDirectory() && (dir.getName().contains(".pt") || dir.getName().contains(".pth"))) {
-			this.params.framework = "Pytorch";
-			this.params.torchscriptPath = dir.getAbsolutePath();
-			return true;
-		}else if (!dir.isDirectory()) {
-			msg.add("Not found " + path);
+		if (!dir.isDirectory()) {
 			return false;
 		}
 		boolean valid = true;
 		
 		File configFile = new File(path + "config.yaml");
 		if (!configFile.exists() && !developer) {
-			msg.add("No 'config.yaml' found in " + path);
 			valid = false;
 			return valid;
 		}
 
 		File modelFile = new File(path + "saved_model.pb");
 		if (!modelFile.exists()) {
-			msg.add("No 'saved_model.pb' found in " + path);
 			valid = false;
-		}
-		
-		Set<String> versions = this.params.previousVersions.keySet();
-		boolean isThereBiozoo = false;
-		String allFiles = Arrays.toString(dir.list());
-		for (String v : versions) {
-			if (allFiles.contains("weights_" + v + ".zip")) 
-				isThereBiozoo = true;
-			this.params.framework = "Tensorflow";
-		}
-		if (isThereBiozoo) {
-			valid = true;
-			return valid;
-		}
+		} else {
+			
+			Set<String> versions = this.params.previousVersions.keySet();
+			boolean isThereBiozoo = false;
+			String allFiles = Arrays.toString(dir.list());
+			for (String v : versions) {
+				if (allFiles.contains("weights_" + v + ".zip")) 
+					isThereBiozoo = true;
+				this.params.framework = "Tensorflow";
+			}
+			if (isThereBiozoo) {
+				valid = true;
+				return valid;
+			}
 
-		File variableFile = new File(path + "variables");
-		if (!variableFile.exists()) {
-			msg.add("No 'variables' directory found in " + path);
-			valid = false;
-		}
-		else {
-			msg.add("TensorFlow model " + FileTools.getFolderSizeKb(path + "variables"));
-			this.params.framework = "Tensorflow";
+			File variableFile = new File(path + "variables");
+			if (!variableFile.exists()) {
+				valid = false;
+			}
+			else {
+				this.params.framework = "Tensorflow";
+			}
 		}
 		
 		// If no tf model has been found. Look for a pytorch torchscript model
-		if (!valid) {
-			for (File f : new File(path).listFiles()) {
-				if (!f.getName().contains(".pt") || !f.getName().contains(".pth"))
-					continue;
-				this.params.framework = "Pytorch";
-				this.params.torchscriptPath = f.getAbsolutePath();
-				valid = true;
-				break;
-			}
+		if (!valid && findPytorchModel(dir)) {
+			this.params.framework = "Pytorch";
+			this.params.torchscriptPath = dir.getAbsolutePath();
+			valid = true;
+		} else if (valid && findPytorchModel(dir) && this.developer) {
+			// If in the folder there is both a tf and a pytorch model, ask the user
+			// which one he wants to load
+			askFrameworkGUI();
+			valid = true;
+		} else if (valid && findPytorchModel(dir) && !this.developer) {
+			// If in the folder there is both a tf and a pytorch model, give
+			// the end-user the option to choose between both
+			this.params.framework = "Pytorch/Tensorflow";
+			this.params.torchscriptPath = dir.getAbsolutePath();
+			valid = true;
 		}
 		
 		return valid;
 	}
 	
-	public String getInfoImage(String filename) {
-		if (path == null)
-			return "No image";
-		File file = new File(filename);
-		if (!file.exists()) 
-			return "No image";
-		ImagePlus imp = IJ.openImage(filename);
-		if (imp == null) 
-			return "Error image: " + filename;
-		String name = file.getName();
-		
-		String nx = "" + imp.getWidth();
-		String ny = "x" + imp.getHeight();
-		String nz = imp.getNSlices() == 1 ? "" : "x" + imp.getNSlices();
-		String nc = imp.getNChannels() == 1 ? "" : "x" + imp.getNChannels();
-		String nt = imp.getNFrames() == 1 ? "" : "x" + imp.getNFrames();
-		int depth = imp.getBitDepth();
-		return name +" (" + nx + ny + nz + nc + nt + ") " + depth + "bits";
+	/*
+	 * Method returns true if a torchscript model is found inside
+	 * of the folder provided
+	 */
+	public static boolean findPytorchModel(File modelFolder) {
+		for (String file : modelFolder.list()) {
+			if (file.contains(".pt"))
+				return true;
+		}
+		return false;
 	}
 	
-	public String getInfoMacro(String filename) {
-		if (path == null)
-			return null;
-		File file = new File(filename);
-		if (!file.exists()) 
-			return null;
-		String name = file.getName();
-		
-		BufferedReader reader;
-		try {
-			reader = new BufferedReader(new FileReader(filename));
-			int lines = 0;
-			while (reader.readLine() != null) lines++;
-			reader.close();
-			return name +" (" + lines + " lines) ";
+	public void askFrameworkGUI() {
+		GenericDialog dlg = new GenericDialog("Choose model framework");
+		dlg.addMessage("The folder provided contained both a Tensorflow and a Pytorch model");
+		dlg.addMessage("Select which do you want to load.");
+		dlg.addChoice("Select framework", new String[]{"Tensorflow", "Pytorch"}, "Tensorflow");
+		dlg.showDialog();
+		if (dlg.wasCanceled()) {
+			dlg.dispose();
+			return;
 		}
-		catch (Exception e) {
-			return "Error";
-		}
+		this.params.framework = dlg.getNextChoice();
 	}
 
 }

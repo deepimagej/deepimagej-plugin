@@ -48,6 +48,7 @@ import java.util.concurrent.Callable;
 
 import org.tensorflow.Tensor;
 
+import ai.djl.engine.EngineException;
 import ai.djl.inference.Predictor;
 import ai.djl.modality.cv.Image;
 import ai.djl.modality.cv.ImageFactory;
@@ -159,17 +160,18 @@ private int							currentPatch = 0;
 			rp.stop();
 			return null;
 		}
+		// Now check if the image is an RGB, if it is make it composite,
+		// so ImageJ can see the 3 channels of the RGB image
+		if (imp.getType() == 4){
+			IJ.run(imp, "Make Composite", "");
+		}
+		
 		int nx = imp.getWidth();
 		int ny = imp.getHeight();
 		int nc = imp.getNChannels();
 		int nz = imp.getNSlices();
 		log.print("image size " + nx + "x" + ny + "x" + nz);
 		
-		// Now check if the image is an RGB, if it is make it composite,
-		// so ImageJ can see the 3 channels of the RGB image
-		if (imp.getType() == 4){
-			IJ.run(imp, "Make Composite", "");
-		}
 		
 		int[] indices = new int[4];
 		String[] dimLetters = "XYCZ".split("");
@@ -228,13 +230,14 @@ private int							currentPatch = 0;
 
 		// Order of the dimensions. For example "NHWC"-->Batch size, Height, Width, Channels
 		String inputForm = params.inputList.get(inputImageInd).form;
-		int[] inputDims = params.inputList.get(inputImageInd).tensor_shape;
+		int[] inputDims = params.inputList.get(inputImageInd).minimum_size;
 		int channelPos = Index.indexOf(inputForm.split(""), "C");
 		int[] inDim = imp.getDimensions();
-		if (inDim[2] != inputDims[channelPos] && inputDims[channelPos] != -1) {
-			IJ.log("Error in nChannel.\n"
-					+ "Image should have " + inputDims[channelPos] 
-							+ " instead of " + inDim[2]);
+		// TODO should channels always be exact?
+		if (inDim[2] % inputDims[channelPos] != 0 && inputDims[channelPos] != -1) {
+			IJ.log("Error in the number of channels.\n"
+				    + "Image should have " + inputDims[channelPos] 
+					+ " channels instead of " + inDim[2]);
 			rp.stop();
 			return null;
 		}
@@ -388,11 +391,11 @@ private int							currentPatch = 0;
 							log.print("Session run " + (c+1) + "/"  + params.outputList.size());
 							NDArray result = outputTensors.get(c);
 							if (outTensor.tensorType.contains("image") && !params.pyramidalNetwork) {
-								impatch[imCounter] = ImagePlus2TensorPt.NDArray2ImagePlus(result, outTensor.form, outTensor.name);
+								impatch[imCounter] = ImagePlus2Tensor.NDArray2ImagePlus(result, outTensor.form, outTensor.name);
 								imCounter ++;
 								c ++;
 							} else if (outTensor.tensorType.contains("image") && (params.pyramidalNetwork || !params.allowPatching)) {
-								outputImages[imCounter] = ImagePlus2TensorPt.NDArray2ImagePlus(result, outTensor.form, outTensor.name);
+								outputImages[imCounter] = ImagePlus2Tensor.NDArray2ImagePlus(result, outTensor.form, outTensor.name);
 								outputImages[imCounter].setTitle(outputTitles[imCounter]);
 								outputImages[imCounter].show();
 								imCounter ++;
@@ -427,6 +430,15 @@ private int							currentPatch = 0;
 						IJ.log("The dimensions specified for the '" + ex.getName() 
 								+ "' (" + ex.getDims() + ") should match the number of dimensions"
 								+ " output tensor " + Arrays.toString(ex.getShape()));
+						rp.stop();
+						return null;
+					} catch (EngineException ex) {
+						ex.printStackTrace();	
+						IJ.log("Error applying the model");
+						IJ.log("Check that the specifications for the input are compatible with the model architecture.");
+						IJ.log("\n");
+						// TODO remove log if error message is already being displayed.
+						IJ.log(ex.getMessage());
 						rp.stop();
 						return null;
 					} catch (Exception ex) {
@@ -543,7 +555,7 @@ private int							currentPatch = 0;
 				}
 			} else if (tensor.tensorType.contains("image")) {
 				 try {
-					 NDArray tt = ImagePlus2TensorPt.imPlus2tensor(manager, im, tensor.form);
+					 NDArray tt = ImagePlus2Tensor.imPlus2tensor(manager, im, tensor.form);
 					 tensorsArray.add(tt);
 				 } catch (Exception ex) {
 					 tensorsArray.close();

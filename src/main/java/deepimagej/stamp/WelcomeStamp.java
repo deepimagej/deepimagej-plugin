@@ -52,6 +52,7 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Vector;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -62,8 +63,10 @@ import javax.swing.JTextField;
 
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
+import deepimagej.DeepImageJ;
 import deepimagej.components.HTMLPane;
 import ij.IJ;
+import ij.gui.GenericDialog;
 
 public class WelcomeStamp extends AbstractStamp implements ActionListener {
 
@@ -132,17 +135,17 @@ public class WelcomeStamp extends AbstractStamp implements ActionListener {
 			return false;
 		}
 			
-		if (!file.isDirectory() && !file.getName().contains(".pt") && !file.getName().contains(".pth")) {
+		// TODO for the moment only allow folder models
+		if (!file.isDirectory()) {
 			IJ.error("This file " + filename + " does not correspond to a Pytorch or Tensorflow model.");	
 			return false;
 		}
-		/* TODO remove
+
 		File pb = new File(filename + File.separator + "saved_model.pb");
-		if (!pb.exists()) {
+		if (!pb.exists() && !DeepImageJ.findPytorchModel(file)) {
 			IJ.error("This directory " + filename + " is not a protobuf model (no saved_model.pb)");	
 			return false;
-		}
-		*/
+		} 
 		return true;
 	}
 

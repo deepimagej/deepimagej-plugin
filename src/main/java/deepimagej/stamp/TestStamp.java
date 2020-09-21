@@ -281,8 +281,10 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 			inputsMap = ProcessingBridge.runPreprocessing(params.testImage, params);
 			// Check if the images have the adequate channels and slices
 			for (DijTensor tensor : imageTensors) {
+				// TODO keep or remove
 				if (((ImagePlus) inputsMap.get(tensor.name)).getType() == 4){
 					IJ.run((ImagePlus) inputsMap.get(tensor.name), "Make Composite", "");
+					inputsMap.put(tensor.name, WindowManager.getCurrentImage());
 				}
 				// TODO fix this for the case where slices or channels are not fixed
 				int channels = TensorFlowModel.nChannelsOrSlices(tensor, "channels");

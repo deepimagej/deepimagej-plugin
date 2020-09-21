@@ -185,11 +185,16 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 		// Block back button while loading
 		parent.setEnabledBackNext(false);
 		try {
-			url = new File(new File(params.torchscriptPath).getParent()).toURI().toURL();
+			url = new File(new File(params.path2Model).getAbsolutePath()).toURI().toURL();
 			
+			params.torchscriptPath = findPytorchModels(params.path2Model);
+			if (params.torchscriptPath.equals("")) {
+				pnLoad.append("No Pytorch model found in the directory.");
+				parent.setEnabledBack(true);
+			}
 			String modelName = new File(params.torchscriptPath).getName();
-			long startTime = System.nanoTime();
 			modelName = modelName.substring(0, modelName.indexOf(".pt"));
+			long startTime = System.nanoTime();
 			Criteria<NDList, NDList> criteria = Criteria.builder()
 			        .setTypes(NDList.class, NDList.class)
 			         // only search the model in local directory
@@ -243,5 +248,37 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 			parent.setEnabledBack(true);
 			e.printStackTrace();
 		}
+	}
+
+	/*
+	 * Find the Pytorch model (".pt" or ".pth") inside the folder provided.
+	 * If there are more than one model, make the user decide.
+	 */
+	private String findPytorchModels(String modelPath) {
+		
+		File[] folderFiles = new File(modelPath).listFiles();
+		ArrayList<File> ptModels = new ArrayList<File>();
+		for (File file : folderFiles) {
+			if (file.getName().contains(".pt"))
+				ptModels.add(file);
+		}
+		
+		if (ptModels.size() == 1) 
+			return ptModels.get(0).getAbsolutePath();
+		
+		GenericDialog dlg = new GenericDialog("Choose Pytorch model");
+		dlg.addMessage("The folder provided contained several Pytorch models");
+		dlg.addMessage("Select which do you want to load.");
+		String[] fileArray = new String[ptModels.size()];
+		int c = 0;
+		for (File f : ptModels)
+			fileArray[c ++] = f.getName();
+		dlg.addChoice("Select framework", fileArray, fileArray[0]);
+		dlg.showDialog();
+		if (dlg.wasCanceled()) {
+			dlg.dispose();
+			return "";
+		}
+		return modelPath + File.separator + dlg.getNextChoice();
 	} 
 }

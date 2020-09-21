@@ -129,6 +129,8 @@ public class YAMLUtils {
 		data.put("authors", params.author);
 		
 		// Citation
+		if (params.cite.size() == 0)
+			params.cite = null;
 		data.put("cite", params.cite);
 		
 		// Info relevant to DeepImageJ, see: https://github.com/bioimage-io/configuration/issues/23
@@ -138,12 +140,16 @@ public class YAMLUtils {
 		deepimagej.put("allow_tiling", params.allowPatching);
 		
 		// TF model keys
-		Map<String, Object> modelKeys = new LinkedHashMap<>();
-		// Model tag
-		modelKeys.put("tensorflow_model_tag", TensorFlowModel.returnTfTag(params.tag));
-		// Model signature definition
-		modelKeys.put("tensorflow_siganture_def", TensorFlowModel.returnTfSig(params.graph));
-		deepimagej.put("model_keys", modelKeys);
+		if (params.framework.contains("Tensorflow")) {
+			Map<String, Object> modelKeys = new LinkedHashMap<>();
+			// Model tag
+			modelKeys.put("tensorflow_model_tag", TensorFlowModel.returnTfTag(params.tag));
+			// Model signature definition
+			modelKeys.put("tensorflow_siganture_def", TensorFlowModel.returnTfSig(params.graph));
+			deepimagej.put("model_keys", modelKeys);
+		} else if (params.framework.contains("Pytorch")) {
+			deepimagej.put("model_keys", null);
+		}
 		
 		// Test metadata
 		Map<String, Object> testInformation = new LinkedHashMap<>();
@@ -164,12 +170,19 @@ public class YAMLUtils {
 		
 		// Save the model
 		// Architecture
+		// TODO what to do when the sha256 is not saved
 		Map<String, Object> model = new LinkedHashMap<>();
-		model.put("source", "./saved_model.pb");
+		if  (params.framework.contains("Tensorflow"))
+			model.put("source", "./saved_model.pb");
+		else if (params.framework.contains("Pytorch"))
+			model.put("source", "./" + params.name + "_v" + params.version +".pt");
 		try {
-			model.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + "saved_model.pb"));
+			if  (params.framework.contains("Tensorflow"))
+				model.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + "saved_model.pb"));
+			else if (params.framework.contains("Pytorch"))
+				model.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + params.name + "_v" + ".pt"));
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
+			model.put("sha256", null);
 			e1.printStackTrace();
 		}
 		
@@ -180,16 +193,28 @@ public class YAMLUtils {
 		// Version
 		Map<String, Object> version = new LinkedHashMap<>();
 		String weightsVersion = "v" + params.version.trim();
-		version.put("source", "./weights_" + weightsVersion + ".zip");
+		if  (params.framework.contains("Tensorflow"))
+			version.put("source", "./weights_" + weightsVersion + ".zip");
+		else if (params.framework.contains("Pytorch"))
+			version.put("source", "./" + params.name + "_v" + ".pt");
 		String zipFile = params.saveDir + File.separator + "weights_" + weightsVersion + ".zip";
-		if (new File(zipFile).isFile())
+		if (params.framework.contains("Tensorflow") && new File(zipFile).isFile()) {
 			try {
 				String zipSha = FileTools.createSHA256(params.saveDir + File.separator + "weights_" + weightsVersion + ".zip");
 				version.put("sha256", zipSha);
 			} catch (IOException e1) {
-				// TODO Auto-generated catch block
+				version.put("sha256", null);
 				e1.printStackTrace();
 			}
+		} else if (params.framework.contains("Pytorch")) {
+			try {
+				String zipSha = FileTools.createSHA256(params.saveDir + File.separator + params.name + "_v" + ".pt");
+				version.put("sha256", zipSha);
+			} catch (IOException e1) {
+				version.put("sha256", null);
+				e1.printStackTrace();
+			}
+		}
 		weights.put(weightsVersion, version);
 		
 		

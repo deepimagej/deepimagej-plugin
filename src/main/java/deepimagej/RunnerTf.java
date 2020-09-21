@@ -37,8 +37,8 @@
 
 package deepimagej;
 
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -49,7 +49,7 @@ import org.tensorflow.Tensor;
 import org.tensorflow.framework.SignatureDef;
 import org.tensorflow.framework.TensorInfo;
 
-import deepimagej.processing.ExternalClassManager;
+import ai.djl.ndarray.NDArray;
 import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.CompactMirroring;
 import deepimagej.tools.DijTensor;
@@ -58,7 +58,6 @@ import deepimagej.tools.Log;
 import deepimagej.tools.NumFormat;
 import ij.IJ;
 import ij.ImagePlus;
-import ij.WindowManager;
 import ij.measure.ResultsTable;
 
 public class RunnerTf implements Callable<HashMap<String, Object>> {
@@ -107,7 +106,7 @@ private int							currentPatch = 0;
 		}
 		// Map that contains the input tensors that are not images.
 		// TODO restrict patching (or not) if the input contains parameters
-        HashMap<String, Tensor<?>> parameterMap = new HashMap<String, Tensor<?>>(); 
+        HashMap<String, Object> parameterMap = new HashMap<String, Object>(); 
 		ImagePlus imp = null;
 		// Auxiliary array with the same number of images as output tensors
 		int c = 0;
@@ -358,10 +357,7 @@ private int							currentPatch = 0;
 						patch.setTitle("Patch (" + i + "," + j + ")");
 						patch.getProcessor().resetMinAndMax();
 					}
-					// TODO Do not allow patching when the output is a list
-					// TODO Think about what to do when output is an image but we need 
-					// parameters. For the moment only no patching
-					//Tensor<?> inputTensor = ImagePlus2Tensor.imPlus2tensor(patch, inputForm, pc);
+					
 					Tensor<?>[] inputTensors = getInputTensors(params.inputList, parameterMap,  patch, pc);
 					Session.Runner sess = model.session().runner();
 					
@@ -383,11 +379,11 @@ private int							currentPatch = 0;
 							log.print("Session run " + (c+1) + "/"  + params.outputList.size());
 							Tensor<?> result = fetches.get(c);
 							if (outTensor.tensorType.contains("image") && !params.pyramidalNetwork) {
-								impatch[imCounter] = ImagePlus2Tensor.tensor2ImagePlus(result, outTensor.form);
+								impatch[imCounter] = ImagePlus2Tensor.tensor2ImagePlus(result, outTensor.form, outTensor.name);
 								imCounter ++;
 								c ++;
 							} else if (outTensor.tensorType.contains("image") && (params.pyramidalNetwork  || !params.allowPatching)) {
-								outputImages[imCounter] = ImagePlus2Tensor.tensor2ImagePlus(result, outTensor.form);
+								outputImages[imCounter] = ImagePlus2Tensor.tensor2ImagePlus(result, outTensor.form, outTensor.name);
 								outputImages[imCounter].setTitle(outputTitles[imCounter]);
 								outputImages[imCounter].show();
 								imCounter ++;
@@ -509,15 +505,20 @@ private int							currentPatch = 0;
 		return (Tensor<?>) inputMap.get(tensor.name);
 	}
 	
-	private static Tensor<?>[] getInputTensors(List<DijTensor> inputTensors, HashMap<String, Tensor<?>> paramsMap,
+	private static Tensor<?>[] getInputTensors(List<DijTensor> inputTensors, HashMap<String, Object> paramsMap,
 												ImagePlus im, int pc){
 		Tensor<?>[] tensorsArray = new Tensor<?>[inputTensors.size()];
 		int c = 0;
 		for (DijTensor tensor : inputTensors) {
-			if (tensor.tensorType.contains("parameter")) {
-				tensorsArray[c ++] = paramsMap.get(tensor.name);
+			if (tensor.tensorType.contains("parameter") && paramsMap.get(tensor.name) instanceof Tensor<?>) {
+				tensorsArray[c ++] = (Tensor<?>) paramsMap.get(tensor.name);
+			} else if (tensor.tensorType.contains("parameter") && paramsMap.get(tensor.name) instanceof NDArray) {
+				NDArray t = (NDArray) paramsMap.get(tensor.name);
+				final float[] out = t.toFloatArray();
+				FloatBuffer outBuff = FloatBuffer.wrap(out);
+				tensorsArray[c ++] = Tensor.create(t.getShape().getShape(), outBuff);
 			} else {
-				tensorsArray[c ++] = ImagePlus2Tensor.imPlus2tensor(im, tensor.form, pc);
+				tensorsArray[c ++] = ImagePlus2Tensor.implus2TensorFloat(im, tensor.form);
 			}
 		}
 		return tensorsArray;

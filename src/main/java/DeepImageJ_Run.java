@@ -54,6 +54,7 @@ import deepimagej.Constants;
 import deepimagej.DeepImageJ;
 import deepimagej.RunnerTf;
 import deepimagej.RunnerProgress;
+import deepimagej.RunnerPt;
 import deepimagej.TensorFlowModel;
 import deepimagej.components.BorderPanel;
 import deepimagej.exceptions.JavaProcessingError;
@@ -100,7 +101,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	
 	static public void main(String args[]) {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
-		path = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models" + File.separator;
+		path = "C:\\Users\\Carlos(tfg)\\Pictures\\Fiji.app\\models" + File.separator;
 		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\MRCNN\\exampleImage.tiff");
 		WindowManager.setTempCurrentImage(imp);
 		if (imp != null)
@@ -243,20 +244,25 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			if (dp.params.previousVersions.keySet().size() == 1 && version.substring(startOfExtension).equals(" (default)"))
 				version = version.substring(0, startOfExtension);
 
-			if (!version.equals("default (not bioimage.io format)") && !version.contains(" (missing") && !version.contains(" (faulty)")) {
-				String weightsPath = dp.getPath() + File.separatorChar + "weights_" + version + ".zip";
+			String tfWeightsPath = dp.getPath() + File.separatorChar + "weights_" + version + ".zip";
+			String ptWeightsPath = dp.getPath() + File.separatorChar + dp.params.name + "_" + version + ".pt";
+			if (!version.equals("default (not bioimage.io format)") && !version.contains(" (missing") && !version.contains(" (faulty)") && new File(tfWeightsPath).isFile()) {
 				try {
 					info.setText("");
 					info.setCaretPosition(0);
 					info.append("Unzipping the weight. Please wait...\n");
-					FileTools.unzipFolder(new File(weightsPath), dp.getPath() + File.separator + "variables");
+					FileTools.unzipFolder(new File(tfWeightsPath), dp.getPath() + File.separator + "variables");
+					dp.params.framework = "Tensorflow";
 				} catch (IOException e) {
 					e.printStackTrace();
 					IJ.error("Could not extract the weights");
 					return;
 				}
-			} else if (version.contains(" (missing") && !version.contains(" (faulty")){
+			} else if (!version.equals("default (not bioimage.io format)") && !version.contains(" (missing") && !version.contains(" (faulty)") && new File(ptWeightsPath).isFile()){
+				dp.params.framework = "Pytorch";
+			}  else if (version.contains(" (missing") && !version.contains(" (faulty")){
 				IJ.error("Please choose a viable version.");
+				return;
 			} 
 			
 			for (int i = 0; i < processingFile.length; i ++)
@@ -265,15 +271,23 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			info.setText("");
 			info.setCaretPosition(0);
 			info.append("Loading model. Please wait...\n");
-			boolean ret = dp.loadModel(true);
-			if (ret == false) {
+			boolean ret = false;
+			if (dp.params.framework.equals("Tensorflow")) {
+				ret = dp.loadTfModel(true);
+			} else if (dp.params.framework.equals("Pytorch")) {
+				ret = dp.loadPtModel(ptWeightsPath);
+			}
+			if (ret == false && dp.params.framework.equals("Tensorflow")) {
 				IJ.error("Error in loading " + dp.getName() + 
 						"\nTry using another Tensorflow version.");
 				return;
+			} else if (ret == false && dp.params.framework.equals("Pytorch")) {
+				IJ.error("Error in loading " + dp.getName() + 
+						"\nDeepImageJ loads models until Pytorch 1.6.");
+				return;
 			}
-			if (dp.getTfModel() == null)
-				dp.loadModel(true);
-			log.print("Load model error: " + (dp.getTfModel() == null));
+			
+			log.print("Load model error: " + (dp.getTfModel() == null || dp.getTorchModel() == null));
 	
 			if (dp == null) {
 				IJ.error("No valid model.");
@@ -377,7 +391,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				e.printStackTrace();
 			}
 			System.gc();
-			System.out.print("");
 		}
 	}
 
@@ -401,7 +414,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				return;
 			}
 			boolean samePbModel = TensorFlowModel.checkSumSavedModel(dp.params);
-			if (!samePbModel) {
+			if (!samePbModel && !dp.params.framework.contains("Pytorch")) {
 				info.setCaretPosition(0);
 				info.setText("");
 				info.append("Model: " + dp.getName() + "\n");
@@ -542,6 +555,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 
 	
 	public void calculateImage(ImagePlus inp) {
+		
 		dp.params.inputList.get(0).recommended_patch = patch;
 		int runStage = 0;
 		// Create parallel process for calculating the image
@@ -566,14 +580,23 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			log.print("end preprocessing");
 			
 			log.print("start progress");
-			
-			RunnerProgress rp = new RunnerProgress(dp);
 			log.print("start tunner");
-			RunnerTf runner = new RunnerTf(dp, rp, inputsMap, log);
-			rp.setRunner(runner);
-			Future<HashMap<String, Object>> f1 = service.submit(runner);
+			RunnerProgress rp = new RunnerProgress(dp);
 			HashMap<String, Object> output = null;
-			output = f1.get();
+			if (dp.params.framework.equals("Tensorflow")) {
+				RunnerTf runner = new RunnerTf(dp, rp, inputsMap, log);
+				rp.setRunner(runner);
+				// TODO decide what to store at the end of the execution
+				Future<HashMap<String, Object>> f1 = service.submit(runner);
+				output = f1.get();
+			} else {
+				RunnerPt runner = new RunnerPt(dp, rp, inputsMap, log);
+				rp.setRunner(runner);
+				// TODO decide what to store at the end of the execution
+				Future<HashMap<String, Object>> f1 = service.submit(runner);
+				output = f1.get();
+			}
+			
 			inp.changes = false;
 			inp.close();
 			if (output == null) 

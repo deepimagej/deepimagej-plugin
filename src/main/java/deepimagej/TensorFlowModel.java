@@ -264,7 +264,8 @@ public class TensorFlowModel {
 		for (String key : prevVersions) {
 			String newSha256 = "";
 			try {
-				newSha256 = FileTools.createSHA256(params.path2Model + File.separator + "weights_" + key + ".zip");
+				String source = (String) ((Map<String, Object>) params.previousVersions.get(key)).get("source");
+				newSha256 = FileTools.createSHA256(params.path2Model + File.separator + source.substring(2));
 			} catch (IOException e) {
 				missingWeights.add(key);
 			}

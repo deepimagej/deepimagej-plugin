@@ -57,8 +57,9 @@ import deepimagej.stamp.LoadPytorchStamp;
 import deepimagej.stamp.InformationStamp;
 import deepimagej.stamp.LoadTFStamp;
 import deepimagej.stamp.OutputDimensionStamp;
+import deepimagej.stamp.PtSaveStamp;
 import deepimagej.stamp.SaveOutputFilesStamp;
-import deepimagej.stamp.SaveStamp;
+import deepimagej.stamp.TfSaveStamp;
 import deepimagej.stamp.SelectPyramidalStamp;
 import deepimagej.stamp.TensorPytorchTmpStamp;
 import deepimagej.stamp.TensorStamp;
@@ -90,7 +91,8 @@ public class BuildDialog extends JDialog implements ActionListener {
 	private JavaPostprocessingStamp  javaPostproc;
 	private TestStamp				test2;
 	private SaveOutputFilesStamp	outputSelection;
-	private SaveStamp				save;
+	private TfSaveStamp				tfSave;
+	private PtSaveStamp				ptSave;
 	private DeepImageJ				dp;
 	private int						card	= 1;
 
@@ -113,7 +115,8 @@ public class BuildDialog extends JDialog implements ActionListener {
 		javaPostproc = new JavaPostprocessingStamp(this);
 		test2 = new TestStamp(this);
 		outputSelection = new SaveOutputFilesStamp(this);
-		save = new SaveStamp(this);
+		tfSave = new TfSaveStamp(this);
+		ptSave = new PtSaveStamp(this);
 
 		JPanel pnButtons = new JPanel(new GridLayout(1, 4));
 		pnButtons.add(bnClose);
@@ -134,7 +137,8 @@ public class BuildDialog extends JDialog implements ActionListener {
 		pnCards.add(javaPostproc.getPanel(), "9");
 		pnCards.add(test2.getPanel(), "10");
 		pnCards.add(outputSelection.getPanel(), "11");
-		pnCards.add(save.getPanel(), "12");
+		pnCards.add(tfSave.getPanel(), "12");
+		pnCards.add(ptSave.getPanel(), "120");
 
 		setLayout(new BorderLayout());
 		add(new TitleHTMLPane().getPane(), BorderLayout.NORTH);
@@ -158,8 +162,10 @@ public class BuildDialog extends JDialog implements ActionListener {
 		CardLayout cl = (CardLayout) (pnCards.getLayout());
 		if (dp.params.framework.equals("Pytorch") && name.equals("2"))
 			name = "20";
-		if (dp.params.framework.equals("Pytorch") && name.equals("4"))
+		else if (dp.params.framework.equals("Pytorch") && name.equals("4"))
 			name = "40";
+		else if (dp.params.framework.equals("Pytorch") && name.equals("12"))
+			name = "120";
 		cl.show(pnCards, name);
 	}
 
@@ -246,23 +252,23 @@ public class BuildDialog extends JDialog implements ActionListener {
 		bnBack.setEnabled(card > 1);
 		if (card == 4 && dp.params.framework.contains("Tensorflow"))
 			tensorTf.init();
-		if (card == 4 && dp.params.framework.contains("Pytorch"))
+		else if (card == 4 && dp.params.framework.contains("Pytorch"))
 			tensorPt.init();
-		if (card == 5)
+		else if (card == 5)
 			dim3.init();
-		if (card == 6)
+		else if (card == 6)
 			outputDim.init();
-		if (card == 7)
+		else if (card == 7)
 			info.init();
-		if (card == 8)
+		else if (card == 8)
 			javaPreproc.init();
-		if (card == 9)
+		else if (card == 9)
 			javaPostproc.init();
-		if (card == 10)
+		else if (card == 10)
 			test2.init();
-		if (card == 11)
+		else if (card == 11)
 			outputSelection.init();
-		if (card == 12)
+		else if (card == 12)
 			setEnabledBackNext(true);
 
 		bnNext.setText(card == 12 ? "Finish" : "Next");

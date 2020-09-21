@@ -153,7 +153,7 @@ public class Parameters {
 	public List<String>	infoTags				= Arrays.asList(deepImageJTag);
 	public String		license					= null;
 	public String		language				= "Java";
-	public String		framework				= "Tensorflow";
+	public String		framework				= null;
 	public String		source					= null;
 	public String		coverImage				= null;
 	public String		description				= null;
@@ -243,6 +243,13 @@ public class Parameters {
 
 		// Citation
 		cite = (List<HashMap<String, String>>) obj.get("cite");
+		if (cite == null) {
+			cite = new ArrayList<HashMap<String, String>>();
+			HashMap<String, String> c = new HashMap<String, String>();
+			c.put("text", "");
+			c.put("doi", "");
+			cite.add(c);
+		}
 		
 		documentation = (String) obj.get("documentation");
 		// TODO do we need cover?
@@ -257,12 +264,12 @@ public class Parameters {
 		pyramidalNetwork = (boolean) deepimagej.get("pyramidal_model");
 		allowPatching = (boolean) deepimagej.get("allow_tiling");
 		// Model keys
-		Map<String, Object> model_keys = (Map<String, Object>) deepimagej.get("model_keys");
-		tag = (String) model_keys.get("tensorflow_model_tag");
-		graph = (String) model_keys.get("tensorflow_siganture_def");
+		if (framework.contains("Tensorflow")) {
+			Map<String, Object> model_keys = (Map<String, Object>) deepimagej.get("model_keys");
+			tag = (String) model_keys.get("tensorflow_model_tag");
+			graph = (String) model_keys.get("tensorflow_siganture_def");
+		}
 				
-		
-
 		
 		List<Map<String, Object>> inputs = (List<Map<String, Object>>) obj.get("inputs");
 		// Check that the previous version field is complete

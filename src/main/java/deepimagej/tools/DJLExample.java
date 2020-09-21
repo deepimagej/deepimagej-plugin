@@ -42,17 +42,17 @@ import java.awt.image.*;
 public class DJLExample {
 	
 	public static void main(String args[]) throws IOException, TranslateException, ModelNotFoundException, MalformedModelException {
-		PtModelZoo.SSD.loadModel(new ProgressBar());
+		/*PtModelZoo.SSD.loadModel(new ProgressBar());
 		Criteria<Image, Classification> criteria =
 		            Criteria.builder()
 		                    .setTypes(Image.class, Classification.class)
 		    		        .optProgress(new ProgressBar())
 		                    .build();
-		ZooModel<Image, Classification> ssd = ModelZoo.loadModel(criteria);
-		DownloadUtils.download("https://djl-ai.s3.amazonaws.com/ml"
+		ZooModel<Image, Classification> ssd = ModelZoo.loadModel(criteria);*/
+		/*DownloadUtils.download("https://djl-ai.s3.amazonaws.com/ml"
 				+ "repo/model/cv/image_classification/ai/djl/pytorch/resnet/0.0.1/"
 				+ "traced_resnet18.pt.gz", "C:\\Users\\Carlos(tfg)\\Documents\\DJL\\resnet18\\resnet18.pt",
-				new ProgressBar());
+				new ProgressBar());*/
 		DownloadUtils.download("https://djl-ai.s3.amazonaws.com/mlrepo/model/cv/image_cl"
 				+ "assification/ai/djl/pytorch/synset.txt", "C:\\Users\\Carlos(tfg)\\Documents\\DJL\\resne"
 						+ "t18\\synset.txt", new ProgressBar());
@@ -74,7 +74,7 @@ public class DJLExample {
 		//System.setProperty("ai.djl.repository.zoo.location", "C:\\Users\\Carlos(tfg)\\Documents\\DJL\\example");
 
 
-		URL url = new File("C:\\Users\\Carlos(tfg)\\Documents\\DJL\\example").toURI().toURL();
+		URL url = new File("C:\\Users\\Carlos(tfg)\\Documents").toURI().toURL();
 
 
 		
@@ -84,7 +84,7 @@ public class DJLExample {
 		         // "ai.djl.localmodelzoo:{name of the model}"
 		        .optModelUrls(url.toString()) // search models in specified path
 		        //.optArtifactId("ai.djl.localmodelzoo:resnet_18") // defines which model to load
-		        .optModelName("resnet_18")
+		        .optModelName("resnet18")
 		        //.optTranslator(translator)
 		        .optProgress(new ProgressBar()).build();
 

@@ -246,7 +246,7 @@ public class DeepImageJ_Run2 implements PlugIn, ItemListener {
 			log.print("Load model: " + fullname + "(" + dirname + ")");
 			dp = dps.get(dirname);
 			if (dp.getTfModel() == null)
-				dp.loadModel(true);
+				dp.loadTfModel(true);
 			log.print("Load model error: " + (dp.getTfModel() == null));
 	
 			if (dp == null) {
@@ -465,7 +465,7 @@ public class DeepImageJ_Run2 implements PlugIn, ItemListener {
 				return;
 			} 
 
-			boolean ret = dp.loadModel(true);
+			boolean ret = dp.loadTfModel(true);
 			if (ret == false) {
 				IJ.error("Error in loading " + dp.getName());
 				info.setCaretPosition(0);
@@ -485,7 +485,7 @@ public class DeepImageJ_Run2 implements PlugIn, ItemListener {
 				return;
 			}
 			if (dp.getTfModel() == null)
-				dp.loadModel(true);
+				dp.loadTfModel(true);
 			log.print("Load model error: " + (dp.getTfModel() == null));
 			
 			info.setText("");
