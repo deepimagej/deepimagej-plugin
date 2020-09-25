@@ -84,20 +84,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	
 	private boolean 					batch		= true;
 
-	static public void main(String args[]) {
-		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
-		// ImagePlus imp = IJ.openImage(path + "iso_reconstruction" + File.separator +
-		// "exampleImage.tiff");
-		path = "C:\\\\Users\\\\Carlos(tfg)\\\\Desktop\\\\Fiji.app\\\\models";
-		//ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
-		//imp.show();
-		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\deepimagej\\exampleImage.tiff");
-		WindowManager.setTempCurrentImage(imp);
-		if (imp != null)
-			//imp.show();
-		new DeepImageJ_Run().run("");
-	}
-
 	@Override
 	public void run(String arg) {
 		
@@ -177,10 +163,15 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				}
 			}
 			
-			// buttons[0].setEnabled(false);
 			dlg.showDialog();
-			if (dlg.wasCanceled())
+			if (dlg.wasCanceled()) {
+				// Close every model that has been loaded
+				for (String kk : dps.keySet()) {
+					if (dps.get(kk).getModel() != null)
+						dps.get(kk).getModel().close();
+				}
 				return;
+			}
 			// This is used for the macro, as in teh macro, there is no selection from the list
 			String fullname = dlg.getNextChoice();
 			// The index is the method that is going to be used normally to select a model.
