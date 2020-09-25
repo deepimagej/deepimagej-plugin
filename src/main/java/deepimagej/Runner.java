@@ -175,7 +175,7 @@ public class Runner implements Callable<ImagePlus> {
 			overlapY = (params.patch - ny) / 2;
 		}
 
-		String outputName;
+		String outputName = "";
 		log.print("start " + npx + "x" + npy);
 		
 		for (int i = 0; i < npx; i++) {
@@ -233,7 +233,7 @@ public class Runner implements Callable<ImagePlus> {
 					patch.getProcessor().resetMinAndMax();
 					patch.show();
 				}
-				Tensor<?> inputTensor = ImagePlus2Tensor.imPlus2tensor(patch, inputForm, nChannels);
+				Tensor<?> inputTensor = ImagePlus2Tensor.implus2TensorFloat(patch, inputForm);
 				Session.Runner sess = model.session().runner();
 				sess = sess.feed(opName(sig.getInputsOrThrow(in1)), inputTensor);
 				for (int k = 0; k < outputs.length; k++) {
@@ -246,7 +246,9 @@ public class Runner implements Callable<ImagePlus> {
 					for (int counter = 0; counter < outputs.length; counter++) {
 						log.print("Session run " + (counter+1) + "/"  + outputs.length);
 						Tensor<?> result = fetches.get(counter);
-						impatch = ImagePlus2Tensor.tensor2ImagePlus(result, outputForm);
+						impatch = ImagePlus2Tensor.tensor2ImagePlus(result, outputForm, outputName);
+						inputTensor.close();
+						result.close();
 						counter++;
 					}
 				}
@@ -281,7 +283,9 @@ public class Runner implements Callable<ImagePlus> {
 		// Set Parameter  params.outputSize
 		params.outputSize = Integer.toString(nx) + "x" + Integer.toString(ny);
 		rp.stop();
-		
+		model.session().close();
+		model.close();
+		this.dp.getModel().close();
 		return out;
 	}
 

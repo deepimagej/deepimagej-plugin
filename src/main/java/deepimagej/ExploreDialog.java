@@ -45,6 +45,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.MalformedURLException;
@@ -112,6 +114,17 @@ public class ExploreDialog extends JDialog implements Runnable, ActionListener, 
 	}
 	
 	private void doDialog() {
+		this.addWindowListener(new WindowAdapter() 
+			{
+			  public void windowClosed(WindowEvent e) {
+			    for (String k : dps.keySet()) 
+			    	dps.get(k).getModel().close();
+			  }
+			  public void windowClosing(WindowEvent e) {
+				    for (String k : dps.keySet()) 
+				    	dps.get(k).getModel().close();
+			  }
+			});
 		ArrayList<CustomizedColumn> columns = new ArrayList<CustomizedColumn>();
 		columns.add(new CustomizedColumn("Name", String.class, 100, false));
 		columns.add(new CustomizedColumn("Model", String.class, 100, false));

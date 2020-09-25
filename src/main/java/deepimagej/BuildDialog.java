@@ -153,6 +153,8 @@ public class BuildDialog extends JDialog implements ActionListener {
 					String name = welcome.getModelName();
 					if (path != null) {
 						dp = new DeepImageJ(path, name, new Log(), true);
+						if (dp.getModel() != null)
+							dp.getModel().close();
 						if (dp != null) {
 							dp.params.path2Model = path + File.separator + name + File.separator;
 							setEnabledBackNext(false);

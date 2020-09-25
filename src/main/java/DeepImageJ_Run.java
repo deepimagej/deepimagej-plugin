@@ -61,7 +61,6 @@ import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -89,10 +88,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		// ImagePlus imp = IJ.openImage(path + "iso_reconstruction" + File.separator +
 		// "exampleImage.tiff");
-		path = "C:\\\\Users\\\\biig\\\\Documents\\\\Fiji.app\\\\models" + File.separator;
+		path = "C:\\\\Users\\\\Carlos(tfg)\\\\Desktop\\\\Fiji.app\\\\models";
 		//ImagePlus imp = IJ.openImage(path + "b" + File.separator + "exampleImage.tiff");
 		//imp.show();
-		ImagePlus imp = IJ.openImage("C:\\Users\\biig\\Documents\\Fiji.app\\models\\noise2void_denoising\\exampleImage.tiff");
+		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\deepimagej\\exampleImage.tiff");
 		WindowManager.setTempCurrentImage(imp);
 		if (imp != null)
 			//imp.show();
@@ -228,7 +227,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			}
 			//addChangeListener(texts[1], e -> optimalPatch(dp));
 
+			
 			calculateImage();
+
+			dlg.dispose();
+			dp.getModel().close();
 		}
 	}
 
@@ -325,7 +328,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			Future<ImagePlus> f1 = service.submit(runner);
 			
 			
-			
 			try {
 				out = f1.get();
 			} catch (InterruptedException e) {
@@ -333,6 +335,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			} catch (ExecutionException e) {
 				IJ.error("No model loaded");
 			}
+			rp.dispose();
 
 			if (out == null) {
 				log.print("Error, output is null");
@@ -443,8 +446,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	
 	public static void runMacro(String macroFile) throws FileNotFoundException, MacrosError {
 		String macro = "";
+		Scanner scanner = new Scanner(new File(macroFile));
 		try {
-			macro = new Scanner(new File(macroFile)).useDelimiter("\\Z").next();
+			macro = scanner.useDelimiter("\\Z").next();
 		} catch (NoSuchElementException ex) {
 			macro ="";
 		}
@@ -453,11 +457,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			executionResult = IJ.runMacro(macro);
 			if (executionResult != null ) {
 				if (executionResult.contentEquals("[aborted]") == true) {
+					scanner.close();
 					throw new MacrosError();
 				}
 			}
 		}
-		
+		scanner.close();
 	}
 
 }
