@@ -40,12 +40,17 @@ import java.awt.CardLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+
+import org.tensorflow.SavedModelBundle;
 
 import deepimagej.components.TitleHTMLPane;
 import deepimagej.stamp.DimensionStamp;
@@ -81,7 +86,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 	private PreprocessingStamp	preproc;
 	private TestStamp			test8;
 	private SaveStamp			save;
-	private DeepImageJ			dp;
+	private DeepImageJ			dp = null;
 	private int					card	= 1;
 
 	public BuildDialog() {
@@ -131,6 +136,28 @@ public class BuildDialog extends JDialog implements ActionListener {
 		GUI.center(this);
 		setVisible(true);
 		bnBack.setEnabled(false);
+
+		this.addWindowListener(new WindowAdapter() 
+		{
+		  public void windowClosed(WindowEvent e) {
+			  if (dp == null)
+				  return;
+			  SavedModelBundle model = getDeepPlugin().getModel();
+			  if (model != null) { 
+				  model.session().close();
+				  model.close();
+			  }
+		  }
+		  public void windowClosing(WindowEvent e) {
+			  if (dp == null)
+				  return;
+			  SavedModelBundle model = getDeepPlugin().getModel();
+			  if (model != null) { 
+				  model.session().close();
+				  model.close();
+			  }
+		  }
+		});
 
 	}
 
