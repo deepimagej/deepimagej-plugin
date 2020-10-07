@@ -283,9 +283,6 @@ public class Runner implements Callable<ImagePlus> {
 		// Set Parameter  params.outputSize
 		params.outputSize = Integer.toString(nx) + "x" + Integer.toString(ny);
 		rp.stop();
-		model.session().close();
-		model.close();
-		this.dp.getModel().close();
 		return out;
 	}
 
