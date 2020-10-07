@@ -222,6 +222,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			calculateImage();
 
 			dlg.dispose();
+			dp.getModel().session().close();
 			dp.getModel().close();
 		}
 	}
