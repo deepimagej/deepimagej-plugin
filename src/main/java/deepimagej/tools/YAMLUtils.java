@@ -44,6 +44,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -62,7 +63,7 @@ import ij.IJ;
 
 public class YAMLUtils {
 	
-	public static void writeYaml(DeepImageJ dp) {
+	public static void writeYaml(DeepImageJ dp) throws NoSuchAlgorithmException, IOException {
 		Parameters params = dp.params;
 
 		Map<String, Object> data = new LinkedHashMap<>();
@@ -180,7 +181,7 @@ public class YAMLUtils {
 			if  (params.framework.contains("Tensorflow"))
 				model.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + "saved_model.pb"));
 			else if (params.framework.contains("Pytorch"))
-				model.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + params.name + "_v" + ".pt"));
+				model.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + params.name + "_v" + params.version + ".pt"));
 		} catch (IOException e1) {
 			model.put("sha256", null);
 			e1.printStackTrace();
@@ -199,21 +200,11 @@ public class YAMLUtils {
 			version.put("source", "./" + params.name + "_v" + ".pt");
 		String zipFile = params.saveDir + File.separator + "weights_" + weightsVersion + ".zip";
 		if (params.framework.contains("Tensorflow") && new File(zipFile).isFile()) {
-			try {
-				String zipSha = FileTools.createSHA256(params.saveDir + File.separator + "weights_" + weightsVersion + ".zip");
-				version.put("sha256", zipSha);
-			} catch (IOException e1) {
-				version.put("sha256", null);
-				e1.printStackTrace();
-			}
+			String zipSha = FileTools.createSHA256(params.saveDir + File.separator + "weights_" + weightsVersion + ".zip");
+			version.put("sha256", zipSha);
 		} else if (params.framework.contains("Pytorch")) {
-			try {
-				String zipSha = FileTools.createSHA256(params.saveDir + File.separator + params.name + "_v" + ".pt");
-				version.put("sha256", zipSha);
-			} catch (IOException e1) {
-				version.put("sha256", null);
-				e1.printStackTrace();
-			}
+			String zipSha = FileTools.createSHA256(params.saveDir + File.separator + params.name + "_v" + params.version + ".pt");
+			version.put("sha256", zipSha);
 		}
 		weights.put(weightsVersion, version);
 		

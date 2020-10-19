@@ -401,7 +401,14 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			YAMLUtils.writeYaml(dp);
 			pane.append("p", "config.yaml: saved");
 		} 
+		catch(IOException ex) {
+			pane.append("p", "config.yaml: not saved");
+			ok = false;
+			IJ.error("Model file was locked or does not exist anymore.");
+		}
+		
 		catch(Exception ex) {
+			ex.printStackTrace();
 			pane.append("p", "config.yaml: not saved");
 			ok = false;
 		}

@@ -190,7 +190,7 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 
 		// Save the model architecture
 		try {
-			File torchfile = new File(params.torchscriptPath);
+			File torchfile = new File(params.selectedModelPath);
 			String v = "_v" + params.version;
 			FileTools.copyFile(torchfile, new File(dir + File.separator + params.name + v + ".pt"));
 			pane.append("p", "protobuf of the model (saved_model.pb): saved");
@@ -258,8 +258,14 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			YAMLUtils.writeYaml(dp);
 			pane.append("p", "config.yaml: saved");
 		} 
+		catch(IOException ex) {
+			pane.append("p", "config.yaml: not saved");
+			ok = false;
+			IJ.error("Model file was locked or does not exist anymore.");
+		}
 		catch(Exception ex) {
 			pane.append("p", "config.yaml: not saved");
+			ex.printStackTrace();
 			ok = false;
 		}
 

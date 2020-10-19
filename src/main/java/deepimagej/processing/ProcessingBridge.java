@@ -63,7 +63,7 @@ public class ProcessingBridge {
 		map.put(params.inputList.get(0).name, im);
 		if (params.firstPreprocessing != null && (params.firstPreprocessing.contains(".txt") || params.firstPreprocessing.contains(".ijm"))) {
 			im = runProcessingMacro(im, params.firstPreprocessing, params.developer);
-			map = manageInputs(map, false, params);
+			map = manageInputs(map, false, params, im);
 		} else if (params.firstPreprocessing != null && (params.firstPreprocessing.contains(".jar") || params.firstPreprocessing.contains(".class") || new File(params.firstPreprocessing).isDirectory())) {
 			map = runPreprocessingJava(map, params.firstPreprocessing, params);
 		}
@@ -71,7 +71,7 @@ public class ProcessingBridge {
 
 		if (params.secondPreprocessing != null && (params.secondPreprocessing.contains(".txt") || params.secondPreprocessing.contains(".ijm"))) {
 			im = runProcessingMacro(im, params.secondPreprocessing, params.developer);
-			map = manageInputs(map, true,  params);
+			map = manageInputs(map, true,  params, im);
 		} else if (params.secondPreprocessing != null && (params.secondPreprocessing.contains(".jar") || params.secondPreprocessing.contains(".class") || new File(params.secondPreprocessing).isDirectory())) {
 			map = runPreprocessingJava(map, params.secondPreprocessing, params);
 		} else if (params.secondPreprocessing == null && (params.firstPreprocessing == null || params.firstPreprocessing.contains(".txt") || params.firstPreprocessing.contains(".ijm"))) {
@@ -82,6 +82,11 @@ public class ProcessingBridge {
 		return map;
 	}
 	
+	private static HashMap<String, Object> manageInputs(HashMap<String, Object> map, boolean lastStep, Parameters params){
+		 map = manageInputs(map, lastStep, params, null);
+		 return map;
+	}
+	
 	/*
 	 * Updates the map containing the inputs. In principle, this is used only if there has not
 	 * beeen Java processing before (Java processing should already output a map). 
@@ -89,12 +94,14 @@ public class ProcessingBridge {
 	 * the main image, where if it is not named correctly, assumes it is the originally referenced
 	 * image (line 62).
 	 */
-	private static HashMap<String, Object> manageInputs(HashMap<String, Object> map, boolean lastStep, Parameters params) {
+	private static HashMap<String, Object> manageInputs(HashMap<String, Object> map, boolean lastStep, Parameters params, ImagePlus im) {
 		for (DijTensor tensor : params.inputList) {
 			if (tensor.tensorType == "image") {
 				ImagePlus inputImage = WindowManager.getImage(tensor.name);
 				if (inputImage != null) {
 					map.put(tensor.name, inputImage);
+		        } else if (im != null) {
+					map.put(tensor.name, im);
 		        }
 			} else if (tensor.tensorType == "parameter") {
 				Frame f = WindowManager.getFrame(tensor.name);

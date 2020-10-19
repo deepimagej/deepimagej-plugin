@@ -72,20 +72,21 @@ import ij.IJ;
 
 public class InputDimensionStamp extends AbstractStamp implements ActionListener {
 
-	
-	private List<JTextField>			allTxtMultiple = new ArrayList<JTextField>();
+
+	private List<JTextField>			allTxtMinSize = new ArrayList<JTextField>();
+	private List<JTextField>			allTxtStep = new ArrayList<JTextField>();
 	private List<JTextField>			allTxtPatches = new ArrayList<JTextField>();
 		
 
 	private static String 				allowPatches = "Allow tilling";
-	private static String 				predeterminedInput = "Fixed input size";
-	private static String 				noPatchesFixed = "Do not allow patches (fixed input size)";
-	private static String 				noPatchesVariable = "Do not allow patches (variable size)";
+	// TODO remove private static String 				predeterminedInput = "Fixed input size";
+	private static String 				notAllowPatches = "Do not allow tilling";
+	// TODO remove private static String 				noPatchesVariable = "Do not allow patches (variable size)";
 	
-	private JComboBox<String>			cmbPatches	= new JComboBox<String>(new String[] { predeterminedInput, allowPatches, 
-																							noPatchesFixed, noPatchesVariable});
+	private JComboBox<String>			cmbPatches	= new JComboBox<String>(new String[] {allowPatches, notAllowPatches});
 	private JLabel						lblPatches	= new JLabel("Patch size");
-	private JLabel						lblMultiple	= new JLabel("Step");
+	private JLabel						lblMinSize	= new JLabel("Minimum Size");
+	private JLabel						lblStep	= new JLabel("Step Size");
 
 	private JButton 					bnNextOutput 	= new JButton("Next Output");
 	private JButton 					bnPrevOutput 	= new JButton("Previous Output");
@@ -232,7 +233,8 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		}
 
 		// Reinitialise all the params
-		allTxtMultiple = new ArrayList<JTextField>();
+		allTxtMinSize = new ArrayList<JTextField>();
+		allTxtStep = new ArrayList<JTextField>();
 		allTxtPatches = new ArrayList<JTextField>();
 		pnInput.removeAll();
 		DijTensor tensor = imageTensors.get(inputCounter);
@@ -260,16 +262,33 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		String selection = (String) cmbPatches.getSelectedItem();
 
 		// Allow patch decomposition
+		for (int i = 0; i < dim.length; i ++) {
+			if (dimValues[i] != -1 && !listenTxtField) {
+				allTxtMinSize.get(i).setText("" + dimValues[i]);
+				allTxtMinSize.get(i).setEditable(false);
+				allTxtStep.get(i).setText("" + 0);
+				allTxtStep.get(i).setEditable(false);
+				allTxtPatches.get(i).setText("" + dimValues[i]);
+				allTxtPatches.get(i).setEditable(false);
+			} else if (dimValues[i] == -1){
+				allTxtMinSize.get(i).setEditable(true);
+				allTxtStep.get(i).setEditable(true);
+				allTxtPatches.get(i).setEditable(true);
+				String initialGuess = dim[i].equals("C") ? "1" : "256";
+				allTxtPatches.get(i).setText(initialGuess);
+			}
+		}
+		/* TODO remove
 		if (selection.contains(allowPatches)) {
 			
 			for (int i = 0; i < dim.length; i ++) {
 				if (dimValues[i] != -1 && !listenTxtField) {
-					allTxtMultiple.get(i).setText("" + dimValues[i]);
-					allTxtMultiple.get(i).setEditable(false);
+					allTxtMinSize.get(i).setText("" + dimValues[i]);
+					allTxtMinSize.get(i).setEditable(false);
 					allTxtPatches.get(i).setText("" + dimValues[i]);
 					allTxtPatches.get(i).setEditable(false);
 				} else if (dimValues[i] == -1){
-					allTxtMultiple.get(i).setEditable(true);
+					allTxtMinSize.get(i).setEditable(true);
 					allTxtPatches.get(i).setEditable(true);
 					String initialGuess = dim[i].equals("C") ? "1" : "256";
 					allTxtPatches.get(i).setText(initialGuess);
@@ -281,29 +300,29 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 
 			for (int i = 0; i < dim.length; i ++) {
 				if (dimValues[i] != -1 && !listenTxtField) {
-					allTxtMultiple.get(i).setText("" + dimValues[i]);
-					allTxtMultiple.get(i).setEditable(false);
+					allTxtMinSize.get(i).setText("" + dimValues[i]);
+					allTxtMinSize.get(i).setEditable(false);
 					allTxtPatches.get(i).setText("" + dimValues[i]);
 					allTxtPatches.get(i).setEditable(false);
 				} else if (dimValues[i] == -1){
-					allTxtPatches.get(i).setText("" + allTxtMultiple.get(i).getText());
-					allTxtMultiple.get(i).setEditable(true);
+					allTxtPatches.get(i).setText("" + allTxtMinSize.get(i).getText());
+					allTxtMinSize.get(i).setEditable(true);
 					allTxtPatches.get(i).setEditable(false);
 				}
 			}
 		
 		// Do not allow patches (fixed size)
-		} else if (selection.contains(noPatchesFixed)) {
+		} else if (selection.contains(notAllowPatches)) {
 
 			for (int i = 0; i < dim.length; i ++) {
 				if (dimValues[i] != -1 && !listenTxtField) {
-					allTxtMultiple.get(i).setText("" + dimValues[i]);
+					allTxtMinSize.get(i).setText("" + dimValues[i]);
 					allTxtPatches.get(i).setText("" + dimValues[i]);
-					allTxtMultiple.get(i).setEditable(false);
+					allTxtMinSize.get(i).setEditable(false);
 					allTxtPatches.get(i).setEditable(false);
 				} else if (dimValues[i] == -1) {
-					allTxtMultiple.get(i).setEditable(true);
-					allTxtPatches.get(i).setText(allTxtMultiple.get(i).getText());
+					allTxtMinSize.get(i).setEditable(true);
+					allTxtPatches.get(i).setText(allTxtMinSize.get(i).getText());
 					allTxtPatches.get(i).setEditable(false);
 				}
 			}
@@ -313,34 +332,37 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			
 			for (int i = 0; i < dim.length; i ++) {
 				if (dimValues[i] != -1 && !listenTxtField) {
-					allTxtMultiple.get(i).setText("" + dimValues[i]);
-					allTxtMultiple.get(i).setEditable(false);
+					allTxtMinSize.get(i).setText("" + dimValues[i]);
+					allTxtMinSize.get(i).setEditable(false);
 					allTxtPatches.get(i).setText("" + dimValues[i]);
 				} else if (dimValues[i] == -1 && !dim[i].contentEquals("C")) {
-					allTxtMultiple.get(i).setEditable(true);
+					allTxtMinSize.get(i).setEditable(true);
 					allTxtPatches.get(i).setText(" - ");
 				} else if (dimValues[i] == -1 && dim[i].contentEquals("C")) {
-					allTxtMultiple.get(i).setEditable(true);
-					allTxtPatches.get(i).setText(allTxtMultiple.get(i).getText());
+					allTxtMinSize.get(i).setEditable(true);
+					allTxtPatches.get(i).setText(allTxtMinSize.get(i).getText());
 				}
 				allTxtPatches.get(i).setEditable(false);
 			}
 		}
+		*/
 		int c0 = 0;
 		int c1 = 1;
 		int c2 = 2;
 		int c3 = 3;
+		/* TODO keep or remove
 		if (!listenTxtField) {
 			// TODO improve
-			addChangeListener(allTxtMultiple.get(c0), e -> optimalPatch(allTxtMultiple.get(c0).getText(), dim[c0]));
-			if (allTxtMultiple.size() >1)
-				addChangeListener(allTxtMultiple.get(c1), e -> optimalPatch(allTxtMultiple.get(c1).getText(), dim[c1]));
-			if (allTxtMultiple.size() >2)
-				addChangeListener(allTxtMultiple.get(c2), e -> optimalPatch(allTxtMultiple.get(c2).getText(), dim[c2]));
-			if (allTxtMultiple.size() >3)
-				addChangeListener(allTxtMultiple.get(c3), e -> optimalPatch(allTxtMultiple.get(c3).getText(), dim[c3]));
+			addChangeListener(allTxtMinSize.get(c0), e -> optimalPatch(allTxtMinSize.get(c0).getText(), dim[c0]));
+			if (allTxtMinSize.size() >1)
+				addChangeListener(allTxtMinSize.get(c1), e -> optimalPatch(allTxtMinSize.get(c1).getText(), dim[c1]));
+			if (allTxtMinSize.size() >2)
+				addChangeListener(allTxtMinSize.get(c2), e -> optimalPatch(allTxtMinSize.get(c2).getText(), dim[c2]));
+			if (allTxtMinSize.size() >3)
+				addChangeListener(allTxtMinSize.get(c3), e -> optimalPatch(allTxtMinSize.get(c3).getText(), dim[c3]));
 			listenTxtField = true;
 		}
+		*/
 	}
 	
 	/*
@@ -373,14 +395,14 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	 * image from the tensor inputed to the model
 	 */
 	public boolean saveInputDataForImage(Parameters params) {
-		params.fixedInput = false;
-		int[] multiple = new int[params.inputList.get(inputCounter).form.length()];
+		params.fixedInput = true;
+		int[] min_size = new int[params.inputList.get(inputCounter).form.length()];
 		int[] patch = new int[params.inputList.get(inputCounter).form.length()];
 		int[] step = new int[params.inputList.get(inputCounter).form.length()];
 		
 		int batchInd = Index.indexOf(params.inputList.get(0).form.split(""), "B");
 		if (batchInd != -1) {
-			multiple[batchInd] = 1; patch[batchInd] = 1; step[batchInd] = 0;
+			min_size[batchInd] = 1; patch[batchInd] = 1; step[batchInd] = 0;
 		}
 
 		// Selected tiling option
@@ -395,25 +417,31 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 					selectedPatch = selectedPatch.equals(" - ") ? "-1" : selectedPatch;
 					patch[c] = Integer.parseInt(selectedPatch);
 					auxDetectError = false;
-					multiple[c] = Integer.parseInt(allTxtMultiple.get(auxCount).getText());
+					min_size[c] = Integer.parseInt(allTxtMinSize.get(auxCount).getText());
 					auxDetectError = true;
-					step[c] = Integer.parseInt(allTxtMultiple.get(auxCount).getText());
+					step[c] = Integer.parseInt(allTxtStep.get(auxCount).getText());
 					
-					if (!allTxtMultiple.get(auxCount).isEditable()) {
-						step[c] = 0;
-					}
-					if (multiple[c] <= 0) {
+					if (min_size[c] <= 0) {
 						IJ.error("The step should be larger than 0");
 						return false;
 					}
-					if (patch[c] <= 0 && !selection.equals(noPatchesVariable)) {
+					if (patch[c] <= 0) {
 						IJ.error("The patch size should be larger than 0");
 						return false;
 					}
-					if (patch[c]%multiple[c] != 0 && !selection.equals(noPatchesVariable)) {
-						IJ.error("At dimension " + params.inputList.get(inputCounter).form.split("")[c] + " size " +
-								patch[c] + " is not a multiple of "
-								+ multiple[c]);
+					if (step[c] < 0) {
+						IJ.error("The step size should be larger or equal to 0");
+						return false;
+					}
+					if (step[c] != 0 && (patch[c] - min_size[c]) % step[c] != 0) {
+						IJ.error("Dimension " + params.inputList.get(inputCounter).form.split("")[c] + " has size " +
+								patch[c] + ". \nIt does not fulfill the condition: patch_size = min_size + step * X,"
+								+ " for a step " + step[c] + " and a min_size " + min_size[c]);
+						return false;
+					} else if (step[c] == 0 && patch[c] !=  min_size[c]) {
+						IJ.error("Dimension " + params.inputList.get(inputCounter).form.split("")[c] + " has size " +
+								patch[c] + ". \nIt does not fulfill the condition: patch_size = min_size + step * X,"
+								+ " for a step " + step[c] + " and a min_size " + min_size[c]);
 						return false;
 					}
 					auxCount ++;
@@ -432,30 +460,19 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		
 		if (selection.contains(allowPatches)) {
 			params.allowPatching = true;
-		} else if (selection.contains(predeterminedInput)) {
-			params.allowPatching = true;
-			params.fixedInput = true;
-			step = new int[step.length];
-		} else if (selection.contains(noPatchesFixed)) {
+		} else if (selection.contains(notAllowPatches)) {
 			// The patch is always the same. No step because
 			// no more sizes are allowed
-			params.fixedInput = true;
 			params.allowPatching = false;
-			step = new int[step.length];
-		} else if (selection.contains(noPatchesVariable)) {
-			// This means that the patch will always be the biggest possible
-			params.allowPatching = false;
-			patch = new int[patch.length];
-			// The channels dimension will only be the only limitation of 
-			for (int i = 0; i < params.inputList.get(inputCounter).tensor_shape.length; i ++) {
-				if (params.inputList.get(inputCounter).tensor_shape[i] != -1)
-					patch[i] = params.inputList.get(inputCounter).tensor_shape[i];
-				else if (params.inputList.get(inputCounter).form.indexOf("C") == i)
-					patch[i] = multiple[i];
+		}
+		for (int ss : step) {
+			if (ss != 0) {
+				params.fixedInput = false;
+				break;
 			}
 		}
 		
-		params.inputList.get(inputCounter).minimum_size = multiple;
+		params.inputList.get(inputCounter).minimum_size = min_size;
 		params.inputList.get(inputCounter).recommended_patch = patch;
 		params.inputList.get(inputCounter).step = step;
 		
@@ -469,11 +486,13 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	private void buildPanelForImage(DijTensor tensor, boolean start) {
 		// Build panel for when the input tensor is an image
 
-		allTxtMultiple = new ArrayList<JTextField>();
+		allTxtMinSize = new ArrayList<JTextField>();
+		allTxtStep = new ArrayList<JTextField>();
 		allTxtPatches = new ArrayList<JTextField>();
 		String[] dims = DijTensor.getWorkingDims(tensor.form); 
-		
-		JPanel pnMultiple = new JPanel(new GridLayout(2, dims.length));
+
+		JPanel pnMinSize = new JPanel(new GridLayout(2, dims.length));
+		JPanel pnStep = new JPanel(new GridLayout(2, dims.length));
 		JPanel pnPatchSize = new JPanel(new GridLayout(2, dims.length));
 		
 		shortForm = "";
@@ -482,8 +501,11 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			dimLetter1.setPreferredSize( new Dimension( 10, 20 ));
 			JLabel dimLetter2 = new JLabel(dim);
 			dimLetter2.setPreferredSize( new Dimension( 10, 20 ));
+			JLabel dimLetter3 = new JLabel(dim);
+			dimLetter3.setPreferredSize( new Dimension( 10, 20 ));
 			
-			pnMultiple.add(dimLetter1);
+			pnMinSize.add(dimLetter1);
+			pnStep.add(dimLetter3);
 			pnPatchSize.add(dimLetter2);
 			
 			shortForm += dim;
@@ -494,9 +516,14 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			txtMultiple.setPreferredSize( new Dimension( 10, 20 ));
 			JTextField txtPatches = new JTextField("100", 5);
 			txtPatches.setPreferredSize( new Dimension( 10, 20 ));
+			JTextField txtStep = new JTextField("0", 5);
+			txtStep.setPreferredSize( new Dimension( 10, 20 ));
 			
-			pnMultiple.add(txtMultiple);
-			allTxtMultiple.add(txtMultiple);
+			pnMinSize.add(txtMultiple);
+			allTxtMinSize.add(txtMultiple);
+			
+			pnStep.add(txtStep);
+			allTxtStep.add(txtStep);
 
 			pnPatchSize.add(txtPatches);
 			allTxtPatches.add(txtPatches);
@@ -506,34 +533,27 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		// and there are no params defined, just start by default
 		if (!start) {
 			Parameters params = parent.getDeepPlugin().params;
-			int[] dimValues = DijTensor.getWorkingDimValues(tensor.form, tensor.tensor_shape); 
-			if ((!params.allowPatching || params.pyramidalNetwork) && Index.indexOf(dimValues, -1) != -1) {
+			if ((!params.allowPatching || params.pyramidalNetwork)) {
 				// If we do not allow patching, do no show the corresponding options in the combobox
-				cmbPatches	= new JComboBox<String>(new String[] {noPatchesFixed, noPatchesVariable});
-			} else if ((!params.allowPatching || params.pyramidalNetwork) && Index.indexOf(dimValues, -1) == -1) {
-				// If we do not allow patching and the size is fixed by the model, show just the only option
-				cmbPatches	= new JComboBox<String>(new String[] {"Do not allow patches (fixed input size)"});
-			} else if (params.allowPatching && !params.pyramidalNetwork && Index.indexOf(dimValues, -1) == -1) {
+				cmbPatches	= new JComboBox<String>(new String[] {notAllowPatches});
+			} else if (params.allowPatching && !params.pyramidalNetwork) {
 				// If we  allow patching but the size is fixed by the model, do not show the two options that
 				// allow freedom in the input image
-				cmbPatches	= new JComboBox<String>(new String[] {predeterminedInput, noPatchesFixed});
-			} else {
-				// With no restrictions show everything
-				cmbPatches	= new JComboBox<String>(new String[] { allowPatches, predeterminedInput,
-																	noPatchesFixed, noPatchesVariable});
+				cmbPatches	= new JComboBox<String>(new String[] {allowPatches, notAllowPatches});
 			}
 		} else {
-			cmbPatches	= new JComboBox<String>(new String[] { allowPatches, predeterminedInput,
-																noPatchesFixed, noPatchesVariable});
+			cmbPatches	= new JComboBox<String>(new String[] { allowPatches, notAllowPatches});
 		}
 		
 		pnInput.removeAll();
 		pnInput.setBorder(BorderFactory.createEtchedBorder());
 		pnInput.place(0, 0, 2, 1, new JLabel("Name: " + tensor.name + "      Input type: " + tensor.tensorType));
 		pnInput.place(1, 0, 2, 1, cmbPatches);
-		pnInput.place(2, 0, lblMultiple);
-		pnInput.place(2, 1, pnMultiple);
-		pnInput.place(3, 0, lblPatches);
+		pnInput.place(2, 0, lblMinSize);
+		pnInput.place(2, 1, pnMinSize);
+		pnInput.place(3, 0, lblStep);
+		pnInput.place(3, 1, pnStep);
+		pnInput.place(4, 0, lblPatches);
 		pnInput.place(4, 1, pnPatchSize);
 		GridPanel pnRange1 = new GridPanel(true);
 		pnRange1.place(0, 0, new JLabel("Data Range lower bound"));
@@ -569,7 +589,7 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 				patch = "" + currentSize;
 			} else if (minimumSize != 0 && currentSize % minimumSize != 0 && selection.contains(allowPatches)) {
 				patch = "" + (((int) currentSize / minimumSize) + 1) * minimumSize;
-			} else if (minimumSize != 0 && selection.contains(predeterminedInput) ||selection.contains(noPatchesFixed)) {
+			} else if (minimumSize != 0 && selection.contains("predeterminedInput") ||selection.contains(notAllowPatches)) {
 				patch = "" + minimumSizeString;
 			}
 			if (minimumSize != 0)

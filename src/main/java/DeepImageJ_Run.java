@@ -83,10 +83,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 
 	private TextArea					info		= new TextArea("Information on the model", 10, 58, TextArea.SCROLLBARS_BOTH);
 	private Choice[]					choices		= new Choice[5];
-	private TextField[]	    			texts		= new TextField[1];
+	// TODO private TextField[]	    			texts		= new TextField[1];
 	private TextField[]	    			patchSize	= new TextField[5];
 	private Label[]	    				patchLabel	= new Label[4];
-	private Label[]						labels		= new Label[9];
+	private Label[]						labels		= new Label[8];
 	static private String				path		= IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
 	private HashMap<String, DeepImageJ>	dps;
 	private String[]					processingFile = new String[2];
@@ -102,7 +102,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	static public void main(String args[]) {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		path = "C:\\Users\\Carlos(tfg)\\Pictures\\Fiji.app\\models" + File.separator;
-		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\MRCNN\\exampleImage.tiff");
+		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Pictures\\Fiji.app\\models\\Mask R-CNN\\exampleImage.tiff");
 		WindowManager.setTempCurrentImage(imp);
 		if (imp != null)
 			imp.show();
@@ -175,10 +175,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			dlg.addPanel(panel);
 			
 			int countChoice = 0;
-			int countTextField = 0;
+			// TODO int countTextField = 0;
 			int countLabels = 0;
 			int numericFieldPatch = 0;
-			int numericFieldPad = 0;
+			// TODO int numericFieldPad = 0;
 			int labelPatch = 0;
 			for (Component c : dlg.getComponents()) {
 				if (c instanceof Choice) {
@@ -189,9 +189,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				}
 				if (c instanceof TextField && numericFieldPatch < exampleDims.length) {
 					patchSize[numericFieldPatch++] = (TextField) c;
-				} else if (c instanceof TextField && numericFieldPad < exampleDims.length) {
+				}/*TODO remove else if (c instanceof TextField && numericFieldPad < exampleDims.length) {
 					texts[countTextField++] = (TextField) c;
-				}
+				}*/
 				if (c instanceof Label && ((Label) c).getText().length() > 1) {
 					labels[countLabels++] = (Label) c;
 				} else if (c instanceof Label && labelPatch < exampleDims.length) {
@@ -243,10 +243,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			int startOfExtension = version.length() - " (default)".length();
 			if (dp.params.previousVersions.keySet().size() == 1 && version.substring(startOfExtension).equals(" (default)"))
 				version = version.substring(0, startOfExtension);
-
-			String tfWeightsPath = dp.getPath() + File.separatorChar + "weights_" + version + ".zip";
-			String ptWeightsPath = dp.getPath() + File.separatorChar + dp.params.name + "_" + version + ".pt";
-			if (!version.equals("default (not bioimage.io format)") && !version.contains(" (missing") && !version.contains(" (faulty)") && new File(tfWeightsPath).isFile()) {
+			
+			// TODO they are the same thing
+			String tfWeightsPath = dp.getPath() + File.separatorChar + version;
+			String ptWeightsPath = dp.getPath() + File.separatorChar + version ;
+			if (!version.equals("default (not bioimage.io format)") && !version.contains(" (missing") && !version.contains(" (faulty)") && !version.contains(".pt") && new File(tfWeightsPath).isFile()) {
 				try {
 					info.setText("");
 					info.setCaretPosition(0);
@@ -258,7 +259,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 					IJ.error("Could not extract the weights");
 					return;
 				}
-			} else if (!version.equals("default (not bioimage.io format)") && !version.contains(" (missing") && !version.contains(" (faulty)") && new File(ptWeightsPath).isFile()){
+			} else if (!version.equals("default (not bioimage.io format)") && !version.contains(" (missing") && !version.contains(" (faulty)") && !version.contains(" (faulty)") && version.contains(".pt") && new File(ptWeightsPath).isFile()){
 				dp.params.framework = "Pytorch";
 			}  else if (version.contains(" (missing") && !version.contains(" (faulty")){
 				IJ.error("Please choose a viable version.");
@@ -409,8 +410,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				choices[2].addItem("no preprocessing");
 				choices[3].removeAll();
 				choices[3].addItem("no postprocessing");
-				labels[3].setText("Minimum size for each patch: ");
-				labels[4].setText("Step: ");
+				labels[4].setText("Minimum size for each patch: ");
+				labels[5].setText("Step: ");
 				return;
 			}
 			boolean samePbModel = TensorFlowModel.checkSumSavedModel(dp.params);
@@ -427,15 +428,15 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				choices[2].addItem("no preprocessing");
 				choices[3].removeAll();
 				choices[3].addItem("no postprocessing");
-				labels[3].setText("Minimum size for each patch: ");
-				labels[4].setText("Step: ");
+				labels[4].setText("Minimum size for each patch: ");
+				labels[5].setText("Step: ");
 				return;
 			}
 
 			info.setCaretPosition(0);
 			info.append("Loading model info. Please wait...\n");
 			
-			HashMap<String, List<String>> versions = TensorFlowModel.checkSumWeighst(dp.params);
+			HashMap<String, List<String>> versions = TensorFlowModel.checkSumWeights(dp.params);
 			
 			if (versions.get("correct").size() == 0 && new File(dp.getPath() + File.separator + "variables").isDirectory()) {
 				choices[1].removeAll();
@@ -474,8 +475,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				choices[2].addItem("no preprocessing");
 				choices[3].removeAll();
 				choices[3].addItem("no postprocessing");
-				labels[3].setText("Minimum size for each patch: ");
-				labels[4].setText("Step: ");
+				labels[4].setText("Minimum size for each patch: ");
+				labels[5].setText("Step: ");
 				return;
 			}
 			
@@ -516,8 +517,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			
 			
 			if (Arrays.equals(tensorStep, new int[tensorStep.length])) {
-				labels[5].setText("The patch size was fixed by the developer.");
-				labels[6].setText("");
+				labels[4].setText("The patch size was fixed by the developer.");
+				labels[5].setText("");
 			} else {
 				String minSize = "Minimum size for each dimension: ";
 				String stepSize = "Step for each dimension: ";
@@ -528,8 +529,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 					minSize = minSize + dim[i] + ":" + val + " ";
 					stepSize = stepSize + dim[i] + ":" + s + " ";
 				}
-				labels[5].setText(minSize);
-				labels[6].setText(stepSize);
+				labels[4].setText(minSize);
+				labels[5].setText(stepSize);
 			}
 			// Hide all the labels to show only the necessary ones
 			for (int i = 0; i < patchLabel.length; i ++) {
@@ -555,6 +556,18 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 
 	
 	public void calculateImage(ImagePlus inp) {
+		// Convert RGB image into RGB stack 
+		if (batch == false) {
+			ImageWindow windToClose = inp.getWindow();
+			windToClose.dispose();
+			ImagePlus aux = ij.plugin.CompositeConverter.makeComposite(inp);
+			inp = aux == null ? inp : aux;
+			windToClose.setImage(inp);
+			windToClose.setVisible(true);
+		} else {
+			ImagePlus aux = ij.plugin.CompositeConverter.makeComposite(inp);
+			inp = aux == null ? inp : aux;
+		}
 		
 		dp.params.inputList.get(0).recommended_patch = patch;
 		int runStage = 0;
@@ -564,8 +577,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			ImagePlus im = inp.duplicate();
 			String correctTitle = inp.getTitle();
 			im.setTitle("tmp_" + correctTitle);
-			ImageWindow windToClose = inp.getWindow();
-			windToClose.dispose();
+			if (batch == false) {
+				ImageWindow windToClose = inp.getWindow();
+				windToClose.dispose();
+			}
 			
 			WindowManager.setTempCurrentImage(inp);
 			log.print("start preprocessing");
@@ -638,6 +653,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		    service.shutdown();
 			return;
 		} catch (InterruptedException ex) {
+			ex.printStackTrace();
 			IJ.log("Exception " + ex.toString());
 			for (StackTraceElement ste : ex.getStackTrace()) {
 				IJ.log("line:" + "Error during the application of the model.");
@@ -649,6 +665,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		    service.shutdown();
 			return;
 		} catch (ExecutionException ex) {
+			ex.printStackTrace();
 			IJ.log("Exception " + ex.toString());
 			for (StackTraceElement ste : ex.getStackTrace()) {
 				IJ.log("line:" + "Error during the application of the model.");
@@ -660,6 +677,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		    service.shutdown();
 			return;
 		} catch (Exception ex) {
+			ex.printStackTrace();
 			IJ.log("Exception " + ex.toString());
 			for (StackTraceElement ste : ex.getStackTrace()) {
 				IJ.log(ste.getClassName());

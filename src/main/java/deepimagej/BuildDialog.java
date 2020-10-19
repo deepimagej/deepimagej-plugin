@@ -160,11 +160,11 @@ public class BuildDialog extends JDialog implements ActionListener {
 
 	private void setCard(String name) {
 		CardLayout cl = (CardLayout) (pnCards.getLayout());
-		if (dp.params.framework.equals("Pytorch") && name.equals("2"))
+		if (name.equals("2") && dp.params.framework.equals("Pytorch"))
 			name = "20";
-		else if (dp.params.framework.equals("Pytorch") && name.equals("4"))
+		else if (name.equals("4") && dp.params.framework.equals("Pytorch"))
 			name = "40";
-		else if (dp.params.framework.equals("Pytorch") && name.equals("12"))
+		else if (name.equals("12") && dp.params.framework.equals("Pytorch"))
 			name = "120";
 		cl.show(pnCards, name);
 	}
@@ -185,12 +185,12 @@ public class BuildDialog extends JDialog implements ActionListener {
 						dp = new DeepImageJ(path, name, new Log(), true);
 						if (dp != null) {
 							dp.params.path2Model = path + File.separator + name + File.separator;
-							if (dp.params.framework.contains("Tensorflow") && dp.getValid()) {
+							if (dp.getValid() && dp.params.framework.contains("Tensorflow")) {
 								loaderTf.init();
-							} else if (dp.params.framework.contains("Pytorch") && dp.getValid()) {
+							} else if (dp.getValid() && dp.params.framework.contains("Pytorch")) {
 								loaderPt.init();
 							} else if (!dp.getValid()) {
-								IJ.error("This directory " + dp.getPath() + " is not a protobuf model (no saved_model.pb) or Torchscript model");
+								IJ.error("Please select a correct model");
 								card = 1;
 							}
 						}

@@ -217,9 +217,10 @@ public class Parameters {
 	public HashMap<String, String[]> post;
 	/*
 	 * Path to the model, in the case a Pytorch model is used. The Pytorch model
-	 * is always a .pt or .pth file 
+	 * is always a .pt or .pth file. In the case of a Tensorflow model, path to the 
+	 * weights folder
 	 */
-	public String torchscriptPath;
+	public String selectedModelPath;
 	
 	
 	

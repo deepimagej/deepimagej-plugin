@@ -212,98 +212,74 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			name = file.getName();
 
 		pnLoad.append("h2", "Load " + name);
+		pnLoad.append("p", "Model version: " + new File(params.selectedModelPath).getName());
 		ArrayList<String> msg = new ArrayList<String>();
-		HashMap<String, Object> dirInfo = TensorFlowModel.check(params, msg);
-		params.biozoo = (boolean) dirInfo.get("biozoo");
-		boolean tf = (boolean) dirInfo.get("tf");
-		for (String m : msg)
-			pnLoad.append("p", m);
 
 		Log log = new Log();
 		params.tag = null;
-		
-		if (params.biozoo) {
-			HashMap<String, List<String>> allVersions = (HashMap<String, List<String>>) dirInfo.get("v");
-			List<String> usableVersions = allVersions.get("correct");
-			List<String> faultyVersions = allVersions.get("faulty");
-			List<String> missingVersions = allVersions.get("missing");
-			String[] versionNames = new String[usableVersions.size() + faultyVersions.size() + missingVersions.size()];
-			
-			String selectedVersion = "";
-			boolean selected = false;
-			if (usableVersions.size() > 0 && versionNames.length > 1) {
-				while (!selected) {
-					GenericDialog dlg = new GenericDialog("Choose the weights version");
-					dlg.addMessage("Choose the weight version of the model you want to use.");
-					dlg.addMessage("Regard that faulty or missing weights versions cannot be chosen.");
-					int n = 0;
-					for (String usable : usableVersions)
-						versionNames[n ++] = usable;
-					for (String faulty : faultyVersions)
-						versionNames[n ++] = faulty + " (faulty weights)";
-					for (String missing : missingVersions)
-						versionNames[n ++] = missing + " (missing weights)";
-					dlg.addChoice("Available versions", versionNames, versionNames[0]);
-					dlg.showDialog();
-					if (dlg.wasCanceled()) {
-						return;
-					}
-					selectedVersion = dlg.getNextChoice();
-					if (selectedVersion.contains(" (faulty weights)")) {
-						IJ.error("Cannot select this version. The weights\nwere modified after the model was created.");
-					} else if (selectedVersion.contains(" (missing weights)")) {
-						IJ.error("Cannot select this version. The weights\nare missing from the folder.");
-					} else {
-						selected = true;
-					}
-				}
-			} else if (usableVersions.size() == 1 && versionNames.length == 1) {
-				selectedVersion = usableVersions.get(0);
-			}
-			
-			// Now unzip the selected weights folder into a variables folder.
-			if (tf) {
-				GenericDialog dlg = new GenericDialog("Overwrite existing model");
-				dlg.addMessage("There already exists a 'variables' folder in the model.");
-				dlg.addMessage("If you select 'Ok' the folder will be overwritten.");
-				dlg.showDialog();
+		if (!new File(params.selectedModelPath).getName().equals("variables")) {
+			if (new File(params.path2Model, "variables").isFile()) {
+				GenericDialog dlg = new GenericDialog("Overwrite weights");
+				dlg.addMessage("In order to load the selected version the plugin needs to overwrite");
+				dlg.addMessage("the already existing 'variables' folder");
+				dlg.addMessage("Do you want to overwrite it?");
 				if (dlg.wasCanceled()) {
+					pnLoad.append("p", "Model was not loaded.");
+					parent.setEnabledBack(true);
+					parent.setEnabledNext(false);
 					return;
 				}
 				for (File w : new File(params.path2Model + File.separator + "variables").listFiles())
 					w.delete();
-			} else {
-				new File(params.path2Model + File.separator + "variables").mkdir();
 			}
-			String weightsPath = params.path2Model + "weights_" + selectedVersion + ".zip";
+			// Now unzip the selected weights folder into a variables folder.
 			try {
-				FileTools.unzipFolder(new File(weightsPath), params.path2Model + File.separator + "variables");
+				FileTools.unzipFolder(new File(params.selectedModelPath), params.path2Model + File.separator + "variables");
 			} catch (IOException e) {
 				IJ.error("Could not extract the weights");
-				pnLoad.append("h2", "Could not unzip weights folder: " + weightsPath + ".\n");
+				pnLoad.append("h2", "Could not unzip weights folder: " + new File(params.selectedModelPath).getName() + ".\n");
 				// Let the developer go back, but no forward
 				parent.setEnabledBack(true);
 				parent.setEnabledNext(false);
 				return;
 			}
-				
 		}
 		// Block back button while loading
-		parent.setEnabledBackNext(!(tf || params.biozoo));
-		if (tf || params.biozoo) {
-			// TODO should we inform this?
-			if (dirInfo.containsKey("noYaml")) {
-				// If a Bioimage Zoo model was found, but there was no confi.yaml
-				// produce a popup informing about that
-				String message = "The following weight folders were found in the directory.\n"
-							+ "But as ther was no config.yaml attached the 'varibles'folder was loaded instead\n";
-				for (String zip : (ArrayList<String>) dirInfo.get("noYaml")) 
-					message += " - " + zip + "\n";
-				IJ.error(message);
+		parent.setEnabledBackNext(false);
+		Object[] info = null;
+		try {
+			info = TensorFlowModel.findTag(params.path2Model);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			IJ.error("DeepImageJ could not load the model,\n"
+					+ "try with another Tensorflow version");
+			pnLoad.append("h2", "DeepImageJ could not load the model.\n");
+			pnLoad.append("h2", "Try with another Tensorflow version.\n");
+			// Let the developer go back, but no forward
+			parent.setEnabledBack(true);
+			parent.setEnabledNext(false);
+			return;
+		}
+		
+		String tag = (String) info[0];
+		if (tag != null) {
+			params.tag = tag;
+			String tfTag = TensorFlowModel.returnTfTag(tag);
+			cmbTags.addItem(tfTag);
+			cmbTags.setEditable(false);
+			ArrayList<String> msgLoad = new ArrayList<String>();
+			SavedModelBundle model = null;
+			if (!(info[2] instanceof SavedModelBundle)) {
+				model = TensorFlowModel.load(params.path2Model, params.tag, log, msgLoad);
+			} else {
+				// TODO add info as in TensorFlowmodel.load
+				model = (SavedModelBundle) info[2];
 			}
-			Object[] info = null;
+			for (String m : msgLoad)
+				pnLoad.append("p", m);
+			parent.getDeepPlugin().setTfModel(model);
 			try {
-				info = TensorFlowModel.findTag(params.path2Model);
+				params.graphSet = TensorFlowModel.metaGraphsSet(model);
 			} catch (Exception ex) {
 				ex.printStackTrace();
 				IJ.error("DeepImageJ could not load the model,\n"
@@ -315,55 +291,22 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 				parent.setEnabledNext(false);
 				return;
 			}
-			
-			String tag = (String) info[0];
-			if (tag != null) {
-				params.tag = tag;
-				String tfTag = TensorFlowModel.returnTfTag(tag);
-				cmbTags.addItem(tfTag);
-				cmbTags.setEditable(false);
-				ArrayList<String> msgLoad = new ArrayList<String>();
-				// TODO remove SavedModelBundle model = TensorFlowModel.load(params.path2Model, params.tag, log, msgLoad);
-				SavedModelBundle model = null;
-				if (!(info[2] instanceof SavedModelBundle)) {
-					model = TensorFlowModel.load(params.path2Model, params.tag, log, msgLoad);
-				} else {
-					// TODO add info as in TensorFlowmodel.load
-					model = (SavedModelBundle) info[2];
+			if (params.graphSet.size() > 0) {
+				Set<String> tfGraphSet = TensorFlowModel.returnTfSig(params.graphSet);
+				for (int i = 0; i < params.graphSet.size(); i++) {
+					cmbGraphs.addItem((String) tfGraphSet.toArray()[i]);
+					cmbGraphs.setEditable(false);
 				}
-				for (String m : msgLoad)
-					pnLoad.append("p", m);
-				parent.getDeepPlugin().setTfModel(model);
-				try {
-					params.graphSet = TensorFlowModel.metaGraphsSet(model);
-				} catch (Exception ex) {
-					ex.printStackTrace();
-					IJ.error("DeepImageJ could not load the model,\n"
-							+ "try with another Tensorflow version");
-					pnLoad.append("h2", "DeepImageJ could not load the model.\n");
-					pnLoad.append("h2", "Try with another Tensorflow version.\n");
-					// Let the developer go back, but no forward
-					parent.setEnabledBack(true);
-					parent.setEnabledNext(false);
-					return;
-				}
-				if (params.graphSet.size() > 0) {
-					Set<String> tfGraphSet = TensorFlowModel.returnTfSig(params.graphSet);
-					for (int i = 0; i < params.graphSet.size(); i++) {
-						cmbGraphs.addItem((String) tfGraphSet.toArray()[i]);
-						cmbGraphs.setEditable(false);
-					}
-				}
-			} else {
-				cmbTags.addItem("");
-				cmbTags.setEditable(true);
-				cmbGraphs.addItem("");
-				cmbGraphs.setEditable(false);
-				pnLoad.append("p", "The plugin could not load the model automatically,<br>"
-						+ "please introduce the needed information to load the model.");
 			}
+		} else {
+			cmbTags.addItem("");
+			cmbTags.setEditable(true);
+			cmbGraphs.addItem("");
+			cmbGraphs.setEditable(false);
+			pnLoad.append("p", "The plugin could not load the model automatically,<br>"
+					+ "please introduce the needed information to load the model.");
 		}
 		// If we loaded either a Bioimage Zoo or Tensoflow model we continue
-		parent.setEnabledBackNext(tf || params.biozoo);
+		parent.setEnabledBackNext(true);
 	} 
 }

@@ -176,7 +176,7 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 		pnLoad.append("h2", "Pytorch/Deep Java Library version");
 		pnLoad.append("p", "Currently using XXXX framework");
 		pnLoad.append("h2", "Model info");
-		pnLoad.append("p", "Path: " + params.torchscriptPath);
+		pnLoad.append("p", "Path: " + params.selectedModelPath);
 		pnLoad.append("p", "Loading model...");
 		
 		// Load the model using DJL
@@ -187,12 +187,12 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 		try {
 			url = new File(new File(params.path2Model).getAbsolutePath()).toURI().toURL();
 			
-			params.torchscriptPath = findPytorchModels(params.path2Model);
-			if (params.torchscriptPath.equals("")) {
+			// TODO remove params.selectedModelPath = findPytorchModels(params.path2Model);
+			if (params.selectedModelPath.equals("")) {
 				pnLoad.append("No Pytorch model found in the directory.");
 				parent.setEnabledBack(true);
 			}
-			String modelName = new File(params.torchscriptPath).getName();
+			String modelName = new File(params.selectedModelPath).getName();
 			modelName = modelName.substring(0, modelName.indexOf(".pt"));
 			long startTime = System.nanoTime();
 			Criteria<NDList, NDList> criteria = Criteria.builder()
@@ -211,7 +211,7 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 
 			ZooModel<NDList, NDList> model = ModelZoo.loadModel(criteria);
 			parent.getDeepPlugin().setTorchModel(model);
-			String torchscriptSize = FileTools.getFolderSizeKb(params.torchscriptPath);
+			String torchscriptSize = FileTools.getFolderSizeKb(params.selectedModelPath);
 			long stopTime = System.nanoTime();
 			// Convert nanoseconds into seconds
 			String loadingTime = "" + ((stopTime - startTime) / (float) 1000000000);
@@ -254,6 +254,7 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 	 * Find the Pytorch model (".pt" or ".pth") inside the folder provided.
 	 * If there are more than one model, make the user decide.
 	 */
+	/* TODO remove
 	private String findPytorchModels(String modelPath) {
 		
 		File[] folderFiles = new File(modelPath).listFiles();
@@ -281,4 +282,5 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 		}
 		return modelPath + File.separator + dlg.getNextChoice();
 	} 
+	*/
 }

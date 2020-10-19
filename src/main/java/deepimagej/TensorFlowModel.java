@@ -151,74 +151,127 @@ public class TensorFlowModel {
 	 *  - "biozoos": the folder contains several Bioimage Zoo models, regardless
 	 *     of Tf
 	 */
-	public static HashMap<String, Object> check(Parameters params, ArrayList<String> msg) {
+	public static HashMap<String, Object> checkDeveloper(Parameters params, ArrayList<String> msg) {
 		// Reset the parameters of the previous model
 		params.saved_modelSha256 = "";
 		params.previousVersions = new HashMap<String, Object>();
 		String path = params.path2Model;
 		msg.add("Path: " + path);
 		File dir = new File(path);
-		
+
 		boolean tf = false;
-		boolean biozoo = false;
+		boolean pytorch = false;
+		boolean biozooTf = false;
 		HashMap<String, Object> map = new HashMap<String, Object>();
 		map.put("tf", tf);
-		map.put("biozoo", biozoo);
+		map.put("pytorch", pytorch);
 		
 		if (!dir.exists()) {
 			msg.add("Not found " + path);
+			map.put("tf", tf);
+			map.put("pytorch", pytorch);
+			map.put("vTf" , null);
+			map.put("vPt" , null);
+			map.put("vBiozoo" , null);
 			return map;
 		}
 		if (!dir.isDirectory()) {
 			msg.add("Not found " + path);
+			map.put("tf", tf);
+			map.put("pytorch", pytorch);
+			map.put("vTf" , null);
+			map.put("vPt" , null);
+			map.put("vBiozoo" , null);
 			return map;
 		}
 
+		boolean isThereModel = false;
 		File modelFile = new File(path + "saved_model.pb");
-		if (!modelFile.exists()) {
-			msg.add("No 'saved_model.pb' found in " + path);
+		if (modelFile.exists()) {
+			tf = true;
+			isThereModel = true;
+		}
+		if (DeepImageJ.findPytorchModel(new File(path))) {
+			pytorch = true;
+			isThereModel = true;
+		}
+		if (!isThereModel) {
+			msg.add("No 'saved_model.pb' or Pytorch model \nfound in " + path);
+			map.put("tf", tf);
+			map.put("pytorch", pytorch);
+			map.put("vTf" , null);
+			map.put("vPt" , null);
+			map.put("vBiozoo" , null);
 			return map;
 		}
 
+		ArrayList<String> ptModels = new ArrayList<String>();
+		ArrayList<String> tfModels = new ArrayList<String>();
+		
 		File variableFile = new File(path + "variables");
-		if (!variableFile.exists()) {
-			msg.add("No 'variables' directory found in " + path);
-		}
-		else {
-			msg.add("TensorFlow model " + FileTools.getFolderSizeKb(path + "variables"));
-			tf = true;
+		if (tf == true && variableFile.exists()) {
+			tfModels.add("variables");
 		}
 
+		for (String modelFile1 : new File(path).list()) {
+			if (tf && modelFile1.contains("weights_v") && modelFile1.substring(modelFile1.length() - 4).equals(".zip")) {
+				tfModels.add(modelFile1);
+			} else if (pytorch && modelFile1.substring(modelFile1.length() - 3).equals(".pt")) {
+				ptModels.add(modelFile1);
+			} else if (pytorch && modelFile1.substring(modelFile1.length() - 4).equals(".pth")) {
+				ptModels.add(modelFile1);
+			}
+			
+		}
+
+		// If there is no yaml file, offer the possibility to load 
+		// every accessible model
 		File yamlFile = new File(path + "config.yaml");
 		File ymlFile = new File(path + "config.yml");
-		if (yamlFile.exists() || ymlFile.exists()) {
-			Map<String, Object> yamlMap = YAMLUtils.readConfig(yamlFile.getAbsolutePath());
-			try {
-				params.saved_modelSha256 = (String) ((Map<String, Object>) yamlMap.get("model")).get("sha256");
-				params.previousVersions = (Map<String, Object>) yamlMap.get("weights");
-				boolean saved_model =  checkSumSavedModel(params);
-				// TODO rename method correctly
-				HashMap<String, List<String>> versions = checkSumWeighst(params);
-				if (saved_model && versions.get("correct").size() > 0) {
-					biozoo = true;
-				}
-				map.put("v" , versions);
-			} catch (Exception ex){
-				biozoo = false;
-			}
-		} else {
+		if (!yamlFile.exists() && !ymlFile.exists()) {
+			map.put("tf", tf);
+			map.put("pytorch", pytorch);
+			map.put("vTf" , tfModels);
+			map.put("vPt" , ptModels);
+			map.put("vBiozoo" , null);
 			msg.add("No 'config.yaml' found in " + path);
-			ArrayList<String> noYaml = new ArrayList<String>();
-			for (File f : new File(path).listFiles()) {
-				if (f.getName().contains("weights_v") && f.getName().substring(f.getName().length() - 4).equals(".zip")) {
-					noYaml.add(f.getName());
-				}
-			}
-			if (noYaml.size() > 0)
-				map.put("noYaml" , noYaml);
+			return map;
 		}
-		map.put("tf", tf);
-		map.put("biozoo", biozoo);
+		
+		// TODO make more robust ('yaml yml')
+		Map<String, Object> yamlMap = YAMLUtils.readConfig(yamlFile.getAbsolutePath());
+		params.saved_modelSha256 = (String) ((Map<String, Object>) yamlMap.get("model")).get("sha256");
+		params.previousVersions = (Map<String, Object>) yamlMap.get("weights");
+		boolean saved_model =  checkSumSavedModel(params);
+		HashMap<String, List<String>> versions = checkSumWeights(params);
+		if (saved_model) {
+			biozooTf = true;
+		}
+		 
+		// Remove from the list of tf weights the weights that are already
+		// mentioned in the yaml file
+		Set<String> wVersions = params.previousVersions.keySet();
+		if (biozooTf) {
+			for (String w : wVersions) {
+				if (tfModels.contains("weights_" + w + ".zip"))
+					tfModels.remove("weights_" + w + ".zip");
+			}
+		}
+		// Remove from the list of Pytorch weights the weights that are already
+		// mentioned in the yaml file
+		for (String w : wVersions) {
+			String wFile = (String) ((HashMap<String, Object>) params.previousVersions.get(w)).get("source");
+			// Remove "./" from the start of the string
+			// In yaml weights are always defined as: "./" + fileName
+			wFile = wFile.substring(2);
+			if (ptModels.contains(wFile))
+				ptModels.remove(wFile);
+		}
+		map.put("tf", tfModels.size() > 0 ? true : false);
+		map.put("pytorch", ptModels.size() > 0 ? true : false);
+		map.put("vTf" , tfModels);
+		map.put("vPt" , ptModels);
+		map.put("vBiozoo" , versions);
 
 		return map;
 	}
@@ -243,15 +296,15 @@ public class TensorFlowModel {
 	 * For Bioimage Zoo models, checks that the weights_vX.zip files coincide
 	 * with what is specified inn the config.yaml
 	 */
-	public static HashMap<String, List<String>> checkSumWeighst(Parameters params) {
-		return checkSumWeighst(params, null);
+	public static HashMap<String, List<String>> checkSumWeights(Parameters params) {
+		return checkSumWeights(params, null);
 	}
 	
 	/*
 	 * For Bioimage Zoo models, checks that the weights_vX.zip files coincide
 	 * with what is specified inn the config.yaml
 	 */
-	public static HashMap<String, List<String>> checkSumWeighst(Parameters params, String interestVersion) {
+	public static HashMap<String, List<String>> checkSumWeights(Parameters params, String interestVersion) {
 		Set<String> prevVersions = params.previousVersions.keySet();
 		List<String> missingWeights = new ArrayList<String>();
 		List<String> faultyWeights = new ArrayList<String>();
@@ -263,18 +316,18 @@ public class TensorFlowModel {
 			
 		for (String key : prevVersions) {
 			String newSha256 = "";
+			String source = (String) ((Map<String, Object>) params.previousVersions.get(key)).get("source");
 			try {
-				String source = (String) ((Map<String, Object>) params.previousVersions.get(key)).get("source");
 				newSha256 = FileTools.createSHA256(params.path2Model + File.separator + source.substring(2));
 			} catch (IOException e) {
-				missingWeights.add(key);
+				missingWeights.add(source.substring(2));
 			}
 			String oldSha256 = (String) ((Map<String, Object>) params.previousVersions.get(key)).get("sha256");
 			
 			if (!newSha256.equals(oldSha256) && !newSha256.equals("")) {
-				faultyWeights.add(key);
+				faultyWeights.add(source.substring(2));
 			} else if (newSha256.equals(oldSha256)) {
-				corectWeights.add(key);
+				corectWeights.add(source.substring(2));
 			}
 		}
 		HashMap<String, List<String>> map = new HashMap<String, List<String>>();

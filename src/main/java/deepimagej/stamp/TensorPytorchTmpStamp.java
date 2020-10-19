@@ -73,7 +73,7 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 	private static List<JComboBox<String>>	outputs;
 	private List<JComboBox<String>>	inTags;
 	private static List<JComboBox<String>>	outTags;
-	private String[]				in			= { "B", "Y", "X", "C", "Z", "ignore" };
+	private String[]				in			= { "B", "Y", "X", "C", "Z", "-" };
 	private String[]				inputOptions= { "image", "parameter"};
 	private static String[]			outOptions	= { "image", "list", "ignore"};
 	private HTMLPane				pnDim;
@@ -227,7 +227,7 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 			tensor.form = "";
 			for (int i = iterateOverComboBox; i < iterateOverComboBox + 5; i++) {
 				String selection = (String) inputs.get(i).getSelectedItem();
-				if (!selection.contains("ignore")) {
+				if (!selection.contains("-")) {
 					tensor.form = tensor.form + selection;
 				}
 			}
@@ -255,7 +255,7 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 			// TODO for (int i = iterateOverComboBox; i < iterateOverComboBox + tensor.tensor_shape.length; i++) {
 			for (int i = iterateOverComboBox; i < iterateOverComboBox + 5; i++) {
 				String selection = (String) outputs.get(i).getSelectedItem();
-				if (!selection.contains("ignore")) {
+				if (!selection.contains("-")) {
 					tensor.form = tensor.form + selection;
 				}
 			}
@@ -321,7 +321,7 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 					outputs.get(i).addItem("B");
 					outputs.get(i).addItem("R");
 					outputs.get(i).addItem("C");
-					outputs.get(i).addItem("ignore");
+					outputs.get(i).addItem("-");
 					outputs.get(i).setEnabled(true);
 					String form = outputTensors.get(c).form;
 					if (form != null)
@@ -335,7 +335,7 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 					outputs.get(i).addItem("X");
 					outputs.get(i).addItem("C");
 					outputs.get(i).addItem("Z");
-					outputs.get(i).addItem("ignore");
+					outputs.get(i).addItem("-");
 					outputs.get(i).setEnabled(true);
 					String form = outputTensors.get(c).form;
 					if (form != null)

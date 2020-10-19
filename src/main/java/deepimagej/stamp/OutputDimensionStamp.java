@@ -528,9 +528,11 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 			int auxInd = params.outputList.get(outputCounter).form.indexOf(dims[i]);
 
 			txt1 = new JTextField(params.outputList.get(outputCounter).finished ? "" + params.outputList.get(outputCounter).scale[auxInd] : "1", 5);
-			txt2 = new JTextField(params.outputList.get(outputCounter).finished ? "" + params.outputList.get(outputCounter).halo[auxInd] : "0", 5);
+			txt2 = new JTextField(params.outputList.get(outputCounter).finished && params.allowPatching ? "" + params.outputList.get(outputCounter).halo[auxInd] : "0", 5);
 			txt3 = new JTextField(params.outputList.get(outputCounter).finished ? "" + params.outputList.get(outputCounter).offset[auxInd] : "0", 5);
 			txt1.setEditable(true);
+			// If we do not allow patching, do not allow using halo
+			txt2.setEditable(params.allowPatching);
 			
 			int inputFixedSize = findFixedInput((String) referenceImage.getSelectedItem(), dims[i], params.inputList);
 			

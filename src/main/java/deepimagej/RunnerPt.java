@@ -177,31 +177,32 @@ private int							currentPatch = 0;
 		String[] dimLetters = "XYCZ".split("");
 		for  (int i = 0; i < dimLetters.length; i ++)
 			indices[i] = params.inputList.get(inputImageInd).form.indexOf(dimLetters[i]);
-		
+
 		int[] patchSize = {1, 1, 1, 1};
+		int[] step = {1, 1, 1, 1};
+		int[] minSize = {1, 1, 1, 1};
 		for (int i = 0; i < indices.length; i ++) {
 			if (indices[i] != -1) {
 				patchSize[i] = params.inputList.get(inputImageInd).recommended_patch[indices[i]];
+				step[i] = params.inputList.get(inputImageInd).step[indices[i]];
+				minSize[i] = params.inputList.get(inputImageInd).minimum_size[indices[i]];
 			}
 		}
 		
-		c = 0;
 		// TODO improve
 		if (params.pyramidalNetwork || !params.allowPatching) {
-			String form = params.inputList.get(inputImageInd).form;
-			for (String dim : dimLetters) {
-				int imageCorrespondentDimension = form.indexOf(dim);
-				if (imageCorrespondentDimension != -1 && patchSize[imageCorrespondentDimension] == 0) {
-					patchSize[imageCorrespondentDimension] = imp.getDimensions()[imageCorrespondentDimension];
-				} else if (patchSize[c] != imp.getDimensions()[c]) {
-					String errorMsg = "This model only accepts images with input size:";
-						for (int i = 0; i < dimLetters.length; i ++)
-							errorMsg += "\n" + dimLetters[i] + " : " + patchSize[i];
+			for (c = 0; c < patchSize.length; c ++) {
+				if (step[c] != 0 && patchSize[c] != imp.getDimensions()[c]) {
+					patchSize[c] = (int) Math.ceil((double) (imp.getDimensions()[c] - minSize[c]) / step[c]) * step[c] + minSize[c];
+				} else if (patchSize[c] < imp.getDimensions()[c] && step[c] == 0) {
+					String errorMsg = "This model only accepts images with input size smaller or equal to:";
+					for (int i = 0; i < dimLetters.length; i ++) {
+						errorMsg += "\n" + dimLetters[i] + " : " + patchSize[i];
+					}
 					IJ.error(errorMsg);
 					rp.stop();
 					return null;
 				}
-				c ++;
 			}
 		}
 		
@@ -254,6 +255,9 @@ private int							currentPatch = 0;
 		int npy = (int) Math.ceil((double)ny / (double)roiY);
 		int npc = (int) Math.ceil((double)nc / (double)roiC);
 		int npz = (int) Math.ceil((double)nz / (double)roiZ);
+		if (!params.allowPatching) {
+			npx = 1; npy = 1; npz = 1; npc = 1;
+		}
 		currentPatch = 0;
 		totalPatch = npx * npy * npz * npc;
 
@@ -373,7 +377,7 @@ private int							currentPatch = 0;
 
 					try (NDManager manager = NDManager.newBaseManager()) {
 						inputTensors = getInputTensors(manager, inputTensors, params.inputList, parameterMap, patch);
-						// TODO make more beutiful
+						// TODO make easier to understand
 						if (inputTensors == null) {
 							IJ.error("Error converting inputs to tensors for the model.");
 							rp.stop();
@@ -468,6 +472,73 @@ private int							currentPatch = 0;
 									(int)(leftoverPixelsY * scaleY) - allOffsets[imCounter][1], (int)(leftoverPixelsZ * scaleZ) - allOffsets[imCounter][3]);
 							if (outputImages[imCounter] != null)
 								outputImages[imCounter].getProcessor().resetMinAndMax();
+							if (rp.isStopped()) {
+								rp.stop();
+								return null;
+							}
+							imCounter ++;
+						} else if (params.outputList.get(counter).tensorType.contains("image") && params.pyramidalNetwork) {
+							// TODO improve
+							int[] outPatchDims = outputImages[imCounter].getDimensions();
+							String[] ijForm = "XYCZB".split("");
+							String dijForm = params.outputList.get(counter).form;
+							int[] pyramidOut = params.outputList.get(counter).sizeOutputPyramid;
+							for (int dd = 0; dd < ijForm.length; dd ++) {
+								int idx = dijForm.indexOf(ijForm[dd]);
+								if (idx == -1 && outPatchDims[dd] == 1) {
+									continue;
+								} else if (idx != -1 && outPatchDims[dd] == pyramidOut[idx]) {
+									continue;
+								}
+								IJ.error("The dimensions of the output image do not coincide\n"
+										+ "with the dimensions specified previously:\n"
+										+ "Specified output dimensions: dimension order -> " + dijForm + ", dimension size -> " + Arrays.toString(pyramidOut) 
+										+ "Actual output dimensions: dimension order -> XYCZB, dimension size -> " + Arrays.toString(outPatchDims));
+								rp.stop();
+								return null;
+							}
+							if (rp.isStopped()) {
+								rp.stop();
+								return null;
+							}
+							imCounter ++;
+						} else if (params.outputList.get(counter).tensorType.contains("image") && !params.pyramidalNetwork && !params.allowPatching) {
+							// TODO improve
+							int[] outPatchDims = outputImages[imCounter].getDimensions();
+							String[] ijForm = "XYCZB".split("");
+							String dijForm = params.outputList.get(counter).form;
+							float[] scale = params.outputList.get(counter).scale;
+							int[] offset = params.outputList.get(counter).offset;
+							// TODO adapt for more inputs
+							// We take the mirrored image as the reference, because that is what ends
+							// up going into the model
+							int[] refSize = mirrorImage.getDimensions();
+							String thSizeStr = "[";
+							for (int dd = 0; dd < ijForm.length; dd ++) {
+								int idx = dijForm.indexOf(ijForm[dd]);
+								if (idx == -1 && outPatchDims[dd] == scale[idx]) {
+									thSizeStr += scale[idx] + ",";
+									continue;
+								} else if (idx != -1 && outPatchDims[dd] == (int)(refSize[dd] * scale[idx]) - offset[idx]) {
+									thSizeStr += ((int)(refSize[dd] * scale[idx]) - offset[idx]) + ",";
+									continue;
+								}
+								for (dd ++; dd < ijForm.length;) {
+									idx = dijForm.indexOf(ijForm[dd]);
+									if (idx == -1) {
+										thSizeStr += scale[idx] + ",";
+									} else if (idx != -1) {
+										thSizeStr += ((int)(refSize[dd] * scale[idx]) - offset[idx]) + ",";
+									}
+								}
+								thSizeStr = thSizeStr.substring(0, thSizeStr.length() - 1) + "]";
+								IJ.error("The dimensions of the output image do not coincide\n"
+										+ "with the dimensions specified previously:\n"
+										+ "Specified output dimensions: dimension order -> XYCZB, dimension size -> " + thSizeStr 
+										+ "Actual output dimensions: dimension order -> XYCZB, dimension size -> " + Arrays.toString(outPatchDims));
+								rp.stop();
+								return null;
+							}
 							if (rp.isStopped()) {
 								rp.stop();
 								return null;

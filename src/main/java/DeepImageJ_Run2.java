@@ -423,7 +423,7 @@ public class DeepImageJ_Run2 implements PlugIn, ItemListener {
 
 			HashMap<String, List<String>> versions = null;
 			if (existsVersion)
-				versions = TensorFlowModel.checkSumWeighst(dp.params, selectedVersion);			
+				versions = TensorFlowModel.checkSumWeights(dp.params, selectedVersion);			
 
 			boolean overwrite = true;
 			if (existsVersion && versions.get("correct").size() == 1 && overwrite) {

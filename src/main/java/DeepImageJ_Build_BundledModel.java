@@ -36,6 +36,7 @@
  */
 
 import java.io.File;
+import java.io.IOException;
 
 import deepimagej.BuildDialog;
 import deepimagej.TensorFlowModel;
@@ -58,7 +59,7 @@ public class DeepImageJ_Build_BundledModel implements PlugIn {
 		bd.showDialog();
 	}
 
-	public static void main(String args[]) {
+	public static void main(String args[]) throws IOException {
 		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\exemplary-image-data\\tribolium.tif");
 		if (imp != null)
 			imp.show();
