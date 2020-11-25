@@ -42,6 +42,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Frame;
+import java.awt.GridLayout;
 import java.awt.TextField;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
@@ -52,6 +53,7 @@ import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,9 +62,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.zip.ZipOutputStream;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -89,8 +93,8 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 	private JTextField	txt			= new JTextField(IJ.getDirectory("imagej") + File.separator + "models" + File.separator);
 	private JButton		bnBrowse	= new JButton("Browse");
 	private JButton		bnSave	= new JButton("Save Bundled Model");
+	private JCheckBox	bnSaveBiozoo	= new JCheckBox("Save model into the Bioimage Zoo format");
 	private HTMLPane 	pane;
-	private ArrayList<String> repeatedFiles;
 	
 	public TfSaveStamp(BuildDialog parent) {
 		super(parent);
@@ -112,6 +116,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		txt.setFont(new Font("Arial", Font.BOLD, 14));
 		txt.setForeground(Color.red);
 		txt.setPreferredSize(new Dimension(Constants.width, 25));
+		txt.setText(IJ.getDirectory("imagej") + File.separator + "models" + File.separator);
 		JPanel load = new JPanel(new BorderLayout());
 		load.setBorder(BorderFactory.createEtchedBorder());
 		load.add(txt, BorderLayout.CENTER);
@@ -120,8 +125,10 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		JPanel pn = new JPanel(new BorderLayout());
 		pn.add(load, BorderLayout.NORTH);
 		//pn.add(pane.getPane(), BorderLayout.CENTER);
-		pn.add(infoPane, BorderLayout.CENTER);
-		pn.add(bnSave, BorderLayout.SOUTH);
+		pn.add(infoPane, BorderLayout.CENTER);JPanel pnButtons = new JPanel(new GridLayout(2, 1));
+		pnButtons.add(bnSave);
+		pnButtons.add(bnSaveBiozoo);
+		pn.add(pnButtons, BorderLayout.SOUTH);
 		panel.add(pn);
 
 		bnSave.addActionListener(this);
@@ -174,178 +181,75 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		params.saveDir = params.saveDir.replace(File.separator + File.separator, File.separator);
 		File dir = new File(params.saveDir);
 		boolean ok = true;
+		
+		if (dir.exists() && dir.isDirectory()) {
+			pane.append("p", "Path introduced corresponded to an already existing directory.");
+			pane.append("p", "Model not saved");
+			IJ.error("Directory: \n" + dir.getAbsolutePath() + "\n already exists. Please introduce other name.");
+			return;
+		}
 
-		repeatedFiles = new ArrayList<String>();
 		if (!dir.exists()) {
 			dir.mkdir();
 			pane.append("p", "Make a directory: " + params.saveDir);
-		} else {
-			params.biozoo = checkFolder(params.saveDir);
-		}
-		
-		if (repeatedFiles.size() > 0 && repeatedFiles.size() < 3) {
-			GenericDialog dlg = new GenericDialog("Overwrite existing model");
-			dlg.addMessage("Part of the model was found in the save directory.");
-			dlg.addMessage("Do you want to overwrite it?.");
-			dlg.addMessage("If you press Ok the following files/folders will be deleted/overwritten.");
-			if (new File(dir, "variables").isDirectory())
-				repeatedFiles.add("variables");
-			for (String f : repeatedFiles)
-				dlg.addMessage("- " + f);
-			dlg.showDialog();
-			if (dlg.wasCanceled()) {
-				pane.append("p", "Save cancelled");
-				return;
-			} 
-			for (String f : repeatedFiles) {
-				boolean deleted = true;
-				if (f.contains(".")) {
-					deleted = new File(dir + File.separator + f).delete();
-				} else {
-					deleted = FileTools.deleteDir(new File(dir + File.separator + f));
-				}
-				if (!deleted) {
-					IJ.error("Could not remove " + f + ".\nSave cancelled.");
-					pane.append("p", "Save cancelled");
-				}
-			}
 		}
 		
 		dir = new File(params.saveDir);
 		
-		// Check if save directory already has a version of the same model. If it does
-		// keep both models together and indicate it in the YAML file
-		
-		if (ok && !dir.exists()) {
-			IJ.error("This directory is not valid to save");
-			ok = false;
-		}
-		if (ok && !dir.isDirectory()) {
-			IJ.error("This folder is not a directory");
-			ok = false;
-		}
 
 		// Save the model architecture
-		try {
-			// Check that, if the save directory is already a Bioimage Model Zoo model.
-			// If it is check that they have the same architecture
-			boolean overwrite = true;
-			if (params.biozoo) {
-				int sameModel = isItTheSameModel(params.saved_modelSha256, params.saveDir + File.separator + "saved_model.pb", params.path2Model + "saved_model.pb");
-				if (sameModel == 1) {
-					// Do not save anything as it is the same
-					overwrite = false;
-				} else if (sameModel == 0) {
-					GenericDialog dlg = new GenericDialog("Overwrite existing model");
-					// TODO change to official name
-					// TODO check if we created two different models at different times
-					// TODO with the same archi, the sha256 will be the same
-					dlg.addMessage("There is already a Biozoo model in the save directory.");
-					dlg.addMessage("Do you want to store the current model as another version of the model already saved?.");
-					dlg.addMessage("In this case the architecture from the already saved model will be kept for both the old and new weights.");
-					dlg.addMessage("You can also overwrite the files with the new model?.");
-					dlg.addChoice("Select", new String[] {"Overwrite",  "Same version"}, "Overwrite");
-					dlg.showDialog();
-					if (dlg.wasCanceled()) {
-						pane.append("p", "Save cancelled");
-						return;
-					} 
-					String choice = dlg.getNextChoice();
-					if (choice.contains("Same version"))
-						overwrite = false;
-				} else if (sameModel == -1) {
-					GenericDialog dlg = new GenericDialog("Overwrite existing model");
-					dlg.addMessage("There is already a Biozoo model in the save directory.");
-					dlg.addMessage("However the model seems to have been modified and it cannot longer be loaded.");
-					dlg.addMessage("Do you want to overwrite it?.");
-					dlg.showDialog();
-					if (dlg.wasCanceled()) {
-						pane.append("p", "Save cancelled");
-						return;
-					} 
-					dlg = new GenericDialog("Overwrite existing weights");
-					dlg.addMessage("What do you want to do with the weights?");
-					dlg.addMessage("If they work with the architecture you are saving currently,");
-					dlg.addMessage("you could keep them as another version of the model.");
-					dlg.addMessage("If they correspond to another architecture, it is better to delete them.");
-					dlg.addMessage("Do you want to delete them?");
-					dlg.enableYesNoCancel();
-					dlg.showDialog();
-					if (dlg.wasCanceled()) {
-						pane.append("p", "Save cancelled");
-						return;
-					} else if (dlg.wasOKed()) {
-						for (File w : dir.listFiles()) {
-							if (w.getName().contains("weights_v") && w.getName().contains(".zip")) {
-								boolean deleted = w.delete();
-								if (!deleted) {
-									IJ.error("Could not remove " + w.getName() + ".\nSave cancelled.");
-									pane.append("p", "Save cancelled");
-								}
-							}
-						}
-					} 
-					
-				} else if (sameModel == -2) {
-					overwrite = true;
-				} else if (sameModel == -3) {
-					overwrite = true;
-				}
-			}
-			if (overwrite) {
+		if (!bnSaveBiozoo.isSelected()) {
+			params.biozoo = false;
+			try {
 				File source = new File(params.path2Model + "saved_model.pb");
 				File dest = new File(params.saveDir  + "saved_model.pb");
 				FileTools.copyFile(source, dest);
+				pane.append("p", "protobuf of the model (saved_model.pb): saved");
+			} catch (IOException e) {
+				e.printStackTrace();
+				pane.append("p", "protobuf of the model (saved_model.pb): not saved");
+				ok = false;
+			} catch (Exception e) {
+				e.printStackTrace();
+				pane.append("p", "protobuf of the model (saved_model.pb): not saved");
+				ok = false;
 			}
-			pane.append("p", "protobuf of the model (saved_model.pb): saved");
-		} catch (IOException e) {
-			e.printStackTrace();
-			pane.append("p", "protobuf of the model (saved_model.pb): not saved");
-			pane.append("p", "protobuf of the model (saved_model.pb): saved_model.pb was removed from the model path");
-			ok = false;
-		} catch (Exception e) {
-			e.printStackTrace();
-			pane.append("p", "protobuf of the model (saved_model.pb): not saved");
-			ok = false;
-		}
-
-		// Save the model weights
-		try {
-			if (params.biozoo) {
-				// Check that the version string is not already in the yaml, if there is
-				//  a yaml in the directory.
-				boolean repeated = getModelVersion(params.saveDir, params);
-				while (repeated) {
-					GenericDialog dlg = new GenericDialog("Change version of the weights");
-					dlg.addMessage("Version " + params.version + " already exists. Choose a different one.");
-					dlg.addStringField("New weights version", "X.Y");
-					dlg.showDialog();
-					if (dlg.wasCanceled()) {
-						pane.append("p", "Save cancelled");
-						return;
-					}
-					Vector<TextField> strField = dlg.getStringFields();
-					TextField versionField = (TextField) strField.get(0);
-					params.version = versionField.getText().trim();
-					repeated = getModelVersion(params.saveDir, params);
-					if (repeated) {
-						IJ.error("This version already exists");
-					} 
-					
-				}
+	
+			// Save the model weights
+			try {
+				File source = new File(params.path2Model + "variables");
+				File dest = new File(params.saveDir + "variables");
+				copyWeights(source, dest);
+				pane.append("p", "weights of the network (variables): saved");
+				// TODO add check to ensure each pair of weights is unique
 			}
-			String zipName = "weights_v" + params.version + ".zip";
-			File source = new File(params.path2Model + "variables");
-			File dest = new File(params.saveDir + zipName);
-			pane.append("p", "Writting zip file...");
-			FileTools.zipFolder(source, dest);
-			pane.append("p", "weights of the network (variables): saved");
-			// TODO add check to ensure each pair of weights is unique
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			pane.append("p", "weights of the network (variables): not saved");
-			ok = false;
+			catch (Exception e) {
+				e.printStackTrace();
+				pane.append("p", "weights of the network (variables): not saved");
+				ok = false;
+			}
+		} else {
+			params.biozoo = true;
+			try {
+				// TODO arregalr esta shit
+				String zipName = "tensorflow_saved_model_bundle.zip";
+				File sourceVar = new File(params.path2Model + File.separator  + "variables");
+				File sourcePb = new File(params.path2Model + File.separator  + "saved_model.pb");
+				File dest = new File(params.saveDir + File.separator + zipName);
+				pane.append("p", "Writting zip file...");
+				FileTools.zipFilesIntoFolder(new String[]{params.path2Model + File.separator + "variables", params.path2Model + File.separator  + "saved_model.pb"}, params.saveDir + File.separator + zipName);
+				//ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(dest));		
+				//FileTools.zipFolder(sourceVar, dest);
+				//FileTools.zipFolder(sourcePb, dest);
+				pane.append("p", "Tensorflow Bioimage Zoo model: saved");
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+				pane.append("p", "Error zipping the varaibles folder and saved_model.pb");
+				pane.append("p", "Tensorflow Bioimage Zoo model: not saved");
+				ok = false;
+			}
+			
 		}
 
 		// Save preprocessing
@@ -434,9 +338,8 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			try {
 				if (output.get("type").contains("image")) {
 					ImagePlus im = WindowManager.getImage(name);
-					IJ.saveAsTiff(im, params.saveDir + File.separator + name);
+					IJ.saveAsTiff(im, params.saveDir + File.separator + name + ".tif");
 				} else if (output.get("type").contains("ResultsTable")){
-					name = name.substring(0, name.length() - 4);
 					Frame f = WindowManager.getFrame(name);
 			        if (f!=null && (f instanceof TextWindow)) {
 			        	ResultsTable rt = ((TextWindow)f).getResultsTable();
@@ -454,87 +357,19 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		pane.append("p", "Done!!");
 
 		//parent.setEnabledBackNext(ok);
-	}
-	
-	/*
-	 * Check that the architecture in the old model is correct per the yaml, and if
-	 * it is the same as the new architecture we want to save
-	 * Returns 1 if the model specified in he yaml is the same as the one we want to save
-	 * and the one that is previously in the dir; 0 if the one specified in the yaml
-	 * is the same as the one already in the folder, but not the same as the new one we
-	 * want to save; -1 if none of them is the same; -2 if the one specified by the yaml
-	 * is the same as the one we want to save now but not the same as the one that is already
-	 * and -3 if the old model is missing from the directory.
-	 */
-	public static int isItTheSameModel(String originalSha256, String oldArchiDir, String newArchiDir) throws IOException{
-		String oldSha256 = "";
-		String newSha256 = FileTools.createSHA256(newArchiDir);
-		if (new File(oldArchiDir).isFile()) {
-			oldSha256 = FileTools.createSHA256(oldArchiDir);
-		} else {
-			return -3;
-		}
-		if (originalSha256.equals(oldSha256) && originalSha256.equals(newSha256)) {
-			return 1;
-		} else if (originalSha256.equals(oldSha256) && !originalSha256.equals(newSha256)) {
-			return 0;
-		} else if (!originalSha256.equals(oldSha256) && !originalSha256.equals(newSha256)) {
-			return -1;
-		} else {
-			// !originalSha256.equals(oldSha256) && originalSha256.equals(newSha256)
-			return -2;
-		}
-	}
-	
-	/*
-	 * Return all the versions of the model saved in the folder.
-	 * The method looks at the yaml, checks the versions that are already saved
-	 * and makes sure they are correct with the sha256 
-	 */
-	public static boolean getModelVersion(String dir, Parameters params){
-		
-		Map<String, Object> obj =  YAMLUtils.readConfig(dir + File.separator + "config.yaml");
-		params.previousVersions = (Map<String, Object>) obj.get("weights");
-		
-		Set<String> keyset = params.previousVersions.keySet();
-		String[] versions = new String[keyset.size()];
-		int c = 0;
-		// Each version name consists of 'v' + 'version string'
-		boolean repeated = false;
-		for (String key : keyset) {
-			versions[c ++] = key.substring(1);
-			if (key.substring(1).equals(params.version.trim())) {
-				repeated = true;
+	}private void copyWeights(File source, File dest) throws IOException {
+		String source_path;
+		String dest_path;
+		String filename;
+		File[] n_files = source.listFiles();
+		for (int i = 0; i < n_files.length; i++) {
+			if (n_files[i].isFile() == true) {
+				filename = n_files[i].getName();
+				source_path = source.getAbsolutePath() + File.separator + filename;
+				dest_path = dest.getAbsolutePath() + File.separator + filename;
+				FileTools.copyFile(new File(source_path), new File(dest_path));
 			}
 		}
-		return repeated;
-	}
-	
-	public boolean checkFolder(String dir){
-		repeatedFiles = new ArrayList<String>();
-		boolean model = false;
-		if (new File(dir, "saved_model.pb").isFile()) {
-			repeatedFiles.add("saved_model.pb");
-			model = true;
-		}
-		boolean yaml = false;
-		if (new File(dir, "config.yaml").isFile()) {
-			repeatedFiles.add("config.yaml");
-			yaml = true;
-		} else if (new File(dir, "config.yml").isFile()) {
-			repeatedFiles.add("config.yml");
-			yaml = true;
-		}
-		boolean weights = false;
-		String[] fList = new File(dir).list();
-		for (String f : fList) {
-			if (f.contains("weights_v") && f.contains(".zip")) {
-				repeatedFiles.add(f);
-				weights = true;
-			}
-		}
-		
-		return model && yaml && weights;
 	}
 
 	public class LocalDropTarget extends DropTarget {

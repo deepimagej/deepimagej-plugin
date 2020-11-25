@@ -77,14 +77,14 @@ import ij.gui.GenericDialog;
 public class InformationStamp extends AbstractStamp implements ActionListener {
 
 	public JTextField	txtName			= new JTextField("", 24);
-	public JTextField	txtVersion		= new JTextField("1", 24);
 
 	public JTextField	txtAuth		= new JTextField("", 24);
 	public JTextField	txtTag		= new JTextField("", 24);
 
 	public JTextField	txtDocumentation	= new JTextField("", 24);
+	public JTextField	txtGitRepo	= new JTextField("", 24);
 	public JTextField	txtLicense			= new JTextField("", 24);
-	public JTextField	txtSource			= new JTextField("", 24);
+	// TODO remove public JTextField	txtSource			= new JTextField("", 24);
 	public JTextArea	txtDescription		= new JTextArea("", 3, 24);
 	
 	public JList<String>authList			= new JList<String>();
@@ -176,15 +176,6 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		pn.add((JComponent) citationsFr.getContentPane(), infoC);
 		
 		// Next field
-		labelC.gridy = 3;
-		infoC.gridy = 3;
-	    infoC.insets = new Insets(10, 0, 10, 10);
-		infoC.ipady = 0; 
-		infoC.ipadx = 0;
-		pn.add(new JLabel("Version"), labelC);
-		pn.add(txtVersion, infoC);
-		
-		// Next field
 		labelC.gridy = 4;
 		labelC.gridheight = 3;
 		labelC.ipadx = 50;
@@ -222,15 +213,29 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		
 		// Next field
 		labelC.gridy = 8;
+		labelC.gridheight = 1;
+		labelC.ipadx = 0;
+		labelC.ipady = 0;
 		infoC.gridy = 8;
-		pn.add(new JLabel("Type of license"), labelC);
-		pn.add(txtLicense, infoC);
+		infoC.gridheight = 1;
+	    infoC.insets = new Insets(10, 0, 10, 10);
+
+		infoC.ipady = 0; 
+		infoC.ipadx = 0;
+		pn.add(new JLabel("Link to Github repo"), labelC);
+		pn.add(txtGitRepo, infoC);
 		
 		// Next field
 		labelC.gridy = 9;
 		infoC.gridy = 9;
-		pn.add(new JLabel("Link to model source"), labelC);
-		pn.add(txtSource, infoC);
+		pn.add(new JLabel("Type of license"), labelC);
+		pn.add(txtLicense, infoC);
+		
+		// Next field
+		// TODO remove labelC.gridy = 9;
+		// TODO remove infoC.gridy = 9;
+		// TODO remove pn.add(new JLabel("Link to model source"), labelC);
+		// TODO remove pn.add(txtSource, infoC);
 		
 		// Next field
 		JFrame tagsFr = createAddRemoveFrame(txtTag, tagAddBtn, "tag", tagRmvBtn);
@@ -295,12 +300,12 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 			introducedTag.add("deepimagej");
 			
 			// Reset all the fields
-			txtVersion.setText("1");
 			txtAuth.setText("");
 			txtTag.setText("");
 			txtDocumentation.setText("");
+			txtGitRepo.setText("");
 			txtLicense.setText("");
-			txtSource.setText("");
+			// TODO remove txtSource.setText("");
 			txtDescription.setText("");
 		}
 	}
@@ -313,32 +318,28 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		}
 		Parameters params = parent.getDeepPlugin().params;
 		params.name = txtName.getText().trim();
-		params.version = txtVersion.getText().trim();
 
 		// TODO check if we need to cover here
 		params.documentation = txtDocumentation.getText().trim();
+		params.git_repo = txtGitRepo.getText().trim();
 		params.license = txtLicense.getText().trim();
 		// TODO check if we need to cover here
-		params.source = txtSource.getText().trim();
+		// TODO remove params.source = txtSource.getText().trim();
 		params.description = txtDescription.getText().trim();
 		
 		params.name = params.name.equals("") ? null : coverForbiddenSymbols(params.name);
 		params.author = null;
 		if (introducedAuth.size() > 0)
 			params.author = introducedAuth;
-		params.version = params.version.equals("") ? null : coverForbiddenSymbols(params.version);
 		params.cite = introducedCitation;
 		
 		params.documentation = params.documentation.equals("") ? null : params.documentation;
+		params.git_repo = params.git_repo.equals("") ? null : params.git_repo;
 		params.license = params.license.equals("") ? null : coverForbiddenSymbols(params.license);
-		params.source = params.source.equals("") ? null : params.source;
+		// TODO remove params.source = params.source.equals("") ? null : params.source;
 		params.description = params.description.equals("") ? null : coverForbiddenSymbols(params.description);
 		params.infoTags = introducedTag;
 		
-		if(params.version.equals("")) {
-			IJ.error("Please introduce the version corresponding to the model.");
-			return false;
-		}
 		
 		return true;
 	}

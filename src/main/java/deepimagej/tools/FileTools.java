@@ -197,23 +197,21 @@ public class FileTools {
 	public static void zipFolder(File srcFolder, File destZipFile) throws Exception {
         try (FileOutputStream fileWriter = new FileOutputStream(destZipFile);
                 ZipOutputStream zip = new ZipOutputStream(fileWriter)) {
-
-            addFolderToZip(srcFolder, srcFolder, zip);
-            zip.close();
-            fileWriter.close();
+            addFileToZip("", srcFolder, zip);
+            //fileWriter.close();
         }
     }
 	
-    private static void addFileToZip(File rootPath, File srcFile, ZipOutputStream zip) throws Exception {
+    private static void addFileToZip(String rootPath, File srcFile, ZipOutputStream zip) throws Exception {
 
         if (srcFile.isDirectory()) {
-            addFolderToZip(rootPath, srcFile, zip);
+            addFolderToZip(srcFile.getName(), srcFile, zip);
         } else {
             byte[] buf = new byte[4096];
             int len;
             try (FileInputStream in = new FileInputStream(srcFile)) {
-                String name = srcFile.getPath();
-                name = name.replace(rootPath.getPath(), "");
+                String name = srcFile.getName();
+                name = rootPath + File.separator + name;
                 zip.putNextEntry(new ZipEntry(name));
                 while ((len = in.read(buf)) > 0) {
                     zip.write(buf, 0, len);
@@ -223,7 +221,7 @@ public class FileTools {
         }
     }
 
-    private static void addFolderToZip(File rootPath, File srcFolder, ZipOutputStream zip) throws Exception {
+    private static void addFolderToZip(String rootPath, File srcFolder, ZipOutputStream zip) throws Exception {
         for (File fileName : srcFolder.listFiles()) {
             addFileToZip(rootPath, fileName, zip);
         }
@@ -238,7 +236,8 @@ public class FileTools {
 
  	            File file = new File(outPath, entry.getName());
 
- 	            if (entry.isDirectory()) {
+ 	            // Check if entry is directory (if the entry name ends with '\' or '/'
+ 	            if (entry.getName().substring(entry.getName().length() - 1).equals(File.separator)) {
  	                file.mkdirs();
  	            } else {
  	                File parent = file.getParentFile();
@@ -262,6 +261,71 @@ public class FileTools {
  	        }
  	    }
  	}
+    
+    public static void zipFilesIntoFolder(String[] srcFiles, String zipFile) {
+    	 
+        try {
+             
+            // create byte buffer
+            byte[] buffer = new byte[4096];
+ 
+            FileOutputStream fos = new FileOutputStream(zipFile);
+ 
+            ZipOutputStream zos = new ZipOutputStream(fos);
+             
+            for (int i=0; i < srcFiles.length; i++) {
+                 
+                File srcFile = new File(srcFiles[i]);
+                
+                if (srcFile.isDirectory()) {
+                	zos.putNextEntry(new ZipEntry(srcFile.getName() + File.separator));
+                	for (File ff : srcFile.listFiles()) {
+                		FileInputStream fis = new FileInputStream(ff);
+                		 
+    	                // begin writing a new ZIP entry, positions the stream to the start of the entry data
+    	                zos.putNextEntry(new ZipEntry(srcFile.getName() + File.separator + ff.getName()));
+    	                 
+    	                int length;
+    	 
+    	                while ((length = fis.read(buffer)) > 0) {
+    	                    zos.write(buffer, 0, length);
+    	                }
+    	 
+    	                zos.closeEntry();
+    	 
+    	                // close the InputStream
+    	                fis.close();
+                	}
+                	
+                } else {
+ 
+	                FileInputStream fis = new FileInputStream(srcFile);
+	 
+	                // begin writing a new ZIP entry, positions the stream to the start of the entry data
+	                zos.putNextEntry(new ZipEntry(srcFile.getName()));
+	                 
+	                int length;
+	 
+	                while ((length = fis.read(buffer)) > 0) {
+	                    zos.write(buffer, 0, length);
+	                }
+	 
+	                zos.closeEntry();
+	 
+	                // close the InputStream
+	                fis.close();
+                }
+                 
+            }
+ 
+            // close the ZipOutputStream
+            zos.close();
+             
+        }
+        catch (IOException ioe) {
+            System.out.println("Error creating zip file: " + ioe);
+        }
+    }
     
     public static String createSHA256(String fileName) throws  IOException {
         byte[] buffer= new byte[8192];

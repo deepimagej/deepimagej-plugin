@@ -272,9 +272,11 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 				allTxtPatches.get(i).setEditable(false);
 			} else if (dimValues[i] == -1){
 				allTxtMinSize.get(i).setEditable(true);
+				String stepGuess = dim[i].equals("C") ? "0" : "1";
+				allTxtStep.get(i).setText(stepGuess);
 				allTxtStep.get(i).setEditable(true);
 				allTxtPatches.get(i).setEditable(true);
-				String initialGuess = dim[i].equals("C") ? "1" : "256";
+				String initialGuess = dim[i].equals("C") ? "" : "";
 				allTxtPatches.get(i).setText(initialGuess);
 			}
 		}

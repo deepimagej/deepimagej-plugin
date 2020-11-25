@@ -215,9 +215,10 @@ private int							currentPatch = 0;
 		String[] outputTitles = new String[params.outputList.size()];
 		// Reset the counter to 0 use it again
 		c = 0;
-		for (DijTensor outName: params.outputList) {
-			outputTitles[c++] = outName.name  + " " + dp.getName() + " of " + imp.getTitle();
-		}
+		int extensionInd = imp.getTitle().lastIndexOf('.');
+		String imName = extensionInd  == -1 ? imp.getTitle() : imp.getTitle().substring(0, extensionInd);
+		for (DijTensor outName: params.outputList) 
+			outputTitles[c++] = dp.getName() + "_" + outName.name  + "_" + imName;
 
 		// Order of the dimensions. For example "NHWC"-->Batch size, Height, Width, Channels
 		String inputForm = params.inputList.get(inputImageInd).form;
@@ -396,10 +397,15 @@ private int							currentPatch = 0;
 							} else if (outTensor.tensorType.contains("list")){
 								ResultsTable table = Table2Tensor.tensor2Table(result, outTensor.form);
 								outputTables.add(table);
-								table.show(outputTitles[c ++] + " of patch " + currentPatch);
+								table.show(outputTitles[c ++]);
 							}
+							result.close();
 						}
-					}
+						// Close input tensors
+						for (int ii = 0; ii < inputTensors.length; ii ++) {
+							inputTensors[ii].close();
+						}		
+					}				
 					catch(IllegalArgumentException ex) {
 						ex.printStackTrace();	
 						IJ.log("Error applying the model");

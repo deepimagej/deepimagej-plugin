@@ -84,20 +84,22 @@ public class WelcomeStamp extends AbstractStamp implements ActionListener {
 		pane.append("h2", "Building Bundled Model");
 		pane.append("p",
 				"This wizard allows to create a bundled model for DeepImageJ in 10 steps. "
-						+ "The first step will consist to load the pretrained TensorFlow model. "
+						+ "The first step will consist to load the pretrained TensorFlow or Pytorch (see documentation) model. "
 						+ "At the end, the <i>DeepImageJ Bundled Model</i> is saved in a directory." 
-						+ "Then, it can be easily used by the plugin 'DeepImageJ Run' or by the plugin 'DeepImageJ Explore'");
+						+ "Then, it can be easily used by the plugin 'DeepImageJ Run'");
 
 		pane.append("p", "Before to start the building, the following material is required: <ul>");
 		pane.append("li",
 				"<p>A pretrained TensorFlow model version 1.15 or lower. " + "This pretrained model has to be stored in a TensorFlow SavedModel file (save_model.pb and variables)</p>");
+		pane.append("li",
+				"<p>A pretrained Pytorch Torchscipt model version 1.6.0 or lower. " + "This pretrained model has to be stored in a folder. The path to the folder is what needsto be provided.</p>");
 		pane.append("li", "<p>General information of the pretrained model</p>");
 		pane.append("li", "<p>Knowledge of tensor organization and the tiling strategy</p>");
 		pane.append("li", "<p>Macro or java file of preprocessing and postprocessing</p>");
 		pane.append("li", "<p>A test image</p>");
 		pane.append("</ul>");
 		pane.append("p", "More information: deepimagej.github.io/deepimagej");
-		pane.append("p", "Reference: E. G&oacute;mez de Mariscal et al. DeepImageJ: J: A user-friendly plugin to run\n" + 
+		pane.append("p", "Reference: E. G&oacute;mez de Mariscal and C. Garc&iacute;a-L&oacute;pez-de-Haro et al. DeepImageJ: J: A user-friendly plugin to run\n" + 
 				"deep learning models in ImageJ. Submitted 2019.");
 		pane.append("<hr>");
 		pane.append("p",

@@ -42,12 +42,17 @@ import java.awt.CardLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+
+import org.tensorflow.SavedModelBundle;
 
 import deepimagej.components.TitleHTMLPane;
 import deepimagej.stamp.InputDimensionStamp;
@@ -93,7 +98,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 	private SaveOutputFilesStamp	outputSelection;
 	private TfSaveStamp				tfSave;
 	private PtSaveStamp				ptSave;
-	private DeepImageJ				dp;
+	private DeepImageJ				dp		= null;
 	private int						card	= 1;
 
 	public BuildDialog() {
@@ -156,6 +161,31 @@ public class BuildDialog extends JDialog implements ActionListener {
 		setVisible(true);
 		bnBack.setEnabled(false);
 
+		// Close model when the plugin is closed
+		this.addWindowListener(new WindowAdapter() 
+		{
+		  public void windowClosed(WindowEvent e) {
+			  if (dp == null)
+				  return;
+			  if (getDeepPlugin().getTfModel() != null) { 
+				  getDeepPlugin().getTfModel().session().close();
+				  getDeepPlugin().getTfModel().close();
+			  } else if (getDeepPlugin().getTorchModel() != null) {
+				  getDeepPlugin().getTorchModel().close();
+			  }
+		  }
+		  public void windowClosing(WindowEvent e) {
+			  if (dp == null)
+				  return;
+			  if (getDeepPlugin().getTfModel() != null) { 
+				  getDeepPlugin().getTfModel().session().close();
+				  getDeepPlugin().getTfModel().close();
+			  } else if (getDeepPlugin().getTorchModel() != null) {
+				  getDeepPlugin().getTorchModel().close();
+			  }
+		  }
+		});
+
 	}
 
 	private void setCard(String name) {
@@ -183,6 +213,10 @@ public class BuildDialog extends JDialog implements ActionListener {
 					String name = welcome.getModelName();
 					if (path != null) {
 						dp = new DeepImageJ(path, name, new Log(), true);
+						if (dp.getTfModel() != null)
+							dp.getTfModel().close();
+						else if (dp.getTorchModel() != null)
+							dp.getTorchModel().close();
 						if (dp != null) {
 							dp.params.path2Model = path + File.separator + name + File.separator;
 							if (dp.getValid() && dp.params.framework.contains("Tensorflow")) {

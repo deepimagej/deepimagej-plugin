@@ -135,8 +135,7 @@ public class SaveOutputFilesStamp extends AbstractStamp implements ActionListene
 			for (String name : selections) {
 				HashMap<String, String> out = new HashMap<String, String>();
 				String type = imOrResultsTable.get(name);
-				String extension = type.contains("image") ? ".tiff" : ".csv";
-				out.put("name", name + extension);
+				out.put("name", name);
 				out.put("type", type);
 				
 				// Write info about the selected info. This info includes

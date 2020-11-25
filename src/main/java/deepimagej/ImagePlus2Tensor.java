@@ -47,11 +47,8 @@ import ai.djl.ndarray.types.Shape;
 import deepimagej.exceptions.IncorrectNumberOfDimensions;
 import deepimagej.tools.ArrayOperations;
 import ij.IJ;
-import ij.ImageJ;
 import ij.ImagePlus;
-import ij.WindowManager;
 import ij.process.ImageProcessor;
-import ij.process.ImageStatistics;
 
 
 public class ImagePlus2Tensor {
@@ -60,74 +57,6 @@ public class ImagePlus2Tensor {
 	// TODO include tensor to resultstable and viceversa
 	// Methods to transform a Pytorch and TF tensors into ImageJ ImagePlus
 	
-	public static void main(String[] args) throws IncorrectNumberOfDimensions {
-		new ImageJ();
-		IJ.runMacro("newImage(\"HyperStack\", \"32-bit color-mode label\", 400, 300, 3, 1, 1)");
-		ImagePlus im = WindowManager.getCurrentImage();
-		Tensor<Float> t1 = implus2TensorFloat(im, "BCYX");
-		Tensor<Float> t2 = (Tensor<Float>) ImagePlus2Tensor_REMOVE.imPlus2tensor(im, "BCYX", 3);
-		
-		float[] arr1 = new float[300*400*3];
-		FloatBuffer outBuff = FloatBuffer.wrap(arr1);
-	 	t1.writeTo(outBuff);
-		
-		float[] arr2 = new float[300*400*3];
-		FloatBuffer outBuff2 = FloatBuffer.wrap(arr2);
-	 	t2.writeTo(outBuff2);
-	 	
-	 	for (int i = 0; i < arr2.length; i ++) {
-			if (arr1[i] != arr2[i]) {
-				System.out.println(":(");
-				return;
-			}
-	 	}
-	 	System.out.print(":)");
-
-		float[][][][] ar1 = new float[1][3][300][400];
-		float[][][][] ar2 = new float[1][3][300][400];
-		t1.copyTo(ar1);
-		t2.copyTo(ar2);
-		for (int b = 0; b < 1; b ++) {
-			for (int z = 0; z < 4; z ++) {
-				for (int y = 0; y < 300; y ++) {
-					for (int x = 0; x < 400; x ++) {
-						for (int c = 0; c < 3; c ++) {
-							if (ar1[b][c][y][x] != ar2[b][c][y][x]) {
-								System.out.println(":((");
-								return;
-							}
-						}
-						
-					}
-					
-				}
-				
-			}
-			
-		}
-	 	System.out.print(":)))");
-	 	if (ar1.equals(ar2)) {
-	 		System.out.println(":))");
-	 	} else {
-	 		System.out.println(":/");
-	 	}
-
-	 	ImagePlus im1 = tensor2ImagePlus(t1, "BCYX", "CACA");
-	 	ImagePlus im2 = ImagePlus2Tensor_REMOVE.tensor2ImagePlus(t2, "BCYX");
-	 	ImageStatistics st1 = im1.getStatistics();
-	 	ImageStatistics st2 = im2.getStatistics();
-	 	im1.plotHistogram();
-	 	im2.plotHistogram();
-	 	im1.show();
-	 	im2.show();
-	 	
-	 	if (im1.equals(im2)) {
-	 		System.out.println("misma imagen");
-	 	} else {
-	 		System.out.println("nooooooooooooo");
-	 	}
-	 }
-
 	public static NDArray imPlus2tensor(NDManager manager, ImagePlus img, String form){
 		// Convert ImagePlus into tensor calling the corresponding
 		// method depending on the dimensions of the required tensor 

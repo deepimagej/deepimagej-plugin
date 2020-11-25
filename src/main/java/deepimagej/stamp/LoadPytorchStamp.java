@@ -57,6 +57,7 @@ import org.tensorflow.SavedModelBundle;
 import org.tensorflow.framework.SignatureDef;
 
 import ai.djl.MalformedModelException;
+import ai.djl.engine.EngineException;
 import ai.djl.ndarray.NDList;
 import ai.djl.repository.zoo.Criteria;
 import ai.djl.repository.zoo.ModelNotFoundException;
@@ -171,10 +172,12 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 		//pnLoad.append("p", "Loading available Tensorflow version.");
 		
 		Parameters params = parent.getDeepPlugin().params;
+		params.selectedModelPath = findPytorchModels(params.path2Model);
 		// TODO refer to the DJL or Pytorch versions used if possible
 		pnLoad.clear();
-		pnLoad.append("h2", "Pytorch/Deep Java Library version");
-		pnLoad.append("p", "Currently using XXXX framework");
+		pnLoad.append("h2", "Pytorch version");
+		pnLoad.append("p", "Currently using Pytorch 1.6.0");
+		pnLoad.append("p", "Supported by Deep Java Library 1.6.0");
 		pnLoad.append("h2", "Model info");
 		pnLoad.append("p", "Path: " + params.selectedModelPath);
 		pnLoad.append("p", "Loading model...");
@@ -187,7 +190,6 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 		try {
 			url = new File(new File(params.path2Model).getAbsolutePath()).toURI().toURL();
 			
-			// TODO remove params.selectedModelPath = findPytorchModels(params.path2Model);
 			if (params.selectedModelPath.equals("")) {
 				pnLoad.append("No Pytorch model found in the directory.");
 				parent.setEnabledBack(true);
@@ -211,12 +213,12 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 
 			ZooModel<NDList, NDList> model = ModelZoo.loadModel(criteria);
 			parent.getDeepPlugin().setTorchModel(model);
-			String torchscriptSize = FileTools.getFolderSizeKb(params.selectedModelPath);
+			double torchscriptSize = new File(params.selectedModelPath).length() / (1024 * 1024.0);
 			long stopTime = System.nanoTime();
 			// Convert nanoseconds into seconds
 			String loadingTime = "" + ((stopTime - startTime) / (float) 1000000000);
 			pnLoad.setCaretPosition(1);
-			pnLoad.append("p", "Model size: " + torchscriptSize);
+			pnLoad.append("p", "Model size: " + torchscriptSize + " Mb");
 			pnLoad.append("p", "Loading time: " + loadingTime +  " s");
 			
 			parent.setEnabledBackNext(true);
@@ -225,6 +227,12 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 		} catch (MalformedURLException e) {
 			pnLoad.append("p", "DeepImageJ could not load the model");
 			pnLoad.append("p", "Check that the path provided to the model remains the same.");
+			parent.setEnabledBack(true);
+			e.printStackTrace();
+		} catch (EngineException e) {
+			pnLoad.append("p", "DeepImageJ could not load the model");
+			pnLoad.append("p", "It seems that the Torchscript model was created with Pytorch>1.6.0.");
+			pnLoad.append("p", "Currently DeepImageJ only supports models created with Pytorch<=1.6.0.");
 			parent.setEnabledBack(true);
 			e.printStackTrace();
 		} catch (ModelNotFoundException e) {
@@ -254,7 +262,6 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 	 * Find the Pytorch model (".pt" or ".pth") inside the folder provided.
 	 * If there are more than one model, make the user decide.
 	 */
-	/* TODO remove
 	private String findPytorchModels(String modelPath) {
 		
 		File[] folderFiles = new File(modelPath).listFiles();
@@ -282,5 +289,4 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 		}
 		return modelPath + File.separator + dlg.getNextChoice();
 	} 
-	*/
 }

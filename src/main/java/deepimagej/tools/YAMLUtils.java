@@ -47,6 +47,7 @@ import java.io.PrintWriter;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -89,6 +90,11 @@ public class YAMLUtils {
 					shape.put("step", Arrays.toString(aux));
 					inputTensorMap.put("shape", shape);
 				}
+				Map<String, Object> preprocessing = new LinkedHashMap<>();
+				preprocessing.put("name", null);
+				// TODO what to do Map<String, Object> kwargs = new LinkedHashMap<>();
+				preprocessing.put("kwargs", null);
+				inputTensorMap.put("preprocessing", preprocessing);
 				modelInputMapsList.add(inputTensorMap);
 				
 				// Now write the test data info
@@ -122,17 +128,73 @@ public class YAMLUtils {
 			outputTestInfo.put("size", out.get("size"));
 			outputTestInfoList.add(outputTestInfo);
 		}
-		
+
+		// Version of the yaml file
+		data.put("format_version", params.format_version);
+		// Name of the model
 		data.put("name", params.name);
 		// Short description of the model
 		data.put("description", params.description);
-		// List of authors who trained/prepared the actual model which is being saved
-		data.put("authors", params.author);
+		// Year when the model was created
+		data.put("date", Calendar.getInstance().get(Calendar.YEAR));
 		
 		// Citation
-		if (params.cite.size() == 0)
+		if (params.cite != null && params.cite.size() == 0)
 			params.cite = null;
 		data.put("cite", params.cite);
+		// List of authors who trained/prepared the actual model which is being saved
+		data.put("authors", params.author);
+		// Link to the documentation of the model, which contains info about
+		// the model such as the images used or architecture
+		data.put("documentation", params.documentation);
+		// Path to the image that will be used as the cover picture in the Bioimage model Zoo
+		if (params.coverImage != null)
+			params.coverImage = Arrays.toString(new String[] {params.coverImage});
+		data.put("covers", params.coverImage);
+		// Tags that will be used to look for the model in the Bioimage model Zoo
+		data.put("tags", params.infoTags);
+		// Type of license of the model
+		data.put("license", params.license);
+		// Programming language in which the model was prepared for the Bioimage model zoo
+		data.put("language", params.language);
+		// Deep Learning framework with which the model was obtained
+		data.put("framework", params.framework);
+		// Git repo where info to the model can be found
+		data.put("git_repo", params.git_repo);
+		
+		// Create field containing the weights format and info
+		Map<String, Map<String, Object>> weights = new LinkedHashMap<>();
+		// Map for a specific format containing the info for the weigths of a given format
+		Map<String, Object> format_info = new LinkedHashMap<>();
+		// TODO allow uploading models to github, zenodo or drive
+		format_info.put("source", null);
+		// For Tensorflow, if upload to biozoo is selected, calculate checksum
+		// For Pytorch, always calculate checksum
+		if (params.framework.equals("Pytorch")) {
+			format_info.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + "pytorch_script.pt"));
+		} else if (params.framework.equals("Tensorflow") && params.biozoo) {
+			format_info.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + "tensorflow_saved_model_bundle.zip"));
+		} else if (params.framework.equals("Tensorflow") && !params.biozoo) {
+			format_info.put("sha256", null);
+		}
+		// Path to the test inputs
+		ArrayList<String> inputExamples = new ArrayList<String>();
+		// TODO generalize for several input images
+		inputExamples.add("./" + params.testImageBackup.getTitle().substring(4));
+		format_info.put("test_input", inputExamples);
+		// Path to the test outputs
+		ArrayList<String> outputExamples = new ArrayList<String>();
+		for (HashMap<String, String> out : params.savedOutputs)
+			outputExamples.add("./" + out.get("name"));
+		format_info.put("test_output", outputExamples);
+		
+		if (params.framework.equals("Pytorch")) {
+			weights.put("pytorch_script", format_info);
+		} else {
+			weights.put("tensorflow_saved_model_bundle", format_info);
+		}
+		
+
 		
 		// Info relevant to DeepImageJ, see: https://github.com/bioimage-io/configuration/issues/23
 		Map<String, Object> config = new LinkedHashMap<>();
@@ -167,85 +229,14 @@ public class YAMLUtils {
 		// Metadata of the example used to compose the model
 		deepimagej.put("test_information", testInformation);
 		
-		config.put("deepimagej", deepimagej);
+				
 		
-		// Save the model
-		// Architecture
-		// TODO what to do when the sha256 is not saved
-		Map<String, Object> model = new LinkedHashMap<>();
-		if  (params.framework.contains("Tensorflow"))
-			model.put("source", "./saved_model.pb");
-		else if (params.framework.contains("Pytorch"))
-			model.put("source", "./" + params.name + "_v" + params.version +".pt");
-		try {
-			if  (params.framework.contains("Tensorflow"))
-				model.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + "saved_model.pb"));
-			else if (params.framework.contains("Pytorch"))
-				model.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + params.name + "_v" + params.version + ".pt"));
-		} catch (IOException e1) {
-			model.put("sha256", null);
-			e1.printStackTrace();
-		}
-		
-		// Weights
-		Map<String, Object> weights = new HashMap<String, Object>();
-		if (params.biozoo)
-			weights = params.previousVersions;
-		// Version
-		Map<String, Object> version = new LinkedHashMap<>();
-		String weightsVersion = "v" + params.version.trim();
-		if  (params.framework.contains("Tensorflow"))
-			version.put("source", "./weights_" + weightsVersion + ".zip");
-		else if (params.framework.contains("Pytorch"))
-			version.put("source", "./" + params.name + "_v" + ".pt");
-		String zipFile = params.saveDir + File.separator + "weights_" + weightsVersion + ".zip";
-		if (params.framework.contains("Tensorflow") && new File(zipFile).isFile()) {
-			String zipSha = FileTools.createSHA256(params.saveDir + File.separator + "weights_" + weightsVersion + ".zip");
-			version.put("sha256", zipSha);
-		} else if (params.framework.contains("Pytorch")) {
-			String zipSha = FileTools.createSHA256(params.saveDir + File.separator + params.name + "_v" + params.version + ".pt");
-			version.put("sha256", zipSha);
-		}
-		weights.put(weightsVersion, version);
-		
-		
-		
-		// Link to the documentation of the model, which contains info about
-		// the model such as the images used or architecture
-		data.put("documentation", params.documentation);
-		// Path to the image that will be used as the cover picture in the Bioimage model Zoo
-		data.put("cover", Arrays.asList(params.coverImage));
-		// Path to the test inputs
-		ArrayList<String> inputExamples = new ArrayList<String>();
-		// TODO generalize for several input images
-		inputExamples.add("./" + params.testImageBackup.getTitle().substring(4));
-		data.put("test_input", inputExamples);
-		// Path to the test outputs
-		ArrayList<String> outputExamples = new ArrayList<String>();
-		for (HashMap<String, String> out : params.savedOutputs)
-			outputExamples.add("./" + out.get("name"));
-		data.put("test_output", outputExamples);
-		// Tags that will be used to look for the model in the Bioimage model Zoo
-		data.put("tags", params.infoTags);
-		// Type of license of the model
-		data.put("license", params.license);
-		// Version of the model
-		data.put("format_version", params.version);
-		// Programming language in which the model was prepared for the Bioimage model zoo
-		data.put("language", params.language);
-		// Deep Learning framework with which the model was obtained
-		data.put("framework", params.framework);
-		// Link to a website where we can find the model
-		data.put("source", params.source);
-		// Link to the folder containing the architecture
-		data.put("model", model);
 		// Link to the folder containing the weights
 		data.put("weights", weights);
-		// Information relevant to deepimagej
-		data.put("config", config);
 		
 		data.put("inputs", modelInputMapsList);
 		data.put("outputs", modelOutputMapsList);
+		
 		
 		// Preprocessing
 		List<Map<String, String>> listPreprocess = new ArrayList<Map<String, String>>();
@@ -321,7 +312,10 @@ public class YAMLUtils {
 		prediction.put("preprocess", listPreprocess);
 		prediction.put("postprocess", listPostprocess);
 		
-		data.put("prediction", prediction);
+		// Information relevant to deepimagej
+		deepimagej.put("prediction", prediction);
+		config.put("deepimagej", deepimagej);
+		data.put("config", config);
 
 		DumperOptions options = new DumperOptions();
 		options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
@@ -391,6 +385,11 @@ public class YAMLUtils {
 			outputTensorMap.put("data_type", "float32");
 			outputTensorMap.put("data_range", Arrays.toString(out.dataRange));
 		}
+		Map<String, Object> postprocessing = new LinkedHashMap<>();
+		postprocessing.put("name", null);
+		// TODO what to do Map<String, Object> kwargs = new LinkedHashMap<>();
+		postprocessing.put("kwargs", null);
+		outputTensorMap.put("postprocessing", postprocessing);
 		return outputTensorMap;
 	}
 	
@@ -403,7 +402,14 @@ public class YAMLUtils {
 		while(scanner.hasNextLine()){  // while there is a next line
 		    String line = scanner.nextLine();  // line = that next line
 		
-		
+		    // Replace Infinity by inf
+		    line = line.replace("Infinity", "inf");
+		    // Replace '-   ' by '  - ' and '- ' by '  - '
+		    if (line.contains("-   ")) {
+			    line = line.replace("-   ", "  - ");
+		    } else if (line.contains("- ")) {
+		    	line = line.replace("- ", "  - ");
+		    }
 		    // replace a character
 		    for (int i = 0; i < line.length(); i++){
 		        if (line.charAt(i) != '\'') {  // or anything other character you chose

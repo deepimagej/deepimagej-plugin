@@ -37,8 +37,6 @@
 
 package deepimagej;
 
-import java.io.File;
-import java.net.URL;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,19 +48,12 @@ import org.tensorflow.Tensor;
 
 import ai.djl.engine.EngineException;
 import ai.djl.inference.Predictor;
-import ai.djl.modality.cv.Image;
-import ai.djl.modality.cv.ImageFactory;
-import ai.djl.modality.cv.Image.Flag;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.types.Shape;
-import ai.djl.repository.zoo.Criteria;
-import ai.djl.repository.zoo.ModelZoo;
 import ai.djl.repository.zoo.ZooModel;
-import ai.djl.training.util.ProgressBar;
 import deepimagej.exceptions.IncorrectNumberOfDimensions;
-import deepimagej.processing.ExternalClassManager;
 import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.CompactMirroring;
 import deepimagej.tools.DijTensor;
@@ -71,7 +62,6 @@ import deepimagej.tools.Log;
 import deepimagej.tools.NumFormat;
 import ij.IJ;
 import ij.ImagePlus;
-import ij.WindowManager;
 import ij.measure.ResultsTable;
 
 public class RunnerPt implements Callable<HashMap<String, Object>> {
@@ -225,9 +215,10 @@ private int							currentPatch = 0;
 		String[] outputTitles = new String[params.outputList.size()];
 		// Reset the counter to 0 use it again
 		c = 0;
-		for (DijTensor outName: params.outputList) {
-			outputTitles[c++] = outName.name  + " " + dp.getName() + " of " + imp.getTitle();
-		}
+		int extensionInd = imp.getTitle().lastIndexOf('.');
+		String imName = extensionInd  == -1 ? imp.getTitle() : imp.getTitle().substring(0, extensionInd);
+		for (DijTensor outName: params.outputList) 
+			outputTitles[c++] = dp.getName() + "_" + outName.name  + "_" + imName;
 
 		// Order of the dimensions. For example "NHWC"-->Batch size, Height, Width, Channels
 		String inputForm = params.inputList.get(inputImageInd).form;
@@ -375,6 +366,7 @@ private int							currentPatch = 0;
 						patch.getProcessor().resetMinAndMax();
 					}
 
+					// TODO optimise (take the try out of the loop) 
 					try (NDManager manager = NDManager.newBaseManager()) {
 						inputTensors = getInputTensors(manager, inputTensors, params.inputList, parameterMap, patch);
 						// TODO make easier to understand
@@ -414,7 +406,7 @@ private int							currentPatch = 0;
 									for (float f : resultsArray)
 										table.setValue(0, cRows ++, f);
 									outputTables.add(table);
-									table.show(outputTitles[c ++] + " of patch " + currentPatch);
+									table.show(outputTitles[c ++]);
 								} else if (result.getShape().dimension() == 2) {
 									ResultsTable table = new ResultsTable();
 									for (int col = 0; col < result.getShape().get(1); col ++) {
@@ -423,10 +415,12 @@ private int							currentPatch = 0;
 										}
 									}
 									outputTables.add(table);
-									table.show(outputTitles[c ++] + " of patch " + currentPatch);
+									table.show(outputTitles[c ++]);
 								}
 							}
 						}
+						outputTensors.close();
+						manager.close();
 					} catch (IncorrectNumberOfDimensions ex) {
 						ex.printStackTrace();	
 						IJ.log("Error applying the model");

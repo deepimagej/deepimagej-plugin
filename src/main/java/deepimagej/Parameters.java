@@ -141,7 +141,8 @@ public class Parameters {
 	 */
 	public String		name					= "";
 	public List<String>	author					= new ArrayList<String>();
-	public String		version					= "";
+	//public String		version					= "";
+	public String		format_version					= "";
 	/*
 	 * Citation: contains the reference articles and the corresponding dois used
 	 * to create the model
@@ -157,6 +158,7 @@ public class Parameters {
 	public String		source					= null;
 	public String		coverImage				= null;
 	public String		description				= null;
+	public String		git_repo				= null;
 
 	// in ModelTest
 	public String		memoryPeak				= "";
@@ -195,12 +197,12 @@ public class Parameters {
 	/*
 	 * List of all the existing versions of the model weights.
 	 */
-	public Map<String, Object> previousVersions = new HashMap<String, Object>();
+	//public Map<String, Object> previousVersions = new HashMap<String, Object>();
 	/*
 	 * Checksum of the saved_model.pb file. Only useful if
 	 * we use a Bioimage Zoo model.
 	 */
-	public String saved_modelSha256;
+	// TODO public String saved_modelSha256;
 	/*
 	 * Specifies if the folder contains a Bioimage Zoo model
 	 */
@@ -228,13 +230,14 @@ public class Parameters {
 		// If the model is not valid or we are in the developer plugin,
 		// we cannot read the parameters from anywhere as there is no
 		// config file
-		String yamlFile = path + File.separator + "config.yaml";
+		String yamlFile = path + File.separator + "model.yaml";
 		developer = isDeveloper;
-		if (!valid || developer || !new File(yamlFile).isFile())
+		if (developer || !new File(yamlFile).isFile())
 			return;
 		Map<String, Object> obj =  YAMLUtils.readConfig(yamlFile);
 
 
+		format_version = "" + obj.get("format_version");
 		name = (String) obj.get("name");
 		author = (List<String>) obj.get("authors");
 		if (author == null) {
@@ -256,8 +259,31 @@ public class Parameters {
 		// TODO do we need cover?
 		//String cover = (String) obj.get("cover");
 		license = (String) obj.get("license");
-		version = "" + obj.get("format_version");
 		framework = (String) obj.get("framework");
+		git_repo = (String) obj.get("git_repo");
+		
+		LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>> weights = (LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>>) obj.get("weights");
+		// Look for the valid weights tags
+		Set<String> weightFormats = weights.keySet();
+		boolean tf = false;
+		boolean pt = false;
+		for (String format : weightFormats) {
+			if (format.equals("tensorflow_saved_model_bundle"))
+				tf = true;
+			else if (format.equals("pytorch_script"))
+				pt = true;
+		}
+		
+		if (tf && pt) {
+			framework = "Tensorflow/Pytorch";
+		} else if (tf) {
+			framework = "Tensorflow";
+		} else if (pt) {
+			framework = "Pytorch";
+		} else if (!tf && !pt) {
+			completeConfig = false;
+			return;
+		}
 		
 		// Model metadata
 		Map<String, Object> config = (Map<String, Object>) obj.get("config");
@@ -269,8 +295,8 @@ public class Parameters {
 			Map<String, Object> model_keys = (Map<String, Object>) deepimagej.get("model_keys");
 			tag = (String) model_keys.get("tensorflow_model_tag");
 			graph = (String) model_keys.get("tensorflow_siganture_def");
-		}
-				
+		}		
+		
 		
 		List<Map<String, Object>> inputs = (List<Map<String, Object>>) obj.get("inputs");
 		// Check that the previous version field is complete
@@ -410,7 +436,7 @@ public class Parameters {
 
 		
 		// Get all the preprocessings available in the Yaml
-		Map<String, Object> prediction = (Map<String, Object>) obj.get("prediction");
+		Map<String, Object> prediction = (Map<String, Object>) deepimagej.get("prediction");
 		pre = new HashMap<String, String[]>();
 		post = new HashMap<String, String[]>();
 		Set<String> keys = prediction.keySet();
@@ -467,45 +493,15 @@ public class Parameters {
 		
 		name = name != null ? (String) name : "n/a";
 		documentation = documentation != null ? documentation : "n/a";
-		version = version != null ? version : "n/a";
+		format_version = format_version != null ? format_version : "n/a";
 		license = license != null ? license : "n/a";
 		memoryPeak = memoryPeak != null ? memoryPeak : "n/a";
 		runtime = runtime != null ?  runtime : "n/a";
 		tag = tag != null ? tag : "serve";
 		graph = graph != null ? graph : "serving_default";
+		completeConfig = true;
 		
-		previousVersions = (Map<String, Object>) obj.get("weights");
 		
-		// Check that the previous version field is complete
-		if (previousVersions == null) {
-			completeConfig = false;
-			return;
-		} else {
-
-			for (String k : previousVersions.keySet()) {
-				HashMap<String, String> vInfo;
-				try {
-					vInfo = (HashMap<String, String>) previousVersions.get(k);
-				} catch (Exception ex) {
-					completeConfig = false;
-					return;
-				}
-				if (vInfo.get("source") == null) {
-					completeConfig = false;
-					return;
-				} else if (vInfo.get("sha256") == null){
-					completeConfig = false;
-					return;
-				}
-			}
-		}
-		
-		// Check that the model sha256 is complete
-		saved_modelSha256 = (String) ((Map<String, Object>) obj.get("model")).get("sha256");
-		if (saved_modelSha256 == null) {
-			completeConfig = false;
-			return;
-		}
 	}
 	
 	public static String[] castListToStringArray(List list) {
@@ -527,20 +523,28 @@ public class Parameters {
 	}
 	
 	public static double[] castListToDoubleArray(List list) {
-		double[] array = new double[list.size()];
-		int c = 0;
-		for (Object in : list) {
-			array[c ++] = (double) in;
+		try {
+			double[] array = new double[list.size()];
+			int c = 0;
+			for (Object in : list) {
+				array[c ++] = (double) in;
+			}
+			return array;
+		} catch (Exception ex) {
+			return null;
 		}
-		return array;
 	}
 	
 	public static float[] castListToFloatArray(List list) {
-		float[] array = new float[list.size()];
-		int c = 0;
-		for (Object in : list) {
-			array[c ++] = ((Double) in).floatValue();
+		try {
+			float[] array = new float[list.size()];
+			int c = 0;
+			for (Object in : list) {
+				array[c ++] = ((Double) in).floatValue();
+			}
+			return array;
+		} catch (ClassCastException ex) {
+			return null;			
 		}
-		return array;
 	}
 }

@@ -37,14 +37,9 @@
 
 package deepimagej.stamp;
 import java.awt.BorderLayout;
-import java.awt.TextField;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Set;
-import java.util.Vector;
 
 import javax.swing.BoxLayout;
 import javax.swing.JComboBox;
@@ -59,10 +54,8 @@ import deepimagej.Parameters;
 import deepimagej.TensorFlowModel;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.DijTensor;
-import deepimagej.tools.FileTools;
 import deepimagej.tools.Log;
 import ij.IJ;
-import ij.gui.GenericDialog;
 
 public class LoadTFStamp extends AbstractStamp implements Runnable {
 
@@ -185,6 +178,8 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 
 	// TODO separate in methods
 	public void run() {
+		parent.setEnabledBack(false);
+		parent.setEnabledNext(false);
 		pnLoad.setCaretPosition(0);
 		pnLoad.setText("");
 		pnLoad.append("p", "Loading available Tensorflow version.");
@@ -192,8 +187,9 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		pnLoad.setCaretPosition(0);
 		pnLoad.setText("");
 		if (loadInfo.equals("")) {
-			pnLoad.append("p", "Unable to load find any Tensorflow distribution.");
+			pnLoad.append("p", "Unable to find any Tensorflow distribution.");
 			pnLoad.append("p", "Please, install a valid Tensorflow version.");
+			parent.setEnabledBack(true);
 			return;
 		}
 		
@@ -212,38 +208,10 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			name = file.getName();
 
 		pnLoad.append("h2", "Load " + name);
-		pnLoad.append("p", "Model version: " + new File(params.selectedModelPath).getName());
-		ArrayList<String> msg = new ArrayList<String>();
 
 		Log log = new Log();
 		params.tag = null;
-		if (!new File(params.selectedModelPath).getName().equals("variables")) {
-			if (new File(params.path2Model, "variables").isFile()) {
-				GenericDialog dlg = new GenericDialog("Overwrite weights");
-				dlg.addMessage("In order to load the selected version the plugin needs to overwrite");
-				dlg.addMessage("the already existing 'variables' folder");
-				dlg.addMessage("Do you want to overwrite it?");
-				if (dlg.wasCanceled()) {
-					pnLoad.append("p", "Model was not loaded.");
-					parent.setEnabledBack(true);
-					parent.setEnabledNext(false);
-					return;
-				}
-				for (File w : new File(params.path2Model + File.separator + "variables").listFiles())
-					w.delete();
-			}
-			// Now unzip the selected weights folder into a variables folder.
-			try {
-				FileTools.unzipFolder(new File(params.selectedModelPath), params.path2Model + File.separator + "variables");
-			} catch (IOException e) {
-				IJ.error("Could not extract the weights");
-				pnLoad.append("h2", "Could not unzip weights folder: " + new File(params.selectedModelPath).getName() + ".\n");
-				// Let the developer go back, but no forward
-				parent.setEnabledBack(true);
-				parent.setEnabledNext(false);
-				return;
-			}
-		}
+		
 		// Block back button while loading
 		parent.setEnabledBackNext(false);
 		Object[] info = null;

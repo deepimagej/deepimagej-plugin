@@ -38,17 +38,12 @@
 package deepimagej;
 
 import java.awt.TextArea;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
 
 import org.tensorflow.SavedModelBundle;
 
@@ -63,7 +58,6 @@ import deepimagej.tools.Log;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.FileTools;
 import ij.IJ;
-import ij.ImagePlus;
 import ij.gui.GenericDialog;
 
 public class DeepImageJ {
@@ -72,7 +66,7 @@ public class DeepImageJ {
 	private Log 					log;
 	public String					dirname;
 	public Parameters				params;
-	private boolean					valid 			= true;
+	private boolean					valid 			= false;
 	private boolean					developer		= true;
 	public ArrayList<String>		msgChecks		= new ArrayList<String>();
 	public ArrayList<String>		msgLoads		= new ArrayList<String>();
@@ -83,21 +77,34 @@ public class DeepImageJ {
 	public DeepImageJ(String pathModel, String dirname, Log log, boolean dev) {
 		String p = pathModel + File.separator + dirname + File.separator;
 		this.path = p.replace(File.separator + File.separator, File.separator);
+		// Remove double File separators
+		this.path = cleanPathStr(p);
 		this.log = log;
 		this.dirname = dirname;
 		this.developer = dev;
-		if (!dev && new File(path, "config.yaml").isFile()) {
+		if (!dev && !(new File(path, "model.yaml").isFile())) {
+			this.valid = false;
+		} else if (dev || new File(path, "model.yaml").isFile()) {
 			this.params = new Parameters(valid, path, dev);
 			this.params.path2Model = this.path;
-			this.valid = checkUser(p);
-		} else if (dev) {
-			this.params = new Parameters(valid, path, dev);
-			this.params.path2Model = this.path;
-			HashMap<String, Object> modelVersions = TensorFlowModel.checkDeveloper(this.params, msgChecks);
-			this.valid = selectVersion(modelVersions);
-		} else if (!dev && !(new File(path, "config.yaml").isFile())) {
+			this.valid = checkUser(p, false);
+		}
+		if (this.valid && dev && this.params.framework.equals("Tensorflow/Pytorch")) {
+			askFrameworkGUI();
+		}
+		if (!dev && this.valid && !this.params.completeConfig) {
 			this.valid = false;
 		}
+	}
+
+	/*
+	 * Method that substitutes double path separators ('\\' or '//') by single ones
+	 */
+	private String cleanPathStr(String p) {
+		while (p.indexOf(File.separator + File.separator) != -1) {
+			p = p.replace(File.separator + File.separator, File.separator);
+		}
+		return p;
 	}
 
 	public String getPath() {
@@ -105,7 +112,8 @@ public class DeepImageJ {
 	}
 	
 	public String getName() {
-		return params.name.equals("n.a.") ? dirname : params.name;
+		String name = params.name.equals("n.a.") ? dirname : params.name;
+		return name.replace("\"", "");
 	}
 	
 	public ZooModel<NDList, NDList> getTorchModel() {
@@ -214,6 +222,8 @@ public class DeepImageJ {
 			e.printStackTrace();
 			return false;
 		} catch (IOException e) {
+			IJ.log("Model not found in the path provided:");
+			IJ.log(path);
 			e.printStackTrace();
 			return false;
 		} catch (UnsatisfiedLinkError e) {
@@ -240,7 +250,7 @@ public class DeepImageJ {
 			return;
 		}
 		info.append("----------- BASIC INFO -----------\n");
-		info.append("Name: " + params.name + "\n");
+		info.append("Name: " + params.name.replace("\"", "") + "\n");
 		/* TODO remove
 		 * info.append(checks.get(0) + "\n");
 		// TODO remove
@@ -309,8 +319,7 @@ public class DeepImageJ {
 		
 	}
 
-	// TODO Unify
-	public  boolean checkUser(String path) {
+	public  boolean checkUser(String path, boolean recurrence) {
 		File dir = new File(path);
 		if (!dir.exists()) {
 			return false;
@@ -318,60 +327,60 @@ public class DeepImageJ {
 		if (!dir.isDirectory()) {
 			return false;
 		}
-		boolean valid = true;
+		boolean validTf = false;
+		boolean validPt = false;
 		
-		File configFile = new File(path + "config.yaml");
+		File configFile = new File(path + "model.yaml");
 		if (!configFile.exists() && !developer) {
-			valid = false;
-			return valid;
+			return false;
 		}
 
 		File modelFile = new File(path + "saved_model.pb");
-		if (!modelFile.exists()) {
-			valid = false;
-		} else {
-			
-			Set<String> versions = this.params.previousVersions.keySet();
-			boolean isThereBiozoo = false;
-			String allFiles = Arrays.toString(dir.list());
-			for (String v : versions) {
-				if (allFiles.contains("weights_" + v + ".zip")) 
-					isThereBiozoo = true;
-				this.params.framework = "Tensorflow";
-			}
-			if (isThereBiozoo) {
-				valid = true;
-				return valid;
-			}
-
-			File variableFile = new File(path + "variables");
-			if (!variableFile.exists()) {
-				valid = false;
-			}
-			else {
-				this.params.framework = "Tensorflow";
-			}
+		File variableFile = new File(path + "variables");
+		if (modelFile.exists() && variableFile.exists()){
+			validTf = true; 
+			this.params.framework = "Tensorflow";
 		}
 		
 		// If no tf model has been found. Look for a pytorch torchscript model
-		if (!valid && findPytorchModel(dir)) {
+		if (findPytorchModel(dir)) {
+			this.params.selectedModelPath = dir.getAbsolutePath();
+			// TODO check checksum
+			validPt = true;
 			this.params.framework = "Pytorch";
-			this.params.selectedModelPath = dir.getAbsolutePath();
-			valid = true;
-		} else if (valid && findPytorchModel(dir) && this.developer) {
-			// If in the folder there is both a tf and a pytorch model, ask the user
-			// which one he wants to load
-			// TODO remove askFrameworkGUI();
-			valid = true;
-		} else if (valid && findPytorchModel(dir) && !this.developer) {
-			// If in the folder there is both a tf and a pytorch model, give
-			// the end-user the option to choose between both
-			this.params.framework = "Pytorch/Tensorflow";
-			this.params.selectedModelPath = dir.getAbsolutePath();
-			valid = true;
 		}
 		
-		return valid;
+		if (validTf && validPt)
+			this.params.framework = "Tensorflow/Pytorch";
+		
+		// TODO optimise with the name found in the yaml file
+		if (!validTf && !validPt && !recurrence) {
+			// Find zipped biozoo model
+			findZippedBiozooModel(dir);
+			return checkUser(path, true);
+		}
+		
+		return validTf || validPt;
+	}
+	
+	/*
+	 * Method returns true if a torchscript model is found inside
+	 * of the folder provided
+	 */
+	// TODO separate finding and unzipping
+	public static boolean findZippedBiozooModel(File modelFolder) {
+		for (String file : modelFolder.list()) {
+			if (file.contains("tensorflow_saved_model_bundle.zip")) {
+				try {
+					FileTools.unzipFolder(new File(modelFolder.getAbsolutePath() + File.separator + file), modelFolder.getAbsolutePath());
+				} catch (IOException e) {
+					e.printStackTrace();
+					IJ.error("Error unzipping: " + file);
+				}
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	/*
@@ -385,108 +394,19 @@ public class DeepImageJ {
 		}
 		return false;
 	}
-
-	/*
-	 * Let the user select which version of the model they want to load
-	 * among all that have been recovered from the folder
+	
+	/* TODO
+	 * Method returns true if the checksum is the same
+	 * for the torchscript model
 	 */
-	private boolean selectVersion(HashMap<String, Object> modelVersions) {
-		boolean tf = (boolean) modelVersions.get("tf");
-		boolean pt = (boolean) modelVersions.get("pytorch");
-		HashMap<String, List<String>> biozoo = (HashMap<String, List<String>>) modelVersions.get("vBiozoo");
-		ArrayList<String> ptModels = (ArrayList<String>) modelVersions.get("vPt");
-		ArrayList<String> tfModels = (ArrayList<String>) modelVersions.get("vTf");
-		
-		// If there is only one model, select it and load it
-		if (biozoo == null && tf == true && pt == false && tfModels.size() == 1) {
-			this.params.framework = "Tensorflow";
-			this.params.selectedModelPath = this.params.path2Model + tfModels.get(0);
-			return true;
-		}if (biozoo == null && tf == false && pt == true && ptModels.size() == 1) {
-			this.params.framework = "Pytorch";
-			this.params.selectedModelPath = this.params.path2Model + ptModels.get(0);
-			return true;
-		} else if (biozoo != null  && biozoo.get("correct").size() == 0 && biozoo.get("faulty").size() == 0 && tf == true && pt == false && tfModels.size() == 1) {
-			this.params.framework = "Tensorflow";
-			this.params.selectedModelPath = this.params.path2Model + tfModels.get(0);
-			return true;
-		} else if (biozoo != null  && biozoo.get("correct").size() == 0 && biozoo.get("faulty").size() == 0 && tf == false && pt == true && ptModels.size() == 1) {
-			this.params.framework = "Pytorch";
-			this.params.selectedModelPath = this.params.path2Model + ptModels.get(0);
-			return true;
-		} else if (biozoo != null && tf == false && pt == false && ptModels.size() == 0 && biozoo.get("correct").size() == 1 && biozoo.get("faulty").size() == 0) {
-			this.params.selectedModelPath = this.params.path2Model + biozoo.get("correct").get(0);
-			if (this.params.selectedModelPath.contains(".pt") || this.params.selectedModelPath.contains(".pth"))
-				this.params.framework = "Pytorch";
-			else
-				this.params.framework = "Tensorflow";
-			return true;
-		} else if (biozoo == null && tf == false && pt == false) {
-			return false;
+	public static boolean pytorchChecksum(File modelFolder) {
+		for (String file : modelFolder.list()) {
+			if (file.contains(".pt"))
+				return true;
 		}
-
-		// If there is more than one model, let the user select which one they 
-		// want to load
-		GenericDialog dlg = new GenericDialog("Choose version of the model");
-		dlg.addMessage("The folder provided contained several model versions");
-		dlg.addMessage("Select which do you want to load.");
-		// List all models
-		String[] modelList = new String[tfModels.size() + ptModels.size() + biozoo.get("correct").size() + biozoo.get("faulty").size() + biozoo.get("missing").size()];
-		int i = 0;
-		int tfSuffLen = " (Tensorflow)".length();
-		int ptSuffLen = " (Pytorch)".length();
-		int bioCorrectSuffLen = " (Bioimage Model Zoo)".length();
-		int bioFaultySuffLen = " (Bioimage Model Zoo, faulty)".length();
-		int bioMissingSuffLen = " (Bioimage Model Zoo, missing)".length();
-		for (String v : tfModels) 
-			modelList[i ++] = v + " (Tensorflow)";
-		for (String v : ptModels) 
-			modelList[i ++] = v + " (Pytorch)";
-		for (String v : biozoo.get("correct")) 
-			modelList[i ++] = v + " (Bioimage Model Zoo)";
-		for (String v : biozoo.get("missing")) 
-			modelList[i ++] = v + " (Bioimage Model Zoo, missing)";
-		for (String v : biozoo.get("faulty")) 
-			modelList[i ++] = v + " (Bioimage Model Zoo, faulty)";
-		
-		dlg.addChoice("Select framework", modelList, modelList[0]);
-		dlg.showDialog();
-		if (dlg.wasCanceled()) {
-			dlg.dispose();
-			return false;
-		}
-		String vSelect = dlg.getNextChoice();
-		int selectLen = vSelect.length();
-		if (vSelect.substring(selectLen - tfSuffLen).equals(" (Tensorflow)")) {
-			this.params.framework = "Tensorflow";
-			this.params.selectedModelPath = this.params.path2Model + vSelect.substring(0, selectLen - tfSuffLen);
-		} else if (vSelect.substring(selectLen - ptSuffLen).equals(" (Pytorch)")) {
-			this.params.framework = "Pytorch";
-			this.params.selectedModelPath = this.params.path2Model + vSelect.substring(0, selectLen - ptSuffLen);
-		} else if (vSelect.substring(selectLen - bioCorrectSuffLen).equals(" (Bioimage Model Zoo)") && vSelect.contains(".pt")) {
-			this.params.framework = "Pytorch";
-			this.params.selectedModelPath = this.params.path2Model + vSelect.substring(0, selectLen - bioCorrectSuffLen);
-		} else if (vSelect.substring(selectLen - bioCorrectSuffLen).equals(" (Bioimage Model Zoo)") && !vSelect.contains(".pt")) {
-			this.params.framework = "Tensorflow";
-			this.params.selectedModelPath = this.params.path2Model + vSelect.substring(0, selectLen - bioCorrectSuffLen);
-		} else if (vSelect.substring(selectLen - bioFaultySuffLen).equals(" (Bioimage Model Zoo, faulty)") && vSelect.contains(".pt")) {
-			this.params.framework = "Pytorch";
-			this.params.selectedModelPath = this.params.path2Model + vSelect.substring(0, selectLen - bioFaultySuffLen);
-		} else if (vSelect.substring(selectLen - bioFaultySuffLen).equals(" (Bioimage Model Zoo, faulty)") && !vSelect.contains(".pt")) {
-			this.params.framework = "Tensorflow";
-			this.params.selectedModelPath = this.params.path2Model + vSelect.substring(0, selectLen - bioFaultySuffLen);
-		} else if (vSelect.substring(selectLen - bioMissingSuffLen).equals(" (Bioimage Model Zoo, missing)")) {
-			IJ.error("The selected version is specified in the model file\n"
-					+ "but cannot be found in the model folder provided.\n"
-					+ "Select another version, please");
-			selectVersion(modelVersions);
-		}
-			
-		
-		return true;
+		return false;
 	}
 	
-	/* TODO remove
 	public void askFrameworkGUI() {
 		GenericDialog dlg = new GenericDialog("Choose model framework");
 		dlg.addMessage("The folder provided contained both a Tensorflow and a Pytorch model");
@@ -499,7 +419,6 @@ public class DeepImageJ {
 		}
 		this.params.framework = dlg.getNextChoice();
 	}
-	*/
 
 }
 

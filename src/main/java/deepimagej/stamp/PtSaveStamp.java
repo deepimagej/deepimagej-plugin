@@ -127,6 +127,7 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 
 	@Override
 	public void init() {
+		txt.setText(IJ.getDirectory("imagej") + File.separator + "models" + File.separator);
 	}
 
 	@Override
@@ -172,6 +173,13 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		
 		dir = new File(params.saveDir);
 		
+		if (dir.exists() && dir.isDirectory()) {
+			pane.append("p", "Path introduced corresponded to an already existing directory.");
+			pane.append("p", "Model not saved");
+			IJ.error("Directory: \n" + dir.getAbsolutePath() + "\n already exists. Please introduce other name.");
+			return;
+		}
+		
 		if (!dir.exists()) {
 			dir.mkdir();
 			pane.append("p", "Make a directory: " + params.saveDir);
@@ -181,19 +189,12 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			IJ.error("This directory is not valid to save");
 			return;
 		}
-		if (!dir.isDirectory()) {
-			pane.append("p", "Path introduced corresponded to a file.");
-			pane.append("p", "Model not saved");
-			IJ.error("This folder is not a directory");
-			return;
-		}
 
 		// Save the model architecture
 		try {
 			File torchfile = new File(params.selectedModelPath);
-			String v = "_v" + params.version;
-			FileTools.copyFile(torchfile, new File(dir + File.separator + params.name + v + ".pt"));
-			pane.append("p", "protobuf of the model (saved_model.pb): saved");
+			FileTools.copyFile(torchfile, new File(dir + File.separator + "pytorch_script" + ".pt"));
+			pane.append("p", "Torchscript model (.pt or .pth): saved");
 		} catch (IOException e) {
 			e.printStackTrace();
 			pane.append("p", "torchscript model (.pt or .pth): not saved");
