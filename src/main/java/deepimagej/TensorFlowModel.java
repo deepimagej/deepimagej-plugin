@@ -49,6 +49,7 @@ import java.util.Set;
 import javax.swing.JFrame;
 
 import org.scijava.Context;
+import org.scijava.command.CommandService;
 import org.tensorflow.SavedModelBundle;
 import org.tensorflow.TensorFlowException;
 import org.tensorflow.framework.MetaGraphDef;
@@ -118,12 +119,17 @@ public class TensorFlowModel {
 												   	     "tf.saved_model.signature_constants.SUPERVISED_TRAIN_METHOD_NAME",
 												   	     "tf.saved_model.signature_constants.SUPERVISED_EVAL_METHOD_NAME"};
 
-	
+
 	private static TensorFlowService tfService;
+    	private static Context ctx;
 	static {
-	  Context ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
-	  if (ctx == null) ctx = new Context(TensorFlowService.class);
-	  tfService = ctx.service(TensorFlowService.class);
+		try {
+			ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
+		} catch (Exception ex) {
+		}
+		if (ctx == null) ctx = new Context(CommandService.class, TensorFlowService.class);
+		tfService = ctx.service(TensorFlowService.class);
+	
 	}
 	
 	public static String loadLibrary() {
@@ -133,6 +139,7 @@ public class TensorFlowModel {
 			if (tfService.getStatus().isLoaded()) {
 				return tfService.getStatus().getInfo();
 			} else {
+				IJ.log(tfService.getStatus().getInfo());
 				return "";
 			}
 		}
