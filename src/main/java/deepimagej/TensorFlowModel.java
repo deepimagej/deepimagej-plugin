@@ -127,7 +127,7 @@ public class TensorFlowModel {
 			ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
 		} catch (Exception ex) {
 		}
-		if (ctx == null) ctx = new Context(CommandService.class, TensorFlowService.class);
+		if (ctx == null) ctx = new Context(TensorFlowService.class);
 		tfService = ctx.service(TensorFlowService.class);
 	
 	}
