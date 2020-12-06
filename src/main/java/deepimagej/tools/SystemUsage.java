@@ -37,7 +37,10 @@
 
 package deepimagej.tools;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
@@ -127,5 +130,64 @@ public class SystemUsage {
 			return root.getTotalSpace();
 		return 0;
 	}
+	
+	public static void main(String[] args) {
+		try {
+			checkGPU();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	/*
+	 * Run nvidia smi to check if there is any gpu available or if it 
+	 * is being used
+	 */
+	public static void checkGPU() throws IOException, InterruptedException {
+		runTerminalCommand("nvidia-smi");
+		getCUDAEnvVariables();
+	}
+	
+	/*
+	 * Run commands in the terminal and retrieve the output in the terminal
+	 */
+	public static void runTerminalCommand(String command) throws InterruptedException {
 
+        Process proc;
+		try {
+			proc = Runtime.getRuntime().exec(command);
+
+	        // Read the output
+	        BufferedReader reader =  
+	              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+
+	        String line = "";
+	        while((line = reader.readLine()) != null) {
+	            System.out.print(line + "\n");
+	        }
+
+	        proc.waitFor(); 
+		} catch (IOException e) {
+			// Not able to run terminal command.
+			// In the case of 'nvidia-smi', it was not installed
+		}  
+	}
+	
+	/*
+	 * Find enviromental variables corresponding to CUDA files.
+	 * If they are present and correspond to the needed CUDA vesion
+	 * for the installed TF or Pytorch version, it is possible that
+	 * we are using a GPU
+	 */
+	public static boolean getCUDAEnvVariables() {
+		String vars = System.getenv("path");
+		String[] arrVars = vars.split(";");
+		for (String i : arrVars)
+			System.out.println(i);
+		return true;
+	}
 }

@@ -292,7 +292,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 			// Build the panel
 			HTMLPane info = new HTMLPane(Constants.width, 150);
 			info.append("h", "<b>Output size constraints</b>");
-			info.append("p", "<b>Output size</b>: ???");
+			info.append("p", "<b>Output size</b>: Fixed output size of the model");
 			pn.add(info.getPane(), 0);
 			getPanelForImagePyramidalNet(params);
 		}else if (params.outputList.get(outputCounter).tensorType.contains("list")) {

@@ -38,6 +38,7 @@
 package deepimagej;
 
 import java.nio.FloatBuffer;
+import java.util.HashMap;
 
 import org.tensorflow.Tensor;
 
@@ -48,6 +49,7 @@ import deepimagej.exceptions.IncorrectNumberOfDimensions;
 import deepimagej.tools.ArrayOperations;
 import ij.IJ;
 import ij.ImagePlus;
+import ij.measure.ResultsTable;
 import ij.process.ImageProcessor;
 
 
@@ -459,5 +461,144 @@ public class ImagePlus2Tensor {
 			f_shape[i] = (int) shape[i];
 		}
 		return f_shape;
+	}
+	
+	// Convert image plus into int array 
+	
+	/*
+	 * Method that gets an long[] array with the shape of the tensor/image
+	 */
+	public static long[] getTensorShape(ImagePlus img, String form) {
+		int[] dims = img.getDimensions();
+		int xSize = dims[0];
+		int ySize = dims[1];
+		int cSize = dims[2];
+		int zSize = dims[3];
+		// TODO allow different batch sizes
+		int batch = 1;
+		// Create aux variable to indicate
+		// if it is channels one of the dimensions of
+		// the tensor or it is the batch size
+		int fBatch = -1;
+		int fChannel = -1;
+		int fDepth = -1;
+		int fWidth = -1;
+		int fHeight = -1;
+
+		long[] arrayShape = new long[form.length()];;
+		if (form.indexOf("B") != -1) {
+			fBatch = form.indexOf("B");
+			arrayShape[fBatch] = (long) batch;
+		}
+		if (form.indexOf("Y") != -1) {
+			fHeight = form.indexOf("Y");
+			arrayShape[fHeight] = (long) ySize;
+		}
+		if (form.indexOf("X") != -1) {
+			fWidth = form.indexOf("X");
+			arrayShape[fWidth] = (long) xSize;
+		}
+		if (form.indexOf("C") != -1) {
+			fChannel = form.indexOf("C");
+			arrayShape[fChannel] = (long) cSize;
+		}
+		if (form.indexOf("Z") != -1) {
+			fDepth = form.indexOf("Z");
+			arrayShape[fDepth] = (long) zSize;
+		}
+		return arrayShape;
+	}
+	
+	/*
+	 * Method that converts ImagePLus into float[] array.
+	 */
+
+	// TODO use this as basis for the implus2tensor and implus2ndarray
+	public static float[] implus2IntArray(ImagePlus img, String form){
+		// Create a float array of four dimensions out of an 
+		// ImagePlus object
+		float[] matImage;
+		// Initialise ImageProcessor variable used later
+		ImageProcessor ip;
+		int[] dims = img.getDimensions();
+		int xSize = dims[0];
+		int ySize = dims[1];
+		int cSize = dims[2];
+		int zSize = dims[3];
+		// TODO allow different batch sizes
+		int batch = 1;
+		int[] tensorDims = new int[] {1, 1, 1, 1, 1};
+		// Create aux variable to indicate
+		// if it is channels one of the dimensions of
+		// the tensor or it is the batch size
+		int fBatch = -1;
+		int fChannel = -1;
+		int fDepth = -1;
+		int fWidth = -1;
+		int fHeight = -1;
+
+		if (form.indexOf("B") != -1) {
+			fBatch = form.indexOf("B");
+			tensorDims[fBatch] = batch;
+		} else {
+			fBatch = form.length();
+			form += "B";
+		}
+		if (form.indexOf("Y") != -1) {
+			fHeight = form.indexOf("Y");
+			tensorDims[fHeight] = ySize;
+		} else {
+			fHeight = form.length();
+			form += "Y";
+		}
+		if (form.indexOf("X") != -1) {
+			fWidth = form.indexOf("X");
+			tensorDims[fWidth] = xSize;
+		} else {
+			fWidth = form.length();
+			form += "X";
+		}
+		if (form.indexOf("C") != -1) {
+			fChannel = form.indexOf("C");
+			tensorDims[fChannel] = cSize;
+		} else {
+			fChannel = form.length();
+			form += "C";
+		}
+		if (form.indexOf("Z") != -1) {
+			fDepth = form.indexOf("Z");
+			tensorDims[fDepth] = zSize;
+		} else {
+			fDepth = form.length();
+			form += "Z";
+		}
+		matImage = new float[tensorDims[0] * tensorDims[1] * tensorDims[2] * tensorDims[3] * tensorDims[4]];
+		
+		// Make sure the array is written from last dimension to first dimension.
+		// For example, for CYX we first iterate over all the X, then over the Y and then 
+		// over the C
+		int[] auxCounter = new int[5];
+		int pos = 0;
+		for (int t0 = 0; t0 < tensorDims[0]; t0 ++) {
+			auxCounter[0] = t0;
+			for (int t1 = 0; t1 < tensorDims[1]; t1 ++) {
+				auxCounter[1] = t1;
+				for (int t2 = 0; t2 < tensorDims[2]; t2 ++) {	
+					auxCounter[2] = t2;
+					for (int t3 = 0; t3 < tensorDims[3]; t3 ++) {
+						auxCounter[3] = t3;
+						for (int t4 = 0; t4 < tensorDims[4]; t4 ++) {	
+							auxCounter[4] = t4;
+							
+							img.setPositionWithoutUpdate(auxCounter[fChannel] + 1, auxCounter[fDepth] + 1, 1);
+							ip = img.getProcessor();
+							matImage[pos ++] = ip.getPixelValue(auxCounter[fWidth], auxCounter[fHeight]);
+						}
+					}	
+				}
+			}
+		}
+		
+	return matImage;
 	}
 }

@@ -54,6 +54,7 @@ import deepimagej.Parameters;
 import deepimagej.TensorFlowModel;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.DijTensor;
+import deepimagej.tools.FileTools;
 import deepimagej.tools.Log;
 import ij.IJ;
 
@@ -69,7 +70,6 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 	
 
 	public LoadTFStamp(BuildDialog parent) {
-		// TODO review messages
 		super(parent);
 		tags = new ArrayList<String>();
 		tags.add("Serve");
@@ -114,13 +114,13 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			Log log = new Log();
 			String tag = (String)cmbTags.getSelectedItem();
 			try {	
-				ArrayList<String> msgLoad = new ArrayList<String>();
-				SavedModelBundle model = TensorFlowModel.load(params.path2Model, tag, log, msgLoad);
+				double time = System.nanoTime();
+				SavedModelBundle model = TensorFlowModel.load(params.path2Model, tag, log);
+				time = System.nanoTime() - time;
+				addLoadInfo(params, time);
 				parent.getDeepPlugin().setTfModel(model);
 				params.tag = tag;
 				cmbTags.setEditable(false);
-				for (String m : msgLoad)
-					pnLoad.append("p", m);
 				parent.getDeepPlugin().setTfModel(model);
 				params.graphSet = TensorFlowModel.metaGraphsSet(model);
 				if (params.graphSet.size() > 0) {
@@ -141,6 +141,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			}
 			return false;
 		} else {
+			// TODO put it inside run
 			SavedModelBundle model = parent.getDeepPlugin().getTfModel();
 			params.graph = TensorFlowModel.returnStringSig((String)cmbGraphs.getSelectedItem());
 			SignatureDef sig = TensorFlowModel.getSignatureFromGraph(model, params.graph);
@@ -148,7 +149,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			params.totalOutputList = new ArrayList<>();
 			String[] inputs = TensorFlowModel.returnInputs(sig);
 			String[] outputs = TensorFlowModel.returnOutputs(sig);
-			pnLoad.append("p", "Number of output: " + outputs.length);
+			pnLoad.append("p", "Number of outputs: " + outputs.length);
 			boolean valid = true;
 			try {
 				for (int i = 0; i < inputs.length; i ++) {
@@ -192,7 +193,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			parent.setEnabledBack(true);
 			return;
 		}
-		
+
 		Parameters params = parent.getDeepPlugin().params;
 		cmbTags.removeAllItems();
 		cmbGraphs.removeAllItems();
@@ -215,8 +216,11 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		// Block back button while loading
 		parent.setEnabledBackNext(false);
 		Object[] info = null;
+		double time = -1;
 		try {
+			double chrono = System.nanoTime();
 			info = TensorFlowModel.findTag(params.path2Model);
+			time = System.nanoTime() - chrono;
 		} catch (Exception ex) {
 			ex.printStackTrace();
 			IJ.error("DeepImageJ could not load the model,\n"
@@ -235,16 +239,13 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			String tfTag = TensorFlowModel.returnTfTag(tag);
 			cmbTags.addItem(tfTag);
 			cmbTags.setEditable(false);
-			ArrayList<String> msgLoad = new ArrayList<String>();
 			SavedModelBundle model = null;
 			if (!(info[2] instanceof SavedModelBundle)) {
-				model = TensorFlowModel.load(params.path2Model, params.tag, log, msgLoad);
+				model = TensorFlowModel.load(params.path2Model, params.tag, log);
 			} else {
-				// TODO add info as in TensorFlowmodel.load
 				model = (SavedModelBundle) info[2];
+				addLoadInfo(params, time);
 			}
-			for (String m : msgLoad)
-				pnLoad.append("p", m);
 			parent.getDeepPlugin().setTfModel(model);
 			try {
 				params.graphSet = TensorFlowModel.metaGraphsSet(model);
@@ -276,5 +277,19 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		}
 		// If we loaded either a Bioimage Zoo or Tensoflow model we continue
 		parent.setEnabledBackNext(true);
+	}
+
+	/*
+	 * Add load information to the panel
+	 */
+	private void addLoadInfo(Parameters params, double time) {
+		pnLoad.append("p", "Path to model: " + params.path2Model + "\n");
+		String timeStr = (time / 1000000000) + "";
+		timeStr = timeStr.substring(0, timeStr.lastIndexOf(".") + 3);
+		pnLoad.append("p", "Time to load model: " + timeStr + "\n");
+		String modelSize = "" + FileTools.getFolderSize(params.path2Model + File.separator + "variables") / (1024*1024.0);
+		modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
+		pnLoad.append("p", "Size of the weights: " + modelSize + " MB");
+		
 	} 
 }

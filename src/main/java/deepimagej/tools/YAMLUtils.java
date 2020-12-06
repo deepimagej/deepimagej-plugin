@@ -45,6 +45,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -135,8 +138,9 @@ public class YAMLUtils {
 		data.put("name", params.name);
 		// Short description of the model
 		data.put("description", params.description);
-		// Year when the model was created
-		data.put("date", Calendar.getInstance().get(Calendar.YEAR));
+		// Timestamp of when the model was created following ISO 8601
+		String thisMoment = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneOffset.UTC).format(Instant.now());
+		data.put("timestamp", thisMoment);
 		
 		// Citation
 		if (params.cite != null && params.cite.size() == 0)
@@ -148,9 +152,14 @@ public class YAMLUtils {
 		// the model such as the images used or architecture
 		data.put("documentation", params.documentation);
 		// Path to the image that will be used as the cover picture in the Bioimage model Zoo
-		if (params.coverImage != null)
-			params.coverImage = Arrays.toString(new String[] {params.coverImage});
-		data.put("covers", params.coverImage);
+		ArrayList<String> covers = new ArrayList<String>();
+		// TODO generalize for several input images
+		covers.add("./" + params.testImageBackup.getTitle().substring(4));
+		for (HashMap<String, String> out : params.savedOutputs) {
+			if (out.get("type").contains("image"))
+				covers.add("./" + out.get("name") + ".tif");
+		}
+		data.put("covers", covers);
 		// Tags that will be used to look for the model in the Bioimage model Zoo
 		data.put("tags", params.infoTags);
 		// Type of license of the model
@@ -179,14 +188,26 @@ public class YAMLUtils {
 		}
 		// Path to the test inputs
 		ArrayList<String> inputExamples = new ArrayList<String>();
+		ArrayList<String> sampleInputs = new ArrayList<String>();
 		// TODO generalize for several input images
 		inputExamples.add("./" + params.testImageBackup.getTitle().substring(4));
-		format_info.put("test_input", inputExamples);
+		sampleInputs.add("./" + params.testImageBackup.getTitle().substring(4, params.testImageBackup.getTitle().lastIndexOf(".")) + ".npy");
 		// Path to the test outputs
 		ArrayList<String> outputExamples = new ArrayList<String>();
-		for (HashMap<String, String> out : params.savedOutputs)
+		ArrayList<String> sampleOutputs = new ArrayList<String>();
+		for (HashMap<String, String> out : params.savedOutputs) {
 			outputExamples.add("./" + out.get("name"));
-		format_info.put("test_output", outputExamples);
+			sampleOutputs.add("./" + out.get("name") + ".npy");
+		}
+		if (params.biozoo) {
+			format_info.put("test_inputs", inputExamples);
+			format_info.put("test_outputs", outputExamples);
+		} else {
+			format_info.put("test_inputs", null);
+			format_info.put("test_outputs", null);
+		}
+		format_info.put("sample_inputs", sampleInputs);
+		format_info.put("sample_outputs", sampleOutputs);
 		
 		if (params.framework.equals("Pytorch")) {
 			weights.put("pytorch_script", format_info);

@@ -46,10 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import ai.djl.ndarray.NDList;
-import ai.djl.repository.zoo.ZooModel;
 import deepimagej.tools.DijTensor;
-import deepimagej.tools.Index;
 import deepimagej.tools.YAMLUtils;
 import ij.ImagePlus;
 
@@ -141,7 +138,7 @@ public class Parameters {
 	 */
 	public String		name					= "";
 	public List<String>	author					= new ArrayList<String>();
-	//public String		version					= "";
+	public String		timestamp					= "";
 	public String		format_version					= "";
 	/*
 	 * Citation: contains the reference articles and the corresponding dois used
@@ -156,7 +153,6 @@ public class Parameters {
 	public String		language				= "Java";
 	public String		framework				= null;
 	public String		source					= null;
-	public String		coverImage				= null;
 	public String		description				= null;
 	public String		git_repo				= null;
 
@@ -195,14 +191,15 @@ public class Parameters {
 	 */
 	public boolean		fixedInput			= false;
 	/*
-	 * List of all the existing versions of the model weights.
+	 * Checksum of the tf Bioimage model zoo file. Only useful if
+	 * we use a Bioimage Zoo model that comes with a zipped model.
 	 */
-	//public Map<String, Object> previousVersions = new HashMap<String, Object>();
+	public String tfSha256;
 	/*
-	 * Checksum of the saved_model.pb file. Only useful if
-	 * we use a Bioimage Zoo model.
+	 * Checksum of the Pytorch scripts file. Only useful if
+	 * there is a Pytorch model
 	 */
-	// TODO public String saved_modelSha256;
+	public String ptSha256;
 	/*
 	 * Specifies if the folder contains a Bioimage Zoo model
 	 */
@@ -240,6 +237,7 @@ public class Parameters {
 		format_version = "" + obj.get("format_version");
 		name = (String) obj.get("name");
 		author = (List<String>) obj.get("authors");
+		timestamp = (String) obj.get("timestamp");
 		if (author == null) {
 			author = new ArrayList<String>();
 			author.add("n/a");
@@ -256,13 +254,11 @@ public class Parameters {
 		}
 		
 		documentation = (String) obj.get("documentation");
-		// TODO do we need cover?
-		//String cover = (String) obj.get("cover");
 		license = (String) obj.get("license");
 		framework = (String) obj.get("framework");
 		git_repo = (String) obj.get("git_repo");
 		
-		LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>> weights = (LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>>) obj.get("weights");
+		LinkedHashMap<String, LinkedHashMap<String, Object>> weights = (LinkedHashMap<String, LinkedHashMap<String, Object>>) obj.get("weights");
 		// Look for the valid weights tags
 		Set<String> weightFormats = weights.keySet();
 		boolean tf = false;
@@ -276,10 +272,14 @@ public class Parameters {
 		
 		if (tf && pt) {
 			framework = "Tensorflow/Pytorch";
+			ptSha256 = (String) weights.get("pytorch_script").get("sha256");
+			tfSha256 = (String) weights.get("tensorflow_saved_model_bundle").get("sha256");
 		} else if (tf) {
 			framework = "Tensorflow";
+			tfSha256 = (String) weights.get("tensorflow_saved_model_bundle").get("sha256");
 		} else if (pt) {
 			framework = "Pytorch";
+			ptSha256 = (String) weights.get("pytorch_script").get("sha256");
 		} else if (!tf && !pt) {
 			completeConfig = false;
 			return;

@@ -37,7 +37,9 @@
 
 import java.awt.BorderLayout;
 import java.awt.Choice;
+import java.awt.Color;
 import java.awt.Component;
+import java.awt.Font;
 import java.awt.Label;
 import java.awt.TextArea;
 import java.awt.TextField;
@@ -62,6 +64,7 @@ import deepimagej.exceptions.MacrosError;
 import deepimagej.processing.ProcessingBridge;
 import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.DijTensor;
+import deepimagej.tools.FileTools;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
 import deepimagej.tools.WebBrowser;
@@ -77,16 +80,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import ai.djl.Device;
+
 
 public class DeepImageJ_Run implements PlugIn, ItemListener {
 
-	private TextArea					info		= new TextArea("Information on the model", 10, 58, TextArea.SCROLLBARS_BOTH);
-	private TextArea					shapeSpec	= new TextArea("Shape specifications", 6, 58, TextArea.SCROLLBARS_BOTH);
+	private TextArea					info		= new TextArea("Information on the model", 13, 58, TextArea.SCROLLBARS_BOTH);
+	//private TextArea					shapeSpec	= new TextArea("Shape specifications", 6, 58, TextArea.SCROLLBARS_BOTH);
 	private Choice[]					choices		= new Choice[5];
-	// TODO private TextField[]	    			texts		= new TextField[1];
-	private TextField	    			patchSize	= new TextField();
-	// TODO remove private Label[]	    				patchLabel	= new Label[4];
-	private Label[]						labels		= new Label[7];
+	private TextField[]	    			texts		= new TextField[2];
+	private Label[]						labels		= new Label[8];
 	static private String				path		= IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
 	private HashMap<String, DeepImageJ>	dps;
 	private String[]					processingFile = new String[2];
@@ -94,6 +97,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	private int[]						patch;
 	private DeepImageJ					dp;
 	private HashMap<String, String>		fullnames	= new HashMap<String, String>();
+	private String 						loadInfo 	= ""; 
+	/*private Font						bigFont 	= new Font("Dialog", Font.BOLD, 18);
+	private Font						mediumFont 	= new Font("Dialog", Font.PLAIN, 14);
+	private Font						smallFont 	= new Font("Dialog", Font.PLAIN, 8);*/
 	
 
 	private boolean 					batch		= true;
@@ -138,18 +145,18 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				return;
 			}
 			info.setEditable(false);
-
+			/*
 			BorderPanel specPanel = new BorderPanel();
 			specPanel.setLayout(new BorderLayout());
 			specPanel.add(shapeSpec, BorderLayout.CENTER);
-			
+			*/
 			BorderPanel panel = new BorderPanel();
 			panel.setLayout(new BorderLayout());
 			panel.add(info, BorderLayout.CENTER);
 	
 			GenericDialog dlg = new GenericDialog("DeepImageJ Run [" + Constants.version + "]");
 			String[] items = new String[dps.size() + 1];
-			items[0] = "<select a model from this list>";
+			items[0] = "       <select a model from this list>       ";
 			int k = 1;
 			for (String dirname : dps.keySet()) {
 				DeepImageJ dp = dps.get(dirname);
@@ -161,36 +168,34 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				}
 			}
 
-			dlg.addChoice("Model DeepImageJ", items, items[0]);
-			dlg.addChoice("Weights framework", new String[] {"------------Select version------------"}, "------------Select version------------");
-			dlg.addChoice("Preprocessing ", new String[] { "no preprocessing" }, "no preprocessing");
-			dlg.addChoice("Postprocessing", new String[] { "no postprocessing" }, "no postprocessing");
+			dlg.addChoice("Model", items, items[0]);
+			dlg.addChoice("Format", new String[]         { "-----------------Select format-----------------" }, "-----------------Select format-----------------");
+			dlg.addChoice("Preprocessing ", new String[] { "-----------Select preprocessing----------- " }, "-----------Select preprocessing----------- ");
+			dlg.addChoice("Postprocessing", new String[] { "-----------Select postprocessing----------" }, "-----------Select postprocessing----------");
 			
-			shapeSpec.setCaretPosition(0);
-			shapeSpec.setText("");
-			shapeSpec.append("---- TILING SPECIFICATIONS ----\n");
-			shapeSpec.append("X: width, Y: height, C: channels, Z: depth\n");
-			shapeSpec.append(" - minimum_size: C=1, X=8, Y=8\n");
-			shapeSpec.append(" - step: C=0, X=8, Y=8\n");
-			shapeSpec.append("For every dimension, we need:\n");
-			shapeSpec.append(" - patch_size = minimum_size + step * n, where n is any positive integer\n");
-			shapeSpec.append("Default patch_size for this model: 1,256,256\n");
-			shapeSpec.append("\n");
-			shapeSpec.setEditable(false);
-			dlg.addPanel(specPanel);
-			dlg.addMessage("Axes order -> C,Y,X");
-			dlg.addStringField("Patch size (comma separated)", "1,256,256", 20);
+			dlg.addStringField("Axes order", "", 30);
+			dlg.addStringField("Tile size", "", 30);
 			
-			
-			dlg.addChoice("Logging", new String[] { "mute", "normal", "verbose", "debug" }, "normal");
+			dlg.addChoice("Logging", new String[] { "mute", "normal                                                       ", "verbose", "debug" }, "normal                                                       ");
 			
 			dlg.addHelp(Constants.url);
 			dlg.addPanel(panel);
+			String msg = "Note: Deep learning model’s output strongly depends on the data\n"
+					   + "used during the training process. The model may require re-training,\n"
+					   + "transfer learning or fine-tuning to work properly. Please, check the\n"
+					   + "documentation about the model to get user guidelines: Help button.\n";
+			
+			msg = "Note: the output of a deep learning model strongly depends on the\n"
+				+ "data and the conditions of the training process. A pre-trained model\n"
+				+ "may require a re-training. Please, check the documentation of this\n"
+				+ "model to get user guidelines: Help button.";
+			
+			Font font = new Font("Helvetica", Font.BOLD, 12);
+			dlg.addMessage(msg, font, Color.BLACK);
 			
 			int countChoice = 0;
 			int countLabels = 0;
-			// TODO int numericFieldPatch = 0;
-			// TODO int labelPatch = 0;
+			int countTxt = 0;
 			for (Component c : dlg.getComponents()) {
 				if (c instanceof Choice) {
 					Choice choice = (Choice) c;
@@ -199,14 +204,16 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 					choices[countChoice++] = choice;
 				}
 				if (c instanceof TextField) {
-					patchSize = (TextField) c;
+					texts[countTxt ++] = (TextField) c;
 				}
 				if (c instanceof Label && ((Label) c).getText().trim().length() > 1) {
 					labels[countLabels++] = (Label) c;
 				}
 			}
+			texts[0].setEditable(false);
+			texts[1].setEditable(false);
 			
-			String loadInfo = TensorFlowModel.loadLibrary();
+			loadInfo = TensorFlowModel.loadLibrary();
 			if (loadInfo.equals("")) {
 				info.setCaretPosition(0);
 				info.append("No Tensorflow library found.\n");
@@ -217,7 +224,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				info.setText("");
 				info.append(loadInfo + ".\n");
 				info.append("<Please select a model>\n");
-			}
+				int nGPUS = Device.getGpuCount();
+				info.append("GPUs available: " + nGPUS + "\n");		
+			}	
 			
 			dlg.showDialog();
 			if (dlg.wasCanceled()) {
@@ -230,8 +239,14 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				}
 				return;
 			}
+			
+			if (choices[0].getSelectedIndex() == 0) {
+				IJ.error("Please select a model.");
+				run("");
+				return;
+			}
 			// This is used for the macro, as in the macro, there is no selection from the list
-			String fullname = dlg.getNextChoice();
+			String fullname = (String) choices[0].getSelectedItem();
 			// The index is the method that is going to be used normally to select a model.
 			// The plugin looks at the index of the selection of the user and retrieves the
 			// directory associated with it. With this, it allows to have the same model with
@@ -252,22 +267,31 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			log.print("Load model: " + fullname + "(" + dirname + ")");
 			dp = dps.get(dirname);
 			
-			String version = dlg.getNextChoice();
-			
-			// TODO know exactly which file we are loading
-			String ptWeightsPath = dp.getPath() + File.separatorChar + "pytorch_script.pt" ;
-			
-			
-			for (int i = 0; i < processingFile.length; i ++)
-				processingFile[i] = dlg.getNextChoice();
+			String format = (String) choices[1].getSelectedItem();
+			dp.params.framework = format.contains("pytorch") ? "Pytorch" : "Tensorflow";
+
+			processingFile[0] = (String) choices[2].getSelectedItem();
+			processingFile[1] = (String) choices[3].getSelectedItem();
 			
 			info.setText("");
 			info.setCaretPosition(0);
 			info.append("Loading model. Please wait...\n");
+			
+			if (dp.params.framework.contains("Tensorflow") && !(new File(dp.getPath() + File.separator + "variables").exists())) {
+				info.append("Unzipping Tensorflow model. Please wait...\n");
+				String fileName = dp.getPath() + File.separator + "tensorflow_saved_model_bundle.zip";
+				try {
+					FileTools.unzipFolder(new File(fileName), dp.getPath());
+				} catch (IOException e) {
+					e.printStackTrace();
+					IJ.error("Error unzipping: " + fileName);
+				}
+			}
 			boolean ret = false;
 			if (dp.params.framework.equals("Tensorflow")) {
 				ret = dp.loadTfModel(true);
 			} else if (dp.params.framework.equals("Pytorch")) {
+				String ptWeightsPath = dp.getPath() + File.separatorChar + "pytorch_script.pt" ;
 				ret = dp.loadPtModel(ptWeightsPath);
 			}
 			if (ret == false && dp.params.framework.equals("Tensorflow")) {
@@ -316,12 +340,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			String[] dims = DijTensor.getWorkingDims(tensorForm);
 
 			
-			patch = getPatchSize(dims, dp.params.inputList.get(0).form, patchSize);
+			patch = getPatchSize(dims, dp.params.inputList.get(0).form, texts[1]);
 			if (patch == null) {
-				IJ.error("Please, introduce the patch size separated by commas.\n"
+				IJ.error("Please, introduce the patch size as integers separated by commas.\n"
 						+ "For the axes order 'Y,X,C' with:\n"
 						+ "Y=256, X=256 and C=1, we need to introduce:\n"
-						+ "'256,256,1'");
+						+ "'256,256,1'\n"
+						+ "Note: the key 'auto' can only be used by the plugin.");
 				run("");
 				return;
 			}
@@ -352,6 +377,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 					// TODO add info about dimensions?
 					IJ.error("Error: Tiles cannot be bigger than 3 times the image at any dimensio.\n"
 							+ "Image");
+					run("");
 					return;
 				}
 			}
@@ -360,9 +386,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 					if (inp.step[i] != 0 && patch[i] % inp.step[i] != 0 && patch[i] != -1 && dp.params.allowPatching) {
 						IJ.error("Patch size at dim: " + dims[i] + " should be product of " + min[i] +
 								" + " + step[i] + "*X, where X can be any positive integer.");
+						run("");
 						return;
 					} else if (inp.step[i] == 0 && patch[i] != inp.minimum_size[i]) {
 						IJ.error("Patch size at dim: " + dims[i] + " should be " + min[i]);
+						run("");
 						return;
 					}
 				}
@@ -393,24 +421,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 
 			DeepImageJ dp = dps.get(dirname);
 			if (dp == null) {
-				info.setCaretPosition(0);
-				info.append("<Please select a model>\n");
-				info.append("<Please select a model>\n");
-				shapeSpec.setCaretPosition(0);
-				shapeSpec.setText("");
-				shapeSpec.append("---- TILING SPECIFICATIONS ----\n");
-				shapeSpec.append("X: width, Y: height, C: channels, Z: depth\n");
-				shapeSpec.append("\n");
-				shapeSpec.setEditable(false);
-				choices[2].removeAll();
-				choices[2].addItem("no preprocessing");
-				choices[3].removeAll();
-				choices[3].addItem("no postprocessing");
+				setGUIOriginalParameters();
 				return;
 			}
 			if (dp.params.framework.equals("Tensorflow/Pytorch")) {
 				choices[1].removeAll();
-				choices[1].addItem(" -- Select weights framework -- ");
+				choices[1].addItem("-----------------Select format-----------------");
 				choices[1].addItem("tensorflow_saved_model_bundle");
 				choices[1].addItem("pytorch_script");
 			} else if (dp.params.framework.equals("Pytorch")) {
@@ -423,29 +439,22 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 
 			info.setCaretPosition(0);
 			info.append("Loading model info. Please wait...\n");
-
-			info.setText("");
-			info.setCaretPosition(0);
-			dp.writeParameters(info, dp.msgChecks);
-			info.append("----------- LOAD INFO ------------\n");
-			for (String msg : dp.msgLoads)
-				info.append(msg + "\n");
 			
 			choices[2].removeAll();
 			choices[3].removeAll();
-			HashMap<String, String[]> a = dp.params.pre;
 			Set<String> preKeys = dp.params.pre.keySet();
 			Set<String> postKeys = dp.params.post.keySet();
 			for (String p : preKeys) {
 				if (dp.params.pre.get(p) != null)
 					choices[2].addItem(Arrays.toString(dp.params.pre.get(p)));
 			}
+			if (choices[2].getItemCount() == 0)
+				choices[2].addItem("no preprocessing");
+			
 			for (String p : postKeys) {
 				if (dp.params.post.get(p) != null)
 					choices[3].addItem(Arrays.toString(dp.params.post.get(p)));
 			}
-			if (choices[2].getItemCount() == 0)
-				choices[2].addItem("no preprocessing");
 			choices[3].addItem("no postprocessing");
 				
 			// Get basic information about the input from the yaml
@@ -469,45 +478,56 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			letterDefinition.put("C", "channels");
 			letterDefinition.put("Z", "depth");
 
-			shapeSpec.setCaretPosition(0);
-			shapeSpec.setText("");
-			shapeSpec.append("---- TILING SPECIFICATIONS ----\n");
+
+			info.setText("");
+			info.setCaretPosition(0);
+			info.append("\n");
+			info.append("SELECTED MODEL: " + dp.getName().toUpperCase());
+			info.append("\n");
+			info.append("\n");
+			info.append("---- TILING SPECIFICATIONS ----\n");
 			String infoString = "";
 			for (String dd : dim)
 				infoString += dd + ": " + letterDefinition.get(dd) + ", ";
 			infoString = infoString.substring(0, infoString.length() - 2);
-			shapeSpec.append(infoString + "\n");
-			shapeSpec.append(" - minimum_size: ");
+			info.append(infoString + "\n");
+			info.append("  - minimum_size: ");
 			String minString = "";
 			for (int i = 0; i < dim.length; i ++)
 				minString += dim[i] + "=" + min[i] + ", ";
 			minString = minString.substring(0, minString.length() - 2);
-			shapeSpec.append(minString + "\n");
-			// TODO remove shapeSpec.append(" - step: C=0, X=8, Y=8\n");
+			info.append(minString + "\n");
+			info.append("  - step: ");
 			String stepString = "";
 			for (int i = 0; i < dim.length; i ++)
 				stepString += dim[i] + "=" + step[i] + ", ";
 			stepString = minString.substring(0, stepString.length() - 2);
-			shapeSpec.append(stepString + "\n");
-			shapeSpec.append("For every dimension, we need:\n");
-			shapeSpec.append(" - patch_size = minimum_size + step * n, where n is any positive integer\n");
+			info.append(stepString + "\n");
+			info.append("\n");
+			info.append("Each dimension is calculated as:\n");
+			info.append("  - tile_size = minimum_size + step * n, where n is any positive integer\n");
 			String optimalPatch = optimalPatch(dimValue, haloVals, dim, step, min, dp.params.allowPatching);
-			shapeSpec.append("Default patch_size for this model: " + optimalPatch + "\n");
-			shapeSpec.append("\n");
-			shapeSpec.setEditable(false);
+			info.append("\n");
+			info.append("Default tile_size for this model: " + optimalPatch + "\n");
+			info.append("\n");
+			info.setEditable(false);
+
+			dp.writeParameters(info);
+			info.setCaretPosition(0);
 			
 			String axesAux = "";
 			for (String dd : dim) {axesAux += dd + ",";}
-			labels[4].setText("Axes order -> " + axesAux.substring(0, axesAux.length() - 1));
+			texts[0].setText(axesAux.substring(0, axesAux.length() - 1));
+			texts[0].setEditable(false);
 			
-			patchSize.setText(optimalPatch);
+			texts[1].setText(optimalPatch);
 			int auxFixed = 0;
 			for (int ss : step)
 				auxFixed += ss;
 
-			patchSize.setEditable(true);
+			texts[1].setEditable(true);
 			if (!dp.params.allowPatching || dp.params.pyramidalNetwork || auxFixed == 0) {
-				patchSize.setEditable(false);
+				texts[1].setEditable(false);
 			}
 		}
 	}
@@ -588,7 +608,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			removeProcessedInputsFromMemory(inputsMap);
 			
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 			// Close the parallel processes
 		    service.shutdown();
@@ -721,7 +740,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				patch += Integer.toString(optimalMult) + ",";
 
 			} else if (step != 0 && !allowPatch){
-				patch += "-,";
+				patch += "auto,";
 			} else if (step == 0){
 				patch += min + ",";
 			} else if (patchSize != 0){
@@ -740,7 +759,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		for (int c = 0; c < patch.length; c ++) {
 			if (c != batchInd){
 				try {
-					if (definedSizes[count].trim().equals("-")) {
+					if (definedSizes[count].trim().equals("auto") && !sizes.isEditable()) {
 						patch[c] = -1;	
 					} else {
 						int value = Integer.parseInt(definedSizes[count].trim());
@@ -757,6 +776,22 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		return patch;
 	}
 	
+	public void setGUIOriginalParameters() {
+		info.setCaretPosition(0);
+		info.append(loadInfo + ".\n");
+		info.append("<Please select a model>\n");
+		int nGPUS = Device.getGpuCount();
+		info.append("GPUs available: " + nGPUS + "\n");
+		choices[1].removeAll();
+		choices[1].addItem("-----------------Select format-----------------");
+		choices[2].removeAll();
+		choices[2].addItem("-----------Select preprocessing----------- ");
+		choices[3].removeAll();
+		choices[3].addItem("-----------Select postprocessing-----------");
+		texts[0].setText("");
+		texts[1].setText("");
+		texts[1].setEditable(false);
+	}
 	
 	public static int[] findTotalPadding(DijTensor input, List<DijTensor> outputs, boolean pyramidal) {
 		// Create an object of int[] that contains the output dimensions

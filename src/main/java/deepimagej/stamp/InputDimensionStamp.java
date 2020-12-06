@@ -259,7 +259,6 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		int[] dimValues = DijTensor.getWorkingDimValues(tensor.form, tensor.tensor_shape); 
 		cmbPatches.setEnabled(true);
 		
-		String selection = (String) cmbPatches.getSelectedItem();
 
 		// Allow patch decomposition
 		for (int i = 0; i < dim.length; i ++) {
@@ -280,91 +279,21 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 				allTxtPatches.get(i).setText(initialGuess);
 			}
 		}
-		/* TODO remove
-		if (selection.contains(allowPatches)) {
-			
-			for (int i = 0; i < dim.length; i ++) {
-				if (dimValues[i] != -1 && !listenTxtField) {
-					allTxtMinSize.get(i).setText("" + dimValues[i]);
-					allTxtMinSize.get(i).setEditable(false);
-					allTxtPatches.get(i).setText("" + dimValues[i]);
-					allTxtPatches.get(i).setEditable(false);
-				} else if (dimValues[i] == -1){
-					allTxtMinSize.get(i).setEditable(true);
-					allTxtPatches.get(i).setEditable(true);
-					String initialGuess = dim[i].equals("C") ? "1" : "256";
-					allTxtPatches.get(i).setText(initialGuess);
-				}
-			}
-
-		// Predetermined input size
-		} else if (selection.contains(predeterminedInput)) {
-
-			for (int i = 0; i < dim.length; i ++) {
-				if (dimValues[i] != -1 && !listenTxtField) {
-					allTxtMinSize.get(i).setText("" + dimValues[i]);
-					allTxtMinSize.get(i).setEditable(false);
-					allTxtPatches.get(i).setText("" + dimValues[i]);
-					allTxtPatches.get(i).setEditable(false);
-				} else if (dimValues[i] == -1){
-					allTxtPatches.get(i).setText("" + allTxtMinSize.get(i).getText());
-					allTxtMinSize.get(i).setEditable(true);
-					allTxtPatches.get(i).setEditable(false);
-				}
-			}
-		
-		// Do not allow patches (fixed size)
-		} else if (selection.contains(notAllowPatches)) {
-
-			for (int i = 0; i < dim.length; i ++) {
-				if (dimValues[i] != -1 && !listenTxtField) {
-					allTxtMinSize.get(i).setText("" + dimValues[i]);
-					allTxtPatches.get(i).setText("" + dimValues[i]);
-					allTxtMinSize.get(i).setEditable(false);
-					allTxtPatches.get(i).setEditable(false);
-				} else if (dimValues[i] == -1) {
-					allTxtMinSize.get(i).setEditable(true);
-					allTxtPatches.get(i).setText(allTxtMinSize.get(i).getText());
-					allTxtPatches.get(i).setEditable(false);
-				}
-			}
-			
-		// Do not allow patches (variable input size)
-		} else if (selection.contains(noPatchesVariable)) {
-			
-			for (int i = 0; i < dim.length; i ++) {
-				if (dimValues[i] != -1 && !listenTxtField) {
-					allTxtMinSize.get(i).setText("" + dimValues[i]);
-					allTxtMinSize.get(i).setEditable(false);
-					allTxtPatches.get(i).setText("" + dimValues[i]);
-				} else if (dimValues[i] == -1 && !dim[i].contentEquals("C")) {
-					allTxtMinSize.get(i).setEditable(true);
-					allTxtPatches.get(i).setText(" - ");
-				} else if (dimValues[i] == -1 && dim[i].contentEquals("C")) {
-					allTxtMinSize.get(i).setEditable(true);
-					allTxtPatches.get(i).setText(allTxtMinSize.get(i).getText());
-				}
-				allTxtPatches.get(i).setEditable(false);
-			}
-		}
-		*/
 		int c0 = 0;
 		int c1 = 1;
 		int c2 = 2;
 		int c3 = 3;
-		/* TODO keep or remove
 		if (!listenTxtField) {
 			// TODO improve
-			addChangeListener(allTxtMinSize.get(c0), e -> optimalPatch(allTxtMinSize.get(c0).getText(), dim[c0]));
+			addChangeListener(allTxtStep.get(c0), e -> optimalPatch(allTxtStep.get(c0).getText(), dim[c0]));
 			if (allTxtMinSize.size() >1)
-				addChangeListener(allTxtMinSize.get(c1), e -> optimalPatch(allTxtMinSize.get(c1).getText(), dim[c1]));
+				addChangeListener(allTxtStep.get(c1), e -> optimalPatch(allTxtStep.get(c1).getText(), dim[c1]));
 			if (allTxtMinSize.size() >2)
-				addChangeListener(allTxtMinSize.get(c2), e -> optimalPatch(allTxtMinSize.get(c2).getText(), dim[c2]));
+				addChangeListener(allTxtStep.get(c2), e -> optimalPatch(allTxtStep.get(c2).getText(), dim[c2]));
 			if (allTxtMinSize.size() >3)
-				addChangeListener(allTxtMinSize.get(c3), e -> optimalPatch(allTxtMinSize.get(c3).getText(), dim[c3]));
+				addChangeListener(allTxtStep.get(c3), e -> optimalPatch(allTxtStep.get(c3).getText(), dim[c3]));
 			listenTxtField = true;
 		}
-		*/
 	}
 	
 	/*
@@ -417,17 +346,20 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 				if (c != batchInd) {
 					String selectedPatch = allTxtPatches.get(auxCount).getText();
 					selectedPatch = selectedPatch.equals(" - ") ? "-1" : selectedPatch;
-					patch[c] = Integer.parseInt(selectedPatch);
 					auxDetectError = false;
 					min_size[c] = Integer.parseInt(allTxtMinSize.get(auxCount).getText());
 					auxDetectError = true;
 					step[c] = Integer.parseInt(allTxtStep.get(auxCount).getText());
+					if (selection.equals(notAllowPatches) && step[c] != 0)
+						patch[c] = -1;
+					else
+						patch[c] = Integer.parseInt(selectedPatch);
 					
 					if (min_size[c] <= 0) {
 						IJ.error("The step should be larger than 0");
 						return false;
 					}
-					if (patch[c] <= 0) {
+					if (patch[c] <= 0 && !(selection.equals(notAllowPatches) && step[c] != 0)) {
 						IJ.error("The patch size should be larger than 0");
 						return false;
 					}
@@ -572,6 +504,27 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		cmbPatches.addActionListener(this);
 	}
 	
+	public void optimalPatch(String step, String dimChar) {
+		// If we do not allow tiling and the step is different to 0
+		// patch size is automatic
+		String selection = (String) cmbPatches.getSelectedItem();
+		int ind = shortForm.indexOf(dimChar);
+		allTxtPatches.get(ind).setEditable(true);
+		if (selection.equals(notAllowPatches)) {
+			try {
+				int ss = Integer.parseInt(step);
+				if (ss != 0) {
+					allTxtPatches.get(ind).setText("auto");
+					allTxtPatches.get(ind).setEditable(false);
+				} else {
+					allTxtPatches.get(ind).setText(allTxtMinSize.get(ind).getText());
+				}
+			} catch (Exception ex) {
+				return;
+			}
+		}
+	}
+	/* TODO remove
 	public void optimalPatch(String minimumSizeString, String dimChar) {
 		// This method looks for the optimal patch size regarding the
 		// minimum patch constraint and image size. This is then suggested
@@ -599,7 +552,7 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		} catch (NumberFormatException ex) {
 			return;
 		}
-	}
+	}*/
 
 	@Override
 	public void actionPerformed(ActionEvent e) {

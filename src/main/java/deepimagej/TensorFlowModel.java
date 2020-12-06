@@ -37,10 +37,7 @@
 
 package deepimagej;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +46,6 @@ import java.util.Set;
 import javax.swing.JFrame;
 
 import org.scijava.Context;
-import org.scijava.command.CommandService;
 import org.tensorflow.SavedModelBundle;
 import org.tensorflow.TensorFlowException;
 import org.tensorflow.framework.MetaGraphDef;
@@ -62,15 +58,15 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import deepimagej.components.CustomizedColumn;
 import deepimagej.components.CustomizedTable;
+import deepimagej.processing.LoadJar;
 import deepimagej.tools.DijTensor;
-import deepimagej.tools.FileTools;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
-import deepimagej.tools.NumFormat;
-import deepimagej.tools.YAMLUtils;
 import ij.IJ;
+import net.imagej.tensorflow.DefaultTensorFlowService;
 import net.imagej.tensorflow.TensorFlowService;
 import net.imagej.tensorflow.TensorFlowVersion;
+//import net.imagej.legacy.LegacyService;
 
 public class TensorFlowModel {
 
@@ -120,17 +116,52 @@ public class TensorFlowModel {
 												   	     "tf.saved_model.signature_constants.SUPERVISED_EVAL_METHOD_NAME"};
 
 
-	private static TensorFlowService tfService;
-    	private static Context ctx;
+	private static TensorFlowService tfService = new DefaultTensorFlowService();
+    private static Context ctx;
+    //private static LegacyService legacy;
 	static {
+		/*
+		ClassLoader classLoader = IJ.getClassLoader();
+		PluginIndex pluginInd = new PluginIndex(new DefaultPluginFinder(classLoader));
+		ctx = new Context(Arrays.<Class<? extends Service>>asList(TensorFlowService.class), pluginInd, false);
+		try {
+			Class<?> cc = Class.forName("org.scijava.Context", true, classLoader);
+			ctx = (Context) cc.newInstance();
+			tfService = ctx.service(TensorFlowService.class);
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		ClassLoader aa = classLoader.getParent();
+		LoadJar.loadClasses();
+		ClassLoader bb = Thread.currentThread().getContextClassLoader();
+		//LoadJar.loadClasses();
+		ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
+		*/
 		try {
 			ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
+			if (ctx == null) ctx = new Context(TensorFlowService.class);
 		} catch (Exception ex) {
+			//PluginClassLoader classLoader = new PluginClassLoader("C:\\Users\\Carlos(tfg)\\3D Objects\\source\\plugins", true);
+			//ClassLoader aa = classLoader.getParent();
+			//Thread.currentThread().setContextClassLoader(aa);
+			//ClassLoader bb = Thread.currentThread().getContextClassLoader();
+			//LoadJar.loadClasses();
+			ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
+			//ctx = new Context(Arrays.<Class<? extends Service>>asList(Service.class), null, true);
+			//PluginIndex a = ctx.getPluginIndex();
+			//tfService.setContext(ctx);
 		}
-		if (ctx == null) ctx = new Context(TensorFlowService.class);
 		tfService = ctx.service(TensorFlowService.class);
 	
 	}
+
 	
 	public static String loadLibrary() {
 		if (!tfService.getStatus().isLoaded()) {
@@ -146,12 +177,9 @@ public class TensorFlowModel {
 		return tfService.getStatus().getInfo();
 	}
 	
-	// TODO remove
-	public static SavedModelBundle load(String path, String tag, Log log, ArrayList<String> msg) {
+	public static SavedModelBundle load(String path, String tag, Log log) {
 		log.print("load model from " + path);
-		msg.add("Load with tag: " + tag);
 
-		double chrono = System.nanoTime();
 		SavedModelBundle model = null;
 		try {
 			model = SavedModelBundle.load(path, tag);
@@ -162,9 +190,7 @@ public class TensorFlowModel {
 			log.print(e.getMessage());
 			return null;
 		}
-		chrono = (System.nanoTime() - chrono);
 		log.print("Loaded");
-		msg.add("Loading time: " + NumFormat.time(chrono));
 		return model;
 	}
 
@@ -193,7 +219,10 @@ public class TensorFlowModel {
 		Set<String> sigKeys;
 		Object[] info = new Object[3];
 		try {
+			Runtime instance = Runtime.getRuntime();
+			long aa = instance.freeMemory() / (1024*1024);
 			model = SavedModelBundle.load(source, tag);
+			long bb = instance.freeMemory() / (1024*1024);
 			sigKeys = metaGraphsSet(model);
 		}
 		catch (TensorFlowException e) {

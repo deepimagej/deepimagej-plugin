@@ -42,6 +42,7 @@ import org.tensorflow.Tensor;
 import deepimagej.tools.Index;
 import ij.IJ;
 import ij.measure.ResultsTable;
+import ij.process.ImageProcessor;
 
 
 public class Table2Tensor {
@@ -197,6 +198,39 @@ public class Table2Tensor {
 			form = "BRC";
 		}
 		return form;
+	}
+	
+	/*
+	 * Method that converts a ResultsTable into float[] array.
+	 */
+
+	public static float[] table2IntArray(ResultsTable rt){
+		ImageProcessor ip =  rt.getTableAsImage();
+		float[][] fArray = ip.getFloatArray();
+		int ySize = fArray.length;
+		int xSize = fArray[0].length;
+		float[] outArr = new float[xSize * ySize];
+		
+		int pos = 0;
+		for (int x = 0; x < xSize; x ++) {
+			for (int y = 0; y < ySize; y ++) {
+				outArr[pos ++] = ip.getPixelValue(x, y);
+			}
+		}
+		return outArr;
+	}
+	
+	/*
+	 * Method that gets an long[] array with the shape of the tensor/image
+	 */
+
+	public static long[] getTableShape(ResultsTable rt){
+		ImageProcessor ip =  rt.getTableAsImage();
+		float[][] fArray = ip.getFloatArray();
+		int ySize = fArray.length;
+		int xSize = fArray[0].length;
+		long[] shape = new long[] {xSize, ySize};
+		return shape;
 	}
 
 }

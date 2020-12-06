@@ -43,7 +43,6 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
-import java.awt.TextField;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -53,16 +52,11 @@ import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
-import java.util.zip.ZipOutputStream;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -73,18 +67,20 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 
+import org.jetbrains.bio.npy.NpyFile;
+
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
 import deepimagej.DeepImageJ;
+import deepimagej.ImagePlus2Tensor;
 import deepimagej.Parameters;
+import deepimagej.Table2Tensor;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.FileTools;
-import deepimagej.tools.Index;
 import deepimagej.tools.YAMLUtils;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
-import ij.gui.GenericDialog;
 import ij.measure.ResultsTable;
 import ij.text.TextWindow;
 
@@ -231,16 +227,9 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		} else {
 			params.biozoo = true;
 			try {
-				// TODO arregalr esta shit
 				String zipName = "tensorflow_saved_model_bundle.zip";
-				File sourceVar = new File(params.path2Model + File.separator  + "variables");
-				File sourcePb = new File(params.path2Model + File.separator  + "saved_model.pb");
-				File dest = new File(params.saveDir + File.separator + zipName);
 				pane.append("p", "Writting zip file...");
 				FileTools.zipFilesIntoFolder(new String[]{params.path2Model + File.separator + "variables", params.path2Model + File.separator  + "saved_model.pb"}, params.saveDir + File.separator + zipName);
-				//ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(dest));		
-				//FileTools.zipFolder(sourceVar, dest);
-				//FileTools.zipFolder(sourcePb, dest);
 				pane.append("p", "Tensorflow Bioimage Zoo model: saved");
 			}
 			catch (Exception e) {
@@ -299,6 +288,63 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 				ok = false;
 			}
 		}
+
+		// Save input image
+		try {
+			if (params.testImageBackup != null) {
+				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + params.testImageBackup.getTitle().substring(4));
+				pane.append("p", "exampleImage.tiff: saved");
+				if (params.biozoo) {
+					// Get name with no extension
+					String name = params.testImageBackup.getTitle();
+					name = name.substring(0, name.lastIndexOf("."));
+					saveNpyFile(params.testImageBackup, "XYCZN", params.saveDir + File.separator + name + ".npy");
+					pane.append("p", name + ".npy" + ": saved");
+				}
+				params.testImageBackup.setTitle("DUP_" + params.testImageBackup.getTitle());
+			} else {
+				throw new Exception();
+			}
+		} 
+		catch(Exception ex) {
+			pane.append("p", "exampleImage.tiff: not saved");
+			if (params.biozoo)
+				pane.append("p", "exampleImage.npy: not saved");
+			ok = false;
+		}
+
+		// Save output images and tables (tables as saved as csv)
+		for (HashMap<String, String> output : params.savedOutputs) {
+			String name = output.get("name");
+			try {
+				if (output.get("type").contains("image")) {
+					ImagePlus im = WindowManager.getImage(name);
+					IJ.saveAsTiff(im, params.saveDir + File.separator + name + ".tif");
+					if (params.biozoo) {
+						saveNpyFile(im, "XYCZN", params.saveDir + File.separator + name + ".npy");
+						pane.append("p", name + ".npy" + ": saved");
+					}
+				} else if (output.get("type").contains("ResultsTable")){
+					Frame f = WindowManager.getFrame(name);
+			        if (f!=null && (f instanceof TextWindow)) {
+			        	ResultsTable rt = ((TextWindow)f).getResultsTable();
+						rt.save(params.saveDir + File.separator + name + ".csv");
+						if (params.biozoo) {
+							saveNpyFile(rt, params.saveDir + File.separator + name + ".npy");
+							pane.append("p", name + ".npy" + ": saved");
+						}
+					} else {
+						throw new Exception();					}
+				}
+				pane.append("p", name + ": saved");
+			} 
+			catch(Exception ex) {
+				pane.append("p", name + "exampleOutput.tiff:  not saved");
+				if (params.biozoo)
+					pane.append("p", name + "exampleOutput.npy:  not saved");
+				ok = false;
+			}
+		}
 		
 		// Save yaml
 		try {
@@ -316,44 +362,6 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			pane.append("p", "config.yaml: not saved");
 			ok = false;
 		}
-
-		// Save input image
-		try {
-			if (params.testImageBackup != null) {
-				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + params.testImageBackup.getTitle().substring(4));
-				params.testImageBackup.setTitle("DUP_" + params.testImageBackup.getTitle());
-				pane.append("p", "exampleImage.tiff: saved");
-			} else {
-				throw new Exception();
-			}
-		} 
-		catch(Exception ex) {
-			pane.append("p", "exampleImage.tiff: not saved");
-			ok = false;
-		}
-
-		// Save output images and tables (tables as saved as csv)
-		for (HashMap<String, String> output : params.savedOutputs) {
-			String name = output.get("name");
-			try {
-				if (output.get("type").contains("image")) {
-					ImagePlus im = WindowManager.getImage(name);
-					IJ.saveAsTiff(im, params.saveDir + File.separator + name + ".tif");
-				} else if (output.get("type").contains("ResultsTable")){
-					Frame f = WindowManager.getFrame(name);
-			        if (f!=null && (f instanceof TextWindow)) {
-			        	ResultsTable rt = ((TextWindow)f).getResultsTable();
-						rt.save(params.saveDir + File.separator + name + ".csv");
-					} else {
-						throw new Exception();					}
-				}
-				pane.append("p", name + ": saved");
-			} 
-			catch(Exception ex) {
-				pane.append("p", name + ":  not saved");
-				ok = false;
-			}
-		}
 		pane.append("p", "Done!!");
 
 		//parent.setEnabledBackNext(ok);
@@ -370,6 +378,26 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 				FileTools.copyFile(new File(source_path), new File(dest_path));
 			}
 		}
+	}
+	
+	public void saveNpyFile(ImagePlus im, String form, String name) {
+		Path path = Paths.get(name);
+		long[] imShapeLong = ImagePlus2Tensor.getTensorShape(im, form);
+		int[] imShape = new int[imShapeLong.length];
+		for (int i = 0; i < imShape.length; i ++)
+			imShape[i] = (int) imShapeLong[i];
+		float[] imArray = ImagePlus2Tensor.implus2IntArray(im, form);
+		NpyFile.write(path, imArray, imShape);
+	}
+	
+	public void saveNpyFile(ResultsTable table, String name) {
+		Path path = Paths.get(name);
+		long[] shapeLong = Table2Tensor.getTableShape(table);
+		int[] shape = new int[shapeLong.length];
+		for (int i = 0; i < shape.length; i ++)
+			shape[i] = (int) shapeLong[i];
+		float[] tableArray = Table2Tensor.table2IntArray(table);
+		NpyFile.write(path, tableArray, shape);
 	}
 
 	public class LocalDropTarget extends DropTarget {
