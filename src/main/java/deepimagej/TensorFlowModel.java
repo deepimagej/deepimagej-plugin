@@ -37,6 +37,7 @@
 
 package deepimagej;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -119,53 +120,22 @@ public class TensorFlowModel {
 
 	private static TensorFlowService tfService = new DefaultTensorFlowService();
     private static Context ctx;
-    //private static LegacyService legacy;
+
 	static {
-		/*
-		ClassLoader classLoader = IJ.getClassLoader();
-		PluginIndex pluginInd = new PluginIndex(new DefaultPluginFinder(classLoader));
-		ctx = new Context(Arrays.<Class<? extends Service>>asList(TensorFlowService.class), pluginInd, false);
-		try {
-			Class<?> cc = Class.forName("org.scijava.Context", true, classLoader);
-			ctx = (Context) cc.newInstance();
-			tfService = ctx.service(TensorFlowService.class);
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InstantiationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		ClassLoader aa = classLoader.getParent();
-		LoadJar.loadClasses();
-		ClassLoader bb = Thread.currentThread().getContextClassLoader();
-		//LoadJar.loadClasses();
-		ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
-		*/
 		try {
 			ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
 			if (ctx == null) ctx = new Context(TensorFlowService.class);
+			tfService = ctx.service(TensorFlowService.class);
 		} catch (Exception ex) {
-			//PluginClassLoader classLoader = new PluginClassLoader("C:\\Users\\Carlos(tfg)\\3D Objects\\source\\plugins", true);
-			//ClassLoader aa = classLoader.getParent();
-			//Thread.currentThread().setContextClassLoader(aa);
-			//ClassLoader bb = Thread.currentThread().getContextClassLoader();
-			//LoadJar.loadClasses();
-			ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
-			//ctx = new Context(Arrays.<Class<? extends Service>>asList(Service.class), null, true);
-			//PluginIndex a = ctx.getPluginIndex();
-			//tfService.setContext(ctx);
+			// If we are not in an ImageJ2/Fiji instance we
+			// will not be able to initialise any service
 		}
-		tfService = ctx.service(TensorFlowService.class);
 	
 	}
 
 	
 	public static String loadLibrary() {
-		if (!tfService.getStatus().isLoaded()) {
+		if (tfService != null && !tfService.getStatus().isLoaded()) {
 			tfService.initialize();
 			tfService.loadLibrary();
 			if (tfService.getStatus().isLoaded()) {
@@ -174,6 +144,8 @@ public class TensorFlowModel {
 				IJ.log(tfService.getStatus().getInfo());
 				return "";
 			}
+		} else if(tfService == null) {
+			return "ImageJ";
 		}
 		return tfService.getStatus().getInfo();
 	}
@@ -495,9 +467,99 @@ public class TensorFlowModel {
 	/*
 	 * Get the version number from the jar file
 	 */
-	public static String getTFVersion() {
-		TensorFlowVersion tfVersion = tfService.getTensorFlowVersion();
-		return tfVersion.getVersionNumber();
+	public static String getTFVersion(boolean fiji) {
+		if (fiji) {
+			TensorFlowVersion tfVersion = tfService.getTensorFlowVersion();
+			return tfVersion.getVersionNumber();
+		} else {
+			return getTFVersionIJ();
+		}
+	}
+	
+	/*
+	 * Retrieves the TF version that is going to be used for the plugin.
+	 * In order to do that, the method searches in two locations where the 
+	 *.jars might be: in the plugins folder or in the jars folder
+	 */
+	public static String getTFVersionIJ() {
+		String tfJni = getLibTfJar();
+		String tfVersion = getTfVersionFromJar(tfJni);
+		return tfVersion;	
+	}
+
+	/*
+	 * Finds the directory where the tf jar is
+	 */
+	public static String getLibTfJar() {
+
+		// Search in the plugins folder
+		String ijDirectory = IJ.getDirectory("imagej") + File.separator;
+		// TODO remove 
+		//ijDirectory = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app";
+		String pluginsDirectory = ijDirectory + File.separator + "plugins" + File.separator;
+		String pluginsJar = findTFJar(pluginsDirectory);
+
+		// Search in the jars folder
+		String jarDirectory = ijDirectory + File.separator + "jars" + File.separator;
+		String jarsJar = findTFJar(jarDirectory);
+
+		// Check that there is only one jar file present in both folders
+		if (jarsJar.equals(pluginsJar) == true) {
+			return "invalid";
+		}
+
+		// Find which of them is actually the TF jni jar
+		String tfJni = pluginsJar;
+		if (tfJni.equals("") == true) {
+			tfJni = jarsJar;
+		}
+		return tfJni;
+	}
+
+	/*
+	 * Finds the file corresponding to the tf jar
+	 */
+	public static String findTFJar(String folderDir) {
+		// Find the file libtensorflow_jni.jar
+
+		// Name of the TF jni without the version
+		String jarName = "libtensorflow_jni";
+		// Auxiliary variable to make sure we only have one TF jni
+		int nJars = 0;
+		String tfJar = "";
+
+		File folder = new File(folderDir);
+		File[] listOfFiles = folder.listFiles();
+
+		for (File file : listOfFiles) {
+			if (file.isFile() == true) {
+				String fileName = file.getAbsolutePath();
+				if (fileName.indexOf(jarName) != -1) {
+					nJars ++;
+					tfJar = fileName;
+				}
+			}
+		}
+
+		if (nJars == 0) {
+
+		} else if (nJars >1) {
+			tfJar = "";
+		}
+
+		return tfJar;
+	}
+
+	/*
+	 * Get the version number from the jar file
+	 */
+	public static String getTfVersionFromJar(String jar) {
+		// Name of the TF jni without the version
+		String folderName = new File(jar).getParent();
+		String jarName = folderName + File.pathSeparator + "libtensorflow_jni-";
+		String jarExt = ".jar";
+		String tfVersion = jar.substring(jarName.length(), jar.indexOf(jarExt));
+		return tfVersion;
 	}
 
 }

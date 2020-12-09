@@ -219,13 +219,27 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				info.append("No Tensorflow library found.\n");
 				info.append("Please install a new Tensorflow version.\n");
 				choices[0].setEnabled(false);
+			} else if (loadInfo.equals("ImageJ")) {
+				info.setCaretPosition(0);
+				info.setText("");
+				loadInfo = "Using default TensorFlow version from JAR: TF ";
+				loadInfo += TensorFlowModel.getTFVersion(false);
+				if (!loadInfo.contains("GPU"))
+					loadInfo += "_CPU";
+				loadInfo += "..\n";
+				loadInfo += "To change the TF version download the corresponding\n"
+						  + "libtensorflow and libtensorflow_jni jars and place\n"
+						  + "them in the plugins folder";
+				
+				info.append(loadInfo);
+				info.append("<Please select a model>\n");
 			} else {
 				info.setCaretPosition(0);
 				info.setText("");
-				info.append(loadInfo + ".\n");
-				info.append("<Please select a model>\n");
-				int nGPUS = Device.getGpuCount();
-				info.append("GPUs available: " + nGPUS + "\n");		
+				loadInfo += ".\n";
+				loadInfo += "To change the TF version go to Edit>Options>Tensorflow";
+				info.append(loadInfo + "\n");
+				info.append("<Please select a model>\n");	
 			}	
 			
 			dlg.showDialog();
@@ -374,18 +388,25 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 					break;
 			}
 				if (p * 3 < patch[i]) {
-					// TODO add info about dimensions?
-					IJ.error("Error: Tiles cannot be bigger than 3 times the image at any dimensio.\n"
-							+ "Image");
+					String errMsg = "Error: Tiles cannot be bigger than 3 times the image at any dimension\n";
+					errMsg += " - X = " + imp.getWidth() + ", maximum tile size at X = " + (imp.getWidth() * 3 - 1) + "\n";
+					errMsg += " - Y = " + imp.getHeight() + ", maximum tile size at Y = " + (imp.getHeight() * 3 - 1) + "\n";
+					if (tensorForm.contains("C"))
+						errMsg += " - C = " + imp.getNChannels() + ", maximum tile size at C = " + (imp.getNChannels() * 3 - 1) + "\n";
+					if (tensorForm.contains("Z"))
+						errMsg += " - Z = " + imp.getNSlices() + ", maximum tile size at Z = " + (imp.getNSlices() * 3 - 1) + "\n";
+					IJ.error(errMsg);
 					run("");
 					return;
 				}
 			}
 			for (DijTensor inp: dp.params.inputList) {
 				for (int i = 0; i < min.length; i ++) {
-					if (inp.step[i] != 0 && patch[i] % inp.step[i] != 0 && patch[i] != -1 && dp.params.allowPatching) {
-						IJ.error("Patch size at dim: " + dims[i] + " should be product of " + min[i] +
-								" + " + step[i] + "*X, where X can be any positive integer.");
+					if (inp.step[i] != 0 && (patch[i] - inp.minimum_size[i]) % inp.step[i] != 0 && patch[i] != -1 && dp.params.allowPatching) {
+						int approxTileSize = ((patch[i] - inp.minimum_size[i]) / inp.step[i]) * inp.step[i] + inp.minimum_size[i];
+						IJ.error("Tile size at dim: " + dims[i] + " should be product of:\n  " + min[i] +
+								" + " + step[i] + "*N, where N can be any positive integer.\n"
+									+ "The immediately smaller valid tile size is " + approxTileSize);
 						run("");
 						return;
 					} else if (inp.step[i] == 0 && patch[i] != inp.minimum_size[i]) {

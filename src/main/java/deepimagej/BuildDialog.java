@@ -98,6 +98,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 	private DeepImageJ				dp		= null;
 	private int						card	= 1;
 	private String					GPU 	= "";
+	private boolean					Fiji	= false;
 
 	public BuildDialog() {
 		super(new JFrame(), "Build Bundled Model [" + Constants.version + "]");
@@ -335,5 +336,13 @@ public class BuildDialog extends JDialog implements ActionListener {
 	
 	public void setGPU(String info) {
 		GPU = info;
+	}
+	
+	public boolean getFiji() {
+		return Fiji;
+	}
+	
+	public void setFiji(boolean fiji) {
+		Fiji = fiji;
 	}
 }

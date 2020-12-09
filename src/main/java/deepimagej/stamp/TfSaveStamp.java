@@ -120,8 +120,8 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 
 		JPanel pn = new JPanel(new BorderLayout());
 		pn.add(load, BorderLayout.NORTH);
-		//pn.add(pane.getPane(), BorderLayout.CENTER);
-		pn.add(infoPane, BorderLayout.CENTER);JPanel pnButtons = new JPanel(new GridLayout(2, 1));
+		pn.add(infoPane, BorderLayout.CENTER);
+		JPanel pnButtons = new JPanel(new GridLayout(2, 1));
 		pnButtons.add(bnSave);
 		pnButtons.add(bnSaveBiozoo);
 		pn.add(pnButtons, BorderLayout.SOUTH);
@@ -380,7 +380,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		}
 	}
 	
-	public void saveNpyFile(ImagePlus im, String form, String name) {
+	public static void saveNpyFile(ImagePlus im, String form, String name) {
 		Path path = Paths.get(name);
 		long[] imShapeLong = ImagePlus2Tensor.getTensorShape(im, form);
 		int[] imShape = new int[imShapeLong.length];
@@ -390,7 +390,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		NpyFile.write(path, imArray, imShape);
 	}
 	
-	public void saveNpyFile(ResultsTable table, String name) {
+	public static void saveNpyFile(ResultsTable table, String name) {
 		Path path = Paths.get(name);
 		long[] shapeLong = Table2Tensor.getTableShape(table);
 		int[] shape = new int[shapeLong.length];

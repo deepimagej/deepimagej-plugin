@@ -42,6 +42,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Frame;
+import java.awt.GridLayout;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -52,12 +53,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -70,12 +71,10 @@ import deepimagej.DeepImageJ;
 import deepimagej.Parameters;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.FileTools;
-import deepimagej.tools.Index;
 import deepimagej.tools.YAMLUtils;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
-import ij.gui.GenericDialog;
 import ij.measure.ResultsTable;
 import ij.text.TextWindow;
 
@@ -84,8 +83,8 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 	private JTextField	txt			= new JTextField(IJ.getDirectory("imagej") + File.separator + "models" + File.separator);
 	private JButton		bnBrowse	= new JButton("Browse");
 	private JButton		bnSave	= new JButton("Save Bundled Model");
+	private JCheckBox	bnSaveBiozoo	= new JCheckBox("Save model into the Bioimage Zoo format");
 	private HTMLPane 	pane;
-	private ArrayList<String> repeatedFiles;
 	
 	public PtSaveStamp(BuildDialog parent) {
 		super(parent);
@@ -114,9 +113,11 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 
 		JPanel pn = new JPanel(new BorderLayout());
 		pn.add(load, BorderLayout.NORTH);
-		//pn.add(pane.getPane(), BorderLayout.CENTER);
 		pn.add(infoPane, BorderLayout.CENTER);
-		pn.add(bnSave, BorderLayout.SOUTH);
+		JPanel pnButtons = new JPanel(new GridLayout(2, 1));
+		pnButtons.add(bnSave);
+		pnButtons.add(bnSaveBiozoo);
+		pn.add(pnButtons, BorderLayout.SOUTH);
 		panel.add(pn);
 
 		bnSave.addActionListener(this);
@@ -166,10 +167,10 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 	public void run() {
 		DeepImageJ dp = parent.getDeepPlugin();
 		Parameters params = dp.params;
+		params.biozoo = bnSaveBiozoo.isSelected();
 		params.saveDir = txt.getText() + File.separator;
 		params.saveDir = params.saveDir.replace(File.separator + File.separator, File.separator);
 		File dir = new File(params.saveDir);
-		boolean ok = true;
 		
 		dir = new File(params.saveDir);
 		
@@ -199,11 +200,9 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			e.printStackTrace();
 			pane.append("p", "torchscript model (.pt or .pth): not saved");
 			pane.append("p", "torchscript model (.pt or .pth): torchscript model was removed from the model path");
-			ok = false;
 		} catch (Exception e) {
 			e.printStackTrace();
 			pane.append("p", "torchscript model (.pt or .pth): not saved");
-			ok = false;
 		}
 		
 		// Save preprocessing
@@ -215,7 +214,6 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			}
 			catch (Exception e) {
 				pane.append("p", "First preprocessing: not saved");
-				ok = false;
 			}
 		}
 		if (params.secondPreprocessing != null) {
@@ -226,7 +224,6 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			}
 			catch (Exception e) {
 				pane.append("p", "Second preprocessing: not saved");
-				ok = false;
 			}
 		}
 
@@ -239,7 +236,6 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			}
 			catch (Exception e) {
 				pane.append("p", "First postprocessing: not saved");
-				ok = false;
 			}
 		}
 		if (params.secondPostprocessing != null) {
@@ -250,7 +246,61 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			}
 			catch (Exception e) {
 				pane.append("p", "Second postprocessing: not saved");
-				ok = false;
+			}
+		}
+
+		// Save input image
+		try {
+			if (params.testImageBackup != null) {
+				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + params.testImageBackup.getTitle().substring(4));
+				pane.append("p", "exampleImage.tiff: saved");
+				if (params.biozoo) {
+					// Get name with no extension
+					String name = params.testImageBackup.getTitle();
+					name = name.substring(0, name.lastIndexOf("."));
+					TfSaveStamp.saveNpyFile(params.testImageBackup, "XYCZN", params.saveDir + File.separator + name + ".npy");
+					pane.append("p", name + ".npy" + ": saved");
+				}
+				params.testImageBackup.setTitle("DUP_" + params.testImageBackup.getTitle());
+			} else {
+				throw new Exception();
+			}
+		} 
+		catch(Exception ex) {
+			pane.append("p", "exampleImage.tiff: not saved");
+			if (params.biozoo)
+				pane.append("p", "exampleImage.npy: not saved");
+		}
+
+		// Save output images and tables (tables as saved as csv)
+		for (HashMap<String, String> output : params.savedOutputs) {
+			String name = output.get("name");
+			try {
+				if (output.get("type").contains("image")) {
+					ImagePlus im = WindowManager.getImage(name);
+					IJ.saveAsTiff(im, params.saveDir + File.separator + name + ".tif");
+					if (params.biozoo) {
+						TfSaveStamp.saveNpyFile(im, "XYCZN", params.saveDir + File.separator + name + ".npy");
+						pane.append("p", name + ".npy" + ": saved");
+					}
+				} else if (output.get("type").contains("ResultsTable")){
+					Frame f = WindowManager.getFrame(name);
+			        if (f!=null && (f instanceof TextWindow)) {
+			        	ResultsTable rt = ((TextWindow)f).getResultsTable();
+						rt.save(params.saveDir + File.separator + name + ".csv");
+						if (params.biozoo) {
+							TfSaveStamp.saveNpyFile(rt, params.saveDir + File.separator + name + ".npy");
+							pane.append("p", name + ".npy" + ": saved");
+						}
+					} else {
+						throw new Exception();					}
+				}
+				pane.append("p", name + ": saved");
+			} 
+			catch(Exception ex) {
+				pane.append("p", name + "exampleOutput.tiff:  not saved");
+				if (params.biozoo)
+					pane.append("p", name + "exampleOutput.npy:  not saved");
 			}
 		}
 		
@@ -261,56 +311,15 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		} 
 		catch(IOException ex) {
 			pane.append("p", "config.yaml: not saved");
-			ok = false;
 			IJ.error("Model file was locked or does not exist anymore.");
 		}
 		catch(Exception ex) {
 			pane.append("p", "config.yaml: not saved");
 			ex.printStackTrace();
-			ok = false;
 		}
-
-		// Save input image
-		try {
-			if (params.testImageBackup != null) {
-				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + params.testImageBackup.getTitle().substring(4));
-				params.testImageBackup.setTitle("DUP_" + params.testImageBackup.getTitle());
-				pane.append("p", "exampleImage.tiff: saved");
-			} else {
-				throw new Exception();
-			}
-		} 
-		catch(Exception ex) {
-			pane.append("p", "exampleImage.tiff: not saved");
-			ok = false;
-		}
-
-		// Save output images and tables (tables as saved as csv)
-		for (HashMap<String, String> output : params.savedOutputs) {
-			String name = output.get("name");
-			try {
-				if (output.get("type").contains("image")) {
-					ImagePlus im = WindowManager.getImage(name);
-					IJ.saveAsTiff(im, params.saveDir + File.separator + name);
-				} else if (output.get("type").contains("ResultsTable")){
-					name = name.substring(0, name.length() - 4);
-					Frame f = WindowManager.getFrame(name);
-			        if (f!=null && (f instanceof TextWindow)) {
-			        	ResultsTable rt = ((TextWindow)f).getResultsTable();
-						rt.save(params.saveDir + File.separator + name + ".csv");
-					} else {
-						throw new Exception();					}
-				}
-				pane.append("p", name + ": saved");
-			} 
-			catch(Exception ex) {
-				pane.append("p", name + ":  not saved");
-				ok = false;
-			}
-		}
+		
 		pane.append("p", "<b>Done!!</b>");
 
-		//parent.setEnabledBackNext(ok);
 	}
 
 	public class LocalDropTarget extends DropTarget {

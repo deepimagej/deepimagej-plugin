@@ -44,6 +44,7 @@ import java.util.Set;
 import javax.swing.BoxLayout;
 import javax.swing.JComboBox;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 
 import org.tensorflow.SavedModelBundle;
 import org.tensorflow.framework.SignatureDef;
@@ -186,6 +187,9 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		pnLoad.setText("");
 		pnLoad.append("p", "Loading available Tensorflow version.");
 		String loadInfo = TensorFlowModel.loadLibrary();
+		// If loadlLibrary() returns 'ImageJ', the plugin is running
+		// on an ImageJ1 instance
+		parent.setFiji(!loadInfo.contains("ImageJ"));
 		pnLoad.setCaretPosition(0);
 		pnLoad.setText("");
 		if (loadInfo.equals("")) {
@@ -199,11 +203,17 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		cmbTags.removeAllItems();
 		cmbGraphs.removeAllItems();
 		//architecture.clear();
-		String tfVersion = TensorFlowModel.getTFVersion();
+		String tfVersion = TensorFlowModel.getTFVersion(parent.getFiji());
 		pnLoad.clear();
 		pnLoad.append("h2", "Tensorflow version");
 		pnLoad.append("p", "Currently using Tensorflow " + tfVersion);
-		pnLoad.append("p", loadInfo);
+		if (parent.getFiji()) {
+			pnLoad.append("p", loadInfo);
+		} else {
+			pnLoad.append("p", "To change the Tensorflow version, download the corresponding\n"
+							 + "libtensorflow and libtensorflow_jni jars and copy them into\n"
+							 + "the plugins folder.");
+		}
 		// Run the nvidia-smi to see if it is possible to locate a GPU
 		String cudaVersion = "";
 		if (tfVersion.contains("GPU"))
@@ -241,20 +251,22 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		parent.setEnabledBackNext(false);
 		Object[] info = null;
 		double time = -1;
-		pnLoad.append("p", "Loading model...");
+		pnLoad.append("<p>Loading model...");
 		ArrayList<String> initialSmi = null;
 		ArrayList<String> finalSmi = null;
 		try {
 			if (tfVersion.contains("GPU") && parent.getGPU().equals(""))
 				initialSmi = SystemUsage.runNvidiaSmi();
+			double chrono = System.nanoTime();
 			info = TensorFlowModel.findTag(params.path2Model);
+			time = System.nanoTime() - chrono;
 			if (tfVersion.contains("GPU") && parent.getGPU().equals(""))
 				finalSmi = SystemUsage.runNvidiaSmi();
 		} catch (Exception ex) {
 			pnLoad.clear();
 			pnLoad.setText(pnTxt);
 			ex.printStackTrace();
-			IJ.error("DeepImageJ could not load the model,\n"
+			IJ.error("DeepImageJ could not load the model,"
 					+ "try with another Tensorflow version");
 			pnLoad.append("h2", "DeepImageJ could not load the model.\n");
 			pnLoad.append("h2", "Try with another Tensorflow version.\n");
@@ -263,26 +275,33 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			parent.setEnabledNext(false);
 			return;
 		}
-		// Remove loading text by restoring all the previous text
-		pnLoad.clear();
-		pnLoad.setText(pnTxt);
+		pnLoad.append(" -> Loaded!!!</p>");
 		
 		// Check if the model has been loaded on GPU
 		if (tfVersion.contains("GPU") && parent.getGPU().equals("")) {
 			String GPUInfo = SystemUsage.isUsingGPU(initialSmi, finalSmi);
 			if (GPUInfo.equals("noImageJProcess") && !cudaVersion.contains(File.separator)) {
-				pnLoad.append("p", "Unable to run nvidia-smi to check if the model was loaded on a GPU.");
+				pnLoad.append("p", "Unable to run nvidia-smi to check if the model was loaded on a GPU.\n");
 			} else if (GPUInfo.equals("noImageJProcess")) {
-				pnLoad.append("p", "Unable to load model on GPU.");
-			} else if(GPUInfo.equals("ImageJGPU")) {
-				// TODO check by running tasklist on the CMD
-				pnLoad.append("p", "Found GPU on the system used by ImageJ.");
+				pnLoad.append("p", "Unable to load model on GPU.\n");
+			} else if(GPUInfo.equals("¡RepeatedImageJGPU!")) {
+				int nImageJInstances = SystemUsage.numberOfImageJInstances();
+				// Get number of IJ instances using GPU
+				int nGPUIJInstances = GPUInfo.split("¡RepeatedImageJGPU!").length;
+				if (nImageJInstances > nGPUIJInstances) {
+					pnLoad.append("p", "Found " + nGPUIJInstances + "instances of ImageJ/Fiji using GPU"
+							+ " out of the " + nImageJInstances + " opened.\n");
+					pnLoad.append("p", "Could not assert that the model was loaded on the GPU.\n");
+				} else if (nImageJInstances <= nGPUIJInstances) {
+					pnLoad.append("p", "Model loaded on the GPU.\n");
+					parent.setGPU(GPUInfo);
+				}
 			} else {
-				pnLoad.append("p", "Model loaded on the GPU.");
+				pnLoad.append("p", "Model loaded on the GPU.\n");
 				parent.setGPU(GPUInfo);
 			}
 		} else if (tfVersion.contains("GPU")) {
-			pnLoad.append("p", "Model loaded on the GPU.");
+			pnLoad.append("p", "Model loaded on the GPU.\n");
 		}
 		
 		String tag = (String) info[0];

@@ -168,19 +168,17 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 	public void run() {
 		pnLoad.setCaretPosition(0);
 		pnLoad.setText("");
-		// TODO should we warn that DJL is loading?
-		//pnLoad.append("p", "Loading available Tensorflow version.");
+		pnLoad.append("p", "Loading Deep Java Library...");
 		
 		Parameters params = parent.getDeepPlugin().params;
 		params.selectedModelPath = findPytorchModels(params.path2Model);
-		// TODO refer to the DJL or Pytorch versions used if possible
 		pnLoad.clear();
 		pnLoad.append("h2", "Pytorch version");
 		pnLoad.append("p", "Currently using Pytorch 1.6.0");
 		pnLoad.append("p", "Supported by Deep Java Library 1.6.0");
 		pnLoad.append("h2", "Model info");
 		pnLoad.append("p", "Path: " + params.selectedModelPath);
-		pnLoad.append("p", "Loading model...");
+		pnLoad.append("<p>Loading model...");
 		
 		// Load the model using DJL
 		// TODO allow the use of translators and transforms
@@ -213,11 +211,11 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 
 			ZooModel<NDList, NDList> model = ModelZoo.loadModel(criteria);
 			parent.getDeepPlugin().setTorchModel(model);
+			pnLoad.append(" -> Loaded!!!</p>");
 			double torchscriptSize = new File(params.selectedModelPath).length() / (1024 * 1024.0);
 			long stopTime = System.nanoTime();
 			// Convert nanoseconds into seconds
 			String loadingTime = "" + ((stopTime - startTime) / (float) 1000000000);
-			pnLoad.setCaretPosition(1);
 			pnLoad.append("p", "Model size: " + torchscriptSize + " Mb");
 			pnLoad.append("p", "Loading time: " + loadingTime +  " s");
 			

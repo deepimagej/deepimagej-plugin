@@ -133,16 +133,6 @@ public class SystemUsage {
 		return 0;
 	}
 	
-	public static void main(String[] args) {
-		getCUDAEnvVariables();
-		try {
-			checkGPU();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-	
 	/*
 	 * Compare nvidia-smi outputs before and after loading the model
 	 * to check if the model has been loaded into the GPU
@@ -155,7 +145,8 @@ public class SystemUsage {
 		for (String info : secondSmi) {
 			// TODO check if what happens when Imagej is called from Pyton, do we need to look for a python tag?
 			if (Arrays.toString(firstSmiArr).contains(info) && info.toUpperCase().contains("IMAGEJ")) {
-				result = "ImageJGPU";
+				// Use '¡RepeatedImageJGPU!' as marker for this option
+				result += info + "¡RepeatedImageJGPU!";
 			} else {
 				return info;
 			}
@@ -163,26 +154,68 @@ public class SystemUsage {
 		return result;
 	}
 	
+	public static int numberOfImageJInstances() {
+		String os = System.getProperty("os.name").toLowerCase();
+		if (os.contains("win"))
+			return numberOfImageJInstancesWin();
+		else if (os.contains("lin"))
+			return 1;
+		else if (os.contains("ios"))
+			return 1;
+		else 
+			return 1;
+	}
+	
 	/*
-	 * Run nvidia smi to check if there is any gpu available or if it 
-	 * is being used
+	 * Get the number of ImageJ instances open. The value will be used to deduce
+	 * if the instance of interest is using a GPU or not. 
 	 */
-	public static void checkGPU() throws InterruptedException {
-		ArrayList<String> cudaInfo = runNvidiaSmi();
-		getCUDAEnvVariables();
+	public static int numberOfImageJInstancesWin() {
+		Process proc;
+		int nIJInstances = 0;
+		try {
+			String line;
+			proc = Runtime.getRuntime().exec(System.getenv("windir") +"\\system32\\"+"tasklist.exe");
+
+		    BufferedReader input =
+		            new BufferedReader(new InputStreamReader(proc.getInputStream()));
+		    while ((line = input.readLine()) != null) {
+		        if (line.toUpperCase().contains("IMAGEJ"))
+		        	nIJInstances += 1;
+		    }
+		    input.close();
+		} catch (Exception err) {
+		    err.printStackTrace();
+		}
+		return nIJInstances;
 	}
 	
 	/*
 	 * Run commands in the terminal and retrieve the output in the terminal
 	 */
 	public static ArrayList<String> runNvidiaSmi() {
-		return runNvidiaSmi(true);
+		String os = System.getProperty("os.name").toLowerCase();
+		if (os.contains("win"))
+			return runNvidiaSmiWin();
+		else if (os.contains("lin"))
+			return null;
+		else if (os.contains("ios"))
+			return null;
+		else 
+			return null;
 	}
 	
 	/*
 	 * Run commands in the terminal and retrieve the output in the terminal
 	 */
-	public static ArrayList<String> runNvidiaSmi(boolean firstCall) {
+	public static ArrayList<String> runNvidiaSmiWin() {
+		return runNvidiaSmiWin(true);
+	}
+	
+	/*
+	 * Run commands in the terminal and retrieve the output in the terminal
+	 */
+	public static ArrayList<String> runNvidiaSmiWin(boolean firstCall) {
 
         Process proc;
 		try {
@@ -209,9 +242,9 @@ public class SystemUsage {
 			// in another location. If it is not found, we cannot know 
 			// if we are using GPU or not
 			if (firstCall) {
-				String nvidiaSmi = findNvidiaSmi();
+				String nvidiaSmi = findNvidiaSmiWin();
 				if (nvidiaSmi != null)
-					return runNvidiaSmi(false);
+					return runNvidiaSmiWin(false);
 			} else {
 				return null;
 			}
@@ -225,13 +258,13 @@ public class SystemUsage {
 	 * Older installs might have it at:
 	 *  - C:\Program Files\NVIDIA Corporation\NVSMI
 	 */
-	private static String findNvidiaSmi() {
+	private static String findNvidiaSmiWin() {
 		// Look in the default directory
 		File grandfatherDir = new File("C:\\Windows\\System32\\DriverStore\\FileRepository");
 		if (!grandfatherDir.exists())
 			return null;
 		for (File f : grandfatherDir.listFiles()) {
-			if (f.getName().indexOf("nv") == 0 && findNvidiaSmiExe(f))
+			if (f.getName().indexOf("nv") == 0 && findNvidiaSmiExeWin(f))
 				return f.getAbsolutePath() + File.separator + "nvidia-smi.exe";
 		}
 		// Look inside the default directory in old versions
@@ -248,7 +281,7 @@ public class SystemUsage {
 	/*
 	 * Look for the nvidia-smi executable in a given folder
 	 */
-	private static boolean findNvidiaSmiExe(File f) {
+	private static boolean findNvidiaSmiExeWin(File f) {
 		for (File ff : f.listFiles()) {
 			if (ff.getName().equals("nvidia-smi.exe"))
 				return true;
@@ -263,6 +296,24 @@ public class SystemUsage {
 	 * we are using a GPU
 	 */
 	public static String getCUDAEnvVariables() {
+		String os = System.getProperty("os.name").toLowerCase();
+		if (os.contains("win"))
+			return getCUDAEnvVariablesWin();
+		else if (os.contains("linux") || os.contains("unix"))
+			return "noCuda";
+		else if (os.contains("mac"))
+			return "noCuda";
+		else 
+			return "noCuda";
+	}
+
+	/*
+	 * Find enviromental variables corresponding to CUDA files.
+	 * If they are present and correspond to the needed CUDA vesion
+	 * for the installed TF or Pytorch version, it is possible that
+	 * we are using a GPU
+	 */
+	public static String getCUDAEnvVariablesWin() {
 		// Look for environment variable containing the path to CUDA
 		String cudaPath = System.getenv("CUDA_PATH");
 		if (cudaPath == null)
