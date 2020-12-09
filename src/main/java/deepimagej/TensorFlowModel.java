@@ -38,6 +38,7 @@
 package deepimagej;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -177,12 +178,17 @@ public class TensorFlowModel {
 		return tfService.getStatus().getInfo();
 	}
 	
+	// TODO remove this or the next method
 	public static SavedModelBundle load(String path, String tag, Log log) {
 		log.print("load model from " + path);
 
 		SavedModelBundle model = null;
 		try {
+			Runtime instance = Runtime.getRuntime();
+			double a = instance.freeMemory() / (1024*1024.0);
 			model = SavedModelBundle.load(path, tag);
+			double b = instance.freeMemory() / (1024*1024.0);
+			System.out.println(b-a);
 		}
 		catch (Exception e) {
 			log.print("Exception in loading model " + path);
@@ -198,7 +204,11 @@ public class TensorFlowModel {
 		// Load the model with its correspondent tag
 		SavedModelBundle model;
 		try {
+			Runtime instance = Runtime.getRuntime();
+			double a = instance.freeMemory() / (1024*1024.0);
 			model = SavedModelBundle.load(source, modelTag);
+			double b = instance.freeMemory() / (1024*1024.0);
+			System.out.println(b-a);
 		}
 		catch (TensorFlowException e) {
 			System.out.println("The tag was incorrect");
@@ -219,10 +229,7 @@ public class TensorFlowModel {
 		Set<String> sigKeys;
 		Object[] info = new Object[3];
 		try {
-			Runtime instance = Runtime.getRuntime();
-			long aa = instance.freeMemory() / (1024*1024);
 			model = SavedModelBundle.load(source, tag);
-			long bb = instance.freeMemory() / (1024*1024);
 			sigKeys = metaGraphsSet(model);
 		}
 		catch (TensorFlowException e) {
@@ -459,6 +466,30 @@ public class TensorFlowModel {
 		frame.add(arch.getPane(500, 500));
 		frame.pack();
 		frame.setVisible(true);
+	}
+	
+	public static String TensorflowCUDACompatibility(String tfVersion, String CUDAVersion) {
+		String errMessage = "";
+		if (tfVersion.contains("1.15.0") && !CUDAVersion.contains("10.0")) {
+			errMessage = "Installed CUDA version " + CUDAVersion + " is not compatible with tf 1.15.0.\n"
+					+ "The plugin might not be able to run on GPU.\n"
+					+ "For optimal performance please install CUDA 10.0.\n";
+		} else if (tfVersion.contains("1.14.0") && !CUDAVersion.contains("10.0")) {
+			errMessage = "Installed CUDA version " + CUDAVersion + " is not compatible with tf 1.14.0.\n"
+					+ "The plugin might not be able to run on GPU.\n"
+					+ "For optimal performance please install CUDA 10.0.\n";
+		} else if (tfVersion.contains("1.13.0") && !CUDAVersion.contains("10.0")) {
+			errMessage = "Installed CUDA version " + CUDAVersion + " is not compatible with tf 1.13.0.\n"
+					+ "The plugin might not be able to run on GPU.\n"
+					+ "For optimal performance please install CUDA 10.0.\n";
+		} else if (tfVersion.contains("1.12.0") && !CUDAVersion.contains("9.0")) {
+			errMessage = "Installed CUDA version " + CUDAVersion + " is not compatible with tf 1.12.0.\n"
+					+ "The plugin might not be able to run on GPU.\n"
+					+ "For optimal performance please install CUDA 9.0.\n";
+		} else if (!tfVersion.contains("1.15.0") && !tfVersion.contains("1.14.0") && !tfVersion.contains("1.13.0") && !tfVersion.contains("1.12.0")) {
+			errMessage = "Make sure that the Tensorflow version is compatible with the installed CUDA version.\n";
+		}
+		return errMessage;
 	}
 	
 	/*

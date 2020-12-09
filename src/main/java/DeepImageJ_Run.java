@@ -574,7 +574,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			
 			log.print("start progress");
 			log.print("start runner");
-			RunnerProgress rp = new RunnerProgress(dp);
+			RunnerProgress rp = new RunnerProgress(dp, false);
 			HashMap<String, Object> output = null;
 			if (dp.params.framework.equals("Tensorflow")) {
 				RunnerTf runner = new RunnerTf(dp, rp, inputsMap, log);

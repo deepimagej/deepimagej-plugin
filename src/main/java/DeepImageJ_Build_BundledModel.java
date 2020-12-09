@@ -38,6 +38,8 @@
 import java.io.File;
 import java.io.IOException;
 
+import org.scijava.Context;
+
 import deepimagej.BuildDialog;
 import deepimagej.TensorFlowModel;
 import ij.IJ;
@@ -45,9 +47,11 @@ import ij.ImageJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.plugin.PlugIn;
+import net.imagej.tensorflow.DefaultTensorFlowService;
+import net.imagej.tensorflow.TensorFlowService;
 
 public class DeepImageJ_Build_BundledModel implements PlugIn {
-
+	
 	public void run(String arg) {
 		// If there is no models directory inside Fiji folder, create it
 		String path = IJ.getDirectory("imagej") + File.separator + "models" + File.separator;

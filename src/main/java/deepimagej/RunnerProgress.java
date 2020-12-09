@@ -61,7 +61,8 @@ public class RunnerProgress extends JDialog implements ActionListener {
 	private BorderLabel			title		= new BorderLabel("Name ........");
 	private BorderLabel			patches		= new BorderLabel("Patch not set");
 	private BorderLabel			memory		= new BorderLabel("Memory........");
-	private BorderLabel			peak			= new BorderLabel("Memory........");
+	private BorderLabel			peak		= new BorderLabel("Memory........");
+	private BorderLabel			processor	= new BorderLabel("GPU...........");
 	private Timer				timer		= new Timer(true);
 	private JButton				bnStop		= new JButton("Stop");
 	private BorderLabel			time			= new BorderLabel("Elapsed time");
@@ -74,12 +75,14 @@ public class RunnerProgress extends JDialog implements ActionListener {
 	private boolean stop = false;
 	private String name;
 	
-	public RunnerProgress(DeepImageJ dp) {
+	public RunnerProgress(DeepImageJ dp, boolean GPU) {
 		super(new JFrame(), "Run DeepImageJ");
 		name = dp.getName();
 		JPanel prog = new JPanel(layout);
 		place(prog, 0, 1, 0, title);
 		place(prog, 1, 1, 0, time);
+		if (GPU) 
+			place(prog, 2, 1, 0, processor);
 		place(prog, 3, 1, 0, patches);
 		place(prog, 4, 1, 0, memory);
 		place(prog, 5, 1, 0, peak);
@@ -145,6 +148,8 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		time.setText("Runtime: " + NumFormat.seconds((System.nanoTime() - chrono)));
 		memory.setText("Used memory: " + NumFormat.bytes(mem) + " / " + SystemUsage.getMaxMemory());
 		peak.setText("Peak memory: " + NumFormat.bytes(peakmem));
+		// TODO GPU YES, NO,
+		processor.setText("GPU: YES");
 		if (runner != null && (runner instanceof RunnerTf))
 			patches.setText("Patches: " + ((RunnerTf) runner).getCurrentPatch() + "/" + ((RunnerTf) runner).getTotalPatch());
 		if (runner != null && (runner instanceof RunnerPt))

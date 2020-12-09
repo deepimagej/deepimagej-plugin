@@ -50,9 +50,6 @@ import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-
-import org.tensorflow.SavedModelBundle;
 
 import deepimagej.components.TitleHTMLPane;
 import deepimagej.stamp.InputDimensionStamp;
@@ -85,7 +82,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 
 	private WelcomeStamp			welcome;
 	private LoadTFStamp				loaderTf;
-	private LoadPytorchStamp				loaderPt;
+	private LoadPytorchStamp		loaderPt;
 	private SelectPyramidalStamp	selectPyramid;
 	private InputDimensionStamp		dim3;
 	private OutputDimensionStamp 	outputDim;
@@ -100,6 +97,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 	private PtSaveStamp				ptSave;
 	private DeepImageJ				dp		= null;
 	private int						card	= 1;
+	private String					GPU 	= "";
 
 	public BuildDialog() {
 		super(new JFrame(), "Build Bundled Model [" + Constants.version + "]");
@@ -329,5 +327,13 @@ public class BuildDialog extends JDialog implements ActionListener {
 	
 	public DeepImageJ getDeepPlugin() {
 		return dp;
+	}
+	
+	public String getGPU() {
+		return GPU;
+	}
+	
+	public void setGPU(String info) {
+		GPU = info;
 	}
 }

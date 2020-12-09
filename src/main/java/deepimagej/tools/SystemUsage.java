@@ -137,9 +137,6 @@ public class SystemUsage {
 		getCUDAEnvVariables();
 		try {
 			checkGPU();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -152,17 +149,14 @@ public class SystemUsage {
 	 */
 	public static String isUsingGPU(ArrayList<String> firstSmi, ArrayList<String> secondSmi) {
 		Object[] firstSmiArr = firstSmi.toArray();
-		String result = "noJavaProcess";
-		// If the two arrays are the same, nothing has changed, so nothing was loaded
-		if (firstSmi.equals(secondSmi)) 
-			return "sameSmi";
+		String result = "noImageJProcess";
 		// If they are not the same, look for information that is not on the first smi
 		// and where the process name contains "java"
-		// TODO check how imagej is specified in the smi to be more specific
 		for (String info : secondSmi) {
-			if (info.contains("java") && Arrays.toString(firstSmiArr).contains(info)) {
-				result = "repeatedJavaProcess";
-			} else if (info.contains("java")) {
+			// TODO check if what happens when Imagej is called from Pyton, do we need to look for a python tag?
+			if (Arrays.toString(firstSmiArr).contains(info) && info.toUpperCase().contains("IMAGEJ")) {
+				result = "ImageJGPU";
+			} else {
 				return info;
 			}
 		}
@@ -173,26 +167,26 @@ public class SystemUsage {
 	 * Run nvidia smi to check if there is any gpu available or if it 
 	 * is being used
 	 */
-	public static void checkGPU() throws IOException, InterruptedException {
-		ArrayList<String> cudaInfo = runTerminalCommand("nvidia-smi");
+	public static void checkGPU() throws InterruptedException {
+		ArrayList<String> cudaInfo = runNvidiaSmi();
 		getCUDAEnvVariables();
 	}
 	
 	/*
 	 * Run commands in the terminal and retrieve the output in the terminal
 	 */
-	public static ArrayList<String> runTerminalCommand(String command) throws InterruptedException {
-		return runTerminalCommand(command, true);
+	public static ArrayList<String> runNvidiaSmi() {
+		return runNvidiaSmi(true);
 	}
 	
 	/*
 	 * Run commands in the terminal and retrieve the output in the terminal
 	 */
-	public static ArrayList<String> runTerminalCommand(String command, boolean firstCall) throws InterruptedException {
+	public static ArrayList<String> runNvidiaSmi(boolean firstCall) {
 
         Process proc;
 		try {
-			proc = Runtime.getRuntime().exec(command);
+			proc = Runtime.getRuntime().exec("nvidia-smi");
 
 	        // Read the output
 	        BufferedReader reader =  
@@ -210,17 +204,19 @@ public class SystemUsage {
 
 	        proc.waitFor(); 
 	        return result;
-		} catch (IOException e) {
+		} catch (IOException | InterruptedException e) {
 			// Not able to run terminal command. Look for the nvidia-smi.exe
 			// in another location. If it is not found, we cannot know 
 			// if we are using GPU or not
 			if (firstCall) {
 				String nvidiaSmi = findNvidiaSmi();
-				return runTerminalCommand(nvidiaSmi, false);
+				if (nvidiaSmi != null)
+					return runNvidiaSmi(false);
 			} else {
 				return null;
 			}
 		}  
+		return null;
 	}
 	
 	/*
@@ -232,12 +228,16 @@ public class SystemUsage {
 	private static String findNvidiaSmi() {
 		// Look in the default directory
 		File grandfatherDir = new File("C:\\Windows\\System32\\DriverStore\\FileRepository");
+		if (!grandfatherDir.exists())
+			return null;
 		for (File f : grandfatherDir.listFiles()) {
 			if (f.getName().indexOf("nv") == 0 && findNvidiaSmiExe(f))
 				return f.getAbsolutePath() + File.separator + "nvidia-smi.exe";
 		}
 		// Look inside the default directory in old versions
 		grandfatherDir = new File("C:\\Program Files\\NVIDIA Corporation\\NVSMI");
+		if (!grandfatherDir.exists())
+			return null;
 		for (File f : grandfatherDir.listFiles()) {
 			if (f.getName().equals("nvidia-smi.exe"))
 				return f.getAbsolutePath();
@@ -284,17 +284,18 @@ public class SystemUsage {
 		
 		if (bin && libnvvp) {
 			// If all the needed variables are set, return the CUDA version
+			// In all possible cases return first the CUDA version found followed by ";"
 			return cudaVersion;
 		} else if (!bin && libnvvp) {
 			// If bin is missing return 'bin'
-			return cudaPath + File.separator + "bin";
+			return cudaVersion + ";" + cudaPath + File.separator + "bin";
 		} else if (bin && !libnvvp) {
 			// If libnvvp is missing return 'libnvvp'
-			return cudaPath + File.separator + "libnvvp";
+			return cudaVersion + ";" + cudaPath + File.separator + "libnvvp";
 		} else {
 			// If bin and libnvvp is missing return 'libnvvp' and 'bin' 
 			// separated by ';'
-			return cudaPath + File.separator + "libnvvp" + ";" + cudaPath + File.separator + "bin";
+			return cudaVersion + ";" + cudaPath + File.separator + "libnvvp" + ";" + cudaPath + File.separator + "bin";
 		}
 	}
 }

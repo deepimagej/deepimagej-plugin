@@ -56,6 +56,7 @@ import deepimagej.components.HTMLPane;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.FileTools;
 import deepimagej.tools.Log;
+import deepimagej.tools.SystemUsage;
 import ij.IJ;
 
 public class LoadTFStamp extends AbstractStamp implements Runnable {
@@ -203,6 +204,28 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		pnLoad.append("h2", "Tensorflow version");
 		pnLoad.append("p", "Currently using Tensorflow " + tfVersion);
 		pnLoad.append("p", loadInfo);
+		// Run the nvidia-smi to see if it is possible to locate a GPU
+		String cudaVersion = "";
+		if (tfVersion.contains("GPU"))
+			cudaVersion = SystemUsage.getCUDAEnvVariables();
+		// If a CUDA distribution was found, cudaVersion will be equal
+		// to the CUDA version. If not it can be either 'noCuda', if CUDA 
+		// is not installed, or if there is a CUDA_PATH in the environment variables
+		// but the needed variables are not in the PATH, it will return the missing 
+		// environment variables
+		if (tfVersion.contains("GPU") && !cudaVersion.contains(File.separator)) {
+			pnLoad.append("p", "Currently using CUDA " + cudaVersion);
+			pnLoad.append("p", TensorFlowModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
+		} else if (tfVersion.contains("GPU") && (cudaVersion.contains("bin") || cudaVersion.contains("libnvvp"))) {
+			pnLoad.append("p", TensorFlowModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
+			String[] outputs = cudaVersion.split(";");
+			pnLoad.append("p", "Found CUDA distribution " + outputs[0] + ".\n");
+			pnLoad.append("p", "Could not find environment variable:\n - " + outputs[1] + "\n");
+			if (outputs.length == 3)
+				pnLoad.append("p", "Could not find environment variable:\n - " + outputs[2] + "\n");
+		} else if (tfVersion.contains("GPU") && cudaVersion.equals("noCUDA")) {
+			pnLoad.append("p", "No CUDA distribution found.\n");
+		}
 		pnLoad.append("h2", "Model info");
 		File file = new File(params.path2Model);
 		if (file.exists())
@@ -210,6 +233,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 
 		pnLoad.append("h2", "Load " + name);
 
+		String pnTxt = pnLoad.getText();
 		Log log = new Log();
 		params.tag = null;
 		
@@ -217,11 +241,18 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		parent.setEnabledBackNext(false);
 		Object[] info = null;
 		double time = -1;
+		pnLoad.append("p", "Loading model...");
+		ArrayList<String> initialSmi = null;
+		ArrayList<String> finalSmi = null;
 		try {
-			double chrono = System.nanoTime();
+			if (tfVersion.contains("GPU") && parent.getGPU().equals(""))
+				initialSmi = SystemUsage.runNvidiaSmi();
 			info = TensorFlowModel.findTag(params.path2Model);
-			time = System.nanoTime() - chrono;
+			if (tfVersion.contains("GPU") && parent.getGPU().equals(""))
+				finalSmi = SystemUsage.runNvidiaSmi();
 		} catch (Exception ex) {
+			pnLoad.clear();
+			pnLoad.setText(pnTxt);
 			ex.printStackTrace();
 			IJ.error("DeepImageJ could not load the model,\n"
 					+ "try with another Tensorflow version");
@@ -231,6 +262,27 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			parent.setEnabledBack(true);
 			parent.setEnabledNext(false);
 			return;
+		}
+		// Remove loading text by restoring all the previous text
+		pnLoad.clear();
+		pnLoad.setText(pnTxt);
+		
+		// Check if the model has been loaded on GPU
+		if (tfVersion.contains("GPU") && parent.getGPU().equals("")) {
+			String GPUInfo = SystemUsage.isUsingGPU(initialSmi, finalSmi);
+			if (GPUInfo.equals("noImageJProcess") && !cudaVersion.contains(File.separator)) {
+				pnLoad.append("p", "Unable to run nvidia-smi to check if the model was loaded on a GPU.");
+			} else if (GPUInfo.equals("noImageJProcess")) {
+				pnLoad.append("p", "Unable to load model on GPU.");
+			} else if(GPUInfo.equals("ImageJGPU")) {
+				// TODO check by running tasklist on the CMD
+				pnLoad.append("p", "Found GPU on the system used by ImageJ.");
+			} else {
+				pnLoad.append("p", "Model loaded on the GPU.");
+				parent.setGPU(GPUInfo);
+			}
+		} else if (tfVersion.contains("GPU")) {
+			pnLoad.append("p", "Model loaded on the GPU.");
 		}
 		
 		String tag = (String) info[0];
