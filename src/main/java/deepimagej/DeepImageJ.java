@@ -288,8 +288,8 @@ public class DeepImageJ {
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 			info.append("Weights size: " + modelSize + " MB\n");
 		} else if (params.framework.equals("Tensorflow")) {
-			modelSize = "" + new File(this.getPath() + File.separator + "tensorflow_saved_model_bundled.zip").length() / (1024 * 1024.0);
-			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
+			modelSize = "" + new File(this.getPath() + File.separator + "tensorflow_saved_model_bundle.zip").length() / (1024 * 1024.0);
+			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 2);
 			info.append("Zipped model size: " + modelSize + " MB\n");
 		} else if (params.framework.equals("Tensorflow/Pytorch") && new File(this.getPath(), "variables").isFile()) {
 			modelSize = "" + new File(this.getPath() + File.separator + "pytorch_script.pt").length() / (1024 * 1024.0);
@@ -304,7 +304,7 @@ public class DeepImageJ {
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 			info.append("Pytorch weights size: " + modelSize + " MB\n");
 
-			modelSize = "" + new File(this.getPath() + File.separator + "tensorflow_saved_model_bundled.zip").length() / (1024 * 1024.0);
+			modelSize = "" + new File(this.getPath() + File.separator + "tensorflow_saved_model_bundle.zip").length() / (1024 * 1024.0);
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 			info.append("Zipped Tensorflow model size: " + modelSize + " MB\n");
 		}

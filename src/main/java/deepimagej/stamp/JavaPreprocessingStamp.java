@@ -96,7 +96,7 @@ public class JavaPreprocessingStamp extends AbstractStamp implements ActionListe
 		
 		txt1.setFont(new Font("Arial", Font.BOLD, 14));
 		txt1.setForeground(Color.red);
-		txt1.setPreferredSize(new Dimension(Constants.width, 25));
+		//txt1.setPreferredSize(new Dimension(Constants.width, 25));
 		JPanel load1 = new JPanel(new BorderLayout());
 		load1.setBorder(BorderFactory.createEtchedBorder());
 		load1.add(txt1, BorderLayout.CENTER);
@@ -104,7 +104,7 @@ public class JavaPreprocessingStamp extends AbstractStamp implements ActionListe
 
 		txt2.setFont(new Font("Arial", Font.BOLD, 14));
 		txt2.setForeground(Color.red);
-		txt2.setPreferredSize(new Dimension(Constants.width, 25));
+		//txt2.setPreferredSize(new Dimension(Constants.width, 25));
 		JPanel load2 = new JPanel(new BorderLayout());
 		load2.setBorder(BorderFactory.createEtchedBorder());
 		load2.add(txt2, BorderLayout.CENTER);

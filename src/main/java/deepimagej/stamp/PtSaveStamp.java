@@ -96,7 +96,7 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		pane.setBorder(BorderFactory.createEtchedBorder());
 		pane.append("h2", "Saving Bundled Model");
 		JScrollPane infoPane = new JScrollPane(pane);
-		infoPane.setPreferredSize(new Dimension(Constants.width, pane.getPreferredSize().height));
+		//infoPane.setPreferredSize(new Dimension(Constants.width, pane.getPreferredSize().height));
 		DeepImageJ dp = parent.getDeepPlugin();
 
 		if (dp != null)
@@ -105,7 +105,7 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 					txt.setText(dp.params.path2Model);
 		txt.setFont(new Font("Arial", Font.BOLD, 14));
 		txt.setForeground(Color.red);
-		txt.setPreferredSize(new Dimension(Constants.width, 25));
+		//txt.setPreferredSize(new Dimension(Constants.width, 25));
 		JPanel load = new JPanel(new BorderLayout());
 		load.setBorder(BorderFactory.createEtchedBorder());
 		load.add(txt, BorderLayout.CENTER);
@@ -279,6 +279,7 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 				if (output.get("type").contains("image")) {
 					ImagePlus im = WindowManager.getImage(name);
 					IJ.saveAsTiff(im, params.saveDir + File.separator + name + ".tif");
+					pane.append("p", name + ".tif" + ": saved");
 					if (params.biozoo) {
 						TfSaveStamp.saveNpyFile(im, "XYCZN", params.saveDir + File.separator + name + ".npy");
 						pane.append("p", name + ".npy" + ": saved");
@@ -288,6 +289,7 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			        if (f!=null && (f instanceof TextWindow)) {
 			        	ResultsTable rt = ((TextWindow)f).getResultsTable();
 						rt.save(params.saveDir + File.separator + name + ".csv");
+						pane.append("p", name + ".csv" + ": saved");
 						if (params.biozoo) {
 							TfSaveStamp.saveNpyFile(rt, params.saveDir + File.separator + name + ".npy");
 							pane.append("p", name + ".npy" + ": saved");
@@ -295,7 +297,6 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 					} else {
 						throw new Exception();					}
 				}
-				pane.append("p", name + ": saved");
 			} 
 			catch(Exception ex) {
 				pane.append("p", name + "exampleOutput.tiff:  not saved");
@@ -307,14 +308,14 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		// Save yaml
 		try {
 			YAMLUtils.writeYaml(dp);
-			pane.append("p", "config.yaml: saved");
+			pane.append("p", "model.yaml: saved");
 		} 
 		catch(IOException ex) {
-			pane.append("p", "config.yaml: not saved");
+			pane.append("p", "model.yaml: not saved");
 			IJ.error("Model file was locked or does not exist anymore.");
 		}
 		catch(Exception ex) {
-			pane.append("p", "config.yaml: not saved");
+			pane.append("p", "model.yaml: not saved");
 			ex.printStackTrace();
 		}
 		

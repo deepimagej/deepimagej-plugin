@@ -104,7 +104,7 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 
 		pnTest = new HTMLPane(Constants.width, 100);
 		JScrollPane pnTestScroller = new JScrollPane(pnTest);
-		pnTestScroller.setPreferredSize(new Dimension(Constants.width, pnTest.getPreferredSize().height));
+		//pnTestScroller.setPreferredSize(new Dimension(Constants.width, pnTest.getPreferredSize().height));
 		HTMLPane pane = new HTMLPane(Constants.width, 100);
 		pane.setBorder(BorderFactory.createEtchedBorder());
 		pane.append("h2", "Run a test on an image");

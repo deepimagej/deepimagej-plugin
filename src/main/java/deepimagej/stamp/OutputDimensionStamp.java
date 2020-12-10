@@ -508,7 +508,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		//pnOutputInfo.place(1, 0, referenceImage);
 		pnOutputInfo.place(2, 0, 2, 1, firstRow);
 		pnOutputInfo.place(5, 0, 2, 1,  pnRange);
-		pnOutputInfo.setPreferredSize(new Dimension(pnOutputInfo.getWidth(), pnOutputInfo.getHeight()));
+		//pnOutputInfo.setPreferredSize(new Dimension(pnOutputInfo.getWidth(), pnOutputInfo.getHeight()));
 	}
 	
 	private static void getPanelForImage(Parameters params) {
@@ -568,7 +568,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		pnOutputInfo.place(3, 0, 2, 1, secondRow);
 		pnOutputInfo.place(4, 0, 2, 1, thirdRow);
 		pnOutputInfo.place(5, 0, 2, 1,  pnRange);
-		pnOutputInfo.setPreferredSize(new Dimension(pnOutputInfo.getWidth(), pnOutputInfo.getHeight()));
+		//pnOutputInfo.setPreferredSize(new Dimension(pnOutputInfo.getWidth(), pnOutputInfo.getHeight()));
 	}
 	
 	/*
@@ -582,7 +582,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		
 		txtExportDir.setFont(new Font("Arial", Font.BOLD, 14));
 		txtExportDir.setForeground(Color.red);
-		txtExportDir.setPreferredSize(new Dimension(Constants.width, 25));
+		//txtExportDir.setPreferredSize(new Dimension(Constants.width, 25));
 		
 		int[] dimValues = DijTensor.getWorkingDimValues(params.outputList.get(outputCounter).form, params.outputList.get(outputCounter).tensor_shape); 
 		String[] dims = DijTensor.getWorkingDims(params.outputList.get(outputCounter).auxForm);
@@ -610,7 +610,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		
 		pnOutputInfo.place(2, 0, 2, 1, firstRow);
 		pnOutputInfo.place(5, 0, 2, 1,  pnRange);
-		pnOutputInfo.setPreferredSize(dim);
+		//pnOutputInfo.setPreferredSize(dim);
 	}
 	
 	private static int findFixedInput(String referenceInput, String dim, List<DijTensor> inputTensors) {

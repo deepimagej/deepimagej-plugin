@@ -93,11 +93,13 @@ public class YAMLUtils {
 					shape.put("step", Arrays.toString(aux));
 					inputTensorMap.put("shape", shape);
 				}
+				/* TODO remove
 				Map<String, Object> preprocessing = new LinkedHashMap<>();
 				preprocessing.put("name", null);
 				// TODO what to do Map<String, Object> kwargs = new LinkedHashMap<>();
 				preprocessing.put("kwargs", null);
 				inputTensorMap.put("preprocessing", preprocessing);
+				*/
 				modelInputMapsList.add(inputTensorMap);
 				
 				// Now write the test data info
@@ -346,10 +348,10 @@ public class YAMLUtils {
 		Yaml yaml = new Yaml(options);
 		FileWriter writer = null;
 		try {
-			writer = new FileWriter(new File(params.saveDir, "config.yaml"));
+			writer = new FileWriter(new File(params.saveDir, "model.yaml"));
 			yaml.dump(data, writer);
 			writer.close();
-			removeQuotes(new File(params.saveDir, "config.yaml"));
+			removeQuotes(new File(params.saveDir, "model.yaml"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -406,11 +408,13 @@ public class YAMLUtils {
 			outputTensorMap.put("data_type", "float32");
 			outputTensorMap.put("data_range", Arrays.toString(out.dataRange));
 		}
+		/* TODO remove
 		Map<String, Object> postprocessing = new LinkedHashMap<>();
 		postprocessing.put("name", null);
 		// TODO what to do Map<String, Object> kwargs = new LinkedHashMap<>();
 		postprocessing.put("kwargs", null);
 		outputTensorMap.put("postprocessing", postprocessing);
+		*/
 		return outputTensorMap;
 	}
 	

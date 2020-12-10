@@ -1,5 +1,4 @@
 /*
- * DeepImageJ
  * 
  * https://deepimagej.github.io/deepimagej/
  *
@@ -237,7 +236,7 @@ public class Parameters {
 		format_version = "" + obj.get("format_version");
 		name = (String) obj.get("name");
 		author = (List<String>) obj.get("authors");
-		timestamp = (String) obj.get("timestamp");
+		timestamp = "" +  obj.get("timestamp");
 		if (author == null) {
 			author = new ArrayList<String>();
 			author.add("n/a");

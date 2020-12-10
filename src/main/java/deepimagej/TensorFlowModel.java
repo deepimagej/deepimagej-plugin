@@ -134,20 +134,27 @@ public class TensorFlowModel {
 	}
 
 	
+	/*
+	 * TRy to load tf using IMageJ-Tensorflow manager. If it fails
+	 * notify that we are on IJ! and that the tf library will be loaded 
+	 * from the jars library using libtensorflow.jar and libtensorflow_jni.jar
+	 */
 	public static String loadLibrary() {
-		if (tfService != null && !tfService.getStatus().isLoaded()) {
-			tfService.initialize();
-			tfService.loadLibrary();
-			if (tfService.getStatus().isLoaded()) {
-				return tfService.getStatus().getInfo();
-			} else {
-				IJ.log(tfService.getStatus().getInfo());
-				return "";
+		try {
+			if (!tfService.getStatus().isLoaded()) {
+				tfService.initialize();
+				tfService.loadLibrary();
+				if (tfService.getStatus().isLoaded()) {
+					return tfService.getStatus().getInfo();
+				} else {
+					IJ.log(tfService.getStatus().getInfo());
+					return "";
+				}
 			}
-		} else if(tfService == null) {
+			return tfService.getStatus().getInfo();
+		} catch (Exception ex) {
 			return "ImageJ";
 		}
-		return tfService.getStatus().getInfo();
 	}
 	
 	// TODO remove this or the next method
@@ -483,6 +490,8 @@ public class TensorFlowModel {
 	 */
 	public static String getTFVersionIJ() {
 		String tfJni = getLibTfJar();
+		if (!tfJni.contains("jar"))
+			return tfJni;
 		String tfVersion = getTfVersionFromJar(tfJni);
 		return tfVersion;	
 	}
@@ -504,8 +513,12 @@ public class TensorFlowModel {
 		String jarsJar = findTFJar(jarDirectory);
 
 		// Check that there is only one jar file present in both folders
-		if (jarsJar.equals(pluginsJar) == true) {
-			return "invalid";
+		if (jarsJar.equals(pluginsJar) && jarsJar.equals("")) {
+			return "-No Tensorflow version found-";
+		} else if (jarsJar.toLowerCase().contains("more than 1 version") || pluginsJar.toLowerCase().contains("more than 1 version")) {
+			return "-More than one tensorflow version present-";
+		} else if (jarsJar.toLowerCase().contains("tensorflow") && jarsJar.toLowerCase().contains("tensorflow") && !jarsJar.equals(pluginsJar)) {
+			return "-The plugins and jars directories contains a different version of TF each-";
 		}
 
 		// Find which of them is actually the TF jni jar
@@ -530,6 +543,8 @@ public class TensorFlowModel {
 
 		File folder = new File(folderDir);
 		File[] listOfFiles = folder.listFiles();
+		if (listOfFiles == null)
+			return "";
 
 		for (File file : listOfFiles) {
 			if (file.isFile() == true) {
@@ -542,9 +557,9 @@ public class TensorFlowModel {
 		}
 
 		if (nJars == 0) {
-
-		} else if (nJars >1) {
 			tfJar = "";
+		} else if (nJars >1) {
+			tfJar = "more than 1 version";
 		}
 
 		return tfJar;

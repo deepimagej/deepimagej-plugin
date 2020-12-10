@@ -38,10 +38,12 @@
 package deepimagej.stamp;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 
 import javax.swing.JPanel;
 
 import deepimagej.BuildDialog;
+import ij.IJ;
 
 public abstract class AbstractStamp {
 
