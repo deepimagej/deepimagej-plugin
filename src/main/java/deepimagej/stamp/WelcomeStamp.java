@@ -145,7 +145,7 @@ public class WelcomeStamp extends AbstractStamp implements ActionListener {
 
 		File pb = new File(filename + File.separator + "saved_model.pb");
 		if (!pb.exists() && !DeepImageJ.isTherePytorch(file)) {
-			IJ.error("This directory " + filename + " is nrot a protobuf model (no saved_model.pb)"
+			IJ.error("This directory " + filename + " is not a protobuf model (no saved_model.pb)"
 					+ "\nmodel (no saved_model.pb) neither a Pytorch model");	
 			return false;
 		} 

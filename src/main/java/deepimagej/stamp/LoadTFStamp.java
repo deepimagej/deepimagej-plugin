@@ -206,6 +206,8 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		String tfVersion = TensorFlowModel.getTFVersion(parent.getFiji());
 		pnLoad.clear();
 		pnLoad.append("h2", "Tensorflow version");
+		if (loadInfo.toLowerCase().contains("gpu"))
+			tfVersion += "_GPU";
 		pnLoad.append("p", "Currently using Tensorflow " + tfVersion);
 		if (parent.getFiji()) {
 			pnLoad.append("p", loadInfo);
@@ -291,17 +293,17 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 				if (nImageJInstances > nGPUIJInstances) {
 					pnLoad.append("p", "Found " + nGPUIJInstances + "instances of ImageJ/Fiji using GPU"
 							+ " out of the " + nImageJInstances + " opened.\n");
-					pnLoad.append("p", "Could not assert that the model was loaded on the GPU.\n");
+					pnLoad.append("p", "Could not assert that the model was loaded on the <b>GPU</b>.\n");
 				} else if (nImageJInstances <= nGPUIJInstances) {
-					pnLoad.append("p", "Model loaded on the GPU.\n");
+					pnLoad.append("p", "Model loaded on the <b>GPU</b>.\n");
 					parent.setGPU(GPUInfo);
 				}
 			} else {
-				pnLoad.append("p", "Model loaded on the GPU.\n");
+				pnLoad.append("p", "Model loaded on the <b>GPU</b>.\n");
 				parent.setGPU(GPUInfo);
 			}
 		} else if (tfVersion.contains("GPU")) {
-			pnLoad.append("p", "Model loaded on the GPU.\n");
+			pnLoad.append("p", "Model loaded on the <b>GPU</b>.\n");
 		}
 		
 		String tag = (String) info[0];

@@ -83,7 +83,7 @@ public class DeepImageJ {
 		} else if (dev || new File(path, "model.yaml").isFile()) {
 			this.params = new Parameters(valid, path, dev);
 			this.params.path2Model = this.path;
-			this.valid = checkUser(p, false);
+			this.valid = check(p, false);
 		}
 		if (this.valid && dev && this.params.framework.equals("Tensorflow/Pytorch")) {
 			askFrameworkGUI();
@@ -311,7 +311,7 @@ public class DeepImageJ {
 		
 	}
 
-	public  boolean checkUser(String path, boolean recurrence) {
+	public  boolean check(String path, boolean recurrence) {
 		File dir = new File(path);
 		if (!dir.exists()) {
 			return false;
@@ -383,9 +383,11 @@ public class DeepImageJ {
 	public boolean findPytorchModel(File modelFolder) {
 		for (String file : modelFolder.list()) {
 			try {
-				if (file.contains("pytorch_script.pt") && FileTools.createSHA256(modelFolder.getPath() + File.separator + file).equals(params.ptSha256)) {
+				if (!this.developer && file.contains("pytorch_script.pt") && FileTools.createSHA256(modelFolder.getPath() + File.separator + file).equals(params.ptSha256)) {
 					return true;
-				} else if (file.contains("pytorch_script.pt")) {
+				} else if (this.developer && file.contains(".pt")) {
+					return true;
+				} else if (!this.developer && file.contains("pytorch_script.pt")) {
 					IJ.log("Pytorch model at: \n");
 					IJ.log(modelFolder.getAbsolutePath() + File.separator + file);
 					IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
@@ -404,7 +406,7 @@ public class DeepImageJ {
 	 */
 	public static boolean isTherePytorch(File modelFolder) {
 		for (String file : modelFolder.list()) {
-			if (file.contains("pytorch_script.pt")) 
+			if (file.contains(".pt") && (file.indexOf(".pt") == file.lastIndexOf(".") || file.indexOf(".pth") == file.lastIndexOf("."))) 
 				return true;
 		}
 		return false;

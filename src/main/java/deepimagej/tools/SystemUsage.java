@@ -158,12 +158,36 @@ public class SystemUsage {
 		String os = System.getProperty("os.name").toLowerCase();
 		if (os.contains("win"))
 			return numberOfImageJInstancesWin();
-		else if (os.contains("lin"))
-			return 1;
+		else if (os.contains("lin") || os.contains("unix"))
+			return numberOfImageJInstancesLinux();
 		else if (os.contains("ios"))
 			return 1;
 		else 
 			return 1;
+	}
+	
+	/*
+	 * Get the number of ImageJ instances open. The value will be used to deduce
+	 * if the instance of interest is using a GPU or not. 
+	 */
+	public static int numberOfImageJInstancesLinux() {
+		Process proc;
+		int nIJInstances = 0;
+		try {
+			String line;
+			proc = Runtime.getRuntime().exec("ps");
+
+		    BufferedReader input =
+		            new BufferedReader(new InputStreamReader(proc.getInputStream()));
+		    while ((line = input.readLine()) != null) {
+		        if (line.toUpperCase().contains("IMAGEJ"))
+		        	nIJInstances += 1;
+		    }
+		    input.close();
+		} catch (Exception err) {
+		    err.printStackTrace();
+		}
+		return nIJInstances;
 	}
 	
 	/*
@@ -192,13 +216,14 @@ public class SystemUsage {
 	
 	/*
 	 * Run commands in the terminal and retrieve the output in the terminal
+	 * GPUs cannot run on ios operating systems
 	 */
 	public static ArrayList<String> runNvidiaSmi() {
 		String os = System.getProperty("os.name").toLowerCase();
 		if (os.contains("win"))
 			return runNvidiaSmiWin();
 		else if (os.contains("lin"))
-			return null;
+			return runNvidiaSmiLinux();
 		else if (os.contains("ios"))
 			return null;
 		else 
@@ -210,6 +235,44 @@ public class SystemUsage {
 	 */
 	public static ArrayList<String> runNvidiaSmiWin() {
 		return runNvidiaSmiWin(true);
+	}
+	
+	/*
+	 * Run commands in the terminal and retrieve the output in the terminal
+	 */
+	public static ArrayList<String> runNvidiaSmiLinux() {
+		return runNvidiaSmiLinux(true);
+	}
+	
+	/*
+	 * Run commands in the terminal and retrieve the output in the terminal
+	 */
+	public static ArrayList<String> runNvidiaSmiLinux(boolean firstCall) {
+
+        Process proc;
+		try {
+			proc = Runtime.getRuntime().exec("nvidia-smi");
+
+	        // Read the output
+	        BufferedReader reader =  
+	              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+	        ArrayList<String> result = new ArrayList<String>();
+	        // Relevant information comes after the following header
+	        String infoHeader = "|  GPU       PID   Type   Process name                             Usage      |";
+	        boolean startCapturing = false;
+	        while(reader.readLine() != null) {
+	        	if (startCapturing && reader.readLine() != null)
+		            result.add(reader.readLine());
+	        	String aux = reader.readLine();
+	        	if (aux != null && aux.equals(infoHeader))
+	        		startCapturing = true;
+	        }
+
+	        proc.waitFor(); 
+	        return result;
+		} catch (IOException | InterruptedException e) {
+			return null;
+		}  
 	}
 	
 	/*
@@ -231,7 +294,8 @@ public class SystemUsage {
 	        while(reader.readLine() != null) {
 	        	if (startCapturing && reader.readLine() != null)
 		            result.add(reader.readLine());
-	        	if (reader.readLine().equals(infoHeader))
+	        	String aux = reader.readLine();
+	        	if (aux != null && aux.equals(infoHeader))
 	        		startCapturing = true;
 	        }
 
@@ -300,7 +364,7 @@ public class SystemUsage {
 		if (os.contains("win"))
 			return getCUDAEnvVariablesWin();
 		else if (os.contains("linux") || os.contains("unix"))
-			return "noCuda";
+			return getCUDAEnvVariablesLinux(true);
 		else if (os.contains("mac"))
 			return "noCuda";
 		else 
@@ -313,12 +377,68 @@ public class SystemUsage {
 	 * for the installed TF or Pytorch version, it is possible that
 	 * we are using a GPU
 	 */
+	public static String getCUDAEnvVariablesLinux(boolean firstRun) {
+		Process proc;
+		try {
+			if (firstRun) {
+				proc = Runtime.getRuntime().exec("/usr/local/cuda/bin/nvcc --version");
+				/* 
+				 * Output should look like this
+				 * 	nvcc: NVIDIA (R) Cuda compiler driver
+					Copyright (c) 2005-2017 NVIDIA Corporation
+					Built on Fri_Sep__1_21:08:03_CDT_2017
+					Cuda compilation tools, release 9.0, V9.0.176
+
+				 */
+			} else {
+				proc = Runtime.getRuntime().exec("cat /usr/local/cuda/version.txt");
+				/* 
+				 * Output should look like this
+				  	CUDA Version 9.0.176
+
+				 */
+			}
+
+	        // Read the output
+	        BufferedReader reader =  
+	              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+	        String result = "noCuda";
+	        // Version information comes after the following header
+	        String infoHeader = "CUDA compilation tools, release ";
+	        while(reader.readLine() != null) {
+	        	String aux = reader.readLine();
+	        	if (aux != null && aux.contains(infoHeader) && firstRun) {
+	        		result = aux.substring(aux.indexOf("V") + 1, aux.lastIndexOf("."));
+	        	} else if (aux != null && aux.contains(infoHeader) && !firstRun) {
+	        		aux = aux.split(" ")[2];
+	        		result = aux.substring(0, aux.lastIndexOf("."));
+	        	}
+	        }
+
+	        proc.waitFor(); 
+	        if (result.equals("noCuda") && firstRun)
+	        	result = getCUDAEnvVariablesLinux(false);
+	        return result;
+		} catch (Exception ex) {
+			if (firstRun)
+				return getCUDAEnvVariablesLinux(false);
+			else
+				return "noCuda";
+		}
+	}
+
+	/*
+	 * Find enviromental variables corresponding to CUDA files.
+	 * If they are present and correspond to the needed CUDA vesion
+	 * for the installed TF or Pytorch version, it is possible that
+	 * we are using a GPU
+	 */
 	public static String getCUDAEnvVariablesWin() {
 		// Look for environment variable containing the path to CUDA
 		String cudaPath = System.getenv("CUDA_PATH");
-		if (cudaPath == null)
+		if (cudaPath == null || !(new File(cudaPath).exists()))
 			return "noCuda";
-		String cudaVersion = cudaPath.substring(cudaPath.lastIndexOf(File.separator + 1));
+		String cudaVersion = new File(cudaPath).getName();
 		String vars = System.getenv("path");
 		String[] arrVars = vars.split(";");
 		// Look for the other needed environment variables in the path

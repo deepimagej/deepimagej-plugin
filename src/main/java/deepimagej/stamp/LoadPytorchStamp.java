@@ -228,9 +228,18 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 			parent.setEnabledBack(true);
 			e.printStackTrace();
 		} catch (EngineException e) {
-			pnLoad.append("p", "DeepImageJ could not load the model");
-			pnLoad.append("p", "It seems that the Torchscript model was created with Pytorch>1.6.0.");
-			pnLoad.append("p", "Currently DeepImageJ only supports models created with Pytorch<=1.6.0.");
+			String err = e.getMessage();
+			if (err.contains("https://github.com/awslabs/djl/blob/master/docs/development/troubleshooting.md")) {
+				pnLoad.append("p", "DeepImageJ could not load the model");
+				pnLoad.append("p", "Please install the Visual Studio 2019 redistributables to be able\nto use Pytorch with DeepImageJ.");
+				pnLoad.append("p", "For more information:\n");
+				pnLoad.append("p", " - https://github.com/awslabs/djl/blob/master/docs/development/troubleshooting.md");
+				pnLoad.append("p", " - https://github.com/awslabs/djl/issues/126");
+			} else {
+				pnLoad.append("p", "DeepImageJ could not load the model");
+				pnLoad.append("p", "It seems that the Torchscript model was created with Pytorch>1.6.0.");
+				pnLoad.append("p", "Currently DeepImageJ only supports models created with Pytorch<=1.6.0.");
+			}
 			parent.setEnabledBack(true);
 			e.printStackTrace();
 		} catch (ModelNotFoundException e) {

@@ -122,15 +122,17 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		info.append("p", "<b>Input tile size (Q) </b>: Input size of the model. If <i>Allow tiling</i> or"
 				+ " <i>Do not allow tiling (variable input size)</i> is selected, <i>Q</i> will automatically "
 				+ "change for each image during the inference.");
-		info.append("p", "<b>Step (m) </b>: If the network has an auto-encoder architecture, the size of each dimension of the input image (Q), has to be multiple of a minimum size m.");
+		info.append("p", "<b>Minimum size (m) </b>: Minimum size the model can process..");
+		info.append("p", "<b>Step (s) </b>: If the network has an auto-encoder architecture, the size of each"
+				+ " dimension of the input image (Q), has to be the result of 'Minimum size (m) + N * Step (s)',"
+				+ " where N can be any positive integer.");
 			
 		info.append("h", "<b>Tiling strategies</b>");
-		info.append("p", "<b>Allow tiling (variable input size)</b>: <i>Q</i> is editable by the user as long as it "
-				+ "fulfills the <i>step (m)</i> constraint. Large images are processed using a tiling strategy.");
-		info.append("p", "<b>Allow tiling (fixed input size)</b>: <i>Q</i> is fixed. Only images with the same size as <i>Q</i> will be accepted.");
-		info.append("p", "<b>Do not allow patches (fixed input size)</b>: <i>Q</i> will be fixed. Only images with the same size as <i>Q</i> will be accepted.");
-		info.append("p", "<b>Do not allow patches (variable input size)</b>: The input size will be processed as a whole (no tiling) taking into "
-				+ "account the <i>step (m)</i> constraint to adapt its size (<i>Q</i>) by mirroring along the borders.");
+		info.append("p", "<b>Allow tiling</b>: <i>Q</i> is editable by the user as long as it "
+				+ "fulfills the <i>step (s)</i> and <i>minimum (m)</i> constraints. Large images are processed using a tiling strategy.");
+		info.append("p", "<b>Do not allow patches</b>: The input size will be processed as a whole (no tiling). Depending "
+				+ "on the <i>step (s)</i> and <i>minimum (m)</i> constraints, the model might not be applicable to "
+				+ "some images (too big or small).");
 		
 		GridPanel buttons = new GridPanel(true);
 		buttons.setBorder(BorderFactory.createEtchedBorder());
