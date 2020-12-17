@@ -259,4 +259,130 @@ public class ArrayOperations {
 		}
 	}
 
+	/*
+	 * This method looks for the optimal patch size regarding the
+	 * minimum size, step, halo and image size. The optimal patch
+	 * is regarded as the smallest possible patch that allows 
+	 * processing the image as a whole in only one run.
+	 * Regard that it might be too memory consuming for some 
+	 * computers/images.
+	 */
+	public static String optimalPatch(int[] patchSizeArr, int[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, boolean allowPatch) {
+
+		ImagePlus imp = WindowManager.getCurrentImage();
+		return optimalPatch(imp, patchSizeArr, haloArr, dimCharArr, stepArr, minArr, allowPatch);
+			
+	}
+
+		/*
+		 * This method looks for the optimal patch size regarding the
+		 * minimum size, step, halo and image size. The optimal patch
+		 * is regarded as the smallest possible patch that allows 
+		 * processing the image as a whole in only one run.
+		 * Regard that it might be too memory consuming for some 
+		 * computers/images.
+		 */
+		public static String optimalPatch(ImagePlus imp, int[] patchSizeArr, int[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, boolean allowPatch) {
+			
+		String patch = "";
+		for (int ii = 0; ii < patchSizeArr.length; ii ++) {
+			String dimChar = dimCharArr[ii];
+			int halo = haloArr[ii];
+			int min = minArr[ii];
+			int patchSize = patchSizeArr[ii];
+			int step = stepArr[ii];
+			if (imp == null ) {
+				patch += min + ",";
+				continue;
+			}
+			
+			int size = 0;
+			switch (dimChar) {
+				case "Y":
+					size = imp.getHeight();
+					break;
+				case "X":
+					size = imp.getWidth();
+					break;
+				case "Z":
+					size = imp.getNSlices();
+					break;
+				case "C":
+					size = imp.getNChannels();
+					break;
+			}
+			
+			if (step != 0 && allowPatch) {
+				int optimalMult = (int)Math.ceil((double)(size + 2 * halo) / (double)step) * step;
+				if (optimalMult > 3 * size) {
+					optimalMult = optimalMult - step;
+				}
+				if (optimalMult > 3 * size) {
+					optimalMult = (int)Math.ceil((double)size / (double)step) * step;
+				}
+				patch += Integer.toString(optimalMult) + ",";
+
+			} else if (step != 0 && !allowPatch){
+				patch += "auto,";
+			} else if (step == 0){
+				patch += min + ",";
+			} else if (patchSize != 0){
+				patch += patchSize + ",";
+			}
+		}
+		patch = patch.substring(0, patch.length() - 1);
+		return patch;
+	}
+	
+	public static int[] findTotalPadding(DijTensor input, List<DijTensor> outputs, boolean pyramidal) {
+		// Create an object of int[] that contains the output dimensions
+		// of each patch.
+		// This dimensions are always in the form of the input
+		String[] targetForm = input.form.split("");
+		int[] padding = new int[targetForm.length];
+		if (!pyramidal) {
+			for (DijTensor out: outputs) {
+				if (out.tensorType.contains("image") && !Arrays.equals(out.scale, new float[out.scale.length])) {
+					for (int i = 0; i < targetForm.length; i ++) {
+						int ind = Index.indexOf(out.form.split(""), targetForm[i]);
+						if (ind != -1 && !targetForm[i].equals("b") && (out.offset[ind] + out.halo[ind]) > padding[i])  {
+							padding[i] = out.offset[ind] + out.halo[ind];
+						}
+					}
+				}
+			}
+		}
+		return padding;
+	}
+	
+	/*
+	 * Gets an array with the input patch size, as defined in the model
+	 * from a comma separated string
+	 */
+	public static int[] getPatchSize(String[] dim, String form, String sizes, boolean editable) {
+		String[] definedSizes = sizes.split(",");
+		int[] patch = new int[form.split("").length]; 
+		// Dimensions of the patch: [x, y, c, z]
+		int batchInd = Index.indexOf(form.split(""), "B");
+		int count = 0;
+		for (int c = 0; c < patch.length; c ++) {
+			if (c != batchInd){
+				try {
+					if (definedSizes[count].trim().equals("auto") && !editable) {
+						patch[c] = -1;	
+					} else {
+						int value = Integer.parseInt(definedSizes[count].trim());
+						patch[c] = value;	
+					}
+					count += 1;
+				} catch (Exception ex) {
+					return null;
+				}				
+			} else {
+				patch[c] = 1;
+			}
+		}
+		return patch;
+	}
+
 }

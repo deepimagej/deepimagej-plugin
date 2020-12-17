@@ -81,7 +81,6 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 
 	public TensorStamp(BuildDialog parent) {
 		super(parent);
-		//buildPanel();
 	}
 
 	@Override

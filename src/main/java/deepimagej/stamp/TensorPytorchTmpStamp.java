@@ -84,7 +84,6 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 
 	public TensorPytorchTmpStamp(BuildDialog parent) {
 		super(parent);
-		//buildPanel();
 	}
 
 	@Override

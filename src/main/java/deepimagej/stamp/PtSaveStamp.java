@@ -88,7 +88,7 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 	
 	public PtSaveStamp(BuildDialog parent) {
 		super(parent);
-		buildPanel();
+		//buildPanel();
 	}
 
 	public void buildPanel() {

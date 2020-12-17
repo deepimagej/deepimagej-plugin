@@ -98,11 +98,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	private DeepImageJ					dp;
 	private HashMap<String, String>		fullnames	= new HashMap<String, String>();
 	private String 						loadInfo 	= ""; 
-	/*private Font						bigFont 	= new Font("Dialog", Font.BOLD, 18);
-	private Font						mediumFont 	= new Font("Dialog", Font.PLAIN, 14);
-	private Font						smallFont 	= new Font("Dialog", Font.PLAIN, 8);*/
 	
-
 	private boolean 					batch		= true;
 	
 	static public void main(String args[]) {
@@ -145,11 +141,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				return;
 			}
 			info.setEditable(false);
-			/*
-			BorderPanel specPanel = new BorderPanel();
-			specPanel.setLayout(new BorderLayout());
-			specPanel.add(shapeSpec, BorderLayout.CENTER);
-			*/
+			
 			BorderPanel panel = new BorderPanel();
 			panel.setLayout(new BorderLayout());
 			panel.add(info, BorderLayout.CENTER);
@@ -180,12 +172,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			
 			dlg.addHelp(Constants.url);
 			dlg.addPanel(panel);
-			String msg = "Note: Deep learning model’s output strongly depends on the data\n"
-					   + "used during the training process. The model may require re-training,\n"
-					   + "transfer learning or fine-tuning to work properly. Please, check the\n"
-					   + "documentation about the model to get user guidelines: Help button.\n";
-			
-			msg = "Note: the output of a deep learning model strongly depends on the\n"
+			String msg = "Note: the output of a deep learning model strongly depends on the\n"
 				+ "data and the conditions of the training process. A pre-trained model\n"
 				+ "may require a re-training. Please, check the documentation of this\n"
 				+ "model to get user guidelines: Help button.";
@@ -354,7 +341,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			String[] dims = DijTensor.getWorkingDims(tensorForm);
 
 			
-			patch = getPatchSize(dims, dp.params.inputList.get(0).form, texts[1]);
+			patch = ArrayOperations.getPatchSize(dims, dp.params.inputList.get(0).form, texts[1].getText(), texts[1].isEditable());
 			if (patch == null) {
 				IJ.error("Please, introduce the patch size as integers separated by commas.\n"
 						+ "For the axes order 'Y,X,C' with:\n"
@@ -486,7 +473,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			int[] tensorMin = dp.params.inputList.get(0).minimum_size;
 			// Step if the size is not fixed, 0s if it is
 			int[] tensorStep = dp.params.inputList.get(0).step;
-			int[] haloSize = findTotalPadding(dp.params.inputList.get(0), dp.params.outputList, dp.params.pyramidalNetwork);
+			int[] haloSize = ArrayOperations.findTotalPadding(dp.params.inputList.get(0), dp.params.outputList, dp.params.pyramidalNetwork);
 			int[] dimValue = DijTensor.getWorkingDimValues(tensorForm, tensorPatch); 
 			int[] min = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
 			int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep); 
@@ -527,7 +514,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			info.append("\n");
 			info.append("Each dimension is calculated as:\n");
 			info.append("  - tile_size = minimum_size + step * n, where n is any positive integer\n");
-			String optimalPatch = optimalPatch(dimValue, haloVals, dim, step, min, dp.params.allowPatching);
+			String optimalPatch = ArrayOperations.optimalPatch(dimValue, haloVals, dim, step, min, dp.params.allowPatching);
 			info.append("\n");
 			info.append("Default tile_size for this model: " + optimalPatch + "\n");
 			info.append("\n");
@@ -714,88 +701,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		}
 		
 	}
-
-	public static String optimalPatch(int[] patchSizeArr, int[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, boolean allowPatch) {
-		// This method looks for the optimal patch size regarding the
-		// minimum patch constraint and image size. This is then suggested
-		// to the user
-		String patch = "";
-		for (int ii = 0; ii < patchSizeArr.length; ii ++) {
-			String dimChar = dimCharArr[ii];
-			int halo = haloArr[ii];
-			int min = minArr[ii];
-			int patchSize = patchSizeArr[ii];
-			int step = stepArr[ii];
-			ImagePlus imp = null;
-			if (imp == null) {
-				imp = WindowManager.getCurrentImage();
-			}
-			if (imp == null) {
-				patch += "100,";
-			}
-			
-			int size = 0;
-			switch (dimChar) {
-				case "Y":
-					size = imp.getHeight();
-					break;
-				case "X":
-					size = imp.getWidth();
-					break;
-				case "Z":
-					size = imp.getNSlices();
-					break;
-				case "C":
-					size = imp.getNChannels();
-					break;
-			}
-			
-			if (step != 0 && allowPatch) {
-				int optimalMult = (int)Math.ceil((double)(size + 2 * halo) / (double)step) * step;
-				if (optimalMult > 3 * size) {
-					optimalMult = optimalMult - step;
-				}
-				if (optimalMult > 3 * size) {
-					optimalMult = (int)Math.ceil((double)size / (double)step) * step;
-				}
-				patch += Integer.toString(optimalMult) + ",";
-
-			} else if (step != 0 && !allowPatch){
-				patch += "auto,";
-			} else if (step == 0){
-				patch += min + ",";
-			} else if (patchSize != 0){
-				patch += patchSize + ",";
-			}
-		}
-		patch = patch.substring(0, patch.length() - 1);
-		return patch;
-	}
-	
-	public static int[] getPatchSize(String[] dim, String form, TextField sizes) {
-		String[] definedSizes = sizes.getText().split(",");
-		int[] patch = new int[form.split("").length]; // Dimensions of the patch: [x, y, c, z]
-		int batchInd = Index.indexOf(form.split(""), "B");
-		int count = 0;
-		for (int c = 0; c < patch.length; c ++) {
-			if (c != batchInd){
-				try {
-					if (definedSizes[count].trim().equals("auto") && !sizes.isEditable()) {
-						patch[c] = -1;	
-					} else {
-						int value = Integer.parseInt(definedSizes[count].trim());
-						patch[c] = value;	
-					}
-					count += 1;
-				} catch (Exception ex) {
-					return null;
-				}				
-			} else {
-				patch[c] = 1;
-			}
-		}
-		return patch;
-	}
 	
 	public void setGUIOriginalParameters() {
 		info.setCaretPosition(0);
@@ -812,27 +717,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		texts[0].setText("");
 		texts[1].setText("");
 		texts[1].setEditable(false);
-	}
-	
-	public static int[] findTotalPadding(DijTensor input, List<DijTensor> outputs, boolean pyramidal) {
-		// Create an object of int[] that contains the output dimensions
-		// of each patch.
-		// This dimensions are always in the form of the input
-		String[] targetForm = input.form.split("");
-		int[] padding = new int[targetForm.length];
-		if (!pyramidal) {
-			for (DijTensor out: outputs) {
-				if (out.tensorType.contains("image") && !Arrays.equals(out.scale, new float[out.scale.length])) {
-					for (int i = 0; i < targetForm.length; i ++) {
-						int ind = Index.indexOf(out.form.split(""), targetForm[i]);
-						if (ind != -1 && !targetForm[i].equals("b") && (out.offset[ind] + out.halo[ind]) > padding[i])  {
-							padding[i] = out.offset[ind] + out.halo[ind];
-						}
-					}
-				}
-			}
-		}
-		return padding;
 	}
 
 }

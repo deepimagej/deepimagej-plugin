@@ -99,7 +99,8 @@ public class WelcomeStamp extends AbstractStamp implements ActionListener {
 		pane.append("li", "<p>A test image</p>");
 		pane.append("</ul>");
 		pane.append("p", "More information: deepimagej.github.io/deepimagej");
-		pane.append("p", "Reference: E. G&oacute;mez de Mariscal and C. Garc&iacute;a-L&oacute;pez-de-Haro et al. DeepImageJ: J: A user-friendly plugin to run\n" + 
+		pane.append("p", "Reference: E. G&oacute;mez de Mariscal and C. Garc&iacute;a-L&oacute;pez-de-Haro et al. DeepImageJ:"
+				+ " A user-friendly plugin to run\n" + 
 				"deep learning models in ImageJ. Submitted 2019.");
 		pane.append("<hr>");
 		pane.append("p",

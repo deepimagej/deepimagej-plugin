@@ -229,13 +229,30 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 			e.printStackTrace();
 		} catch (EngineException e) {
 			String err = e.getMessage();
-			if (err.contains("https://github.com/awslabs/djl/blob/master/docs/development/troubleshooting.md")) {
+			String os = System.getProperty("os.name").toLowerCase();
+			if (os.contains("win") && err.contains("https://github.com/awslabs/djl/blob/master/docs/development/troubleshooting.md")) {
 				pnLoad.append("p", "DeepImageJ could not load the model");
-				pnLoad.append("p", "Please install the Visual Studio 2019 redistributables to be able\nto use Pytorch with DeepImageJ.");
+				pnLoad.append("p", "Please install the Visual Studio 2019 redistributables and reboot\n"
+							+ "your machine to be able to use Pytorch with DeepImageJ.");
 				pnLoad.append("p", "For more information:\n");
 				pnLoad.append("p", " - https://github.com/awslabs/djl/blob/master/docs/development/troubleshooting.md");
 				pnLoad.append("p", " - https://github.com/awslabs/djl/issues/126");
-			} else {
+				pnLoad.append("p", "If you already have installed VS2019 redistributables, the error\n"
+								+ "might be caused by a non-compatible CUDA version installed.\n"
+								+ "DJL only supports CUDA 10.1 and CUDA 10.2.");
+				// TODO complete
+				pnLoad.append("p", "It seems that you might have installed CUDA ");
+				pnLoad.append("p", "If you want to use a GPU, please uninstall the non-compatible\n"
+									+ "CUDA versions and install either CUDA 10.1 or CUDA 10.2");
+				pnLoad.append("p", "If you do not need to use a GPU, just remove from the 'PATH'\n"
+								+ "environment variable all the directories containing the word NVIDIA.");
+				pnLoad.append("p", "NOTE that removing those variables from the path might make other\n"
+								+ "programs using CUDA stop working.");
+			} else if(err.contains("https://github.com/awslabs/djl/blob/master/docs/development/troubleshooting.md")){
+				pnLoad.append("p", "DeepImageJ could not load the model");
+				pnLoad.append("p", "The problem might be caused by incompatible CUDA versions installed.");
+				pnLoad.append("p", "Deep Java Library is only compatible with CUDA 10.1 and CUDA 10.2.");
+			}else {
 				pnLoad.append("p", "DeepImageJ could not load the model");
 				pnLoad.append("p", "It seems that the Torchscript model was created with Pytorch>1.6.0.");
 				pnLoad.append("p", "Currently DeepImageJ only supports models created with Pytorch<=1.6.0.");

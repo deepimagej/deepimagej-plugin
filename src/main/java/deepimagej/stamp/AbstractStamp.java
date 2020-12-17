@@ -65,4 +65,8 @@ public abstract class AbstractStamp {
 		return panel;
 	}
 
+	public void closePlugin() {
+		panel.removeAll();
+	}
+
 }

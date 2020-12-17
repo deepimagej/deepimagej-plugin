@@ -37,13 +37,10 @@ package deepimagej.stamp;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -56,9 +53,9 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
@@ -80,16 +77,16 @@ import deepimagej.tools.Log;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
-import ij.measure.ResultsTable;
-import ij.text.TextWindow;
 
 public class TestStamp extends AbstractStamp implements Runnable, ActionListener {
 
 	private HTMLPane				pnTest;
 	private JButton					bnTest	= new JButton("Run a test");
+	private JTextField				axesTxt	= new JTextField("C,Y,X");
+	private JTextField				sizeTxt	= new JTextField("3,256,256");
 	private List<JComboBox<String>>	cmbList	= new ArrayList<JComboBox<String>>();
 	private List<JButton>			btnList	= new ArrayList<JButton>();
-	private JPanel					inputsPn = new JPanel();
+	private JPanel					inputsPn = new JPanel(new GridLayout(3, 2));
 	private HashMap<String, Object> inputsMap;
 	
 	private List<DijTensor>		imageTensors;
@@ -108,7 +105,17 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		HTMLPane pane = new HTMLPane(Constants.width, 100);
 		pane.setBorder(BorderFactory.createEtchedBorder());
 		pane.append("h2", "Run a test on an image");
-		pane.append("p", "Select on input image and click on 'Run a test ");
+		pane.append("p", "Select an input image.");
+		pane.append("p", "Introduce an image size that can be accepted by the model.");
+		pane.append("p", "The tile size will be used together with the parameters\n"
+					   + "previously introduced to process the whole image.");
+		pane.append("p", "Take into account that if you are using CPU, the images\n"
+					   + "processed at once cannot be too big due to memory limitations.");
+		pane.append("p", "The smallest size that allows processing the whole image with\n"
+				       + "only 1 tile and that fulfils the parameters in suggested\n"
+				       + "automatically");
+		pane.append("p", "After setting the tile size for the test run, click on <b>Run a test</b>");
+		
 		GridPanel pn1 = new GridPanel(true);
 		JComboBox<String> cmb = new JComboBox<String>();
 		cmbList.add(cmb);
@@ -116,9 +123,13 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		btnList.add(btn);
 		inputsPn.add(new JLabel("Image"));
 		inputsPn.add(cmb);
+		inputsPn.add(new JLabel("Axes"));
+		inputsPn.add(axesTxt);
+		inputsPn.add(new JLabel("Tile size"));
+		inputsPn.add(sizeTxt);
 		pn1.place(1, 0, inputsPn);
-		pn1.place(2, 0, bnTest);
-
+		pn1.place(2, 0, 1, 2, bnTest);
+		
 		JPanel pnt = new JPanel();
 		pnt.setLayout(new BoxLayout(pnt, BoxLayout.PAGE_AXIS));
 		pnt.add(pane.getPane());
@@ -141,7 +152,8 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		Parameters params = parent.getDeepPlugin().params;
 		inputsPn.removeAll();
 		imageTensors = DijTensor.getImageTensors(params.inputList);
-		inputsPn.setLayout(new GridLayout(2, imageTensors.size()));
+		//inputsPn.setLayout(new GridLayout(2, imageTensors.size()));
+		inputsPn.setLayout(new GridLayout(3, 2));
 		cmbList = new ArrayList<JComboBox<String>>();
 		btnList = new ArrayList<JButton>();
 		JComboBox<String> cmb = new JComboBox<String>();
@@ -153,18 +165,23 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 			if (titlesList.length != 0) {
 				for (String title : titlesList)
 					cmb.addItem(title);
-				inputsPn.add(new JLabel(tensor.name));
 				cmbList.add(cmb);
-				inputsPn.add(cmb);
 				bnTest.setEnabled(parent.getDeepPlugin() != null);
 			} else {
 				bnTest.setEnabled(false);
 				params.testImageBackup = null;
 				cmb.addItem("No image");
 				cmbList.add(cmb);
-				inputsPn.add(new JLabel("Select image"));
-				inputsPn.add(cmb);
 			}
+			inputsPn.add(new JLabel(tensor.name));
+			inputsPn.add(cmb);
+			inputsPn.add(new JLabel("Axes"));
+			inputsPn.add(axesTxt);
+			setAxes(c);
+			inputsPn.add(new JLabel("Input tile size"));
+			inputsPn.add(sizeTxt);
+			setOptimalPatch((String) cmb.getSelectedItem(), c);
+			
 			btnList.add(retrieveJComboBoxArrow(cmb));
 			btnList.get(c).addActionListener(this);
 			cmbList.get(c ++).addActionListener(this);
@@ -230,6 +247,7 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 				for (int j = 0; j < cmbList.size(); j ++) {
 					String selectedOption = (String) cmbList.get(j).getSelectedItem();
 					if (Arrays.asList(titlesList).contains(selectedOption)) {
+						setOptimalPatch(selectedOption, j);
 						continue;
 					} else {
 						 bnTest.setEnabled(false);
@@ -250,7 +268,7 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 
 		File file = new File(params.path2Model);
 		if (!file.exists()) {
-			IJ.error("No selected model.");
+			IJ.error("The model was removed from its original location.");
 			return;
 		}
 		String dirname = file.getName();
@@ -258,8 +276,16 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		pnTest.append("h2", "Test " + dirname);
 		
 		String[] images = new String[imageTensors.size()];
-		for (int i = 0; i < images.length; i++)
+		for (int i = 0; i < images.length; i++) {
 			images[i] = (String)cmbList.get(i).getSelectedItem();
+			// TODO generalise for several input images
+			String[] dims = DijTensor.getWorkingDims(imageTensors.get(i).form);
+			int[] tileSize = ArrayOperations.getPatchSize(dims, imageTensors.get(i).form, sizeTxt.getText(), sizeTxt.isEditable());
+			boolean isTileCorrect = checkInputTileSize(tileSize, imageTensors.get(i).name, params);
+			if (tileSize == null || !isTileCorrect)
+				return;
+			imageTensors.get(i).recommended_patch = tileSize;
+		}
 		if (images.length == 1)
 			params.testImage = WindowManager.getImage(images[0]);
 		String imagesNames = Arrays.toString(images);
@@ -392,5 +418,142 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 	    }
 		return null;
 	}
+
+	/*
+	 * This method sets the axes specified by the user separated by commas
+	 */
+	private void setAxes(int imageTensorInd) {
+		DijTensor tensor = imageTensors.get(imageTensorInd);
+		// Get basic information about the input from the yaml
+		String tensorForm = tensor.form;
+		String[] dim = DijTensor.getWorkingDims(tensorForm);
+
+		String axesAux = "";
+		for (String dd : dim) {axesAux += dd + ",";}
+		axesTxt.setText(axesAux.substring(0, axesAux.length() - 1));
+		axesTxt.setEditable(false);
+		
+	}
+
+	/*
+	 * This method calculates an acceptable input tile size to the model
+	 * considering the image selected size and the parameters set previously
+	 * by the user
+	 */
+	private void setOptimalPatch(String selectedOption, int imageTensorInd) {
+		ImagePlus imp = WindowManager.getImage(selectedOption);
+		DijTensor tensor = imageTensors.get(imageTensorInd);
+		// Get basic information about the input from the yaml
+		String tensorForm = tensor.form;
+		// Minimum size if it is not fixed, 0s if it is
+		int[] tensorMin = tensor.minimum_size;
+		// Step if the size is not fixed, 0s if it is
+		int[] tensorStep = tensor.step;
+		int[] haloSize = ArrayOperations.findTotalPadding(tensor, parent.getDeepPlugin().params.outputList, parent.getDeepPlugin().params.pyramidalNetwork);
+		int[] min = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
+		int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep); 
+		int[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
+		// Auxiliary variable that is only needed to run the method. Its value will 
+		// not be used
+		int[] dimValue = new int[min.length]; 
+		String[] dim = DijTensor.getWorkingDims(tensorForm);
+
+		String optimalPatch = ArrayOperations.optimalPatch(imp, dimValue, haloVals, dim, step, min, parent.getDeepPlugin().params.allowPatching);
+		
+		sizeTxt.setText(optimalPatch);
+		int auxFixed = 0;
+		for (int ss : step)
+			auxFixed += ss;
+
+		sizeTxt.setEditable(true);
+		if (!parent.getDeepPlugin().params.allowPatching || parent.getDeepPlugin().params.pyramidalNetwork || auxFixed == 0) {
+			sizeTxt.setEditable(false);
+		}
+	}
 	
+	/*
+	 * Check patch size introduced by the user complies with the parameters previously
+	 * entered to define the model
+	 */
+	public static boolean checkInputTileSize(int[] tileSize, String tensorName, Parameters params) {
+		DijTensor inpTensor = DijTensor.retrieveByName(tensorName, params.inputList);
+		String[] form = inpTensor.form.split("");
+		// TODO generalise error messages for several input images
+		// Check that the input  fulfils the conditions
+		for (int i = 0; i < tileSize.length; i ++) {
+			int step = inpTensor.step[i];
+			int min = inpTensor.minimum_size[i];
+			int pp = tileSize[i];
+			if (step == 0 && min != pp) {
+				IJ.error("           INCORRECT INPUT TILE SIZE           \n"
+						   + "The size for dimension " + form[i] + " should be\n"
+				   		   + "equal to " + min + " and it is instead set to " + pp);
+						return false;
+			} else if (params.allowPatching && step != 0 && (pp - min) % step != 0) {
+				double n = Math.floor(((double)(pp - min)) / ((double) step));
+				double sugest = n * step + min;
+				IJ.error("           INCORRECT INPUT TILE SIZE           \n"
+					   + "Every dimension of the tile size introduced must\n"
+					   + "be the result of:\n"
+					   + " minimum_size + step_size x N, where N is any\n"
+					   + "posititive integer."
+					   + "This condition is not fulfiled at dimension " + form[i] + "(" + pp + ").\n"
+				   	   + "The immediately smaller value that fulfils the\n"
+				   	   + "necessary condition is " + sugest);
+					return false;
+			} else if (params.allowPatching && pp <= 0) {
+				IJ.error("        INCORRECT INPUT TILE SIZE        \n"
+					   + "Every dimension of the tile size introduced"
+					   + "must be strictly bigger than 0.\n"
+					   + "Tile size at '" + form[i] + "' is " + pp);
+				return false;
+			}
+		}
+		
+		// Now check that the output makes sense
+		if (params.pyramidalNetwork)
+			return true;
+		for (DijTensor outTensor : params.outputList) {
+			if (outTensor.tensorType.contains("image"))
+				continue;
+			String[] outForm = outTensor.form.split("");
+			int[] outShape = outTensor.tensor_shape;
+			int[] halo = outTensor.halo;
+			int[] offset = outTensor.offset;
+			float[] scale = outTensor.scale;
+			for ( int i = 0; i < outForm.length; i ++) {
+				// Find which dimension corresponds to the cirrent output dimension
+				int ind = inpTensor.form.indexOf(outForm[i]);
+				if (ind == -1)
+					continue;
+				int outSize = 0;
+				//  Check that the input to the model is not automatically calculated by
+				// the plugin. If it is, we cannot make sure anything.
+				if (params.allowPatching || inpTensor.step[ind] == 0)
+					outSize = ((int) (Math.round(((double)tileSize[ind]) * scale[i])) - 2 * offset[i] - 2 * halo[i]);
+				if ((params.allowPatching || inpTensor.step[ind] == 0) && outShape[i] != -1 && outSize != outShape[i]) {
+					// Check that with the given parameters, the input size gives the 
+					// output size specified by the model
+					IJ.error("         INCORRECT INPUT TILE SIZE         \n"
+						   + "The output size for this model at dimension '" + outForm[i]+ "'\n"
+				   		   + "is specified to be " + outShape[i] + ". Applying the\n"
+		   		   		   + "scaling, halo and offset specified for dimension '" + outForm[i]+ "'\n"
+   		   		   		   + "considering an input size of " + tileSize[ind] + " yields an\n"
+	   		   		   	   + "incorrect output size of " + outSize + ". Please, correct these parameters.");
+					return false;
+				} else if ((params.allowPatching || inpTensor.step[ind] == 0) && outSize <= 0){
+					// Check that taking into account halo and offset
+					// the output produced is bigger than 0
+					IJ.error("        INCORRECT INPUT TILE SIZE        \n"
+						   + "Applying the scaling, halo and offset for\n"
+						   + "output '" + outTensor.name + "' at dimension '" + outForm[i] + "' the\n"
+					   	   + "resulting output size was " + outSize + " which is\n"
+					   	   + "smaller than 0. The output size cannot\n"
+					   	   + "be negative. Please, correct these parameters.");
+					return false;
+				}
+			}
+		}
+		return true;
+	}
 }

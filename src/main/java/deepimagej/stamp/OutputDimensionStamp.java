@@ -37,15 +37,14 @@
 
 package deepimagej.stamp;
 
-import java.awt.Color;
+import java.awt.BorderLayout;
 import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,18 +74,20 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 
 	private static List<JComboBox<String>>  cmbRowList		= new ArrayList<JComboBox<String>>();
 	
-	private static JTextField		txtExportDir	= new JTextField(IJ.getDirectory("imagej") + File.separator +
-																	 "models" + File.separator + "results" + File.separator);
-	
 	private static GridPanel		pnOutputInfo	= new GridPanel(true);
 	private static GridPanel		firstRow		= new GridPanel(true);
 	private static GridPanel		secondRow		= new GridPanel(true);
 	private static GridPanel		thirdRow		= new GridPanel(true);
-	private static GridPanel		pnRange			= new GridPanel(true);
+	private static JLabel			firstLabel		= new JLabel("Scaling factor");
+	private static JLabel			secondLabel		= new JLabel("Halo factor");
+	private static JLabel			thirdLabel		= new JLabel("Offset factor");
 	private static JPanel 			pn				 = new JPanel();
 
 	private static JComboBox<String>referenceImage 	= new JComboBox<String>(new String[] {"aux"});
+	private static JLabel			refLabel		= new JLabel("Reference input image");
 	private static JLabel			lblName			= new JLabel("Name");
+
+	private static JLabel			lblType			= new JLabel("Output type: ");
 	
 
 	private static JButton 			bnNextOutput 	= new JButton("Next Output");
@@ -123,86 +124,110 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		info.append("p", "<b>Halo facto</b>: Size of the receptive field of one pixel in the "
 				+ "network used to avoid artifacts along the borders of the image. If the "
 				+ "convolutions inside the network do not use padding, set this value to 0.");
-		
-		pnOutputInfo.setBorder(BorderFactory.createEtchedBorder());
-		lblName.setText("aux");
-		pnOutputInfo.place(0, 0, lblName);
-		pnOutputInfo.place(1, 0, referenceImage);
-		referenceImage.setEditable(false);
-		JLabel dimLetterAux = new JLabel("aux");
-		JTextField txtAux = new JTextField("aux");
-		firstRow.place(0, 0, dimLetterAux); firstRow.place(1, 0, txtAux);
-		secondRow.place(0, 0, dimLetterAux); secondRow.place(1, 0, txtAux);
-		thirdRow.place(0, 0, dimLetterAux); thirdRow.place(1, 0, txtAux);
-		pnOutputInfo.place(2, 0, 1, 2, firstRow);
-		pnOutputInfo.place(3,  0, 1, 2, secondRow);
-		pnOutputInfo.place(4,  0, 1, 2, thirdRow);
-		
-		GridPanel pnRange1 = new GridPanel(true);
-		JLabel lblRange1 = new JLabel("Data Range lower bound");
-		pnRange1.place(0, 0, lblRange1);
-		pnRange1.place(0, 1, cmbRangeLow);
-		
-		GridPanel pnRange2 = new GridPanel(true);
-		JLabel lblRange2 = new JLabel("Data Range lower bound");
-		pnRange2.place(0, 0, lblRange2);
-		pnRange2.place(0, 1, cmbRangeHigh);
 
-		pnRange.place(0, 0, pnRange1);
-		pnRange.place(0, 1, pnRange2);
-		pnOutputInfo.place(5, 0, 2, 1, pnRange);
-		
-		lblRange1.setVisible(true);
-		lblRange2.setVisible(true);
-		pnRange.setVisible(true);
-		
-		cmbRangeLow.setVisible(true);
-		cmbRangeHigh.setVisible(true);
-		
-		cmbRangeLow.setEditable(false);
-		cmbRangeHigh.setEditable(false);
+		firstRow.place(0, 0, firstLabel);
+		firstRow.place(0, 1, new JLabel("aux")); firstRow.place(1, 1, new JTextField("aux"));
+		secondRow.place(0, 0, secondLabel);
+		secondRow.place(0, 1, new JLabel("aux")); secondRow.place(1, 1, new JTextField("aux"));
+		thirdRow.place(0, 0, thirdLabel);
+		thirdRow.place(0, 1, new JLabel("aux")); thirdRow.place(1, 1, new JTextField("aux"));
 
-		GridPanel buttons = new GridPanel(true);
-		buttons.setBorder(BorderFactory.createEtchedBorder());
-		buttons.place(0, 0, bnPrevOutput);
-		buttons.place(0, 1, bnNextOutput);
-		/*
+		JFrame pnFr = new JFrame();
+		Container cn = pnFr.getContentPane();
+		cn.setLayout(new GridBagLayout()); 
+
+		GridBagConstraints  labelC = new GridBagConstraints();
+		labelC.gridwidth = 2;
+		labelC.gridheight = 1;
+		labelC.gridx = 0;
+		labelC.gridy = 0;
+		labelC.ipadx = 0;
+		labelC.weightx = 1;
+		labelC.insets = new Insets(10, 10, 0, 5); 
+		
+		// Set the output name
+		lblName.setText("Output name: NAME");
+		cn.add(lblName, labelC);
+		// Set the output name
+		labelC.insets = new Insets(5, 10, 0, 5); 
+		labelC.gridy = 1;
+		cn.add(lblType, labelC);
+		
+		// Set the reference image
+		labelC.gridy = 2;
+		cn.add(refLabel, labelC);
+		labelC.gridwidth = 1;
+		labelC.ipadx = 2;
+		labelC.gridy = 2;
+		labelC.gridx = 2;
+		labelC.weightx = 0.2;
+		labelC.insets = new Insets(0, 10, 0, 5); 
+		cn.add(referenceImage, labelC);
+
+				
+		labelC.gridwidth = 1;
+		labelC.gridheight = 1;
+		labelC.gridx = 0;
+		labelC.gridy = 3;
+		labelC.ipadx = 5;
+		labelC.weightx = 0.1;
+		labelC.insets = new Insets(10, 20, 5, 5); 
+
+		GridBagConstraints  infoC = new GridBagConstraints();
+		infoC.gridwidth = 10;
+		infoC.gridheight = 3;
+		infoC.gridx = 0;
+		infoC.gridy = 3;
+		infoC.ipadx = 15;
+		infoC.ipady = 10;
+		infoC.weightx = 0.9;
+		infoC.anchor = GridBagConstraints.CENTER;
+	    infoC.fill = GridBagConstraints.BOTH;
+	    infoC.insets = new Insets(5, 20, 5, 20); 
+
+		// First field
+		cn.add(firstRow, infoC);
+
+		// Second field
+		labelC.gridy = 6;
+		infoC.gridy = 6;
+		cn.add(secondRow, infoC);
+
+		// Third field
+		labelC.gridy = 9;
+		infoC.gridy = 9;
+		cn.add(thirdRow, infoC);
+		
+		// Data range combo boxes
+		labelC.gridy = 13;
+		infoC.gridy = 13;
+		infoC.gridx = 2;
+		infoC.gridwidth = 1;
+		infoC.ipadx = 5;
+		infoC.ipady = 2;
+		labelC.insets = new Insets(5, 20, 5, 5); 
+	    infoC.insets = new Insets(5, 5, 5, 15); 
+		cn.add(new JLabel("Data Range: lower bound"), labelC);
+		cn.add(cmbRangeLow, infoC);
+
+		labelC.gridx = 6;
+		labelC.insets = new Insets(5, 15, 5, 5); 
+	    infoC.insets = new Insets(5, 5, 5, 20); 
+		cn.add(new JLabel("Data Range: upper bound"), labelC);
+		infoC.gridx = 8;
+		cn.add(cmbRangeHigh, infoC);
+
 		pn = new JPanel();
 		pn.setLayout(new BoxLayout(pn, BoxLayout.PAGE_AXIS));
 		pn.add(info.getPane());
-		pn.add(pnOutputInfo);
-		pn.add(buttons, BorderLayout.SOUTH);
-		*/
-		JFrame main = new JFrame();
-		Container mainPn = main.getContentPane();
-		mainPn.setLayout(new GridBagLayout());
+		pn.add(cn);
 
-	    // creates a constraints object 
-	    GridBagConstraints c = new GridBagConstraints(); 
-	    c.fill = GridBagConstraints.BOTH;
-	    c.ipady = 20; 
-	    c.ipadx = 20; 
-	    c.weightx = 1;
-	    c.weighty = 0.9;
-	    c.gridx = 0;
-	    c.gridy = 0;
-	    c.gridheight = 9;
-	    mainPn.add(pnOutputInfo, c);
-	    c.fill = GridBagConstraints.BOTH;
-	    c.ipady = 0; 
-	    c.ipadx = 0; 
-	    c.weightx = 1;
-	    c.weighty = 0.1;
-	    c.gridx = 0;
-	    c.gridy = 9;
-	    c.gridheight = 1;
-	    mainPn.add(buttons, c);
-		
 
-		pn = new JPanel();
-		pn.setLayout(new BoxLayout(pn, BoxLayout.PAGE_AXIS));
-		pn.add(info.getPane());
-		pn.add(mainPn);
+		JPanel pnButtons = new JPanel(new GridLayout(1, 2));
+		pnButtons.setBorder(BorderFactory.createEtchedBorder());
+		pnButtons.add(bnPrevOutput);
+		pnButtons.add(bnNextOutput);
+		pn.add(pnButtons, BorderLayout.SOUTH);
 		
 		panel.add(pn);
 		
@@ -228,6 +253,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 				referenceImage.addItem(in.name);
 		}
 		updateInterface(params);
+		
 	
 	}
 
@@ -260,7 +286,8 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 			bnNextOutput.setEnabled(false);
 		}
 
-		lblName.setText(params.outputList.get(outputCounter).name);
+		lblName.setText("Output name: " + params.outputList.get(outputCounter).name);
+		lblType.setText("Output type: " + params.outputList.get(outputCounter).tensorType);
 		// Reinitialise all the params
 		pnOutputInfo.removeAll();
 		firstRow.removeAll();
@@ -366,7 +393,6 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		params.outputList.get(outputCounter).offset = new int[params.outputList.get(outputCounter).tensor_shape.length];
 		int batchInd = DijTensor.getBatchInd(params.outputList.get(outputCounter).form);
 		
-		int[] outDimVals = params.outputList.get(outputCounter).tensor_shape;
 		int textFieldInd = 0;
 		for (int i = 0; i < params.outputList.get(outputCounter).scale.length; i++) {
 			try {
@@ -382,24 +408,6 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 					params.outputList.get(outputCounter).halo[i] = haloValue;
 					offsetValue = Integer.parseInt(thirdRowList.get(textFieldInd++).getText());
 					params.outputList.get(outputCounter).offset[i] = offsetValue;
-				}
-				// Input Patch Size * Scale factor - 2 * offset = Output Patch Size
-				// Output Patch Size - 2 * halo > 0
-				int refInd = Index.indexOf(refInput.form.split(""), params.outputList.get(outputCounter).form.split("")[i]);
-				if (refInd != -1) {
-					float yieldOutputPatch = (float) refInput.recommended_patch[refInd] * scaleValue - 2 * (float)offsetValue;
-					if (refInd != -1 && outDimVals[i] != -1 && yieldOutputPatch != (float)outDimVals[i]) {
-						// TODo complete error message mentioning every dimension
-						IJ.error("The parameters introduced yield an output patch\nshape of " + yieldOutputPatch
-								 + " and the model specifies that it should be " + outDimVals[i]);
-						return false;
-					}
-					float relevantPixels = yieldOutputPatch - (float) (2 * haloValue);
-					if (relevantPixels <= 0 && yieldOutputPatch != 0) {
-						IJ.error("The halo chosen is too big for the output patch size.\n"
-								+ "2 * halo should be smaller than Input patch size * scale - 2 *offset");
-						return false;
-					}
 				}
 			} catch( NumberFormatException ex) {
 				IJ.error("Make sure that no text field is empty and\n"
@@ -473,10 +481,13 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 
 	private static void getPanelForImagePyramidalNet(Parameters params) {
 		
-		//pnOutputInfo.setBorder(BorderFactory.createEtchedBorder());
 		int[] dimValues = DijTensor.getWorkingDimValues(params.outputList.get(outputCounter).form, params.outputList.get(outputCounter).tensor_shape); 
 		String[] dims = DijTensor.getWorkingDims(params.outputList.get(outputCounter).form);
 
+
+		firstLabel.setText("Output size");
+		firstRow.place(0, 0, firstLabel);
+		
 		for (int i = 0; i < dimValues.length; i ++) {
 			JLabel dimLetter1 = new JLabel(dims[i]);
 			JTextField txt1;
@@ -485,7 +496,6 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 
 			txt1 = new JTextField(params.outputList.get(outputCounter).finished ? "" + params.outputList.get(outputCounter).sizeOutputPyramid[auxInd] : "1", 5);
 			txt1.setEditable(true);
-			
 			if (dimValues[i] != -1) {
 				txt1.setText("" + dimValues[i]);
 				txt1.setEditable(false);
@@ -499,21 +509,20 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 			
 			firstRowList.add(txt1);
 		}
+
+		secondRow.setVisible(false);
+		thirdRow.setVisible(false);
 		
-		JLabel lblFirst	= new JLabel("Output size");
-		firstRow.place(0, 0, lblFirst);
+		refLabel.setVisible(false);
+		referenceImage.setVisible(false);
 		
-		pnOutputInfo.setBorder(BorderFactory.createEtchedBorder());
-		pnOutputInfo.place(0, 0, lblName);
-		//pnOutputInfo.place(1, 0, referenceImage);
-		pnOutputInfo.place(2, 0, 2, 1, firstRow);
-		pnOutputInfo.place(5, 0, 2, 1,  pnRange);
-		//pnOutputInfo.setPreferredSize(new Dimension(pnOutputInfo.getWidth(), pnOutputInfo.getHeight()));
+		firstRow.revalidate();
+		firstRow.repaint();
+		
 	}
 	
 	private static void getPanelForImage(Parameters params) {
 		
-		//pnOutputInfo.setBorder(BorderFactory.createEtchedBorder());
 		int[] dimValues = DijTensor.getWorkingDimValues(params.outputList.get(outputCounter).form, params.outputList.get(outputCounter).tensor_shape); 
 		String[] dims = DijTensor.getWorkingDims(params.outputList.get(outputCounter).form);
 
@@ -553,22 +562,31 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 			secondRowList.add(txt2);
 			thirdRowList.add(txt3);
 		}
-
-		JLabel lblFirst	= new JLabel("Scaling factor");
-		JLabel lblSecond = new JLabel("Halo factor");
-		JLabel lblThird	= new JLabel("Offset factor");
-		firstRow.place(0, 0, lblFirst);
-		secondRow.place(0, 0, lblSecond);
-		thirdRow.place(0, 0, lblThird);
+		refLabel.setVisible(true);
+		referenceImage.setVisible(true);
 		
-		pnOutputInfo.setBorder(BorderFactory.createEtchedBorder());
-		pnOutputInfo.place(0, 0, lblName);
-		pnOutputInfo.place(1, 0, referenceImage);
-		pnOutputInfo.place(2, 0, 2, 1, firstRow);
-		pnOutputInfo.place(3, 0, 2, 1, secondRow);
-		pnOutputInfo.place(4, 0, 2, 1, thirdRow);
-		pnOutputInfo.place(5, 0, 2, 1,  pnRange);
-		//pnOutputInfo.setPreferredSize(new Dimension(pnOutputInfo.getWidth(), pnOutputInfo.getHeight()));
+		secondRow.setVisible(true);
+		thirdRow.setVisible(true);
+
+		firstLabel.setText("Scaling factor");
+		secondLabel.setText("Halo factor");
+		thirdLabel.setText("Offset factor");
+		
+		firstRow.place(0, 0, firstLabel);		
+		secondRow.place(0, 0, secondLabel);		
+		thirdRow.place(0, 0, thirdLabel);
+		
+		secondRow.setVisible(true);
+		thirdRow.setVisible(true);
+		secondLabel.setVisible(true);
+		thirdLabel.setVisible(true);
+
+		firstRow.revalidate();;
+		firstRow.repaint();
+		secondRow.revalidate();;
+		secondRow.repaint();
+		thirdRow.revalidate();;
+		thirdRow.repaint();
 	}
 	
 	/*
@@ -576,13 +594,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 	 */
 	private static void getPanelForList(Parameters params) {
 		
-		Dimension dim = pnOutputInfo.getSize();
-		pnOutputInfo.removeAll();
 		cmbRowList = new ArrayList<JComboBox<String>>();
-		
-		txtExportDir.setFont(new Font("Arial", Font.BOLD, 14));
-		txtExportDir.setForeground(Color.red);
-		//txtExportDir.setPreferredSize(new Dimension(Constants.width, 25));
 		
 		int[] dimValues = DijTensor.getWorkingDimValues(params.outputList.get(outputCounter).form, params.outputList.get(outputCounter).tensor_shape); 
 		String[] dims = DijTensor.getWorkingDims(params.outputList.get(outputCounter).auxForm);
@@ -592,7 +604,6 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 			newDims = DijTensor.getWorkingDims(params.outputList.get(outputCounter).form);
 		}
 
-		lblName.setText(params.outputList.get(outputCounter).name);
 		for (int i = 0; i < dimValues.length; i ++) {
 			JLabel dimLetter1 = new JLabel(""+ dims[i] + " (size=" + dimValues[i] + ")");
 			JComboBox<String> txt1;
@@ -605,12 +616,17 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 			firstRow.place(1, i + 1, txt1);
 			cmbRowList.add(txt1);
 		}
-		pnOutputInfo.place(0, 0, lblName);
-		pnOutputInfo.place(1, 0, 2, 1, new JLabel("Type: list"));
+
+		refLabel.setVisible(false);
+		referenceImage.setVisible(false);
 		
-		pnOutputInfo.place(2, 0, 2, 1, firstRow);
-		pnOutputInfo.place(5, 0, 2, 1,  pnRange);
-		//pnOutputInfo.setPreferredSize(dim);
+		firstLabel.setVisible(false);
+		secondLabel.setVisible(false);
+		thirdLabel.setVisible(false);
+		secondRow.setVisible(false);
+		thirdRow.setVisible(false);
+		firstRow.revalidate();
+		firstRow.repaint();
 	}
 	
 	private static int findFixedInput(String referenceInput, String dim, List<DijTensor> inputTensors) {

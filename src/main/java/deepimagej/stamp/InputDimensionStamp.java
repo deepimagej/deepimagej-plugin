@@ -39,13 +39,15 @@ package deepimagej.stamp;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.beans.PropertyChangeEvent;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -54,12 +56,6 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.text.Document;
 
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
@@ -75,16 +71,13 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 
 	private List<JTextField>			allTxtMinSize = new ArrayList<JTextField>();
 	private List<JTextField>			allTxtStep = new ArrayList<JTextField>();
-	private List<JTextField>			allTxtPatches = new ArrayList<JTextField>();
 		
 
 	private static String 				allowPatches = "Allow tilling";
-	// TODO remove private static String 				predeterminedInput = "Fixed input size";
 	private static String 				notAllowPatches = "Do not allow tilling";
-	// TODO remove private static String 				noPatchesVariable = "Do not allow patches (variable size)";
 	
 	private JComboBox<String>			cmbPatches	= new JComboBox<String>(new String[] {allowPatches, notAllowPatches});
-	private JLabel						lblPatches	= new JLabel("Patch size");
+	// TODO rmove private JLabel						lblPatches	= new JLabel("Patch size");
 	private JLabel						lblMinSize	= new JLabel("Minimum Size");
 	private JLabel						lblStep	= new JLabel("Step Size");
 
@@ -103,7 +96,6 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	private List<DijTensor>				savedInputs   = null;
 	private boolean						tiling;
 	
-	private String						shortForm;
 	
 	// Whether we need to add or not action listener to the text fields
 	private boolean						listenTxtField = false;
@@ -117,7 +109,7 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	@Override
 	public void buildPanel() {
 		
-		HTMLPane info = new HTMLPane(Constants.width, 180);
+		HTMLPane info = new HTMLPane(Constants.width, 265);
 		info.append("h", "<b>Input size constraints</b>");
 		info.append("p", "<b>Input tile size (Q) </b>: Input size of the model. If <i>Allow tiling</i> or"
 				+ " <i>Do not allow tiling (variable input size)</i> is selected, <i>Q</i> will automatically "
@@ -134,10 +126,10 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 				+ "on the <i>step (s)</i> and <i>minimum (m)</i> constraints, the model might not be applicable to "
 				+ "some images (too big or small).");
 		
-		GridPanel buttons = new GridPanel(true);
+		JPanel buttons = new JPanel(new GridLayout(1, 2));
 		buttons.setBorder(BorderFactory.createEtchedBorder());
-		buttons.place(0, 0, bnPrevOutput);
-		buttons.place(0, 1, bnNextOutput);
+		buttons.add(bnPrevOutput);
+		buttons.add(bnNextOutput);
 		
 		// Create auxiliary DijTensor to initialise the interface 
 		DijTensor auxTensor = new DijTensor("aux");
@@ -149,9 +141,32 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		
 		JPanel pn = new JPanel();
 		pn.setLayout(new BoxLayout(pn, BoxLayout.PAGE_AXIS));
+		pn.setLayout(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+		c.gridheight = 8;
+		c.gridy = 0;
+		c.weightx = 1;
+		c.ipady = 0;
+		c.fill = GridBagConstraints.BOTH;
+		c.insets = new Insets(0, 0, 0, 0);
+		pn.add(info.getPane(), c);
+		c.gridheight = 8;
+		c.weightx = 1;
+		c.gridy = 8;
+		c.ipady = 20;
+		c.insets = new Insets(0, 0, 0, 0);
+		pn.add(pnInput, c);
+		c.gridheight = 1;
+		c.weightx = 1;
+		c.gridy = 16;
+		c.ipady = 0;
+		c.insets = new Insets(0, 0, 0, 0);
+		pn.add(buttons, c);
+		/*
 		pn.add(info.getPane());
 		pn.add(pnInput);
 		pn.add(buttons, BorderLayout.SOUTH);
+		*/
 		
 		panel.add(pn);	
 
@@ -216,7 +231,9 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		savedInputs = params.inputList;
 		tiling = params.allowPatching;
 		return true;
-	}public void showCorrespondingInputInterface(Parameters params) {
+	}
+	
+	public void showCorrespondingInputInterface(Parameters params) {
 		
 		// Check how many outputs there are to enable or not
 		// the "next" and "back" buttons
@@ -237,7 +254,6 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		// Reinitialise all the params
 		allTxtMinSize = new ArrayList<JTextField>();
 		allTxtStep = new ArrayList<JTextField>();
-		allTxtPatches = new ArrayList<JTextField>();
 		pnInput.removeAll();
 		DijTensor tensor = imageTensors.get(inputCounter);
 		if (tensor.tensorType.contains("image")) {
@@ -269,32 +285,12 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 				allTxtMinSize.get(i).setEditable(false);
 				allTxtStep.get(i).setText("" + 0);
 				allTxtStep.get(i).setEditable(false);
-				allTxtPatches.get(i).setText("" + dimValues[i]);
-				allTxtPatches.get(i).setEditable(false);
 			} else if (dimValues[i] == -1){
 				allTxtMinSize.get(i).setEditable(true);
 				String stepGuess = dim[i].equals("C") ? "0" : "1";
 				allTxtStep.get(i).setText(stepGuess);
 				allTxtStep.get(i).setEditable(true);
-				allTxtPatches.get(i).setEditable(true);
-				String initialGuess = dim[i].equals("C") ? "" : "";
-				allTxtPatches.get(i).setText(initialGuess);
 			}
-		}
-		int c0 = 0;
-		int c1 = 1;
-		int c2 = 2;
-		int c3 = 3;
-		if (!listenTxtField) {
-			// TODO improve
-			addChangeListener(allTxtStep.get(c0), e -> optimalPatch(allTxtStep.get(c0).getText(), dim[c0]));
-			if (allTxtMinSize.size() >1)
-				addChangeListener(allTxtStep.get(c1), e -> optimalPatch(allTxtStep.get(c1).getText(), dim[c1]));
-			if (allTxtMinSize.size() >2)
-				addChangeListener(allTxtStep.get(c2), e -> optimalPatch(allTxtStep.get(c2).getText(), dim[c2]));
-			if (allTxtMinSize.size() >3)
-				addChangeListener(allTxtStep.get(c3), e -> optimalPatch(allTxtStep.get(c3).getText(), dim[c3]));
-			listenTxtField = true;
 		}
 	}
 	
@@ -330,12 +326,11 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	public boolean saveInputDataForImage(Parameters params) {
 		params.fixedInput = true;
 		int[] min_size = new int[params.inputList.get(inputCounter).form.length()];
-		int[] patch = new int[params.inputList.get(inputCounter).form.length()];
 		int[] step = new int[params.inputList.get(inputCounter).form.length()];
 		
 		int batchInd = Index.indexOf(params.inputList.get(0).form.split(""), "B");
 		if (batchInd != -1) {
-			min_size[batchInd] = 1; patch[batchInd] = 1; step[batchInd] = 0;
+			min_size[batchInd] = 1; step[batchInd] = 0;
 		}
 
 		// Selected tiling option
@@ -346,29 +341,19 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			int auxCount = 0;
 			for (int c = 0; c < params.inputList.get(inputCounter).tensor_shape.length; c ++) {
 				if (c != batchInd) {
-					String selectedPatch = allTxtPatches.get(auxCount).getText();
-					selectedPatch = selectedPatch.equals(" - ") ? "-1" : selectedPatch;
 					auxDetectError = false;
 					min_size[c] = Integer.parseInt(allTxtMinSize.get(auxCount).getText());
 					auxDetectError = true;
 					step[c] = Integer.parseInt(allTxtStep.get(auxCount).getText());
-					if (selection.equals(notAllowPatches) && step[c] != 0)
-						patch[c] = -1;
-					else
-						patch[c] = Integer.parseInt(selectedPatch);
-					
 					if (min_size[c] <= 0) {
 						IJ.error("The step should be larger than 0");
-						return false;
-					}
-					if (patch[c] <= 0 && !(selection.equals(notAllowPatches) && step[c] != 0)) {
-						IJ.error("The patch size should be larger than 0");
 						return false;
 					}
 					if (step[c] < 0) {
 						IJ.error("The step size should be larger or equal to 0");
 						return false;
 					}
+					/*
 					if (step[c] != 0 && (patch[c] - min_size[c]) % step[c] != 0) {
 						IJ.error("Dimension " + params.inputList.get(inputCounter).form.split("")[c] + " has size " +
 								patch[c] + ". \nIt does not fulfill the condition: patch_size = min_size + step * X,"
@@ -380,6 +365,7 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 								+ " for a step " + step[c] + " and a min_size " + min_size[c]);
 						return false;
 					}
+					*/
 					auxCount ++;
 				}
 			}
@@ -409,7 +395,6 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		}
 		
 		params.inputList.get(inputCounter).minimum_size = min_size;
-		params.inputList.get(inputCounter).recommended_patch = patch;
 		params.inputList.get(inputCounter).step = step;
 		
 		return true;
@@ -424,34 +409,25 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 
 		allTxtMinSize = new ArrayList<JTextField>();
 		allTxtStep = new ArrayList<JTextField>();
-		allTxtPatches = new ArrayList<JTextField>();
 		String[] dims = DijTensor.getWorkingDims(tensor.form); 
 
 		JPanel pnMinSize = new JPanel(new GridLayout(2, dims.length));
 		JPanel pnStep = new JPanel(new GridLayout(2, dims.length));
-		JPanel pnPatchSize = new JPanel(new GridLayout(2, dims.length));
 		
-		shortForm = "";
 		for (String dim: dims) {
 			JLabel dimLetter1 = new JLabel(dim);
 			dimLetter1.setPreferredSize( new Dimension( 10, 20 ));
 			JLabel dimLetter2 = new JLabel(dim);
 			dimLetter2.setPreferredSize( new Dimension( 10, 20 ));
-			JLabel dimLetter3 = new JLabel(dim);
-			dimLetter3.setPreferredSize( new Dimension( 10, 20 ));
 			
 			pnMinSize.add(dimLetter1);
-			pnStep.add(dimLetter3);
-			pnPatchSize.add(dimLetter2);
+			pnStep.add(dimLetter2);
 			
-			shortForm += dim;
 		}
 		
 		for (int i = 0; i < dims.length; i ++) {
 			JTextField txtMultiple = new JTextField("1", 5);
 			txtMultiple.setPreferredSize( new Dimension( 10, 20 ));
-			JTextField txtPatches = new JTextField("100", 5);
-			txtPatches.setPreferredSize( new Dimension( 10, 20 ));
 			JTextField txtStep = new JTextField("0", 5);
 			txtStep.setPreferredSize( new Dimension( 10, 20 ));
 			
@@ -460,9 +436,6 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			
 			pnStep.add(txtStep);
 			allTxtStep.add(txtStep);
-
-			pnPatchSize.add(txtPatches);
-			allTxtPatches.add(txtPatches);
 		}
 		
 		// If we are building the screen at the start of the plugin, 
@@ -489,72 +462,20 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		pnInput.place(2, 1, pnMinSize);
 		pnInput.place(3, 0, lblStep);
 		pnInput.place(3, 1, pnStep);
-		pnInput.place(4, 0, lblPatches);
-		pnInput.place(4, 1, pnPatchSize);
 		GridPanel pnRange1 = new GridPanel(true);
 		pnRange1.place(0, 0, new JLabel("Data Range lower bound"));
 		pnRange1.place(0, 1, cmbRangeLow);
-		pnInput.place(5, 0, pnRange1);
+		pnInput.place(4, 0, pnRange1);
 		GridPanel pnRange2 = new GridPanel(true);
 		pnRange2.place(0, 0, new JLabel("Data Range higher bound"));
 		pnRange2.place(0, 1, cmbRangeHigh);
-		pnInput.place(5, 1, pnRange2);
+		pnInput.place(4, 1, pnRange2);
 		
 		cmbRangeLow.setEditable(false);
 		cmbRangeHigh.setEditable(false);
 		
 		cmbPatches.addActionListener(this);
 	}
-	
-	public void optimalPatch(String step, String dimChar) {
-		// If we do not allow tiling and the step is different to 0
-		// patch size is automatic
-		String selection = (String) cmbPatches.getSelectedItem();
-		int ind = shortForm.indexOf(dimChar);
-		allTxtPatches.get(ind).setEditable(true);
-		if (selection.equals(notAllowPatches)) {
-			try {
-				int ss = Integer.parseInt(step);
-				if (ss != 0) {
-					allTxtPatches.get(ind).setText("auto");
-					allTxtPatches.get(ind).setEditable(false);
-				} else {
-					allTxtPatches.get(ind).setText(allTxtMinSize.get(ind).getText());
-				}
-			} catch (Exception ex) {
-				return;
-			}
-		}
-	}
-	/* TODO remove
-	public void optimalPatch(String minimumSizeString, String dimChar) {
-		// This method looks for the optimal patch size regarding the
-		// minimum patch constraint and image size. This is then suggested
-		// to the user
-		try {
-			int ind = shortForm.indexOf(dimChar);
-			int currentSize = Integer.parseInt(allTxtPatches.get(ind).getText().trim());
-			String patch = "100";
-			String selection = (String) cmbPatches.getSelectedItem();
-			if (minimumSizeString.equals(""))
-				patch =  "" + currentSize;
-			int minimumSize = Integer.parseInt(minimumSizeString);
-			
-			if (minimumSize != 0 && dimChar.equals("C")) {
-				patch = "" + minimumSizeString;
-			} else if (minimumSize != 0 && currentSize % minimumSize == 0 && selection.contains(allowPatches)) {
-				patch = "" + currentSize;
-			} else if (minimumSize != 0 && currentSize % minimumSize != 0 && selection.contains(allowPatches)) {
-				patch = "" + (((int) currentSize / minimumSize) + 1) * minimumSize;
-			} else if (minimumSize != 0 && selection.contains("predeterminedInput") ||selection.contains(notAllowPatches)) {
-				patch = "" + minimumSizeString;
-			}
-			if (minimumSize != 0)
-				allTxtPatches.get(ind).setText(patch);
-		} catch (NumberFormatException ex) {
-			return;
-		}
-	}*/
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
@@ -572,45 +493,6 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		if (e.getSource() == cmbPatches) {
 			updateImageInterface(params.inputList.get(inputCounter));
 		}
-	}
-
-	public static void addChangeListener(JTextField text, ChangeListener changeListener) {
-		// Method used to "listen" the JTextFields
-	    Objects.requireNonNull(text);
-	    Objects.requireNonNull(changeListener);
-	    DocumentListener dl = new DocumentListener() {
-	        private int lastChange = 0, lastNotifiedChange = 0;
-
-	        @Override
-	        public void insertUpdate(DocumentEvent e) {
-	            changedUpdate(e);
-	        }
-
-	        @Override
-	        public void removeUpdate(DocumentEvent e) {
-	            changedUpdate(e);
-	        }
-
-	        @Override
-	        public void changedUpdate(DocumentEvent e) {
-	            lastChange++;
-	            SwingUtilities.invokeLater(() -> {
-	                if (lastNotifiedChange != lastChange) {
-	                    lastNotifiedChange = lastChange;
-	                    changeListener.stateChanged(new ChangeEvent(text));
-	                }
-	            });
-	        }
-	    };
-	    text.addPropertyChangeListener("document", (PropertyChangeEvent e) -> {
-	        Document d1 = (Document)e.getOldValue();
-	        Document d2 = (Document)e.getNewValue();
-	        if (d1 != null) d1.removeDocumentListener(dl);
-	        if (d2 != null) d2.addDocumentListener(dl);
-	        dl.changedUpdate(null);
-	    });
-	    Document d = text.getDocument();
-	    if (d != null) d.addDocumentListener(dl);
 	}
 
 }

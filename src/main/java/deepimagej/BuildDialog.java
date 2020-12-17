@@ -39,6 +39,7 @@ package deepimagej;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -80,21 +81,21 @@ public class BuildDialog extends JDialog implements ActionListener {
 	public JButton				bnHelp	= new JButton("Help");
 	private JPanel				pnCards	= new JPanel(new CardLayout());
 
-	private WelcomeStamp			welcome;
-	private LoadTFStamp				loaderTf;
-	private LoadPytorchStamp		loaderPt;
-	private SelectPyramidalStamp	selectPyramid;
-	private InputDimensionStamp		dim3;
-	private OutputDimensionStamp 	outputDim;
-	private TensorStamp				tensorTf;
-	private TensorPytorchTmpStamp	tensorPt;
-	private InformationStamp		info;
-	private JavaPreprocessingStamp  javaPreproc;
-	private JavaPostprocessingStamp  javaPostproc;
-	private TestStamp				test2;
-	private SaveOutputFilesStamp	outputSelection;
-	private TfSaveStamp				tfSave;
-	private PtSaveStamp				ptSave;
+	private WelcomeStamp			welcome = null;
+	private LoadTFStamp				loaderTf = null;
+	private LoadPytorchStamp		loaderPt = null;
+	private SelectPyramidalStamp	selectPyramid = null;
+	private InputDimensionStamp		dim3 = null;
+	private OutputDimensionStamp 	outputDim = null;
+	private TensorStamp				tensorTf = null;
+	private TensorPytorchTmpStamp	tensorPt = null;
+	private InformationStamp		info = null;
+	private JavaPreprocessingStamp  javaPreproc = null;
+	private JavaPostprocessingStamp  javaPostproc = null;
+	private TestStamp				test2 = null;
+	private SaveOutputFilesStamp	outputSelection = null;
+	private TfSaveStamp				tfSave = null;
+	private PtSaveStamp				ptSave = null;
 	private DeepImageJ				dp		= null;
 	private int						card	= 1;
 	private String					GPU 	= "";
@@ -154,8 +155,9 @@ public class BuildDialog extends JDialog implements ActionListener {
 		bnClose.addActionListener(this);
 		bnHelp.addActionListener(this);
 
-		setResizable(false);
+		setResizable(true);
 		pack();
+		setPreferredSize(new Dimension(50, 300));
 		GUI.center(this);
 		setVisible(true);
 		bnBack.setEnabled(false);
@@ -164,6 +166,9 @@ public class BuildDialog extends JDialog implements ActionListener {
 		this.addWindowListener(new WindowAdapter() 
 		{
 		  public void windowClosed(WindowEvent e) {
+			  // Release every component of each stamp
+			  pnCards.removeAll();
+			  removeAll();
 			  if (dp == null)
 				  return;
 			  if (getDeepPlugin().getTfModel() != null) { 
@@ -174,6 +179,9 @@ public class BuildDialog extends JDialog implements ActionListener {
 			  }
 		  }
 		  public void windowClosing(WindowEvent e) {
+			  // Release every component of each stamp
+			  pnCards.removeAll();
+			  removeAll();
 			  if (dp == null)
 				  return;
 			  if (getDeepPlugin().getTfModel() != null) { 
