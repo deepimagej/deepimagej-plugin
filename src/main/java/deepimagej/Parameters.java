@@ -395,6 +395,8 @@ public class Parameters {
 				outTensor.recommended_patch = castListToIntArray(shape);
 				outTensor.scale = new float[shape.size()];
 				outTensor.offset = new int[shape.size()];
+				if (pyramidalNetwork)
+					outTensor.sizeOutputPyramid = outTensor.recommended_patch;
 			} catch (Exception ex) {
 				Map<String, Object> shape = (Map<String, Object>) out.get("shape");
 				outTensor.referenceImage = (String) shape.get("reference_input");

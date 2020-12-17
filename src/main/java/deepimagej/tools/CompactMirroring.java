@@ -55,8 +55,8 @@ public class CompactMirroring {
 		int nt = imp.getNFrames();
 		ImagePlus out = IJ.createImage("Mirror", "32-bits", nx + paddingXLeft + paddingXRight,
 										ny + paddingYTop + paddingYBottom, nc, nz + paddingZFront + paddingZBack, nt);
-		for(int c=0; c<nc; c++)
-			for(int z=0; z<nz; z++)
+		for(int c=0; c<nc; c++) {
+			for(int z=0; z<nz; z++) {
 				for(int t=0; t<nt; t++) {
 					imp.setPositionWithoutUpdate(c + 1, z + 1, t + 1);
 					out.setPositionWithoutUpdate(c + 1, z + paddingZFront + 1, t + 1);
@@ -66,12 +66,17 @@ public class CompactMirroring {
 					out.setProcessor(op);
 					if (z < paddingZFront) {
 						out.setPositionWithoutUpdate(c + 1, z + 1, t + 1);
+						out.setProcessor(mirrorXY(ip, paddingXLeft, paddingXRight,
+			   					 paddingYTop, paddingYBottom));
 					} else if (z >= nz - paddingZBack) {
 						int sliceZBack = 2 * nz - z;
-						out.setPositionWithoutUpdate(c + 1, sliceZBack, t + 1);
+						out.setPositionWithoutUpdate(c + 1, sliceZBack + 1, t + 1);
+						out.setProcessor(mirrorXY(ip, paddingXLeft, paddingXRight,
+			   					 paddingYTop, paddingYBottom));
 					}
-					out.setProcessor(op);
 				}
+			}
+		}
 		return out;
 	}
 	

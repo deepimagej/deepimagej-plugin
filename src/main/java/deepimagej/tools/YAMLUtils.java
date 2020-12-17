@@ -104,7 +104,10 @@ public class YAMLUtils {
 				
 				// Now write the test data info
 				Map<String, Object> inputTestInfo = new LinkedHashMap<>();
-				inputTestInfo.put("name", params.testImageBackup.getTitle().substring(4));
+				if (params.testImageBackup != null)
+					inputTestInfo.put("name", params.testImageBackup.getTitle().substring(4));
+				else 
+					inputTestInfo.put("name", null);
 				inputTestInfo.put("size", inp.inputTestSize);
 				Map<String, Object> pixelSize = new LinkedHashMap<>();
 				pixelSize.put("x", inp.inputPixelSizeX);
@@ -156,7 +159,10 @@ public class YAMLUtils {
 		// Path to the image that will be used as the cover picture in the Bioimage model Zoo
 		ArrayList<String> covers = new ArrayList<String>();
 		// TODO generalize for several input images
-		covers.add("./" + params.testImageBackup.getTitle().substring(4));
+		if (params.testImageBackup != null) 
+			covers.add("./" + params.testImageBackup.getTitle().substring(4));
+		else 
+			covers.add(null);
 		for (HashMap<String, String> out : params.savedOutputs) {
 			if (out.get("type").contains("image"))
 				covers.add("./" + out.get("name") + ".tif");
@@ -192,8 +198,13 @@ public class YAMLUtils {
 		ArrayList<String> inputExamples = new ArrayList<String>();
 		ArrayList<String> sampleInputs = new ArrayList<String>();
 		// TODO generalize for several input images
-		inputExamples.add("./" + params.testImageBackup.getTitle().substring(4));
-		sampleInputs.add("./" + params.testImageBackup.getTitle().substring(4, params.testImageBackup.getTitle().lastIndexOf(".")) + ".npy");
+		if (params.testImageBackup != null) {
+			inputExamples.add("./" + params.testImageBackup.getTitle().substring(4));
+			sampleInputs.add("./" + params.testImageBackup.getTitle().substring(4, params.testImageBackup.getTitle().lastIndexOf(".")) + ".npy");
+		} else {
+			inputExamples.add(null);
+			sampleInputs.add(null);
+		}
 		// Path to the test outputs
 		ArrayList<String> outputExamples = new ArrayList<String>();
 		ArrayList<String> sampleOutputs = new ArrayList<String>();

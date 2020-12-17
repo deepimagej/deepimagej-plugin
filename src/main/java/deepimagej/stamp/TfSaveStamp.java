@@ -316,33 +316,36 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		// Save output images and tables (tables as saved as csv)
 		for (HashMap<String, String> output : params.savedOutputs) {
 			String name = output.get("name");
+			String nameNoExtension= name;
+			if (name.lastIndexOf(".") != -1)
+				nameNoExtension = name.substring(0, name.lastIndexOf("."));
 			try {
 				if (output.get("type").contains("image")) {
 					ImagePlus im = WindowManager.getImage(name);
-					IJ.saveAsTiff(im, params.saveDir + File.separator + name + ".tif");
-					pane.append("p", name + ".tif" + ": saved");
+					IJ.saveAsTiff(im, params.saveDir + File.separator + nameNoExtension + ".tif");
+					pane.append("p", nameNoExtension + ".tif" + ": saved");
 					if (params.biozoo) {
-						saveNpyFile(im, "XYCZN", params.saveDir + File.separator + name + ".npy");
-						pane.append("p", name + ".npy" + ": saved");
+						saveNpyFile(im, "XYCZN", params.saveDir + File.separator + nameNoExtension + ".npy");
+						pane.append("p", nameNoExtension + ".npy" + ": saved");
 					}
 				} else if (output.get("type").contains("ResultsTable")){
 					Frame f = WindowManager.getFrame(name);
 			        if (f!=null && (f instanceof TextWindow)) {
 			        	ResultsTable rt = ((TextWindow)f).getResultsTable();
-						rt.save(params.saveDir + File.separator + name + ".csv");
-						pane.append("p", name + ".csv" + ": saved");
+						rt.save(params.saveDir + File.separator + nameNoExtension + ".csv");
+						pane.append("p", nameNoExtension + ".csv" + ": saved");
 						if (params.biozoo) {
-							saveNpyFile(rt, params.saveDir + File.separator + name + ".npy");
-							pane.append("p", name + ".npy" + ": saved");
+							saveNpyFile(rt, params.saveDir + File.separator + nameNoExtension + ".npy");
+							pane.append("p", nameNoExtension + ".npy" + ": saved");
 						}
 					} else {
 						throw new Exception();					}
 				}
 			} 
 			catch(Exception ex) {
-				pane.append("p", name + "exampleOutput.tiff:  not saved");
+				pane.append("p", nameNoExtension + ".tif:  not saved");
 				if (params.biozoo)
-					pane.append("p", name + "exampleOutput.npy:  not saved");
+					pane.append("p", nameNoExtension + ".npy:  not saved");
 				ok = false;
 			}
 		}
@@ -366,7 +369,8 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		pane.append("p", "Done!!");
 
 		//parent.setEnabledBackNext(ok);
-	}private void copyWeights(File source, File dest) throws IOException {
+	}
+	private void copyWeights(File source, File dest) throws IOException {
 		String source_path;
 		String dest_path;
 		String filename;

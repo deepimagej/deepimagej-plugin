@@ -356,6 +356,8 @@ private int							currentPatch = 0;
 						leftoverPixelsZ = overlapZ + roiZ- (zImageEndPatch - zImageStartPatch);
 					}
 					
+					// TODO mirar en profundidad. Que pasa cuando el mirror no es igual de grande que le patch
+					// Observé que se compensaba erroneamente
 					ImagePlus patch = ArrayOperations.extractPatch(mirrorImage, patchSize, xMirrorStartPatch, yMirrorStartPatch,
 																	zMirrorStartPatch, overlapX, overlapY, overlapZ);
 					log.print("Extract Patch (" + (i + 1) + ", " + (j + 1) + ") patch size: " + patch.getWidth() + "x" + patch.getHeight() + " pixels");

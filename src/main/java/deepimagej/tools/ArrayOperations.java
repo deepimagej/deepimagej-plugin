@@ -160,7 +160,7 @@ public class ArrayOperations {
 		for (int i = 0; i < needed.length; i++) {
 			if (roi[i] > size[i]) {
 				needed[i] = roi[i] - size[i] + 2 * padding[i];
-			} else if (roi[i] < size[i]) {
+			} else if (roi[i] <= size[i]) {
 				needed[i] = 2 * padding[i];
 			}
 			extraPixels[0][i] = (int) Math.ceil((double) needed[i] / 2);

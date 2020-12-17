@@ -113,7 +113,7 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 
 	public InformationStamp(BuildDialog parent) {
 		super(parent);
-		//buildPanel();
+		buildPanel();
 	}
 
 	@Override

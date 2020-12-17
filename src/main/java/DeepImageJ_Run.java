@@ -105,7 +105,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		path = "C:\\Users\\Carlos(tfg)\\Pictures\\Fiji.app\\models" + File.separator;
 		path = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models" + File.separator;
-		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\0066.jpg");
+		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\MRCNN\\exampleImage.tiff");
 		//ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
 		imp.show();
 		WindowManager.setTempCurrentImage(imp);
@@ -509,7 +509,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			String stepString = "";
 			for (int i = 0; i < dim.length; i ++)
 				stepString += dim[i] + "=" + step[i] + ", ";
-			stepString = minString.substring(0, stepString.length() - 2);
+			stepString = stepString.substring(0, stepString.length() - 2);
 			info.append(stepString + "\n");
 			info.append("\n");
 			info.append("Each dimension is calculated as:\n");
@@ -601,8 +601,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			
 			inp.changes = false;
 			inp.close();
-			if (output == null) 
-				throw new Exception();
+			if (output == null) {
+				// Remove possible hidden images from IJ workspace
+				removeProcessedInputsFromMemory(inputsMap);
+			    service.shutdown();
+				return;
+			}
 			runStage ++;
 			output = ProcessingBridge.runPostprocessing(dp.params, output);
 
@@ -613,6 +617,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			String[] finalFrames = WindowManager.getNonImageTitles();
 			String[] finalImages = WindowManager.getImageTitles();
 			ArrayOperations.displayMissingOutputs(finalImages, finalFrames, output);
+
+			// Remove possible hidden images from IJ workspace
 			removeProcessedInputsFromMemory(inputsMap);
 			
 		} catch (IOException e1) {

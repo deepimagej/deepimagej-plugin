@@ -314,15 +314,17 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 				}
 				// TODO fix this for the case where slices or channels are not fixed
 				int channels = TensorFlowModel.nChannelsOrSlices(tensor, "channels");
-				int slices = TensorFlowModel.nChannelsOrSlices(tensor, "slices");
 				int imageChannels = ((ImagePlus) inputsMap.get(tensor.name)).getNChannels();
-				int imageSlices = ((ImagePlus) inputsMap.get(tensor.name)).getNSlices();
 				if (channels != imageChannels) {
 					throw new IncorrectChannelsSlicesNumber(channels, imageChannels, "channels");
 				}
+				/* TODO only dimension that does not allow mirroring should be channels??
+				int slices = TensorFlowModel.nChannelsOrSlices(tensor, "slices");
+				int imageSlices = ((ImagePlus) inputsMap.get(tensor.name)).getNSlices();
 				if (slices != imageSlices) {
 					throw new IncorrectChannelsSlicesNumber(slices, imageSlices, "slices");
 				}
+				*/
 			}
 
 			if (inputsMap != null){
