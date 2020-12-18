@@ -138,8 +138,10 @@ public class SystemUsage {
 	 * to check if the model has been loaded into the GPU
 	 */
 	public static String isUsingGPU(ArrayList<String> firstSmi, ArrayList<String> secondSmi) {
-		Object[] firstSmiArr = firstSmi.toArray();
 		String result = "noImageJProcess";
+		if (firstSmi == null || secondSmi == null)
+			return result;
+		Object[] firstSmiArr = firstSmi.toArray();
 		// If they are not the same, look for information that is not on the first smi
 		// and where the process name contains "java"
 		for (String info : secondSmi) {
@@ -234,7 +236,7 @@ public class SystemUsage {
 	 * Run commands in the terminal and retrieve the output in the terminal
 	 */
 	public static ArrayList<String> runNvidiaSmiWin() {
-		return runNvidiaSmiWin(true);
+		return runNvidiaSmiWin("nvidia-smi", true);
 	}
 	
 	/*
@@ -278,11 +280,11 @@ public class SystemUsage {
 	/*
 	 * Run commands in the terminal and retrieve the output in the terminal
 	 */
-	public static ArrayList<String> runNvidiaSmiWin(boolean firstCall) {
+	public static ArrayList<String> runNvidiaSmiWin(String command, boolean firstCall) {
 
         Process proc;
 		try {
-			proc = Runtime.getRuntime().exec("nvidia-smi");
+			proc = Runtime.getRuntime().exec(command);
 
 	        // Read the output
 	        BufferedReader reader =  
@@ -308,7 +310,7 @@ public class SystemUsage {
 			if (firstCall) {
 				String nvidiaSmi = findNvidiaSmiWin();
 				if (nvidiaSmi != null)
-					return runNvidiaSmiWin(false);
+					return runNvidiaSmiWin(nvidiaSmi, false);
 			} else {
 				return null;
 			}

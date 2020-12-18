@@ -212,7 +212,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 				tensor.form = tensor.form + (String) inputs.get(i).getSelectedItem();
 			tensor.tensorType = (String) inTags.get(tagC ++).getSelectedItem();
 			iterateOverComboBox += tensor.tensor_shape.length;
-			if (checkRepeated(tensor.form) == false && tensor.tensorType.equals("ignore") == false) {
+			if (checkRepeated(tensor.form) == false && tensor.tensorType.equals("parameter") == false) {
 				IJ.error("Dimension repetition is not allowed");
 				return false;
 			}
@@ -258,6 +258,42 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 	
 	public void updateTensorDisplay(Parameters params) {
 		// Set disabled the tensors marked as 'ignore'
+		List<DijTensor> inputTensors = params.totalInputList;
+		// Counter for tensors
+		int cIn = 0;
+		int cmbCounterIn = 0;
+		for (JComboBox<String> cmbTag : inTags) {
+			int indSelection = cmbTag.getSelectedIndex();
+			String selection = inputOptions[indSelection];
+			for (int i = cmbCounterIn; i < cmbCounterIn + inputTensors.get(cIn).tensor_shape.length; i++) {
+				if (selection.contains("parameter") && inputs.get(i).getItemAt(0).equals("B")) {
+					inputs.get(i).removeAllItems();
+					inputs.get(i).addItem("-");
+					inputs.get(i).setEnabled(false);
+					//inputs.get(i).addActionListener(this);
+					String form = inputTensors.get(cIn).form;
+					if (form != null) {
+						inputTensors.get(cIn).form = form.substring(0, i) + "B" + form.substring(i+1);
+					}
+				} else if (selection.contains("image") && inputs.get(i).getItemAt(0).equals("-")) {
+					//inputs.get(i).removeItemAt(0);
+					inputs.get(i).removeAllItems();
+					inputs.get(i).addItem("B");
+					inputs.get(i).addItem("Y");
+					inputs.get(i).addItem("X");
+					inputs.get(i).addItem("C");
+					inputs.get(i).addItem("Z");
+					inputs.get(i).setEnabled(true);
+					//inputs.get(i).addActionListener(this);
+					String form = inputTensors.get(cIn).form;
+					if (form != null) {
+						inputTensors.get(cIn).form = form.substring(0, i) + "B" + form.substring(i+1);
+					}
+				}
+			}
+			cmbCounterIn += inputTensors.get(cIn).tensor_shape.length;
+			cIn ++;
+		}
 		List<DijTensor> outputTensors = params.totalOutputList;
 		// Counter for tensors
 		int c = 0;

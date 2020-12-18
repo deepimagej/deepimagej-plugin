@@ -35,16 +35,10 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */package deepimagej.components;
 
-import java.awt.Desktop;
 import java.awt.Dimension;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URL;
 
 import javax.swing.JEditorPane;
 import javax.swing.JScrollPane;
-import javax.swing.event.HyperlinkEvent;
-import javax.swing.event.HyperlinkListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 
@@ -105,29 +99,6 @@ public class HTMLPane extends JEditorPane {
 		}
 	}
 
-	// Allows wrap of the text
-	@Override
-	public boolean getScrollableTracksViewportWidth() {
-		return getUI().getPreferredSize(this).width <= getParent().getSize().width;
-	}
-
-	public void enableHyperLink() {
-		addHyperlinkListener(new HyperlinkListener() {
-			public void hyperlinkUpdate(HyperlinkEvent e) {
-				if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-					if (Desktop.isDesktopSupported()) {
-						try {
-							Desktop.getDesktop().browse(e.getURL().toURI());
-						} catch (IOException | URISyntaxException e1) {
-							e1.printStackTrace();
-						}
-					}
-				}
-			}
-		});
-
-	}
-
 	public void clear() {
 		html = "";
 		append("");
@@ -159,31 +130,6 @@ public class HTMLPane extends JEditorPane {
 
 	public void append(String tag, String content) {
 		html += "<" + tag + ">" + content + "</" + tag + ">";
-		setText(header + html + footer);
-		if (dim != null) {
-			setPreferredSize(dim);
-		}
-		setCaretPosition(0);
-	}
-	
-	public void append(String tag1, String tag2, String content) {
-		html += "<" + tag1 + ">" + "<" + tag2 + ">"+ content + "</" + tag2 + ">" + "</" + tag1 + ">";
-		setText(header + html + footer);
-		if (dim != null) {
-			setPreferredSize(dim);
-		}
-		setCaretPosition(0);
-	}
-
-	public void appendLink(String link, String content) {
-		try {
-			URL url = new URL(link);
-			if (url != null)
-				html += "<p><a href=\"" + link + "\">" + content + "</a></p>";
-
-		} catch (IOException e) {
-			html += "<p>" + content + ": " + link + "</p>";
-		}
 		setText(header + html + footer);
 		if (dim != null) {
 			setPreferredSize(dim);
