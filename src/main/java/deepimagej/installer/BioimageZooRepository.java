@@ -37,6 +37,7 @@
 
 package deepimagej.installer;
 
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -48,15 +49,16 @@ import java.util.HashMap;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 public class BioimageZooRepository {
 
 
 	public String url = "https://bioimage.io/";
-	public String location = "https://raw.githubusercontent.com/bioimage-io/bioimage-io-models/master/manifest.bioimage.io.json";
+	//public String location = "https://raw.githubusercontent.com/bioimage-io/bioimage-io-models/master/manifest.bioimage.io.json";
+	public String location = "https://raw.githubusercontent.com/bioimage-io/bioimage-io-models/gh-pages/manifest.bioimage.io.json";
 	public String title = "Bioimage Zoo";
 	public String name = "Bioimage Zoo";
 	
@@ -70,17 +72,17 @@ public class BioimageZooRepository {
 
 	public ArrayList<String> connect() {
 		logs.add("Time: " + new Date().toString());
-		JsonParser parser = new JsonParser();
+		JSONParser parser = new JSONParser();
 		try {
 			String text = getJSONFromUrl(location);
-			JsonObject json = (JsonObject) parser.parse(text);
+			JSONObject json = (JSONObject) parser.parse(text);
 			logs.add("Name: " + getString(json, "name", "n.a"));
 			name = getString(json, "name", "n.a");
 			title = getString(json, "splash_title", "n.a");
-			JsonArray resources = (JsonArray) json.get("resources");
+			JSONArray resources = (JSONArray) json.get("resources");
 			if (models != null) {
 				for (Object resource : resources) {
-					JsonObject jm = (JsonObject) resource;
+					JSONObject jm = (JSONObject) resource;
 					if (jm != null) {
 						Model model = parseModel(jm);
 						if (model != null) {
@@ -103,7 +105,7 @@ public class BioimageZooRepository {
 		return models;
 	}
 
-	private Model parseModel(JsonObject json) {
+	private Model parseModel(JSONObject json) {
 		String type = getString(json, "type", "n.a.");
 		if (!type.equalsIgnoreCase("model"))
 			return null;
@@ -114,12 +116,13 @@ public class BioimageZooRepository {
 		String desc = getString(json, "description", "n.a");
 		String doc = getString(json, "documentation", "n.a");
 		String source = getString(json, "source", "n.a");
+		String download = getString(json, "download_url", "n.a");
 		ArrayList<String> covers = getArray(json, "covers");
 		ArrayList<String> tags = getArray(json, "tags");
 
 		String authors = getCSV(json, "authors");
 
-		Model model = new Model(id, root_url, desc, authors, doc, source, covers);
+		Model model = new Model(id, root_url, desc, authors, doc, source, covers, download);
 		for (String tag : tags)
 			if (tag.toLowerCase().equals("deepimagej")) {
 				model.deepImageJ = true;
@@ -131,7 +134,7 @@ public class BioimageZooRepository {
 		return model;
 	}
 	
-	private String getString(JsonObject json, String tag, String defaultValue) {
+	private String getString(JSONObject json, String tag, String defaultValue) {
 		Object o = json.get(tag);
 		if (o instanceof String)
 			return (String) o;
@@ -139,23 +142,23 @@ public class BioimageZooRepository {
 			return defaultValue;
 	}
 
-	private ArrayList<String> getArray(JsonObject json, String tag) {
+	private ArrayList<String> getArray(JSONObject json, String tag) {
 		ArrayList<String> array = new ArrayList<String>();
 		Object objects = json.get(tag);
-		if (objects instanceof JsonArray) {
-			for (Object o : (JsonArray) objects)
+		if (objects instanceof JSONArray) {
+			for (Object o : (JSONArray) objects)
 				if (o instanceof String)
 					array.add((String) o);
 		}
 		return array;
 	}
 
-	private String getCSV(JsonObject json, String tag) {
+	private String getCSV(JSONObject json, String tag) {
 		String csv = "";
 		int count = 0;
 		Object objects = json.get(tag);
-		if (objects instanceof JsonArray) {
-			for (Object o : (JsonArray) objects)
+		if (objects instanceof JSONArray) {
+			for (Object o : (JSONArray) objects)
 				if (o instanceof String) {
 					csv += (count == 0  ? "" : ", ") + (String) o;
 					count++;
@@ -200,3 +203,4 @@ public class BioimageZooRepository {
 
 
 }
+

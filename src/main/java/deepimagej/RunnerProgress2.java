@@ -56,7 +56,7 @@ import deepimagej.tools.NumFormat;
 import deepimagej.tools.SystemUsage;
 import ij.gui.GUI;
 
-public class RunnerProgress extends JDialog implements ActionListener {
+public class RunnerProgress2 extends JDialog implements ActionListener {
 
 	private BorderLabel			title		= new BorderLabel("Name ........");
 	private BorderLabel			patches		= new BorderLabel("Patch not set");
@@ -71,18 +71,15 @@ public class RunnerProgress extends JDialog implements ActionListener {
 	private Clock				clock;
 	private GridBagLayout		layout		= new GridBagLayout();
 	private GridBagConstraints	constraint	= new GridBagConstraints();
-	private Object runner;
 	private boolean stop = false;
 	private String name;
-	private String GPU = "CPU";
 	
-	public RunnerProgress(DeepImageJ dp, String gpu) {
+	public RunnerProgress2() {
 		super(new JFrame(), "Run DeepImageJ");
-		name = dp.getName();
+		name = "";
 		JPanel prog = new JPanel(layout);
 		place(prog, 0, 1, 0, title);
 		place(prog, 1, 1, 0, time);
-		GPU = gpu;
 		// TODO show tag GPU all the time or only when there is a GPU
 		//sif (!GPU.equals("CPU")) 
 		place(prog, 2, 1, 0, processor);
@@ -90,7 +87,7 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		place(prog, 4, 1, 0, memory);
 		place(prog, 5, 1, 0, peak);
 		place(prog, 7, 1, 0, bnStop);
-		info(GPU);
+		info();
 		JPanel panel = new JPanel(layout);
 		place(panel, 0, 0, 10, prog);
 		
@@ -104,10 +101,6 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		chrono = System.nanoTime();
 		timer.scheduleAtFixedRate(clock, 0, 300);
 		stop = false;
-	}
-
-	public void setRunner(Object runner) {
-		this.runner = runner;
 	}
 	
 	public void place(JPanel panel, int row, int col, int space, JComponent comp) {
@@ -144,7 +137,7 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		stop = true;
 	}
  
-	public void info(String gpu) {
+	public void info() {
 		title.setText(name);
 		double mem = SystemUsage.getHeapUsed();
 		peakmem = Math.max(peakmem, mem);
@@ -152,23 +145,17 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		memory.setText("Used memory: " + NumFormat.bytes(mem) + " / " + SystemUsage.getMaxMemory());
 		peak.setText("Peak memory: " + NumFormat.bytes(peakmem));
 		String gpuTag = "NO";
-		if (gpu.equals("GPU"))
-			gpuTag = "YES";
-		else if (gpu.equals("???"))
-			gpuTag = "Unknown";
 		processor.setText("GPU: " + gpuTag);
-		if (runner != null && (runner instanceof RunnerTf))
-			patches.setText("Patches: " + ((RunnerTf) runner).getCurrentPatch() + "/" + ((RunnerTf) runner).getTotalPatch());
-		if (runner != null && (runner instanceof RunnerPt))
-			patches.setText("Patches: " + ((RunnerPt) runner).getCurrentPatch() + "/" + ((RunnerPt) runner).getTotalPatch());
+		patches.setText("Patches: ");
 	}
+	
 	public double getPeakmem() {
 		return this.peakmem;
 	}
 	
 	public class Clock extends TimerTask {
 		public void run() {
-			info(GPU);
+			info();
 		}
 	}
 

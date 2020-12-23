@@ -98,7 +98,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 	private PtSaveStamp				ptSave = null;
 	private DeepImageJ				dp		= null;
 	private int						card	= 1;
-	private String					GPU 	= "";
+	private String					GPU 	= "CPU";
 	private boolean					Fiji	= false;
 
 	public BuildDialog() {
@@ -157,7 +157,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 
 		setResizable(true);
 		pack();
-		setPreferredSize(new Dimension(50, 300));
+		setPreferredSize(new Dimension(Constants.width, 300));
 		GUI.center(this);
 		setVisible(true);
 		bnBack.setEnabled(false);

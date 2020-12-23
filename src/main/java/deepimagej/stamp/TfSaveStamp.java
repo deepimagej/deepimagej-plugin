@@ -39,7 +39,6 @@ package deepimagej.stamp;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
@@ -89,7 +88,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 	private JTextField	txt			= new JTextField(IJ.getDirectory("imagej") + File.separator + "models" + File.separator);
 	private JButton		bnBrowse	= new JButton("Browse");
 	private JButton		bnSave	= new JButton("Save Bundled Model");
-	private JCheckBox	bnSaveBiozoo	= new JCheckBox("Save model into the Bioimage Zoo format");
+	//private JCheckBox	bnSaveBiozoo	= new JCheckBox("Save model into the Bioimage Zoo format");
 	private HTMLPane 	pane;
 	
 	public TfSaveStamp(BuildDialog parent) {
@@ -123,8 +122,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		pn.add(infoPane, BorderLayout.CENTER);
 		JPanel pnButtons = new JPanel(new GridLayout(2, 1));
 		pnButtons.add(bnSave);
-		pnButtons.add(bnSaveBiozoo);
-		pn.add(pnButtons, BorderLayout.SOUTH);
+		pn.add(bnSave, BorderLayout.SOUTH);
 		panel.add(pn);
 
 		bnSave.addActionListener(this);
@@ -194,51 +192,51 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		
 
 		// Save the model architecture
-		if (!bnSaveBiozoo.isSelected()) {
-			params.biozoo = false;
-			try {
-				File source = new File(params.path2Model + "saved_model.pb");
-				File dest = new File(params.saveDir  + "saved_model.pb");
-				FileTools.copyFile(source, dest);
-				pane.append("p", "protobuf of the model (saved_model.pb): saved");
-			} catch (IOException e) {
-				e.printStackTrace();
-				pane.append("p", "protobuf of the model (saved_model.pb): not saved");
-				ok = false;
-			} catch (Exception e) {
-				e.printStackTrace();
-				pane.append("p", "protobuf of the model (saved_model.pb): not saved");
-				ok = false;
-			}
+		//if (!bnSaveBiozoo.isSelected()) {
+		/*TODO remove
+		params.biozoo = true;
+		try {
+			File source = new File(params.path2Model + "saved_model.pb");
+			File dest = new File(params.saveDir  + "saved_model.pb");
+			FileTools.copyFile(source, dest);
+			pane.append("p", "protobuf of the model (saved_model.pb): saved");
+		} catch (IOException e) {
+			e.printStackTrace();
+			pane.append("p", "protobuf of the model (saved_model.pb): not saved");
+			ok = false;
+		} catch (Exception e) {
+			e.printStackTrace();
+			pane.append("p", "protobuf of the model (saved_model.pb): not saved");
+			ok = false;
+		}
 	
-			// Save the model weights
-			try {
-				File source = new File(params.path2Model + "variables");
-				File dest = new File(params.saveDir + "variables");
-				copyWeights(source, dest);
-				pane.append("p", "weights of the network (variables): saved");
-				// TODO add check to ensure each pair of weights is unique
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-				pane.append("p", "weights of the network (variables): not saved");
-				ok = false;
-			}
-		} else {
-			params.biozoo = true;
-			try {
-				String zipName = "tensorflow_saved_model_bundle.zip";
-				pane.append("p", "Writting zip file...");
-				FileTools.zipFilesIntoFolder(new String[]{params.path2Model + File.separator + "variables", params.path2Model + File.separator  + "saved_model.pb"}, params.saveDir + File.separator + zipName);
-				pane.append("p", "Tensorflow Bioimage Zoo model: saved");
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-				pane.append("p", "Error zipping the varaibles folder and saved_model.pb");
-				pane.append("p", "Tensorflow Bioimage Zoo model: not saved");
-				ok = false;
-			}
-			
+		// Save the model weights
+		try {
+			File source = new File(params.path2Model + "variables");
+			File dest = new File(params.saveDir + "variables");
+			copyWeights(source, dest);
+			pane.append("p", "weights of the network (variables): saved");
+			// TODO add check to ensure each pair of weights is unique
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			pane.append("p", "weights of the network (variables): not saved");
+			ok = false;
+		}
+		*/
+
+		params.biozoo = true;
+		try {
+			String zipName = "tensorflow_saved_model_bundle.zip";
+			pane.append("p", "Writting zip file...");
+			FileTools.zip(new String[]{params.path2Model + File.separator + "variables", params.path2Model + File.separator  + "saved_model.pb"}, params.saveDir + File.separator + zipName);
+			pane.append("p", "Tensorflow Bioimage Zoo model: saved");
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			pane.append("p", "Error zipping the varaibles folder and saved_model.pb");
+			pane.append("p", "Zipped Tensorflow model: not saved");
+			ok = false;
 		}
 
 		// Save preprocessing
@@ -370,6 +368,8 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 
 		//parent.setEnabledBackNext(ok);
 	}
+	
+	/* TODO remove
 	private void copyWeights(File source, File dest) throws IOException {
 		String source_path;
 		String dest_path;
@@ -384,6 +384,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			}
 		}
 	}
+	*/
 	
 	public static void saveNpyFile(ImagePlus im, String form, String name) {
 		Path path = Paths.get(name);

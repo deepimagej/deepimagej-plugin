@@ -49,13 +49,16 @@ public class Model {
 	public String doc;
 	public String source;
 	public String root_url;
+	public String downloadUrl;
 	public ArrayList<String> covers;
 	public String authors;
 	public boolean deepImageJ;
 	
-	public Model(String name, String root_url, String desc, String authors, String doc, String source, ArrayList<String> covers) {
+	public Model(String name, String root_url, String desc, String authors, String doc, String source,
+				ArrayList<String> covers, String downloadUrl) {
 		this.name = name;
 		this.root_url = root_url;
+		this.downloadUrl = downloadUrl;
 		this.desc = desc;
 		this.authors = authors;
 		this.doc = doc;

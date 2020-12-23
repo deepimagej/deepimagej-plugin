@@ -359,7 +359,7 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		DeepImageJ dp = parent.getDeepPlugin();
 
 		Log log = new Log();
-		RunnerProgress rp = new RunnerProgress(dp, false);
+		RunnerProgress rp = new RunnerProgress(dp, parent.getGPU());
 		HashMap<String, Object> output = null;
 		if (dp.params.framework.equals("Tensorflow")) {
 			RunnerTf runner = new RunnerTf(dp, rp, inputsMap, log);

@@ -220,6 +220,8 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		String cudaVersion = "";
 		if (tfVersion.contains("GPU"))
 			cudaVersion = SystemUsage.getCUDAEnvVariables();
+		else
+			parent.setGPU("CPU");
 		// If a CUDA distribution was found, cudaVersion will be equal
 		// to the CUDA version. If not it can be either 'noCuda', if CUDA 
 		// is not installed, or if there is a CUDA_PATH in the environment variables
@@ -235,8 +237,10 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			pnLoad.append("p", "Could not find environment variable:\n - " + outputs[1] + "\n");
 			if (outputs.length == 3)
 				pnLoad.append("p", "Could not find environment variable:\n - " + outputs[2] + "\n");
+			pnLoad.append("p", "Please add the missing environment variables to the path.\n");
 		} else if (tfVersion.contains("GPU") && cudaVersion.equals("noCUDA")) {
 			pnLoad.append("p", "No CUDA distribution found.\n");
+			parent.setGPU("CPU");
 		}
 		pnLoad.append("h2", "Model info");
 		File file = new File(params.path2Model);
@@ -280,12 +284,14 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		pnLoad.append(" -> Loaded!!!</p>");
 		
 		// Check if the model has been loaded on GPU
-		if (tfVersion.contains("GPU") && parent.getGPU().equals("")) {
+		if (tfVersion.contains("GPU") && !parent.getGPU().equals("GPU")) {
 			String GPUInfo = SystemUsage.isUsingGPU(initialSmi, finalSmi);
 			if (GPUInfo.equals("noImageJProcess") && !cudaVersion.contains(File.separator)) {
 				pnLoad.append("p", "Unable to run nvidia-smi to check if the model was loaded on a GPU.\n");
+				parent.setGPU("???");
 			} else if (GPUInfo.equals("noImageJProcess")) {
 				pnLoad.append("p", "Unable to load model on GPU.\n");
+				parent.setGPU("CPU");
 			} else if(GPUInfo.equals("¡RepeatedImageJGPU!")) {
 				int nImageJInstances = SystemUsage.numberOfImageJInstances();
 				// Get number of IJ instances using GPU
@@ -294,16 +300,23 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 					pnLoad.append("p", "Found " + nGPUIJInstances + "instances of ImageJ/Fiji using GPU"
 							+ " out of the " + nImageJInstances + " opened.\n");
 					pnLoad.append("p", "Could not assert that the model was loaded on the <b>GPU</b>.\n");
+					parent.setGPU("???");
 				} else if (nImageJInstances <= nGPUIJInstances) {
 					pnLoad.append("p", "Model loaded on the <b>GPU</b>.\n");
-					parent.setGPU(GPUInfo);
+					if (cudaVersion.contains("bin") || cudaVersion.contains("libnvvp"))
+						pnLoad.append("p", "Note that with missing environment variables, GPU performance might not be optimal.\n");
+					parent.setGPU("GPU");
 				}
 			} else {
 				pnLoad.append("p", "Model loaded on the <b>GPU</b>.\n");
-				parent.setGPU(GPUInfo);
+				if (cudaVersion.contains("bin") || cudaVersion.contains("libnvvp"))
+					pnLoad.append("p", "Note that due to missing environment variables, GPU performance might not be optimal.\n");
+				parent.setGPU("GPU");
 			}
 		} else if (tfVersion.contains("GPU")) {
 			pnLoad.append("p", "Model loaded on the <b>GPU</b>.\n");
+			if (cudaVersion.contains("bin") || cudaVersion.contains("libnvvp"))
+				pnLoad.append("p", "Note that due to missing environment variables, GPU performance might not be optimal.\n");
 		}
 		
 		String tag = (String) info[0];

@@ -48,7 +48,9 @@ import java.io.InputStream;
 import java.nio.channels.FileChannel;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
@@ -262,69 +264,88 @@ public class FileTools {
  	    }
  	}
     
-    public static void zipFilesIntoFolder(String[] srcFiles, String zipFile) {
-    	 
-        try {
-             
-            // create byte buffer
-            byte[] buffer = new byte[4096];
- 
-            FileOutputStream fos = new FileOutputStream(zipFile);
- 
-            ZipOutputStream zos = new ZipOutputStream(fos);
-             
-            for (int i=0; i < srcFiles.length; i++) {
-                 
-                File srcFile = new File(srcFiles[i]);
-                
-                if (srcFile.isDirectory()) {
-                	zos.putNextEntry(new ZipEntry(srcFile.getName() + File.separator));
-                	for (File ff : srcFile.listFiles()) {
-                		FileInputStream fis = new FileInputStream(ff);
-                		 
-    	                // begin writing a new ZIP entry, positions the stream to the start of the entry data
-    	                zos.putNextEntry(new ZipEntry(srcFile.getName() + File.separator + ff.getName()));
-    	                 
-    	                int length;
-    	 
-    	                while ((length = fis.read(buffer)) > 0) {
-    	                    zos.write(buffer, 0, length);
-    	                }
-    	 
-    	                zos.closeEntry();
-    	 
-    	                // close the InputStream
-    	                fis.close();
-                	}
-                	
-                } else {
- 
-	                FileInputStream fis = new FileInputStream(srcFile);
-	 
-	                // begin writing a new ZIP entry, positions the stream to the start of the entry data
-	                zos.putNextEntry(new ZipEntry(srcFile.getName()));
-	                 
-	                int length;
-	 
-	                while ((length = fis.read(buffer)) > 0) {
-	                    zos.write(buffer, 0, length);
-	                }
-	 
-	                zos.closeEntry();
-	 
-	                // close the InputStream
-	                fis.close();
-                }
-                 
+    /**
+     * Compresses a list of files to a destination zip file
+     * @param listFiles A collection of files and directories
+     * @param destZipFile The path of the destination zip file
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    public static void zip(List<File> listFiles, String destZipFile) throws FileNotFoundException,
+            IOException {
+        ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(destZipFile));
+        for (File file : listFiles) {
+            if (file.isDirectory()) {
+                zipDirectory(file, file.getName(), zos);
+            } else {
+                zipFile(file, zos);
             }
- 
-            // close the ZipOutputStream
-            zos.close();
-             
         }
-        catch (IOException ioe) {
-            System.out.println("Error creating zip file: " + ioe);
+        zos.flush();
+        zos.close();
+    }
+    /**
+     * Compresses files represented in an array of paths
+     * @param files a String array containing file paths
+     * @param destZipFile The path of the destination zip file
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    public static void zip(String[] files, String destZipFile) throws FileNotFoundException, IOException {
+        List<File> listFiles = new ArrayList<File>();
+        for (int i = 0; i < files.length; i++) {
+            listFiles.add(new File(files[i]));
         }
+        zip(listFiles, destZipFile);
+    }
+    /**
+     * Adds a directory to the current zip output stream
+     * @param folder the directory to be  added
+     * @param parentFolder the path of parent directory
+     * @param zos the current zip output stream
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    private static void zipDirectory(File folder, String parentFolder,
+            ZipOutputStream zos) throws FileNotFoundException, IOException {
+        for (File file : folder.listFiles()) {
+            if (file.isDirectory()) {
+                zipDirectory(file, parentFolder + "/" + file.getName(), zos);
+                continue;
+            }
+            zos.putNextEntry(new ZipEntry(parentFolder + "/" + file.getName()));
+            BufferedInputStream bis = new BufferedInputStream(
+                    new FileInputStream(file));
+            long bytesRead = 0;
+            byte[] bytesIn = new byte[4096];
+            int read = 0;
+            while ((read = bis.read(bytesIn)) != -1) {
+                zos.write(bytesIn, 0, read);
+                bytesRead += read;
+            }
+            zos.closeEntry();
+        }
+    }
+    /**
+     * Adds a file to the current zip output stream
+     * @param file the file to be added
+     * @param zos the current zip output stream
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    private static void zipFile(File file, ZipOutputStream zos)
+            throws FileNotFoundException, IOException {
+        zos.putNextEntry(new ZipEntry(file.getName()));
+        BufferedInputStream bis = new BufferedInputStream(new FileInputStream(
+                file));
+        long bytesRead = 0;
+        byte[] bytesIn = new byte[4096];
+        int read = 0;
+        while ((read = bis.read(bytesIn)) != -1) {
+            zos.write(bytesIn, 0, read);
+            bytesRead += read;
+        }
+        zos.closeEntry();
     }
     
     public static String createSHA256(String fileName) throws  IOException {

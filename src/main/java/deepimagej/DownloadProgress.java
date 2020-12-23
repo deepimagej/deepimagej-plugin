@@ -42,8 +42,10 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -53,44 +55,37 @@ import javax.swing.JPanel;
 
 import deepimagej.components.BorderLabel;
 import deepimagej.tools.NumFormat;
-import deepimagej.tools.SystemUsage;
 import ij.gui.GUI;
 
-public class RunnerProgress extends JDialog implements ActionListener {
+public class DownloadProgress extends JDialog implements ActionListener {
 
-	private BorderLabel			title		= new BorderLabel("Name ........");
-	private BorderLabel			patches		= new BorderLabel("Patch not set");
-	private BorderLabel			memory		= new BorderLabel("Memory........");
-	private BorderLabel			peak		= new BorderLabel("Memory........");
-	private BorderLabel			processor	= new BorderLabel("GPU...........");
 	private Timer				timer		= new Timer(true);
 	private JButton				bnStop		= new JButton("Stop");
-	private BorderLabel			time			= new BorderLabel("Elapsed time");
+	private BorderLabel			downloadedSize	= new BorderLabel("Portion downloaded");
+	private BorderLabel			time		= new BorderLabel("Elapsed time");
+	private BorderLabel			name		= new BorderLabel("Elapsed time");
 	private double				chrono;
-	private double				peakmem 		= 0;
 	private Clock				clock;
 	private GridBagLayout		layout		= new GridBagLayout();
 	private GridBagConstraints	constraint	= new GridBagConstraints();
-	private Object runner;
 	private boolean stop = false;
-	private String name;
-	private String GPU = "CPU";
+	private String fileName = "";
+	private String modelName = "";
+	private long totalFileSize = 1;
+	private Thread thread = null;
 	
-	public RunnerProgress(DeepImageJ dp, String gpu) {
-		super(new JFrame(), "Run DeepImageJ");
-		name = dp.getName();
+	public DownloadProgress() {
+		super(new JFrame(), "Downloading model");
+	}
+	
+	public void buildScreen() {
+	
 		JPanel prog = new JPanel(layout);
-		place(prog, 0, 1, 0, title);
+		place(prog, 0, 1, 0, name);
 		place(prog, 1, 1, 0, time);
-		GPU = gpu;
-		// TODO show tag GPU all the time or only when there is a GPU
-		//sif (!GPU.equals("CPU")) 
-		place(prog, 2, 1, 0, processor);
-		place(prog, 3, 1, 0, patches);
-		place(prog, 4, 1, 0, memory);
-		place(prog, 5, 1, 0, peak);
-		place(prog, 7, 1, 0, bnStop);
-		info(GPU);
+		place(prog, 2, 1, 0, downloadedSize);
+		place(prog, 3, 1, 0, bnStop);
+		info();
 		JPanel panel = new JPanel(layout);
 		place(panel, 0, 0, 10, prog);
 		
@@ -104,10 +99,6 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		chrono = System.nanoTime();
 		timer.scheduleAtFixedRate(clock, 0, 300);
 		stop = false;
-	}
-
-	public void setRunner(Object runner) {
-		this.runner = runner;
 	}
 	
 	public void place(JPanel panel, int row, int col, int space, JComponent comp) {
@@ -126,6 +117,22 @@ public class RunnerProgress extends JDialog implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		stop();
 	}
+	
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
+	
+	public void setmodelName(String modelName) {
+		this.modelName = modelName;
+	}
+	
+	public void setFileSize(long totalFileSize) {
+		this.totalFileSize = totalFileSize;
+	}
+	
+	public void setThread(Thread thread) {
+		this.thread = thread;
+	}
 
 	public boolean isStopped() {
 		return stop;
@@ -136,6 +143,7 @@ public class RunnerProgress extends JDialog implements ActionListener {
 			return;
 		if (clock == null)
 			return;
+		thread.interrupt();
 		clock.cancel();
 		timer.cancel();
 		timer.purge();
@@ -144,31 +152,22 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		stop = true;
 	}
  
-	public void info(String gpu) {
-		title.setText(name);
-		double mem = SystemUsage.getHeapUsed();
-		peakmem = Math.max(peakmem, mem);
+	public void info() {
+		name.setText(modelName);
 		time.setText("Runtime: " + NumFormat.seconds((System.nanoTime() - chrono)));
-		memory.setText("Used memory: " + NumFormat.bytes(mem) + " / " + SystemUsage.getMaxMemory());
-		peak.setText("Peak memory: " + NumFormat.bytes(peakmem));
-		String gpuTag = "NO";
-		if (gpu.equals("GPU"))
-			gpuTag = "YES";
-		else if (gpu.equals("???"))
-			gpuTag = "Unknown";
-		processor.setText("GPU: " + gpuTag);
-		if (runner != null && (runner instanceof RunnerTf))
-			patches.setText("Patches: " + ((RunnerTf) runner).getCurrentPatch() + "/" + ((RunnerTf) runner).getTotalPatch());
-		if (runner != null && (runner instanceof RunnerPt))
-			patches.setText("Patches: " + ((RunnerPt) runner).getCurrentPatch() + "/" + ((RunnerPt) runner).getTotalPatch());
-	}
-	public double getPeakmem() {
-		return this.peakmem;
+		String progress = "" + 0;
+		long currentFileSize = new File(fileName).length();
+		progress = Math.round(currentFileSize * 100 / totalFileSize) + "";
+		
+		downloadedSize.setText("Download progress: " + progress + "%");
+		
+		if (currentFileSize == totalFileSize)
+			stop();
 	}
 	
 	public class Clock extends TimerTask {
 		public void run() {
-			info(GPU);
+			info();
 		}
 	}
 
