@@ -49,9 +49,10 @@ import java.util.HashMap;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 public class BioimageZooRepository {
 
@@ -61,8 +62,8 @@ public class BioimageZooRepository {
 	public String location = "https://raw.githubusercontent.com/bioimage-io/bioimage-io-models/gh-pages/manifest.bioimage.io.json";
 	public String title = "Bioimage Zoo";
 	public String name = "Bioimage Zoo";
-	
-	public HashMap<String, Model> models = new HashMap<String, Model>();
+
+	public HashMap<String, Model> models2 = new HashMap<String, Model>();
 	public ArrayList<String> logs = new ArrayList<String>();
 	
 	
@@ -72,22 +73,20 @@ public class BioimageZooRepository {
 
 	public ArrayList<String> connect() {
 		logs.add("Time: " + new Date().toString());
-		JSONParser parser = new JSONParser();
+		JsonParser parser2 = new JsonParser();
 		try {
 			String text = getJSONFromUrl(location);
-			JSONObject json = (JSONObject) parser.parse(text);
-			logs.add("Name: " + getString(json, "name", "n.a"));
-			name = getString(json, "name", "n.a");
-			title = getString(json, "splash_title", "n.a");
-			JSONArray resources = (JSONArray) json.get("resources");
-			if (models != null) {
-				for (Object resource : resources) {
-					JSONObject jm = (JSONObject) resource;
-					if (jm != null) {
-						Model model = parseModel(jm);
-						if (model != null) {
-							models.put(model.getFacename(), model);
-						}
+			JsonObject json2 = (JsonObject) parser2.parse(text);
+			logs.add("Name: " + getString(json2, "name", "n.a"));
+			name = getString(json2, "name", "n.a");
+			title = getString(json2, "splash_title", "n.a");
+			JsonArray resources2 = (JsonArray) json2.get("resources");
+			if (models2 != null) {
+				for (Object resource : resources2) {
+					JsonObject jm2 = (JsonObject) resource;
+					Model model2 = parseModel(jm2);
+					if (model2 != null) {
+						models2.put(model2.getFacename(), model2);
 					}
 				}
 			}
@@ -102,10 +101,10 @@ public class BioimageZooRepository {
 	}
 	
 	public HashMap<String, Model> getModels() {
-		return models;
+		return models2;
 	}
 
-	private Model parseModel(JSONObject json) {
+	private Model parseModel(JsonObject json) {
 		String type = getString(json, "type", "n.a.");
 		if (!type.equalsIgnoreCase("model"))
 			return null;
@@ -128,42 +127,43 @@ public class BioimageZooRepository {
 				model.deepImageJ = true;
 			}
 	
-		/*
-
-			*/
 		return model;
 	}
 	
-	private String getString(JSONObject json, String tag, String defaultValue) {
-		Object o = json.get(tag);
-		if (o instanceof String)
-			return (String) o;
-		else
+	private String getString(JsonObject json, String tag, String defaultValue) {
+		try {
+			String o = json.get(tag).getAsString();
+			return o;
+		} catch (Exception ex) {
 			return defaultValue;
+		}
 	}
 
-	private ArrayList<String> getArray(JSONObject json, String tag) {
+	private ArrayList<String> getArray(JsonObject json, String tag) {
 		ArrayList<String> array = new ArrayList<String>();
-		Object objects = json.get(tag);
-		if (objects instanceof JSONArray) {
-			for (Object o : (JSONArray) objects)
-				if (o instanceof String)
-					array.add((String) o);
+		if (json.get(tag).isJsonArray()) {
+			JsonArray objects = json.get(tag).getAsJsonArray();
+			for (JsonElement o : objects) 
+				array.add(o.getAsString());
 		}
 		return array;
 	}
 
-	private String getCSV(JSONObject json, String tag) {
+	private String getCSV(JsonObject json, String tag) {
 		String csv = "";
 		int count = 0;
-		Object objects = json.get(tag);
-		if (objects instanceof JSONArray) {
-			for (Object o : (JSONArray) objects)
-				if (o instanceof String) {
-					csv += (count == 0  ? "" : ", ") + (String) o;
-					count++;
+		long aa = System.nanoTime();
+		if (json.get(tag).isJsonArray()) {
+			JsonArray objects = json.get(tag).getAsJsonArray();
+			for (JsonElement o : objects) {
+				try {
+				csv += (count == 0  ? "" : ", ") + o.getAsString();
+				count++;
+				} catch (Exception ex) {
 				}
+			}
 		}
+		System.out.println(System.nanoTime() - aa);
 		return csv;
 	}
 

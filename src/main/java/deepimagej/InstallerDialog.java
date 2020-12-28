@@ -95,8 +95,8 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		cmb.setFont(new Font(font.getFamily(), Font.BOLD, font.getSize()+2));
 		cmb.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 5));
 		cmb.addItem("<html>&laquo Select a compatible model &raquo</html>");
-		for(String name : zoo.models.keySet()) {
-			cmb.addItem(zoo.models.get(name).getFacename());
+		for(String name : zoo.models2.keySet()) {
+			cmb.addItem(zoo.models2.get(name).getFacename());
 		}
 
 		pack();
@@ -143,13 +143,6 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			dispose();
 		else if (e.getSource() == install) {
 			installModel();
-			// While the model is downloading, block the execution
-			/*
-			while (!stopped) {
-				System.out.print("JEJ");
-				// do nothing
-			}
-			*/
 		}
 		else if (e.getSource() == help) {
 			openWebBrowser("https://deepimagej.github.io/deepimagej/");
@@ -163,7 +156,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			chk.setSelected(false);
 			String name = (String)cmb.getSelectedItem();
 			if (name != null && !name.equals("")) {
-				Model model = zoo.models.get(name);
+				Model model = zoo.models2.get(name);
 				if (model != null) {
 					String s = "";
 					if (model.deepImageJ)
@@ -225,7 +218,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			modelsDir = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models";
 			if (!(new File(modelsDir).exists()))
 				new File(modelsDir).mkdir();
-			model = zoo.models.get(name);
+			model = zoo.models2.get(name);
 			if (model != null) {
 
 				int nameStart = model.downloadUrl.lastIndexOf("/") + 1;

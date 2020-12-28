@@ -83,7 +83,6 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 	private JTextField	txt			= new JTextField(IJ.getDirectory("imagej") + File.separator + "models" + File.separator);
 	private JButton		bnBrowse	= new JButton("Browse");
 	private JButton		bnSave	= new JButton("Save Bundled Model");
-	private JCheckBox	bnSaveBiozoo	= new JCheckBox("Save model into the Bioimage Zoo format");
 	private HTMLPane 	pane;
 	
 	public PtSaveStamp(BuildDialog parent) {
@@ -114,10 +113,7 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		JPanel pn = new JPanel(new BorderLayout());
 		pn.add(load, BorderLayout.NORTH);
 		pn.add(infoPane, BorderLayout.CENTER);
-		JPanel pnButtons = new JPanel(new GridLayout(2, 1));
-		pnButtons.add(bnSave);
-		pnButtons.add(bnSaveBiozoo);
-		pn.add(pnButtons, BorderLayout.SOUTH);
+		pn.add(bnSave, BorderLayout.SOUTH);
 		panel.add(pn);
 
 		bnSave.addActionListener(this);
@@ -167,7 +163,7 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 	public void run() {
 		DeepImageJ dp = parent.getDeepPlugin();
 		Parameters params = dp.params;
-		params.biozoo = bnSaveBiozoo.isSelected();
+		params.biozoo = true;
 		params.saveDir = txt.getText() + File.separator;
 		params.saveDir = params.saveDir.replace(File.separator + File.separator, File.separator);
 		File dir = new File(params.saveDir);
@@ -252,14 +248,13 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		// Save input image
 		try {
 			if (params.testImageBackup != null) {
-				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + params.testImageBackup.getTitle().substring(4));
-				pane.append("p", "exampleImage.tiff: saved");
+				// Get name with no extension
+				String title = TfSaveStamp.getTitleWithoutExtension(params.testImageBackup.getTitle().substring(4));
+				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + title + ".tif");
+				pane.append("p", title + ".tif" + ": saved");
 				if (params.biozoo) {
-					// Get name with no extension
-					String name = params.testImageBackup.getTitle();
-					name = name.substring(0, name.lastIndexOf("."));
-					TfSaveStamp.saveNpyFile(params.testImageBackup, "XYCZN", params.saveDir + File.separator + name + ".npy");
-					pane.append("p", name + ".npy" + ": saved");
+					TfSaveStamp.saveNpyFile(params.testImageBackup, "XYCZN", params.saveDir + File.separator + title + ".npy");
+					pane.append("p", title + ".npy" + ": saved");
 				}
 				params.testImageBackup.setTitle("DUP_" + params.testImageBackup.getTitle());
 			} else {
@@ -267,7 +262,7 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			}
 		} 
 		catch(Exception ex) {
-			pane.append("p", "exampleImage.tiff: not saved");
+			pane.append("p", "exampleImage.tif: not saved");
 			if (params.biozoo)
 				pane.append("p", "exampleImage.npy: not saved");
 		}
@@ -275,33 +270,34 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		// Save output images and tables (tables as saved as csv)
 		for (HashMap<String, String> output : params.savedOutputs) {
 			String name = output.get("name");
+			String nameNoExtension= TfSaveStamp.getTitleWithoutExtension(name);
 			try {
 				if (output.get("type").contains("image")) {
 					ImagePlus im = WindowManager.getImage(name);
-					IJ.saveAsTiff(im, params.saveDir + File.separator + name + ".tif");
-					pane.append("p", name + ".tif" + ": saved");
+					IJ.saveAsTiff(im, params.saveDir + File.separator + nameNoExtension + ".tif");
+					pane.append("p", nameNoExtension + ".tif" + ": saved");
 					if (params.biozoo) {
-						TfSaveStamp.saveNpyFile(im, "XYCZN", params.saveDir + File.separator + name + ".npy");
-						pane.append("p", name + ".npy" + ": saved");
+						TfSaveStamp.saveNpyFile(im, "XYCZN", params.saveDir + File.separator + nameNoExtension + ".npy");
+						pane.append("p", nameNoExtension + ".npy" + ": saved");
 					}
 				} else if (output.get("type").contains("ResultsTable")){
 					Frame f = WindowManager.getFrame(name);
 			        if (f!=null && (f instanceof TextWindow)) {
 			        	ResultsTable rt = ((TextWindow)f).getResultsTable();
-						rt.save(params.saveDir + File.separator + name + ".csv");
-						pane.append("p", name + ".csv" + ": saved");
+						rt.save(params.saveDir + File.separator + nameNoExtension + ".csv");
+						pane.append("p", nameNoExtension + ".csv" + ": saved");
 						if (params.biozoo) {
-							TfSaveStamp.saveNpyFile(rt, params.saveDir + File.separator + name + ".npy");
-							pane.append("p", name + ".npy" + ": saved");
+							TfSaveStamp.saveNpyFile(rt, params.saveDir + File.separator + nameNoExtension + ".npy");
+							pane.append("p", nameNoExtension + ".npy" + ": saved");
 						}
 					} else {
 						throw new Exception();					}
 				}
 			} 
 			catch(Exception ex) {
-				pane.append("p", name + "exampleOutput.tiff:  not saved");
+				pane.append("p", nameNoExtension + ".tif:  not saved");
 				if (params.biozoo)
-					pane.append("p", name + "exampleOutput.npy:  not saved");
+					pane.append("p", nameNoExtension + ".npy:  not saved");
 			}
 		}
 		

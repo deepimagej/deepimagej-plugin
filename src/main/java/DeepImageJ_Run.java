@@ -46,10 +46,8 @@ import java.awt.TextField;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Set;
 
 import deepimagej.Constants;
@@ -63,16 +61,18 @@ import deepimagej.exceptions.JavaProcessingError;
 import deepimagej.exceptions.MacrosError;
 import deepimagej.processing.ProcessingBridge;
 import deepimagej.tools.ArrayOperations;
+import deepimagej.tools.DijRunnerPostprocessing;
+import deepimagej.tools.DijRunnerPreprocessing;
 import deepimagej.tools.DijTensor;
-import deepimagej.tools.FileTools;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
+import deepimagej.tools.ModelLoader;
+import deepimagej.tools.SystemUsage;
 import deepimagej.tools.WebBrowser;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
-import ij.gui.ImageWindow;
 import ij.plugin.PlugIn;
 
 import java.util.concurrent.ExecutionException;
@@ -98,6 +98,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	private DeepImageJ					dp;
 	private HashMap<String, String>		fullnames	= new HashMap<String, String>();
 	private String 						loadInfo 	= ""; 
+	private String						cudaVersion = "noCUDA";
 	
 	private boolean 					batch		= true;
 	
@@ -106,6 +107,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		path = "C:\\Users\\Carlos(tfg)\\Pictures\\Fiji.app\\models" + File.separator;
 		path = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models" + File.separator;
 		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\MRCNN\\exampleImage.tiff");
+		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\unet3d\\Substack (50-100).tif");
 		//ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
 		imp.show();
 		WindowManager.setTempCurrentImage(imp);
@@ -201,6 +203,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			texts[1].setEditable(false);
 			
 			loadInfo = TensorFlowModel.loadLibrary();
+			// If the version allows GPU, find if there is CUDA
+			if (loadInfo.contains("GPU")) 
+				cudaVersion = SystemUsage.getCUDAEnvVariables();
+			
 			if (loadInfo.equals("")) {
 				info.setCaretPosition(0);
 				info.append("No Tensorflow library found.\n");
@@ -219,6 +225,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 						  + "them in the plugins folder";
 				
 				info.append(loadInfo);
+				getCUDAInfo(loadInfo, cudaVersion);
 				info.append("<Please select a model>\n");
 			} else {
 				info.setCaretPosition(0);
@@ -226,6 +233,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				loadInfo += ".\n";
 				loadInfo += "To change the TF version go to Edit>Options>Tensorflow";
 				info.append(loadInfo + "\n");
+				getCUDAInfo(loadInfo, cudaVersion);
 				info.append("<Please select a model>\n");	
 			}	
 			
@@ -277,40 +285,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			info.setText("");
 			info.setCaretPosition(0);
 			info.append("Loading model. Please wait...\n");
-			
-			if (dp.params.framework.contains("Tensorflow") && !(new File(dp.getPath() + File.separator + "variables").exists())) {
-				info.append("Unzipping Tensorflow model. Please wait...\n");
-				String fileName = dp.getPath() + File.separator + "tensorflow_saved_model_bundle.zip";
-				try {
-					FileTools.unzipFolder(new File(fileName), dp.getPath());
-				} catch (IOException e) {
-					e.printStackTrace();
-					IJ.error("Error unzipping: " + fileName);
-				}
-			}
-			boolean ret = false;
-			if (dp.params.framework.equals("Tensorflow")) {
-				ret = dp.loadTfModel(true);
-			} else if (dp.params.framework.equals("Pytorch")) {
-				String ptWeightsPath = dp.getPath() + File.separatorChar + "pytorch_script.pt" ;
-				ret = dp.loadPtModel(ptWeightsPath);
-			}
-			if (ret == false && dp.params.framework.equals("Tensorflow")) {
-				IJ.error("Error loading " + dp.getName() + 
-						"\nTry using another Tensorflow version.");
-				return;
-			} else if (ret == false && dp.params.framework.equals("Pytorch")) {
-				IJ.error("Error loading " + dp.getName() + 
-						"\nDeepImageJ loads models until Pytorch 1.6.");
-				return;
-			}
-			
-			log.print("Load model error: " + (dp.getTfModel() == null || dp.getTorchModel() == null));
-	
-			if (dp == null) {
-				IJ.error("No valid model.");
-				return;
-			}			
+
 
 			dp.params.firstPreprocessing = null;
 			dp.params.secondPreprocessing = null;
@@ -403,20 +378,56 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 					}
 				}
 			}
+			// TODO generalise for several image inputs
+			dp.params.inputList.get(0).recommended_patch = patch;
 
-			calculateImage(imp);
+			ExecutorService service = Executors.newFixedThreadPool(1);
+			RunnerProgress rp = new RunnerProgress(dp, "load", service);
+
+			if (dp.params.framework.contains("Tensorflow") && !(new File(dp.getPath() + File.separator + "variables").exists())) {
+				info.append("Unzipping Tensorflow model. Please wait...\n");
+				rp.setUnzipping(true);
+			}
+			
+			ModelLoader loadModel = new ModelLoader(dp, rp, loadInfo.contains("GPU"), TensorFlowModel.TensorflowCUDACompatibility(loadInfo, cudaVersion).equals(""));
+
+			Future<Boolean> f1 = service.submit(loadModel);
+			boolean output = false;
+			try {
+				output = f1.get();
+			} catch (InterruptedException | ExecutionException e) {
+				if (rp.getUnzipping())
+					IJ.error("Unable to unzip model");
+				else
+					IJ.error("Unable to load model");
+				e.printStackTrace();
+			}
+			
+			
+			// If the user has pressed stop button, stop execution and return
+			if (rp.isStopped()) {
+				service.shutdown();
+				rp.dispose();
+				// Free memory allocated by the plugin 
+				freeIJMemory(dlg, imp);
+				return;
+			}
+			
+			// If the model was not loaded, run again the plugin
+			if (!output) {
+				log.print("Load model error: " + (dp.getTfModel() == null || dp.getTorchModel() == null));
+				service.shutdown();
+				run("");
+				return;
+			}
+			
+			rp.setService(null);
+
+			calculateImage(imp, rp, service);
+			service.shutdown();
 			
 			// Free memory allocated by the plugin 
-			dlg.dispose();
-			if (dp.params.framework.equals("Tensorflow")) {
-				dp.getTfModel().session().close();
-				dp.getTfModel().close();
-			} else if (dp.params.framework.equals("Pytorch")) {
-				dp.getTorchModel().close();
-			}
-			this.dp = null;
-			this.dps = null;
-			imp = null;
+			freeIJMemory(dlg, imp);
 		}
 	}
 
@@ -541,48 +552,30 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	}
 
 	
-	public void calculateImage(ImagePlus inp) {
-		// Convert RGB image into RGB stack 
-		if (batch == false) {
-			ImageWindow windToClose = inp.getWindow();
-			windToClose.dispose();
-			ImagePlus aux = ij.plugin.CompositeConverter.makeComposite(inp);
-			inp = aux == null ? inp : aux;
-			windToClose.setImage(inp);
-			windToClose.setVisible(true);
-		} else {
-			ImagePlus aux = ij.plugin.CompositeConverter.makeComposite(inp);
-			inp = aux == null ? inp : aux;
-		}
+	public void calculateImage(ImagePlus inp, RunnerProgress rp, ExecutorService service) {
+		//RunnerProgress rp = new RunnerProgress(dp, "CPU");
+		//rp.setVisible(true);
 		
-		dp.params.inputList.get(0).recommended_patch = patch;
 		int runStage = 0;
-		// Create parallel process for calculating the image
-		ExecutorService service = Executors.newFixedThreadPool(1);
 		try {
-			ImagePlus im = inp.duplicate();
-			String correctTitle = inp.getTitle();
-			im.setTitle("tmp_" + correctTitle);
-			if (batch == false) {
-				ImageWindow windToClose = inp.getWindow();
-				windToClose.dispose();
+
+			log.print("start preprocessing");
+			DijRunnerPreprocessing preprocess = new DijRunnerPreprocessing(dp, rp, inp, batch);
+			Future<HashMap<String, Object>> f0 = service.submit(preprocess);
+			HashMap<String, Object> inputsMap = f0.get();
+			
+			if (rp.isStopped() || inputsMap == null) {
+				// Remove possible hidden images from IJ workspace
+				removeProcessedInputsFromMemory(inputsMap);
+			    service.shutdown();
+				return;
 			}
 			
-			WindowManager.setTempCurrentImage(inp);
-			log.print("start preprocessing");
-			HashMap<String, Object> inputsMap = ProcessingBridge.runPreprocessing(inp, dp.params);
-			im.setTitle(correctTitle);
-			runStage ++;
-			if (inputsMap.keySet().size() == 0)
-				throw new Exception();
-			if (batch == false)
-				im.show();
-			WindowManager.setTempCurrentImage(null);
 			log.print("end preprocessing");
+			runStage ++;
 			
-			log.print("start progress");
 			log.print("start runner");
-			RunnerProgress rp = new RunnerProgress(dp, false);
+			//RunnerProgress rp = new RunnerProgress(dp, false);
 			HashMap<String, Object> output = null;
 			if (dp.params.framework.equals("Tensorflow")) {
 				RunnerTf runner = new RunnerTf(dp, rp, inputsMap, log);
@@ -597,18 +590,22 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				Future<HashMap<String, Object>> f1 = service.submit(runner);
 				output = f1.get();
 			}
-			rp.dispose();
 			
 			inp.changes = false;
 			inp.close();
-			if (output == null) {
+			
+			if (output == null || rp.isStopped()) {
 				// Remove possible hidden images from IJ workspace
 				removeProcessedInputsFromMemory(inputsMap);
+				rp.dispose();
 			    service.shutdown();
 				return;
 			}
 			runStage ++;
 			output = ProcessingBridge.runPostprocessing(dp.params, output);
+
+			Future<HashMap<String, Object>> f2 = service.submit(new DijRunnerPostprocessing(dp, rp, output));
+			output = f2.get();
 
 			// Print the outputs of the postprocessing
 			// Retrieve the opened windows and compare them to what the model has outputed
@@ -621,11 +618,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			// Remove possible hidden images from IJ workspace
 			removeProcessedInputsFromMemory(inputsMap);
 			
-		} catch (IOException e1) {
-			e1.printStackTrace();
-			// Close the parallel processes
-		    service.shutdown();
-			return;
 		} catch(MacrosError ex) {
 			if (runStage == 0) {
 				IJ.error("Error during Macro preprocessing.");
@@ -708,9 +700,49 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		
 	}
 	
+	/*
+	 * Free the ImageJ workspace memory by deallocating variables
+	 */
+	public void freeIJMemory(GenericDialog dlg, ImagePlus imp) {
+		// Free memory allocated by the plugin 
+		dlg.dispose();
+		if (dp.params.framework.equals("Tensorflow")) {
+			dp.getTfModel().session().close();
+			dp.getTfModel().close();
+		} else if (dp.params.framework.equals("Pytorch")) {
+			dp.getTorchModel().close();
+		}
+		this.dp = null;
+		this.dps = null;
+		imp = null;
+	}
+	
+	/*
+	 * Find out which CUDA version it is being used and if its use is viable toguether with
+	 * Tensorflow
+	 */
+	public void getCUDAInfo(String tfVersion, String cudaVersion) {
+
+		if (tfVersion.contains("GPU") && !cudaVersion.contains(File.separator)) {
+			info.append("Currently using CUDA " + cudaVersion);
+			info.append(TensorFlowModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
+		} else if (tfVersion.contains("GPU") && (cudaVersion.contains("bin") || cudaVersion.contains("libnvvp"))) {
+			info.append(TensorFlowModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
+			String[] outputs = cudaVersion.split(";");
+			info.append("Found CUDA distribution " + outputs[0] + ".\n");
+			info.append("Could not find environment variable:\n - " + outputs[1] + "\n");
+			if (outputs.length == 3)
+				info.append("Could not find environment variable:\n - " + outputs[2] + "\n");
+			info.append("Please add the missing environment variables to the path.\n");
+		} else if (tfVersion.contains("GPU") && cudaVersion.equals("noCUDA")) {
+			info.append("No CUDA distribution found.\n");
+		}
+	}
+	
 	public void setGUIOriginalParameters() {
 		info.setCaretPosition(0);
 		info.append(loadInfo + ".\n");
+		getCUDAInfo(loadInfo, cudaVersion);
 		info.append("<Please select a model>\n");
 		int nGPUS = Device.getGpuCount();
 		info.append("GPUs available: " + nGPUS + "\n");

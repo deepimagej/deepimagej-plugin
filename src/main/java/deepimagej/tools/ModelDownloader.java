@@ -3,9 +3,6 @@ package deepimagej.tools;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.ReadableByteChannel;
-import java.util.concurrent.Callable;
-
-import deepimagej.DownloadProgress;
 
 public class ModelDownloader {
 	private ReadableByteChannel rbc;

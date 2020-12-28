@@ -229,7 +229,7 @@ public class FileTools {
         }
     }
 	
-    public static void unzipFolder(File source, String outPath) throws IOException {
+    public static void unzipFolder(File source, String outPath) throws IOException, InterruptedException {
  	    try (ZipInputStream zis = new ZipInputStream(new FileInputStream(source))) {
 
  	        ZipEntry entry = zis.getNextEntry();
@@ -237,9 +237,10 @@ public class FileTools {
  	        while (entry != null) {
 
  	            File file = new File(outPath, entry.getName());
+ 	            
 
  	            // Check if entry is directory (if the entry name ends with '\' or '/'
- 	            if (entry.getName().substring(entry.getName().length() - 1).equals(File.separator)) {
+ 	            if (entry.isDirectory()) {
  	                file.mkdirs();
  	            } else {
  	                File parent = file.getParentFile();
@@ -254,9 +255,14 @@ public class FileTools {
  	                    byte[] buffer = new byte[bufferSize > 0 ? bufferSize : 4096];
  	                    int location;
 
- 	                    while ((location = zis.read(buffer)) != -1) {
+ 	                    while ((location = zis.read(buffer)) != -1 && !Thread.interrupted()) {
  	                        bos.write(buffer, 0, location);
  	                    }
+ 	                    // If the exit of the while loo has been due to a
+ 	                    // thread interruption, throw exception
+ 	     	           if ((location = zis.read(buffer)) != -1) {
+ 	     	        	    throw new InterruptedException();
+ 	     	        	}
  	                }
  	            }
  	            entry = zis.getNextEntry();

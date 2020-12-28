@@ -192,38 +192,6 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		
 
 		// Save the model architecture
-		//if (!bnSaveBiozoo.isSelected()) {
-		/*TODO remove
-		params.biozoo = true;
-		try {
-			File source = new File(params.path2Model + "saved_model.pb");
-			File dest = new File(params.saveDir  + "saved_model.pb");
-			FileTools.copyFile(source, dest);
-			pane.append("p", "protobuf of the model (saved_model.pb): saved");
-		} catch (IOException e) {
-			e.printStackTrace();
-			pane.append("p", "protobuf of the model (saved_model.pb): not saved");
-			ok = false;
-		} catch (Exception e) {
-			e.printStackTrace();
-			pane.append("p", "protobuf of the model (saved_model.pb): not saved");
-			ok = false;
-		}
-	
-		// Save the model weights
-		try {
-			File source = new File(params.path2Model + "variables");
-			File dest = new File(params.saveDir + "variables");
-			copyWeights(source, dest);
-			pane.append("p", "weights of the network (variables): saved");
-			// TODO add check to ensure each pair of weights is unique
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			pane.append("p", "weights of the network (variables): not saved");
-			ok = false;
-		}
-		*/
 
 		params.biozoo = true;
 		try {
@@ -290,14 +258,13 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		// Save input image
 		try {
 			if (params.testImageBackup != null) {
-				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + params.testImageBackup.getTitle().substring(4));
-				pane.append("p", "exampleImage.tiff: saved");
+				// Get name with no extension
+				String title = getTitleWithoutExtension(params.testImageBackup.getTitle().substring(4));
+				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + title + ".tif");
+				pane.append("p", title + ".tif" + ": saved");
 				if (params.biozoo) {
-					// Get name with no extension
-					String name = params.testImageBackup.getTitle();
-					name = name.substring(0, name.lastIndexOf("."));
-					saveNpyFile(params.testImageBackup, "XYCZN", params.saveDir + File.separator + name + ".npy");
-					pane.append("p", name + ".npy" + ": saved");
+					saveNpyFile(params.testImageBackup, "XYCZN", params.saveDir + File.separator + title + ".npy");
+					pane.append("p", title + ".npy" + ": saved");
 				}
 				params.testImageBackup.setTitle("DUP_" + params.testImageBackup.getTitle());
 			} else {
@@ -305,7 +272,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			}
 		} 
 		catch(Exception ex) {
-			pane.append("p", "exampleImage.tiff: not saved");
+			pane.append("p", "exampleImage.tif: not saved");
 			if (params.biozoo)
 				pane.append("p", "exampleImage.npy: not saved");
 			ok = false;
@@ -314,9 +281,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		// Save output images and tables (tables as saved as csv)
 		for (HashMap<String, String> output : params.savedOutputs) {
 			String name = output.get("name");
-			String nameNoExtension= name;
-			if (name.lastIndexOf(".") != -1)
-				nameNoExtension = name.substring(0, name.lastIndexOf("."));
+			String nameNoExtension= getTitleWithoutExtension(name);
 			try {
 				if (output.get("type").contains("image")) {
 					ImagePlus im = WindowManager.getImage(name);
@@ -358,7 +323,6 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			ok = false;
 			IJ.error("Model file was locked or does not exist anymore.");
 		}
-		
 		catch(Exception ex) {
 			ex.printStackTrace();
 			pane.append("p", "model.yaml: not saved");
@@ -369,22 +333,15 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		//parent.setEnabledBackNext(ok);
 	}
 	
-	/* TODO remove
-	private void copyWeights(File source, File dest) throws IOException {
-		String source_path;
-		String dest_path;
-		String filename;
-		File[] n_files = source.listFiles();
-		for (int i = 0; i < n_files.length; i++) {
-			if (n_files[i].isFile() == true) {
-				filename = n_files[i].getName();
-				source_path = source.getAbsolutePath() + File.separator + filename;
-				dest_path = dest.getAbsolutePath() + File.separator + filename;
-				FileTools.copyFile(new File(source_path), new File(dest_path));
-			}
-		}
+	/*
+	 * Gets the image title without the extension
+	 */
+	public static String getTitleWithoutExtension(String title) {
+		int lastDot = title.lastIndexOf(".");
+		if (lastDot == -1)
+			return title;
+		return title.substring(0, lastDot);
 	}
-	*/
 	
 	public static void saveNpyFile(ImagePlus im, String form, String name) {
 		Path path = Paths.get(name);

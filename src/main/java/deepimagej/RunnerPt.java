@@ -84,6 +84,7 @@ private int							currentPatch = 0;
 	@Override
 	public HashMap<String, Object> call() {
 		log.print("call runner");
+		rp.setInfoTag("applyModel");
 		if (log.getLevel() >= 1)
 			rp.setVisible(true);
 
@@ -376,11 +377,19 @@ private int							currentPatch = 0;
 							return null;
 						}
 
+						// The thread cannot be stopped while loading a model, thus block the button
+						// while executing the task
+						rp.allowStopping(false);
 						Predictor<NDList, NDList> predictor = model.newPredictor();
 						NDList outputTensors = predictor.predict(inputTensors);
-
 						// Close inputTensors to avoid memory leak
 						inputTensors.close();
+						rp.allowStopping(true);
+						// Check if the user has tried to stop the execution while loading the model
+						// If they have return false and stop
+						if(rp.isStopped())
+							return null;
+						
 						c = 0;
 						int imCounter = 0;
 						for (DijTensor outTensor : params.outputList) {

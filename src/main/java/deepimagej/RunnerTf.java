@@ -67,7 +67,7 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 	private DeepImageJ				dp;
 	private RunnerProgress			rp;
 	private Log						log;
-private int							currentPatch = 0;
+	private int						currentPatch = 0;
 	private int						totalPatch = 0;
 
 	public RunnerTf(DeepImageJ dp, RunnerProgress rp,HashMap<String,Object> inputMap, Log log) {
@@ -81,6 +81,7 @@ private int							currentPatch = 0;
 	@Override
 	public HashMap<String, Object> call() {
 		log.print("call runner");
+		rp.setInfoTag("applyModel");
 		if (log.getLevel() >= 1)
 			rp.setVisible(true);
 
@@ -370,16 +371,40 @@ private int							currentPatch = 0;
 					Session.Runner sess = model.session().runner();
 					
 					for (int k = 0; k < params.inputList.size(); k++) {
+						// The thread cannot be stopped while loading a model, thus block the button
+						// while executing the task
+						rp.allowStopping(false);
 						sess = sess.feed(opName(sig.getInputsOrThrow(params.inputList.get(k).name)), inputTensors[k]);
+						rp.allowStopping(true);
+						// Check if the user has tried to stop the execution while loading the model
+						// If they have return false and stop
+						if(rp.isStopped())
+							return null;
 					}
 					// Reinitialise the counter
 					c = 1;
 					for (DijTensor outTensor : params.outputList) {
+						// The thread cannot be stopped while loading a model, thus block the button
+						// while executing the task
+						rp.allowStopping(false);
 						sess = sess.fetch(opName(sig.getOutputsOrThrow(outTensor.name)));
 						log.print("Session fetch " + (c ++));
+						rp.allowStopping(true);
+						// Check if the user has tried to stop the execution while loading the model
+						// If they have return false and stop
+						if(rp.isStopped())
+							return null;
 					}
 					try {
+						// The thread cannot be stopped while loading a model, thus block the button
+						// while executing the task
+						rp.allowStopping(false);
 						List<Tensor<?>> fetches = sess.run();
+						rp.allowStopping(true);
+						// Check if the user has tried to stop the execution while loading the model
+						// If they have return false and stop
+						if(rp.isStopped())
+							return null;
 						// Reinitialise counter
 						c = 0;
 						int imCounter = 0;
@@ -537,7 +562,7 @@ private int							currentPatch = 0;
 		params.runtime = NumFormat.seconds(endTime - startingTime);
 		// Set Parameter params.memoryPeak
 		params.memoryPeak = NumFormat.bytes(rp.getPeakmem());
-		rp.stop();
+		//rp.stop();
 		// Set Parameter  params.outputSize
 		HashMap<String, Object> outputMap = new HashMap<String, Object>();
 		int imageCount = 0;

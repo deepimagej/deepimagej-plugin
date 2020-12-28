@@ -63,6 +63,7 @@ import org.yaml.snakeyaml.Yaml;
 import deepimagej.DeepImageJ;
 import deepimagej.Parameters;
 import deepimagej.TensorFlowModel;
+import deepimagej.stamp.TfSaveStamp;
 import ij.IJ;
 
 public class YAMLUtils {
@@ -160,12 +161,12 @@ public class YAMLUtils {
 		ArrayList<String> covers = new ArrayList<String>();
 		// TODO generalize for several input images
 		if (params.testImageBackup != null) 
-			covers.add("./" + params.testImageBackup.getTitle().substring(4));
+			covers.add("./" + TfSaveStamp.getTitleWithoutExtension(params.testImageBackup.getTitle().substring(4)) + ".tif");
 		else 
 			covers.add(null);
 		for (HashMap<String, String> out : params.savedOutputs) {
 			if (out.get("type").contains("image"))
-				covers.add("./" + out.get("name") + ".tif");
+				covers.add("./" + TfSaveStamp.getTitleWithoutExtension(out.get("name")) + ".tif");
 		}
 		data.put("covers", covers);
 		// Tags that will be used to look for the model in the Bioimage model Zoo
@@ -199,8 +200,9 @@ public class YAMLUtils {
 		ArrayList<String> sampleInputs = new ArrayList<String>();
 		// TODO generalize for several input images
 		if (params.testImageBackup != null) {
-			inputExamples.add("./" + params.testImageBackup.getTitle().substring(4));
-			sampleInputs.add("./" + params.testImageBackup.getTitle().substring(4, params.testImageBackup.getTitle().lastIndexOf(".")) + ".npy");
+			String title =  params.testImageBackup.getTitle().substring(4);
+			inputExamples.add("./" + TfSaveStamp.getTitleWithoutExtension(title) + ".tif");
+			sampleInputs.add("./" + TfSaveStamp.getTitleWithoutExtension(title) + ".npy");
 		} else {
 			inputExamples.add(null);
 			sampleInputs.add(null);
@@ -209,8 +211,11 @@ public class YAMLUtils {
 		ArrayList<String> outputExamples = new ArrayList<String>();
 		ArrayList<String> sampleOutputs = new ArrayList<String>();
 		for (HashMap<String, String> out : params.savedOutputs) {
-			outputExamples.add("./" + out.get("name"));
-			sampleOutputs.add("./" + out.get("name") + ".npy");
+			if (out.get("type").contains("image"))
+				outputExamples.add("./" + TfSaveStamp.getTitleWithoutExtension(out.get("name")) + ".tif");
+			else if (out.get("type").contains("ResultsTable"))
+				outputExamples.add("./" + TfSaveStamp.getTitleWithoutExtension(out.get("name")) + ".csv");
+			sampleOutputs.add("./" + TfSaveStamp.getTitleWithoutExtension(out.get("name")) + ".npy");
 		}
 		if (params.biozoo) {
 			format_info.put("test_inputs", inputExamples);

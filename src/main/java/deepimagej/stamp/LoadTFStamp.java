@@ -44,7 +44,6 @@ import java.util.Set;
 import javax.swing.BoxLayout;
 import javax.swing.JComboBox;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 
 import org.tensorflow.SavedModelBundle;
 import org.tensorflow.framework.SignatureDef;
@@ -164,9 +163,6 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 					out.setInDimensions(TensorFlowModel.modelExitDimensions(sig, outputs[i]));
 					params.totalOutputList.add(out);
 				}
-				// TODO correct it for adecuate number of inputs and outputs
-				//pnLoad.append("p", "Dimension of input: " + params.inDimensions.length + " and output: " + params.outDimensions.length);
-	
 			}
 			catch (Exception ex) {
 				pnLoad.append("p", "Dimension: ERROR");
@@ -286,6 +282,8 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		// Check if the model has been loaded on GPU
 		if (tfVersion.contains("GPU") && !parent.getGPU().equals("GPU")) {
 			String GPUInfo = SystemUsage.isUsingGPU(initialSmi, finalSmi);
+			// TODO if the CUDA version is not compatible with the TF version,
+			// it is impossible to load the model on GPU
 			if (GPUInfo.equals("noImageJProcess") && !cudaVersion.contains(File.separator)) {
 				pnLoad.append("p", "Unable to run nvidia-smi to check if the model was loaded on a GPU.\n");
 				parent.setGPU("???");

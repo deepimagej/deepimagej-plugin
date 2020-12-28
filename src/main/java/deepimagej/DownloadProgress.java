@@ -64,6 +64,7 @@ public class DownloadProgress extends JDialog implements ActionListener {
 	private BorderLabel			downloadedSize	= new BorderLabel("Portion downloaded");
 	private BorderLabel			time		= new BorderLabel("Elapsed time");
 	private BorderLabel			name		= new BorderLabel("Elapsed time");
+	private BorderLabel			modelSize	= new BorderLabel("Model size");
 	private double				chrono;
 	private Clock				clock;
 	private GridBagLayout		layout		= new GridBagLayout();
@@ -73,6 +74,7 @@ public class DownloadProgress extends JDialog implements ActionListener {
 	private String modelName = "";
 	private long totalFileSize = 1;
 	private Thread thread = null;
+	private double modelSizeMb = 1;
 	
 	public DownloadProgress() {
 		super(new JFrame(), "Downloading model");
@@ -84,7 +86,8 @@ public class DownloadProgress extends JDialog implements ActionListener {
 		place(prog, 0, 1, 0, name);
 		place(prog, 1, 1, 0, time);
 		place(prog, 2, 1, 0, downloadedSize);
-		place(prog, 3, 1, 0, bnStop);
+		place(prog, 3, 1, 0, modelSize);
+		place(prog, 4, 1, 0, bnStop);
 		info();
 		JPanel panel = new JPanel(layout);
 		place(panel, 0, 0, 10, prog);
@@ -128,6 +131,20 @@ public class DownloadProgress extends JDialog implements ActionListener {
 	
 	public void setFileSize(long totalFileSize) {
 		this.totalFileSize = totalFileSize;
+		this.modelSizeMb = totalFileSize / (1024.0 * 1024);
+		if (this.modelSizeMb > 1000) {
+			this.modelSizeMb /= 1024.0; 
+			String txt = "" + this.modelSizeMb;
+			if (txt.lastIndexOf(".") != -1 && txt.length() - txt.lastIndexOf(".") >= 2)
+				txt = txt.substring(0, txt.lastIndexOf(".") + 2);
+			modelSize.setText("Model size: " + txt + " GB");
+		} else {
+			String txt = "" + this.modelSizeMb;
+			if (txt.lastIndexOf(".") != -1 && txt.length() - txt.lastIndexOf(".") >= 2)
+				txt = txt.substring(0, txt.lastIndexOf(".") + 2);
+			modelSize.setText("Model size: " + txt + " GB");
+		}
+			
 	}
 	
 	public void setThread(Thread thread) {
