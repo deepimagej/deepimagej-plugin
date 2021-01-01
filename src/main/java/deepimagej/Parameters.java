@@ -137,8 +137,8 @@ public class Parameters {
 	 */
 	public String		name					= "";
 	public List<String>	author					= new ArrayList<String>();
-	public String		timestamp					= "";
-	public String		format_version					= "";
+	public String		timestamp				= "";
+	public String		format_version			= "0.3.0";
 	/*
 	 * Citation: contains the reference articles and the corresponding dois used
 	 * to create the model

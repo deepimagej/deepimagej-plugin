@@ -223,8 +223,18 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		// is not installed, or if there is a CUDA_PATH in the environment variables
 		// but the needed variables are not in the PATH, it will return the missing 
 		// environment variables
-		if (tfVersion.contains("GPU") && !cudaVersion.contains(File.separator)) {
+		if (tfVersion.contains("GPU") && !cudaVersion.contains(File.separator) && !cudaVersion.contains("---")) {
 			pnLoad.append("p", "Currently using CUDA " + cudaVersion);
+			pnLoad.append("p", TensorFlowModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
+		} else if (tfVersion.contains("GPU") && !cudaVersion.contains(File.separator) && cudaVersion.contains("---")) {
+			// In linux several CUDA versions are allowed. These versions will be separated by "---"
+			String[] versions = cudaVersion.split("---");
+			if (versions.length == 1) {
+				pnLoad.append("p", "Currently using CUDA " + versions[0]);
+			} else {
+				for (String str : versions)
+					pnLoad.append("p", "Found CUDA " + str);
+			}
 			pnLoad.append("p", TensorFlowModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
 		} else if (tfVersion.contains("GPU") && (cudaVersion.contains("bin") || cudaVersion.contains("libnvvp"))) {
 			pnLoad.append("p", TensorFlowModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));

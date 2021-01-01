@@ -602,10 +602,14 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				return;
 			}
 			runStage ++;
-			output = ProcessingBridge.runPostprocessing(dp.params, output);
+			//output = ProcessingBridge.runPostprocessing(dp.params, output);
 
 			Future<HashMap<String, Object>> f2 = service.submit(new DijRunnerPostprocessing(dp, rp, output));
 			output = f2.get();
+			
+			rp.allowStopping(true);
+			rp.stop();
+			rp.dispose();
 
 			// Print the outputs of the postprocessing
 			// Retrieve the opened windows and compare them to what the model has outputed
@@ -618,26 +622,19 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			// Remove possible hidden images from IJ workspace
 			removeProcessedInputsFromMemory(inputsMap);
 			
-		} catch(MacrosError ex) {
+		}/* catch(MacrosError ex) {
 			if (runStage == 0) {
 				IJ.error("Error during Macro preprocessing.");
 			} else if (runStage == 2) {
 				IJ.error("Error during Macro postprocessing.");
 			}
-			// Close the parallel processes
-		    service.shutdown();
-			return;
-		
 		} catch (JavaProcessingError e) {
 			if (runStage == 0) {
 				IJ.error("Error during Java preprocessing.");
 			} else if (runStage == 2) {
 				IJ.error("Error during Java postprocessing.");
 			}
-			// Close the parallel processes
-		    service.shutdown();
-			return;
-		} catch (InterruptedException ex) {
+		}*/ catch (InterruptedException ex) {
 			ex.printStackTrace();
 			IJ.log("Exception " + ex.toString());
 			for (StackTraceElement ste : ex.getStackTrace()) {
@@ -646,9 +643,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				IJ.log(ste.getMethodName());
 				IJ.log("line:" + ste.getLineNumber());
 			}
-			// Close the parallel processes
-		    service.shutdown();
-			return;
 		} catch (ExecutionException ex) {
 			ex.printStackTrace();
 			IJ.log("Exception " + ex.toString());
@@ -658,9 +652,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				IJ.log(ste.getMethodName());
 				IJ.log("line:" + ste.getLineNumber());
 			}
-			// Close the parallel processes
-		    service.shutdown();
-			return;
 		} catch (Exception ex) {
 			ex.printStackTrace();
 			IJ.log("Exception " + ex.toString());
@@ -677,13 +668,15 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			} else if (runStage == 2) {
 				IJ.error("Error during postprocessing.");
 			}
-			// Close the parallel processes
-		    service.shutdown();
-			return;
 		}
 
 		// Close the parallel processes
 	    service.shutdown();
+	    if (!rp.isStopped()) {
+			rp.allowStopping(true);
+			rp.stop();
+			rp.dispose();
+	    }
 	}
 	
 	/*

@@ -28,11 +28,11 @@ public class DijRunnerPostprocessing implements Callable<HashMap<String, Object>
 	}
 
 	@Override
-	public HashMap<String, Object> call() throws MacrosError, JavaProcessingError, Exception  {
-		
+	public HashMap<String, Object> call() throws MacrosError, JavaProcessingError  {
+
 		// Set tag of rp to 'preprocessing' so it shows the correct information
 		rp.setInfoTag("postprocessing");
-
+		
 		// The thread cannot be stopped while loading a model, thus block the button
 		// while executing the task
 		rp.allowStopping(false);

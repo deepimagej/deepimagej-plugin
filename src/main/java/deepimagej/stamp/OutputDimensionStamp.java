@@ -385,8 +385,6 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		// Save all the information for the output given by the variable 'outputInd'
 		String ref = (String) referenceImage.getSelectedItem();
 		params.outputList.get(outputCounter).referenceImage = ref;
-		// Get the reference tensor
-		DijTensor refInput = DijTensor.retrieveByName(ref, params.inputList);
 		
 		params.outputList.get(outputCounter).scale = new float[params.outputList.get(outputCounter).tensor_shape.length];
 		params.outputList.get(outputCounter).halo = new int[params.outputList.get(outputCounter).tensor_shape.length];
