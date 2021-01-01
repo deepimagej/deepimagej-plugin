@@ -406,12 +406,13 @@ public class SystemUsage {
 	              new BufferedReader(new InputStreamReader(proc.getInputStream()));
 	        String result = "noCuda";
 	        // Version information comes after the following header
-	        String infoHeader = "CUDA compilation tools, release ";
-	        while(reader.readLine() != null) {
-	        	String aux = reader.readLine();
+	        String infoHeader = "Cuda compilation tools, release ";
+	        String aux = reader.readLine();
+	        while(aux != null) {
+	        	aux = reader.readLine();
 	        	if (aux != null && aux.contains(infoHeader) && firstRun) {
 	        		result = aux.substring(aux.indexOf("V") + 1, aux.lastIndexOf("."));
-	        	} else if (aux != null && aux.contains(infoHeader) && !firstRun) {
+	        	} else if (aux != null && aux.toLowerCase().contains("cuda") && !firstRun) {
 	        		aux = aux.split(" ")[2];
 	        		result = aux.substring(0, aux.lastIndexOf("."));
 	        	}
@@ -427,6 +428,133 @@ public class SystemUsage {
 			else
 				return "noCuda";
 		}
+	}
+	
+	/*
+	 * In Linux, runs nvcc command to find CUDA version
+	 */
+	public static String findVersionFromFile(String command) {
+		Process proc;
+        String result = null;
+		try {
+			proc = Runtime.getRuntime().exec("cat " + command);
+			/* 
+			 * Output should look like this for CUDA 9.0
+			  	CUDA Version 9.0.176
+
+			 */
+
+	        // Read the output
+	        BufferedReader reader =  
+	              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+	        // Version information comes after the following header
+	        String aux = reader.readLine();
+	        while(aux != null) {
+	        	aux = reader.readLine();
+	        	if (aux != null && aux.toLowerCase().contains("cuda")) {
+	        		aux = aux.split(" ")[2];
+	        		result = aux.substring(0, aux.lastIndexOf("."));
+	        	}
+	        }
+
+	        proc.waitFor(); 
+		} catch( Exception ex) {
+			
+		}
+		return result;
+	}
+	
+	/*
+	 * In Linux, runs nvcc command to find CUDA version
+	 */
+	public static String findNVCCVersion(String command) {
+		Process proc;
+        String result = null;
+		try {
+			proc = Runtime.getRuntime().exec(command + " --version");
+			/* 
+			 * Output should look like this for CUDA 9.0
+			 * 	nvcc: NVIDIA (R) Cuda compiler driver
+				Copyright (c) 2005-2017 NVIDIA Corporation
+				Built on Fri_Sep__1_21:08:03_CDT_2017
+				Cuda compilation tools, release 9.0, V9.0.176
+
+			 */
+
+	        // Read the output
+	        BufferedReader reader =  
+	              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+	        // Version information comes after the following header
+	        String infoHeader = "Cuda compilation tools, release ";
+	        String aux = reader.readLine();
+	        while(aux != null) {
+	        	aux = reader.readLine();
+	        	if (aux != null && aux.contains(infoHeader)) {
+	        		result = aux.substring(aux.indexOf("V") + 1, aux.lastIndexOf("."));
+	        	}
+	        }
+
+	        proc.waitFor(); 
+		} catch( Exception ex) {
+			
+		}
+		return result;
+	}
+	
+	/*
+	 * In Linux, find the file location of nvcc to check which CUDA versions
+	 * are installed in the system
+	 */
+	public static ArrayList<String> findNVCCFile() {
+		Process proc;
+        ArrayList<String> installedVersions = new ArrayList<String>();
+		try {
+			proc = Runtime.getRuntime().exec("locate nvcc");
+
+	        // Read the output
+	        BufferedReader reader =  
+	              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+	        // Version information comes after the following header
+	        String aux = reader.readLine();
+	        while(aux != null) {
+	        	if (aux != null && aux.endsWith(File.separator + "nvcc"))
+	        		installedVersions.add(aux);
+	        	aux = reader.readLine();
+	        }
+
+	        proc.waitFor(); 
+		} catch( Exception ex) {
+			
+		}
+		return installedVersions;
+	}
+	
+	/*
+	 * In Linux, find the file location of version.txt containing the CUDA version to check which CUDA versions
+	 * are installed in the system
+	 */
+	public static ArrayList<String> findCudaVersionFile() {
+		Process proc;
+        ArrayList<String> installedVersions = new ArrayList<String>();
+		try {
+			proc = Runtime.getRuntime().exec("locate version.txt");
+
+	        // Read the output
+	        BufferedReader reader =  
+	              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+	        // Version information comes after the following header
+	        String aux = reader.readLine();
+	        while(aux != null) {
+	        	if (aux != null && aux.toLowerCase().contains("cuda"))
+	        		installedVersions.add(aux);
+	        	aux = reader.readLine();
+	        }
+
+	        proc.waitFor(); 
+		} catch( Exception ex) {
+			
+		}
+		return installedVersions;
 	}
 
 	/*
