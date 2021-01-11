@@ -255,12 +255,13 @@ public class SystemUsage {
 	        // Relevant information comes after the following header
 	        String infoHeader = "|  GPU       PID   Type   Process name                             Usage      |";
 	        boolean startCapturing = false;
-	        while(reader.readLine() != null) {
-	        	if (startCapturing && reader.readLine() != null)
-		            result.add(reader.readLine());
-	        	String aux = reader.readLine();
+        	String aux = reader.readLine();
+	        while(aux != null) {
+	        	if (startCapturing && aux != null)
+		            result.add(aux);
 	        	if (aux != null && aux.equals(infoHeader))
 	        		startCapturing = true;
+	        	aux = reader.readLine();
 	        }
 
 	        proc.waitFor(); 
@@ -286,12 +287,13 @@ public class SystemUsage {
 	        // Relevant information comes after the following header
 	        String infoHeader = "|  GPU       PID   Type   Process name                             Usage      |";
 	        boolean startCapturing = false;
-	        while(reader.readLine() != null) {
-	        	if (startCapturing && reader.readLine() != null)
-		            result.add(reader.readLine());
-	        	String aux = reader.readLine();
+        	String aux = reader.readLine();
+	        while(aux != null) {
+	        	if (startCapturing && aux != null)
+		            result.add(aux);
 	        	if (aux != null && aux.equals(infoHeader))
 	        		startCapturing = true;
+	        	aux = reader.readLine();
 	        }
 
 	        proc.waitFor(); 
@@ -386,8 +388,8 @@ public class SystemUsage {
 			// First find if the parent directory does not correspond
 			// to a directory already evaluated
 			String parentDir = new File(str).getParent();
-			if (!nvccFilesString.contains(parentDir)) {
-				String version = findNVCCVersion(str);
+			if (!nvccFilesString.contains(parentDir + ",")) {
+				String version = findVersionFromFile(str);
 				// Add version if it was not found already
 				if (version != null && str.toLowerCase().contains("cuda") && !foundCudaVersions.toString().contains(version))
 					foundCudaVersions += version + "---";
@@ -419,11 +421,11 @@ public class SystemUsage {
 	        // Version information comes after the following header
 	        String aux = reader.readLine();
 	        while(aux != null) {
-	        	aux = reader.readLine();
 	        	if (aux != null && aux.toLowerCase().contains("cuda")) {
 	        		aux = aux.split(" ")[2];
 	        		result = aux.substring(0, aux.lastIndexOf("."));
 	        	}
+	        	aux = reader.readLine();
 	        }
 
 	        proc.waitFor(); 
@@ -457,10 +459,10 @@ public class SystemUsage {
 	        String infoHeader = "Cuda compilation tools, release ";
 	        String aux = reader.readLine();
 	        while(aux != null) {
-	        	aux = reader.readLine();
 	        	if (aux != null && aux.contains(infoHeader)) {
 	        		result = aux.substring(aux.indexOf("V") + 1, aux.lastIndexOf("."));
 	        	}
+	        	aux = reader.readLine();
 	        }
 
 	        proc.waitFor(); 
@@ -523,6 +525,33 @@ public class SystemUsage {
 		} catch( Exception ex) {
 			
 		}
+		// Now look in the default directory where CUDA is installed
+		// The default directory is '/usr/local'
+		try {
+			String[] defaultDirs = new String[]{"/usr/local"};
+			for (String command : defaultDirs) {
+				proc = Runtime.getRuntime().exec("ls " + command);
+				
+				String previouslyFound = installedVersions.toString();
+		        // Read the output
+		        BufferedReader reader =  
+		              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+		        // Version information comes after the following header
+		        String aux = reader.readLine();
+		        while(aux != null) {
+		        	String wholeStr = command + File.separator + aux + File.separator + "version.txt";
+		        	if (aux != null && aux.toLowerCase().contains("cuda") && !previouslyFound.contains(wholeStr) && new File(wholeStr).exists()) {
+		        		installedVersions.add(wholeStr);
+		        	}
+		        	aux = reader.readLine();
+		        }
+	
+		        proc.waitFor(); 
+			}
+		} catch( Exception ex) {
+			
+		}
+		
 		return installedVersions;
 	}
 
