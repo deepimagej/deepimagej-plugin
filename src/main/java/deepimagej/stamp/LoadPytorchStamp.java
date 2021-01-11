@@ -210,6 +210,7 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 			        .build();*/
 
 			ZooModel<NDList, NDList> model = ModelZoo.loadModel(criteria);
+			String defaultEngine = Engine.getInstance().getEngineName();
 			parent.getDeepPlugin().setTorchModel(model);
 			pnLoad.append(" -> Loaded!!!</p>");
 			double torchscriptSize = new File(params.selectedModelPath).length() / (1024 * 1024.0);
