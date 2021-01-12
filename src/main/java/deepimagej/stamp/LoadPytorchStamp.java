@@ -57,8 +57,10 @@ import org.tensorflow.SavedModelBundle;
 import org.tensorflow.framework.SignatureDef;
 
 import ai.djl.MalformedModelException;
+import ai.djl.engine.Engine;
 import ai.djl.engine.EngineException;
 import ai.djl.ndarray.NDList;
+import ai.djl.pytorch.jni.LibUtils;
 import ai.djl.repository.zoo.Criteria;
 import ai.djl.repository.zoo.ModelNotFoundException;
 import ai.djl.repository.zoo.ModelZoo;
@@ -72,6 +74,7 @@ import deepimagej.components.HTMLPane;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.FileTools;
 import deepimagej.tools.Log;
+import deepimagej.tools.SystemUsage;
 import ij.IJ;
 import ij.gui.GenericDialog;
 
@@ -176,6 +179,34 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 		pnLoad.append("h2", "Pytorch version");
 		pnLoad.append("p", "Currently using Pytorch 1.6.0");
 		pnLoad.append("p", "Supported by Deep Java Library 1.6.0");
+		String cudaVersion = SystemUsage.getCUDAEnvVariables();
+		// If a CUDA distribution was found, cudaVersion will be equal
+		// to the CUDA version. If not it can be either 'noCuda', if CUDA 
+		// is not installed, or if there is a CUDA_PATH in the environment variables
+		// but the needed variables are not in the PATH, it will return the missing 
+		// environment variables
+		if (!cudaVersion.contains(File.separator) && !cudaVersion.contains("---")) {
+			pnLoad.append("p", "Currently using CUDA " + cudaVersion);
+		} else if (!cudaVersion.contains(File.separator) && cudaVersion.contains("---")) {
+			// In linux several CUDA versions are allowed. These versions will be separated by "---"
+			String[] versions = cudaVersion.split("---");
+			if (versions.length == 1) {
+				pnLoad.append("p", "Currently using CUDA " + versions[0]);
+			} else {
+				for (String str : versions)
+					pnLoad.append("p", "Found CUDA " + str);
+			}
+		} else if ((cudaVersion.contains("bin") || cudaVersion.contains("libnvvp"))) {
+			String[] outputs = cudaVersion.split(";");
+			pnLoad.append("p", "Found CUDA distribution " + outputs[0] + ".\n");
+			pnLoad.append("p", "Could not find environment variable:\n - " + outputs[1] + "\n");
+			if (outputs.length == 3)
+				pnLoad.append("p", "Could not find environment variable:\n - " + outputs[2] + "\n");
+			pnLoad.append("p", "Please add the missing environment variables to the path.\n");
+		} else if (cudaVersion.equals("noCUDA")) {
+			pnLoad.append("p", "No CUDA distribution found.\n");
+			parent.setGPU("CPU");
+		}
 		pnLoad.append("h2", "Model info");
 		pnLoad.append("p", "Path: " + params.selectedModelPath);
 		pnLoad.append("<p>Loading model...");
@@ -210,7 +241,11 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 			        .build();*/
 
 			ZooModel<NDList, NDList> model = ModelZoo.loadModel(criteria);
-			String defaultEngine = Engine.getInstance().getEngineName();
+			String lib = new File(LibUtils.getLibName()).getName();
+			if (!lib.toLowerCase().contains("cpu")) {
+				pnLoad.append("p", "Model loaded on the <b>GPU</b>.\n");
+				parent.setGPU("true");
+			}
 			parent.getDeepPlugin().setTorchModel(model);
 			pnLoad.append(" -> Loaded!!!</p>");
 			double torchscriptSize = new File(params.selectedModelPath).length() / (1024 * 1024.0);
