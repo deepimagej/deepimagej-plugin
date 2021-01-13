@@ -37,27 +37,17 @@
 
 package deepimagej.stamp;
 import java.awt.BorderLayout;
-import java.awt.TextField;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
-import java.util.Vector;
 
 import javax.swing.BoxLayout;
-import javax.swing.JComboBox;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-import org.tensorflow.SavedModelBundle;
-import org.tensorflow.framework.SignatureDef;
-
 import ai.djl.MalformedModelException;
-import ai.djl.engine.Engine;
 import ai.djl.engine.EngineException;
 import ai.djl.ndarray.NDList;
 import ai.djl.pytorch.jni.LibUtils;
@@ -68,19 +58,16 @@ import ai.djl.repository.zoo.ZooModel;
 import ai.djl.training.util.ProgressBar;
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
+import deepimagej.DeepLearningModel;
 import deepimagej.Parameters;
-import deepimagej.TensorFlowModel;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.DijTensor;
-import deepimagej.tools.FileTools;
-import deepimagej.tools.Log;
 import deepimagej.tools.SystemUsage;
 import ij.IJ;
 import ij.gui.GenericDialog;
 
 public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 
-	private String				name;
 	private JTextField			inpNumber = new JTextField();
 	private JTextField			outNumber = new JTextField();
 
@@ -176,16 +163,17 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 		Parameters params = parent.getDeepPlugin().params;
 		params.selectedModelPath = findPytorchModels(params.path2Model);
 		pnLoad.clear();
+		String ptVersion = DeepLearningModel.getPytorchVersion();
 		pnLoad.append("h2", "Pytorch version");
-		pnLoad.append("p", "Currently using Pytorch 1.6.0");
-		pnLoad.append("p", "Supported by Deep Java Library 1.6.0");
+		pnLoad.append("p", "Currently using Pytorch " + ptVersion);
+		pnLoad.append("p", "Supported by Deep Java Library " + ptVersion);
 		String cudaVersion = SystemUsage.getCUDAEnvVariables();
 		// If a CUDA distribution was found, cudaVersion will be equal
 		// to the CUDA version. If not it can be either 'noCuda', if CUDA 
 		// is not installed, or if there is a CUDA_PATH in the environment variables
 		// but the needed variables are not in the PATH, it will return the missing 
 		// environment variables
-		if (!cudaVersion.contains(File.separator) && !cudaVersion.contains("---")) {
+		if (!cudaVersion.contains(File.separator) && !cudaVersion.contains("---") && !cudaVersion.contains("noCuda")) {
 			pnLoad.append("p", "Currently using CUDA " + cudaVersion);
 		} else if (!cudaVersion.contains(File.separator) && cudaVersion.contains("---")) {
 			// In linux several CUDA versions are allowed. These versions will be separated by "---"
@@ -203,10 +191,11 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 			if (outputs.length == 3)
 				pnLoad.append("p", "Could not find environment variable:\n - " + outputs[2] + "\n");
 			pnLoad.append("p", "Please add the missing environment variables to the path.\n");
-		} else if (cudaVersion.equals("noCUDA")) {
+		} else if (cudaVersion.equals("noCuda")) {
 			pnLoad.append("p", "No CUDA distribution found.\n");
-			parent.setGPU("CPU");
+			parent.setGPUTf("CPU");
 		}
+		pnLoad.append("p", DeepLearningModel.TensorflowCUDACompatibility(ptVersion, cudaVersion));
 		pnLoad.append("h2", "Model info");
 		pnLoad.append("p", "Path: " + params.selectedModelPath);
 		pnLoad.append("<p>Loading model...");
@@ -228,30 +217,27 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 			long startTime = System.nanoTime();
 			Criteria<NDList, NDList> criteria = Criteria.builder()
 			        .setTypes(NDList.class, NDList.class)
-			         // only search the model in local directory
-			         // "ai.djl.localmodelzoo:{name of the model}"
 			        .optModelUrls(url.toString()) // search models in specified path
-			        //.optArtifactId("ai.djl.localmodelzoo:resnet_18") // defines which model to load
 			        .optModelName(modelName)
 			        .optProgress(new ProgressBar()).build();
-			/*Criteria<NDList, NDList> criteria = Criteria.builder()
-			        .setTypes(NDList.class, NDList.class)
-			        .optModelUrls(url.toString()) // search models in specified path
-			        .optArtifactId("ai.djl.localmodelzoo:" + modelName) // defines which model to load
-			        .build();*/
 
 			ZooModel<NDList, NDList> model = ModelZoo.loadModel(criteria);
+			parent.getDeepPlugin().setTorchModel(model);
+			pnLoad.append(" -> Loaded!!!</p>");
 			String lib = new File(LibUtils.getLibName()).getName();
 			if (!lib.toLowerCase().contains("cpu")) {
 				pnLoad.append("p", "Model loaded on the <b>GPU</b>.\n");
-				parent.setGPU("true");
+				parent.setGPUPt("GPU");
+			} else {
+				pnLoad.append("p", "Model loaded on the <b>CPU</b>.\n");
+				parent.setGPUPt("CPU");
 			}
-			parent.getDeepPlugin().setTorchModel(model);
-			pnLoad.append(" -> Loaded!!!</p>");
-			double torchscriptSize = new File(params.selectedModelPath).length() / (1024 * 1024.0);
+			String torchscriptSize = "" + new File(params.selectedModelPath).length() / (1024 * 1024.0);
+			torchscriptSize = torchscriptSize.substring(0, torchscriptSize.lastIndexOf(".") + 2);
 			long stopTime = System.nanoTime();
 			// Convert nanoseconds into seconds
 			String loadingTime = "" + ((stopTime - startTime) / (float) 1000000000);
+			loadingTime = loadingTime.substring(0, loadingTime.lastIndexOf(".") + 3);
 			pnLoad.append("p", "Model size: " + torchscriptSize + " Mb");
 			pnLoad.append("p", "Loading time: " + loadingTime +  " s");
 			
@@ -271,23 +257,15 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 				pnLoad.append("p", "Please install the Visual Studio 2019 redistributables and reboot\n"
 							+ "your machine to be able to use Pytorch with DeepImageJ.");
 				pnLoad.append("p", "For more information:\n");
-				pnLoad.append("p", " - https://github.com/awslabs/djl/blob/master/docs/development/troubleshooting.md");
-				pnLoad.append("p", " - https://github.com/awslabs/djl/issues/126");
+				pnLoad.append("p", " -https://github.com/awslabs/djl/blob/master/docs/development/troubleshooting.md");
+				pnLoad.append("p", " -https://github.com/awslabs/djl/issues/126");
 				pnLoad.append("p", "If you already have installed VS2019 redistributables, the error\n"
-								+ "might be caused by a non-compatible CUDA version installed.\n"
-								+ "DJL only supports CUDA 10.1 and CUDA 10.2.");
-				// TODO complete
-				pnLoad.append("p", "It seems that you might have installed CUDA ");
-				pnLoad.append("p", "If you want to use a GPU, please uninstall the non-compatible\n"
-									+ "CUDA versions and install either CUDA 10.1 or CUDA 10.2");
-				pnLoad.append("p", "If you do not need to use a GPU, just remove from the 'PATH'\n"
-								+ "environment variable all the directories containing the word NVIDIA.");
-				pnLoad.append("p", "NOTE that removing those variables from the path might make other\n"
-								+ "programs using CUDA stop working.");
+								+ "might be caused by a missing dependency or an incompatible Pytorch version.");
+				pnLoad.append("p", "Please check the DeepImageJ Wiki.");
 			} else if(err.contains("https://github.com/awslabs/djl/blob/master/docs/development/troubleshooting.md")){
-				pnLoad.append("p", "DeepImageJ could not load the model");
-				pnLoad.append("p", "The problem might be caused by incompatible CUDA versions installed.");
-				pnLoad.append("p", "Deep Java Library is only compatible with CUDA 10.1 and CUDA 10.2.");
+				pnLoad.append("p", "DeepImageJ could not load the model.");
+				pnLoad.append("p", "The problem might be caused by a missing dependency or an incompatible Pytorch version.");
+				pnLoad.append("p", "Please check the DeepImageJ Wiki.");
 			}else {
 				pnLoad.append("p", "DeepImageJ could not load the model");
 				pnLoad.append("p", "It seems that the Torchscript model was created with Pytorch>1.6.0.");

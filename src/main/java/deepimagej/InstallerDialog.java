@@ -52,6 +52,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -64,10 +66,10 @@ import javax.swing.JPanel;
 import deepimagej.components.HTMLPane;
 import deepimagej.installer.BioimageZooRepository;
 import deepimagej.installer.Model;
+import deepimagej.tools.FileTools;
 import deepimagej.tools.ModelDownloader;
 import ij.IJ;
 import ij.gui.GUI;
-import ij.gui.GenericDialog;
 
 public class InstallerDialog extends JDialog implements ItemListener, ActionListener, Runnable {
 
@@ -77,7 +79,9 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	private JButton help = new JButton("Help");
 	private HTMLPane repo = new HTMLPane(600, 100);
 	private HTMLPane info = new HTMLPane(600, 200);
-	private JCheckBox chk = new JCheckBox("I accept to install .....", false);
+	private JCheckBox chk = new JCheckBox("<html>I accept to install the model knowing that the output of a deep learning model strongly depends on the" 
+										+ "<br>data and the conditions of the training process. I understand that a pre-trained model may require a re-training." 
+										+ "<br>If you have any doubt, please check the documentation of the model. To get user guidelines press the Help button.", false);
 	private JComboBox<String> cmb = new JComboBox<String>();
 	private DownloadProgress progressScreen;
 	private String fileName = "";
@@ -214,8 +218,8 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		String name = (String)cmb.getSelectedItem();
 		if (name != null && !name.equals("")) {
 			// First check that "Fiji.App\models" exist or create it if not
-			// TODO String modelsDir = IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
-			modelsDir = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models";
+			modelsDir = IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
+			// TODO modelsDir = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models";
 			if (!(new File(modelsDir).exists()))
 				new File(modelsDir).mkdir();
 			model = zoo.models2.get(name);
@@ -223,17 +227,13 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 
 				int nameStart = model.downloadUrl.lastIndexOf("/") + 1;
 				fileName = model.downloadUrl.substring(nameStart);
+				// Add timestamp to the model name. 
+				// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
+		        Calendar cal = Calendar.getInstance();
+				SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
+				String dateString = sdf.format(cal.getTime());
+				fileName = fileName.substring(0, fileName.lastIndexOf(".")) + "_" + dateString + ".zip";
 				
-				if ((new File(modelsDir, fileName).exists())) {
-					GenericDialog dlg = new GenericDialog("Overwrite existing model");
-					dlg.addMessage("There already exists a model called:");
-					dlg.addMessage(" '" + fileName + "'");
-					dlg.addMessage("at ImageJ/Fiji models directory.");
-					dlg.addMessage("Do you want to overwrite it?");
-					dlg.showDialog();
-					if (dlg.wasCanceled())
-						return;
-				}
 				Thread thread = new Thread(this);
 				thread.setPriority(Thread.MIN_PRIORITY);
 				progressScreen = new DownloadProgress();
@@ -263,10 +263,15 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			progressScreen.setVisible(true);
 			ModelDownloader downloader = new ModelDownloader(rbc, fos);
 			downloader.call();
-			System.out.print("DONE");
-			stopped = true;
+			if (!Thread.interrupted()) {
+				// Once it is already downloaded unzip the model
+				String unzippedFileName = modelsDir + File.separator + fileName.substring(0, fileName.lastIndexOf("."));
+				FileTools.unzipFolder(new File(modelsDir, fileName), unzippedFileName);
+			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			IJ.error("Error unzipping the model.");
 			e.printStackTrace();
 		} finally {
 			try {
@@ -275,10 +280,12 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 				if (rbc != null)
 					rbc.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
+		progressScreen.stop();
+		stopped = true;
+		chk.setSelected(false);
 	}
 
 }

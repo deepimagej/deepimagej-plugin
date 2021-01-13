@@ -98,7 +98,8 @@ public class BuildDialog extends JDialog implements ActionListener {
 	private PtSaveStamp				ptSave = null;
 	private DeepImageJ				dp		= null;
 	private int						card	= 1;
-	private String					GPU 	= "CPU";
+	private String					GPU_TF 	= "CPU";
+	private String					GPU_PT 	= "CPU";
 	private boolean					Fiji	= false;
 
 	public BuildDialog() {
@@ -338,12 +339,20 @@ public class BuildDialog extends JDialog implements ActionListener {
 		return dp;
 	}
 	
-	public String getGPU() {
-		return GPU;
+	public String getGPUTf() {
+		return GPU_TF;
 	}
 	
-	public void setGPU(String info) {
-		GPU = info;
+	public void setGPUTf(String info) {
+		GPU_TF = info;
+	}
+	
+	public String getGPUPt() {
+		return GPU_PT;
+	}
+	
+	public void setGPUPt(String info) {
+		GPU_PT = info;
 	}
 	
 	public boolean getFiji() {

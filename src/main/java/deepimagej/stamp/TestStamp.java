@@ -64,7 +64,7 @@ import deepimagej.Parameters;
 import deepimagej.RunnerTf;
 import deepimagej.RunnerProgress;
 import deepimagej.RunnerPt;
-import deepimagej.TensorFlowModel;
+import deepimagej.DeepLearningModel;
 import deepimagej.components.GridPanel;
 import deepimagej.components.HTMLPane;
 import deepimagej.exceptions.IncorrectChannelsSlicesNumber;
@@ -313,7 +313,7 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 					inputsMap.put(tensor.name, WindowManager.getCurrentImage());
 				}
 				// TODO fix this for the case where slices or channels are not fixed
-				int channels = TensorFlowModel.nChannelsOrSlices(tensor, "channels");
+				int channels = DeepLearningModel.nChannelsOrSlices(tensor, "channels");
 				int imageChannels = ((ImagePlus) inputsMap.get(tensor.name)).getNChannels();
 				if (channels != imageChannels) {
 					throw new IncorrectChannelsSlicesNumber(channels, imageChannels, "channels");
@@ -359,16 +359,18 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		DeepImageJ dp = parent.getDeepPlugin();
 
 		Log log = new Log();
-		RunnerProgress rp = new RunnerProgress(dp, parent.getGPU());
 		HashMap<String, Object> output = null;
 		if (dp.params.framework.equals("Tensorflow")) {
+			RunnerProgress rp = new RunnerProgress(dp, parent.getGPUTf());
 			RunnerTf runner = new RunnerTf(dp, rp, inputsMap, log);
 			rp.setRunner(runner);
 			// TODO decide what to store at the end of the execution
 			output = runner.call();
 		} else {
+			RunnerProgress rp = new RunnerProgress(dp, parent.getGPUPt());
 			RunnerPt runner = new RunnerPt(dp, rp, inputsMap, log);
 			rp.setRunner(runner);
+			rp.setInfoTag("applyModel");
 			// TODO decide what to store at the end of the execution
 			output = runner.call();
 		}

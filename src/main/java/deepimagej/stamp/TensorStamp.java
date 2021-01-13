@@ -58,7 +58,7 @@ import javax.swing.JScrollPane;
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
 import deepimagej.Parameters;
-import deepimagej.TensorFlowModel;
+import deepimagej.DeepLearningModel;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.Index;
@@ -216,7 +216,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 				IJ.error("Dimension repetition is not allowed");
 				return false;
 			}
-			if (TensorFlowModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
+			if (DeepLearningModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
 				IJ.error("The plugin only supports models with batch size (N) = 1");
 				return false;
 			}
@@ -229,7 +229,9 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 		for (DijTensor tensor : outputTensors) {
 			tensor.form = "";
 			for (int i = iterateOverComboBox; i < iterateOverComboBox + tensor.tensor_shape.length; i++) {
-				tensor.form = tensor.form + (String) outputs.get(i).getSelectedItem();
+				String dimensionLetter = (String) outputs.get(i).getSelectedItem();
+				dimensionLetter = dimensionLetter.toLowerCase().contains("z") ? "Z" : dimensionLetter;
+				tensor.form = tensor.form + dimensionLetter;
 			}
 			tensor.auxForm = tensor.form;
 			iterateOverComboBox += tensor.tensor_shape.length;
@@ -241,7 +243,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 				IJ.error("Dimension repetition is not allowed");
 				return false;
 			}
-			if (TensorFlowModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
+			if (DeepLearningModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
 				IJ.error("The plugin only supports models with batch size (B) = 1");
 				return false;
 			}
@@ -256,6 +258,9 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 		return true;
 	}
 	
+	/*
+	 * Change the letter in each Jcombobox depending on the selected tensor type.
+	 */
 	public void updateTensorDisplay(Parameters params) {
 		// Set disabled the tensors marked as 'ignore'
 		List<DijTensor> inputTensors = params.totalInputList;
@@ -270,13 +275,11 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					inputs.get(i).removeAllItems();
 					inputs.get(i).addItem("-");
 					inputs.get(i).setEnabled(false);
-					//inputs.get(i).addActionListener(this);
 					String form = inputTensors.get(cIn).form;
 					if (form != null) {
 						inputTensors.get(cIn).form = form.substring(0, i) + "B" + form.substring(i+1);
 					}
 				} else if (selection.contains("image") && inputs.get(i).getItemAt(0).equals("-")) {
-					//inputs.get(i).removeItemAt(0);
 					inputs.get(i).removeAllItems();
 					inputs.get(i).addItem("B");
 					inputs.get(i).addItem("Y");
@@ -284,7 +287,6 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					inputs.get(i).addItem("C");
 					inputs.get(i).addItem("Z");
 					inputs.get(i).setEnabled(true);
-					//inputs.get(i).addActionListener(this);
 					String form = inputTensors.get(cIn).form;
 					if (form != null) {
 						inputTensors.get(cIn).form = form.substring(0, i) + "B" + form.substring(i+1);
@@ -316,13 +318,25 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 						outputTensors.get(c).form = form.substring(0, i) + "B" + form.substring(i+1);
 				} else if (selection.contains("list") && !outputs.get(i).isEnabled()) {
 					outputs.get(i).setEnabled(true);
-				} else if (selection.contains("image") && outputs.get(i).getItemAt(1).equals("R")) {
+				} else if (selection.contains("image") && outputs.get(i).getItemAt(1).equals("R") && !params.pyramidalNetwork) {
 					outputs.get(i).removeAllItems();
 					outputs.get(i).addItem("B");
 					outputs.get(i).addItem("Y");
 					outputs.get(i).addItem("X");
 					outputs.get(i).addItem("C");
 					outputs.get(i).addItem("Z");
+					outputs.get(i).setEnabled(true);
+					outputs.get(i).addActionListener(this);
+					String form = outputTensors.get(c).form;
+					if (form != null)
+						outputTensors.get(c).form = form.substring(0, i) + "B" + form.substring(i+1);
+				} else if (selection.contains("image") && outputs.get(i).getItemAt(1).equals("R") && !params.pyramidalNetwork) {
+					outputs.get(i).removeAllItems();
+					outputs.get(i).addItem("B");
+					outputs.get(i).addItem("Y");
+					outputs.get(i).addItem("X");
+					outputs.get(i).addItem("C");
+					outputs.get(i).addItem("N/i/z");
 					outputs.get(i).setEnabled(true);
 					outputs.get(i).addActionListener(this);
 					String form = outputTensors.get(c).form;

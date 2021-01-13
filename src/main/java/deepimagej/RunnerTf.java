@@ -91,17 +91,17 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 		SavedModelBundle model = dp.getTfModel();
 		log.print("model " + (model == null));
 		
-		String sigeDefTag = params.developer ? params.graph : TensorFlowModel.returnStringSig(params.graph);
-		SignatureDef sig = TensorFlowModel.getSignatureFromGraph(model, TensorFlowModel.returnStringSig(sigeDefTag));
+		String sigeDefTag = params.developer ? params.graph : DeepLearningModel.returnStringSig(params.graph);
+		SignatureDef sig = DeepLearningModel.getSignatureFromGraph(model, DeepLearningModel.returnStringSig(sigeDefTag));
 		log.print("sig " + (sig == null));
 		
 		if (!params.developer) {
-			String[] inputs = TensorFlowModel.returnInputs(sig);
+			String[] inputs = DeepLearningModel.returnTfInputs(sig);
 			for (int i = 0; i < inputs.length; i ++) {
 				if (DijTensor.retrieveByName(inputs[i], params.inputList) == null) {
 					DijTensor inp = new DijTensor(inputs[i]);
 					inp.tensorType = "parameter";
-					inp.setInDimensions(TensorFlowModel.modelEntryDimensions(sig, inputs[i]));
+					inp.setInDimensions(DeepLearningModel.modelTfEntryDimensions(sig, inputs[i]));
 					params.inputList.add(inp);
 				}
 			}

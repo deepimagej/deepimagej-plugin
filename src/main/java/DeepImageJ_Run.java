@@ -55,11 +55,8 @@ import deepimagej.DeepImageJ;
 import deepimagej.RunnerTf;
 import deepimagej.RunnerProgress;
 import deepimagej.RunnerPt;
-import deepimagej.TensorFlowModel;
+import deepimagej.DeepLearningModel;
 import deepimagej.components.BorderPanel;
-import deepimagej.exceptions.JavaProcessingError;
-import deepimagej.exceptions.MacrosError;
-import deepimagej.processing.ProcessingBridge;
 import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.DijRunnerPostprocessing;
 import deepimagej.tools.DijRunnerPreprocessing;
@@ -67,6 +64,7 @@ import deepimagej.tools.DijTensor;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
 import deepimagej.tools.ModelLoader;
+import deepimagej.tools.StartTensorflowService;
 import deepimagej.tools.SystemUsage;
 import deepimagej.tools.WebBrowser;
 import ij.IJ;
@@ -202,7 +200,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			texts[0].setEditable(false);
 			texts[1].setEditable(false);
 			
-			loadInfo = TensorFlowModel.loadLibrary();
+			loadInfo = StartTensorflowService.loadTfLibrary();
 			// If the version allows GPU, find if there is CUDA
 			if (loadInfo.contains("GPU")) 
 				cudaVersion = SystemUsage.getCUDAEnvVariables();
@@ -216,7 +214,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				info.setCaretPosition(0);
 				info.setText("");
 				loadInfo = "Using default TensorFlow version from JAR: TF ";
-				loadInfo += TensorFlowModel.getTFVersion(false);
+				loadInfo += DeepLearningModel.getTFVersion(false);
 				if (!loadInfo.contains("GPU"))
 					loadInfo += "_CPU";
 				loadInfo += "..\n";
@@ -389,7 +387,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				rp.setUnzipping(true);
 			}
 			
-			ModelLoader loadModel = new ModelLoader(dp, rp, loadInfo.contains("GPU"), TensorFlowModel.TensorflowCUDACompatibility(loadInfo, cudaVersion).equals(""));
+			ModelLoader loadModel = new ModelLoader(dp, rp, loadInfo.contains("GPU"), DeepLearningModel.TensorflowCUDACompatibility(loadInfo, cudaVersion).equals(""));
 
 			Future<Boolean> f1 = service.submit(loadModel);
 			boolean output = false;
@@ -718,9 +716,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 
 		if (tfVersion.contains("GPU") && !cudaVersion.contains(File.separator)) {
 			info.append("Currently using CUDA " + cudaVersion);
-			info.append(TensorFlowModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
+			info.append(DeepLearningModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
 		} else if (tfVersion.contains("GPU") && (cudaVersion.contains("bin") || cudaVersion.contains("libnvvp"))) {
-			info.append(TensorFlowModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
+			info.append(DeepLearningModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
 			String[] outputs = cudaVersion.split(";");
 			info.append("Found CUDA distribution " + outputs[0] + ".\n");
 			info.append("Could not find environment variable:\n - " + outputs[1] + "\n");

@@ -1,5 +1,4 @@
-/*
- * DeepImageJ
+/* DeepImageJ
  * 
  * https://deepimagej.github.io/deepimagej/
  *
@@ -35,46 +34,54 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-import java.io.File;
-import java.io.IOException;
+package deepimagej.tools;
 
 import org.scijava.Context;
 
-import deepimagej.BuildDialog;
-import deepimagej.DeepLearningModel;
 import ij.IJ;
-import ij.ImageJ;
-import ij.ImagePlus;
-import ij.WindowManager;
-import ij.plugin.PlugIn;
 import net.imagej.tensorflow.DefaultTensorFlowService;
 import net.imagej.tensorflow.TensorFlowService;
 
-public class DeepImageJ_Build_BundledModel implements PlugIn {
+public class StartTensorflowService {
 	
-	public void run(String arg) {
-		// If there is no models directory inside Fiji folder, create it
-		String path = IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
-		
-		if (!(new File(path).isDirectory()))
-				new File(path).mkdirs();
+	private static TensorFlowService tfService = new DefaultTensorFlowService();
+    private static Context ctx;
 
-		BuildDialog bd = new BuildDialog();
-		bd.showDialog();
+	static {
+		try {
+			ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
+			if (ctx == null) ctx = new Context(TensorFlowService.class);
+			tfService = ctx.service(TensorFlowService.class);
+		} catch (Exception ex) {
+			// If we are not in an ImageJ2/Fiji instance we
+			// will not be able to initialise any service
+		}
 	}
 
-	public static void main(String args[]) throws IOException {
-		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\exemplary-image-data\\tribolium.tif");
-		if (imp != null)
-			imp.show();
-		new ImageJ();
-		BuildDialog bd = new BuildDialog();
-		bd.showDialog();/*
-		if (WindowManager.getCurrentImage() == null) {
-			IJ.error("There should be an image open.");
-		} else {
-			BuildDialog bd = new BuildDialog();
-			bd.showDialog();
-		}*/
+	/*
+	 * Try to load tf using IMageJ-Tensorflow manager. If it fails
+	 * notify that we are on IJ! and that the tf library will be loaded 
+	 * from the jars library using libtensorflow.jar and libtensorflow_jni.jar
+	 */
+	public static String loadTfLibrary() {
+		try {
+			if (!tfService.getStatus().isLoaded()) {
+				tfService.initialize();
+				tfService.loadLibrary();
+				if (tfService.getStatus().isLoaded()) {
+					return tfService.getStatus().getInfo();
+				} else {
+					IJ.log(tfService.getStatus().getInfo());
+					return "";
+				}
+			}
+			return tfService.getStatus().getInfo();
+		} catch (Exception ex) {
+			return "ImageJ";
+		}
+	}
+	
+	public static TensorFlowService getTfService() {
+		return tfService;
 	}
 }

@@ -51,11 +51,12 @@ import org.tensorflow.framework.SignatureDef;
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
 import deepimagej.Parameters;
-import deepimagej.TensorFlowModel;
+import deepimagej.DeepLearningModel;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.FileTools;
 import deepimagej.tools.Log;
+import deepimagej.tools.StartTensorflowService;
 import deepimagej.tools.SystemUsage;
 import ij.IJ;
 
@@ -116,16 +117,16 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			String tag = (String)cmbTags.getSelectedItem();
 			try {	
 				double time = System.nanoTime();
-				SavedModelBundle model = TensorFlowModel.load(params.path2Model, tag, log);
+				SavedModelBundle model = DeepLearningModel.loadTf(params.path2Model, tag, log);
 				time = System.nanoTime() - time;
 				addLoadInfo(params, time);
 				parent.getDeepPlugin().setTfModel(model);
 				params.tag = tag;
 				cmbTags.setEditable(false);
 				parent.getDeepPlugin().setTfModel(model);
-				params.graphSet = TensorFlowModel.metaGraphsSet(model);
+				params.graphSet = DeepLearningModel.metaGraphsSet(model);
 				if (params.graphSet.size() > 0) {
-					Set<String> tfGraphSet = TensorFlowModel.returnTfSig(params.graphSet);
+					Set<String> tfGraphSet = DeepLearningModel.returnTfSig(params.graphSet);
 					cmbGraphs.removeAllItems();
 					for (int i = 0; i < params.graphSet.size(); i++) {
 						cmbGraphs.addItem((String) tfGraphSet.toArray()[i]);
@@ -144,23 +145,23 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		} else {
 			// TODO put it inside run
 			SavedModelBundle model = parent.getDeepPlugin().getTfModel();
-			params.graph = TensorFlowModel.returnStringSig((String)cmbGraphs.getSelectedItem());
-			SignatureDef sig = TensorFlowModel.getSignatureFromGraph(model, params.graph);
+			params.graph = DeepLearningModel.returnStringSig((String)cmbGraphs.getSelectedItem());
+			SignatureDef sig = DeepLearningModel.getSignatureFromGraph(model, params.graph);
 			params.totalInputList = new ArrayList<>();
 			params.totalOutputList = new ArrayList<>();
-			String[] inputs = TensorFlowModel.returnInputs(sig);
-			String[] outputs = TensorFlowModel.returnOutputs(sig);
+			String[] inputs = DeepLearningModel.returnTfInputs(sig);
+			String[] outputs = DeepLearningModel.returnTfOutputs(sig);
 			pnLoad.append("p", "Number of outputs: " + outputs.length);
 			boolean valid = true;
 			try {
 				for (int i = 0; i < inputs.length; i ++) {
 					DijTensor inp = new DijTensor(inputs[i]);
-					inp.setInDimensions(TensorFlowModel.modelEntryDimensions(sig, inputs[i]));
+					inp.setInDimensions(DeepLearningModel.modelTfEntryDimensions(sig, inputs[i]));
 					params.totalInputList.add(inp);
 				}
 				for (int i = 0; i < outputs.length; i ++) {
 					DijTensor out = new DijTensor(outputs[i]);
-					out.setInDimensions(TensorFlowModel.modelExitDimensions(sig, outputs[i]));
+					out.setInDimensions(DeepLearningModel.modelTfExitDimensions(sig, outputs[i]));
 					params.totalOutputList.add(out);
 				}
 			}
@@ -182,7 +183,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		pnLoad.setCaretPosition(0);
 		pnLoad.setText("");
 		pnLoad.append("p", "Loading available Tensorflow version.");
-		String loadInfo = TensorFlowModel.loadLibrary();
+		String loadInfo = StartTensorflowService.loadTfLibrary();
 		// If loadlLibrary() returns 'ImageJ', the plugin is running
 		// on an ImageJ1 instance
 		parent.setFiji(!loadInfo.contains("ImageJ"));
@@ -198,8 +199,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		Parameters params = parent.getDeepPlugin().params;
 		cmbTags.removeAllItems();
 		cmbGraphs.removeAllItems();
-		//architecture.clear();
-		String tfVersion = TensorFlowModel.getTFVersion(parent.getFiji());
+		String tfVersion = DeepLearningModel.getTFVersion(parent.getFiji());
 		pnLoad.clear();
 		pnLoad.append("h2", "Tensorflow version");
 		if (loadInfo.toLowerCase().contains("gpu"))
@@ -217,7 +217,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		if (tfVersion.contains("GPU"))
 			cudaVersion = SystemUsage.getCUDAEnvVariables();
 		else
-			parent.setGPU("CPU");
+			parent.setGPUTf("CPU");
 		// If a CUDA distribution was found, cudaVersion will be equal
 		// to the CUDA version. If not it can be either 'noCuda', if CUDA 
 		// is not installed, or if there is a CUDA_PATH in the environment variables
@@ -225,7 +225,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		// environment variables
 		if (tfVersion.contains("GPU") && !cudaVersion.contains(File.separator) && !cudaVersion.contains("---")) {
 			pnLoad.append("p", "Currently using CUDA " + cudaVersion);
-			pnLoad.append("p", TensorFlowModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
+			pnLoad.append("p", DeepLearningModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
 		} else if (tfVersion.contains("GPU") && !cudaVersion.contains(File.separator) && cudaVersion.contains("---")) {
 			// In linux several CUDA versions are allowed. These versions will be separated by "---"
 			String[] versions = cudaVersion.split("---");
@@ -235,9 +235,9 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 				for (String str : versions)
 					pnLoad.append("p", "Found CUDA " + str);
 			}
-			pnLoad.append("p", TensorFlowModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
+			pnLoad.append("p", DeepLearningModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
 		} else if (tfVersion.contains("GPU") && (cudaVersion.contains("bin") || cudaVersion.contains("libnvvp"))) {
-			pnLoad.append("p", TensorFlowModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
+			pnLoad.append("p", DeepLearningModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
 			String[] outputs = cudaVersion.split(";");
 			pnLoad.append("p", "Found CUDA distribution " + outputs[0] + ".\n");
 			pnLoad.append("p", "Could not find environment variable:\n - " + outputs[1] + "\n");
@@ -246,7 +246,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			pnLoad.append("p", "Please add the missing environment variables to the path.\n");
 		} else if (tfVersion.contains("GPU") && cudaVersion.equals("noCUDA")) {
 			pnLoad.append("p", "No CUDA distribution found.\n");
-			parent.setGPU("CPU");
+			parent.setGPUTf("CPU");
 		}
 		pnLoad.append("h2", "Model info");
 		File file = new File(params.path2Model);
@@ -267,12 +267,12 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		ArrayList<String> initialSmi = null;
 		ArrayList<String> finalSmi = null;
 		try {
-			if (tfVersion.contains("GPU") && parent.getGPU().equals(""))
+			if (tfVersion.contains("GPU") && parent.getGPUTf().equals(""))
 				initialSmi = SystemUsage.runNvidiaSmi();
 			double chrono = System.nanoTime();
-			info = TensorFlowModel.findTag(params.path2Model);
+			info = DeepLearningModel.findTfTag(params.path2Model);
 			time = System.nanoTime() - chrono;
-			if (tfVersion.contains("GPU") && parent.getGPU().equals(""))
+			if (tfVersion.contains("GPU") && parent.getGPUTf().equals(""))
 				finalSmi = SystemUsage.runNvidiaSmi();
 		} catch (Exception ex) {
 			pnLoad.clear();
@@ -290,16 +290,16 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		pnLoad.append(" -> Loaded!!!</p>");
 		
 		// Check if the model has been loaded on GPU
-		if (tfVersion.contains("GPU") && !parent.getGPU().equals("GPU")) {
+		if (tfVersion.contains("GPU") && !parent.getGPUTf().equals("GPU")) {
 			String GPUInfo = SystemUsage.isUsingGPU(initialSmi, finalSmi);
 			// TODO if the CUDA version is not compatible with the TF version,
 			// it is impossible to load the model on GPU
 			if (GPUInfo.equals("noImageJProcess") && !cudaVersion.contains(File.separator)) {
 				pnLoad.append("p", "Unable to run nvidia-smi to check if the model was loaded on a GPU.\n");
-				parent.setGPU("???");
+				parent.setGPUTf("???");
 			} else if (GPUInfo.equals("noImageJProcess")) {
 				pnLoad.append("p", "Unable to load model on GPU.\n");
-				parent.setGPU("CPU");
+				parent.setGPUTf("CPU");
 			} else if(GPUInfo.equals("¡RepeatedImageJGPU!")) {
 				int nImageJInstances = SystemUsage.numberOfImageJInstances();
 				// Get number of IJ instances using GPU
@@ -308,18 +308,18 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 					pnLoad.append("p", "Found " + nGPUIJInstances + "instances of ImageJ/Fiji using GPU"
 							+ " out of the " + nImageJInstances + " opened.\n");
 					pnLoad.append("p", "Could not assert that the model was loaded on the <b>GPU</b>.\n");
-					parent.setGPU("???");
+					parent.setGPUTf("???");
 				} else if (nImageJInstances <= nGPUIJInstances) {
 					pnLoad.append("p", "Model loaded on the <b>GPU</b>.\n");
 					if (cudaVersion.contains("bin") || cudaVersion.contains("libnvvp"))
 						pnLoad.append("p", "Note that with missing environment variables, GPU performance might not be optimal.\n");
-					parent.setGPU("GPU");
+					parent.setGPUTf("GPU");
 				}
 			} else {
 				pnLoad.append("p", "Model loaded on the <b>GPU</b>.\n");
 				if (cudaVersion.contains("bin") || cudaVersion.contains("libnvvp"))
 					pnLoad.append("p", "Note that due to missing environment variables, GPU performance might not be optimal.\n");
-				parent.setGPU("GPU");
+				parent.setGPUTf("GPU");
 			}
 		} else if (tfVersion.contains("GPU")) {
 			pnLoad.append("p", "Model loaded on the <b>GPU</b>.\n");
@@ -330,19 +330,19 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		String tag = (String) info[0];
 		if (tag != null) {
 			params.tag = tag;
-			String tfTag = TensorFlowModel.returnTfTag(tag);
+			String tfTag = DeepLearningModel.returnTfTag(tag);
 			cmbTags.addItem(tfTag);
 			cmbTags.setEditable(false);
 			SavedModelBundle model = null;
 			if (!(info[2] instanceof SavedModelBundle)) {
-				model = TensorFlowModel.load(params.path2Model, params.tag, log);
+				model = DeepLearningModel.loadTf(params.path2Model, params.tag, log);
 			} else {
 				model = (SavedModelBundle) info[2];
 				addLoadInfo(params, time);
 			}
 			parent.getDeepPlugin().setTfModel(model);
 			try {
-				params.graphSet = TensorFlowModel.metaGraphsSet(model);
+				params.graphSet = DeepLearningModel.metaGraphsSet(model);
 			} catch (Exception ex) {
 				ex.printStackTrace();
 				IJ.error("DeepImageJ could not load the model,\n"
@@ -355,7 +355,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 				return;
 			}
 			if (params.graphSet.size() > 0) {
-				Set<String> tfGraphSet = TensorFlowModel.returnTfSig(params.graphSet);
+				Set<String> tfGraphSet = DeepLearningModel.returnTfSig(params.graphSet);
 				for (int i = 0; i < params.graphSet.size(); i++) {
 					cmbGraphs.addItem((String) tfGraphSet.toArray()[i]);
 					cmbGraphs.setEditable(false);

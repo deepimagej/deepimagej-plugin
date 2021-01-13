@@ -164,7 +164,7 @@ public class DeepImageJ {
 		double chrono = System.nanoTime();
 		SavedModelBundle model;
 		try {
-			model = SavedModelBundle.load(path, TensorFlowModel.returnStringTag(params.tag));
+			model = SavedModelBundle.load(path, DeepLearningModel.returnStringTag(params.tag));
 			setTfModel(model);
 		}
 		catch (Exception e) {

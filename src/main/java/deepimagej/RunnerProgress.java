@@ -83,7 +83,33 @@ public class RunnerProgress extends JDialog implements ActionListener {
 	
 
 	public RunnerProgress(DeepImageJ dp, String info) {
-		new RunnerProgress(dp, info, null);
+		super(new JFrame(), "Run DeepImageJ");
+		name = dp.getName();
+		JPanel prog = new JPanel(layout);
+		place(prog, 0, 1, 0, title);
+		place(prog, 1, 1, 0, time);
+		infoTag = info;
+		// TODO show tag GPU all the time or only when there is a GPU
+		//sif (!GPU.equals("CPU")) 
+		place(prog, 2, 1, 0, processor);
+		place(prog, 3, 1, 0, peak);
+		place(prog, 4, 1, 0, memory);
+		place(prog, 5, 1, 0, patches);
+		place(prog, 7, 1, 0, bnStop);
+		info();
+		JPanel panel = new JPanel(layout);
+		place(panel, 0, 0, 10, prog);
+		
+		add(panel);
+		setResizable(false);
+		pack();
+		GUI.center(this);
+
+		bnStop.addActionListener(this);
+		clock = new Clock();
+		chrono = System.nanoTime();
+		timer.scheduleAtFixedRate(clock, 0, 300);
+		stop = false;
 	}
 	
 	public RunnerProgress(DeepImageJ dp, String info, ExecutorService serv) {

@@ -58,7 +58,7 @@ import javax.swing.JScrollPane;
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
 import deepimagej.Parameters;
-import deepimagej.TensorFlowModel;
+import deepimagej.DeepLearningModel;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.Index;
@@ -239,7 +239,7 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 				IJ.error("Repetition is not allowed in input");
 				return false;
 			}
-			if (TensorFlowModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
+			if (DeepLearningModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
 				IJ.error("The plugin only supports models with batch size (N) = 1");
 				return false;
 			}
@@ -272,7 +272,7 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 				IJ.error("Repetition is not allowed in input");
 				return false;
 			}
-			if (TensorFlowModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
+			if (DeepLearningModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
 				IJ.error("The plugin only supports models with batch size (N) = 1");
 				return false;
 			}

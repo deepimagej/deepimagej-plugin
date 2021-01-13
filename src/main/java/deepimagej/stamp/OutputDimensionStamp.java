@@ -487,7 +487,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		firstRow.place(0, 0, firstLabel);
 		
 		for (int i = 0; i < dimValues.length; i ++) {
-			JLabel dimLetter1 = new JLabel(dims[i]);
+			JLabel dimLetter1 = new JLabel(dims[i].toLowerCase().contains("z") ? "N/i/z" : dims[i]);
 			JTextField txt1;
 			
 			int auxInd = params.outputList.get(outputCounter).form.indexOf(dims[i]);

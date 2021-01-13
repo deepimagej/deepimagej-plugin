@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
@@ -229,6 +230,9 @@ public class FileTools {
         }
     }
 	
+    /*
+     * Unzip zip file 'source' into a file in the path 'outPath'
+     */
     public static void unzipFolder(File source, String outPath) throws IOException, InterruptedException {
  	    try (ZipInputStream zis = new ZipInputStream(new FileInputStream(source))) {
 
@@ -254,10 +258,11 @@ public class FileTools {
  	                    int bufferSize = Math.toIntExact(entry.getSize());
  	                    byte[] buffer = new byte[bufferSize > 0 ? bufferSize : 4096];
  	                    int location;
-
+ 	                    
  	                    while ((location = zis.read(buffer)) != -1 && !Thread.interrupted()) {
  	                        bos.write(buffer, 0, location);
  	                    }
+ 	                    
  	                    // If the exit of the while loo has been due to a
  	                    // thread interruption, throw exception
  	     	           if ((location = zis.read(buffer)) != -1) {

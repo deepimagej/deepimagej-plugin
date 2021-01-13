@@ -175,11 +175,11 @@ public class DownloadProgress extends JDialog implements ActionListener {
 		String progress = "" + 0;
 		long currentFileSize = new File(fileName).length();
 		progress = Math.round(currentFileSize * 100 / totalFileSize) + "";
-		
-		downloadedSize.setText("Download progress: " + progress + "%");
-		
-		if (currentFileSize == totalFileSize)
-			stop();
+
+		if (currentFileSize < totalFileSize)
+			downloadedSize.setText("Download progress: " + progress + "%");
+		else
+			downloadedSize.setText("Unzipping model");
 	}
 	
 	public class Clock extends TimerTask {

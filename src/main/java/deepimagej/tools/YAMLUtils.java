@@ -61,7 +61,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import deepimagej.DeepImageJ;
 import deepimagej.Parameters;
-import deepimagej.TensorFlowModel;
+import deepimagej.DeepLearningModel;
 import deepimagej.stamp.TfSaveStamp;
 import ij.IJ;
 
@@ -244,9 +244,9 @@ public class YAMLUtils {
 		if (params.framework.contains("Tensorflow")) {
 			Map<String, Object> modelKeys = new LinkedHashMap<>();
 			// Model tag
-			modelKeys.put("tensorflow_model_tag", TensorFlowModel.returnTfTag(params.tag));
+			modelKeys.put("tensorflow_model_tag", DeepLearningModel.returnTfTag(params.tag));
 			// Model signature definition
-			modelKeys.put("tensorflow_siganture_def", TensorFlowModel.returnTfSig(params.graph));
+			modelKeys.put("tensorflow_siganture_def", DeepLearningModel.returnTfSig(params.graph));
 			deepimagej.put("model_keys", modelKeys);
 		} else if (params.framework.contains("Pytorch")) {
 			deepimagej.put("model_keys", null);

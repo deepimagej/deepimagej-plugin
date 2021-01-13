@@ -58,7 +58,6 @@ public class BioimageZooRepository {
 
 
 	public String url = "https://bioimage.io/";
-	//public String location = "https://raw.githubusercontent.com/bioimage-io/bioimage-io-models/master/manifest.bioimage.io.json";
 	public String location = "https://raw.githubusercontent.com/bioimage-io/bioimage-io-models/gh-pages/manifest.bioimage.io.json";
 	public String title = "Bioimage Zoo";
 	public String name = "Bioimage Zoo";
@@ -152,7 +151,6 @@ public class BioimageZooRepository {
 	private String getCSV(JsonObject json, String tag) {
 		String csv = "";
 		int count = 0;
-		long aa = System.nanoTime();
 		if (json.get(tag).isJsonArray()) {
 			JsonArray objects = json.get(tag).getAsJsonArray();
 			for (JsonElement o : objects) {
@@ -163,7 +161,6 @@ public class BioimageZooRepository {
 				}
 			}
 		}
-		System.out.println(System.nanoTime() - aa);
 		return csv;
 	}
 
