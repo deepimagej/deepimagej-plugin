@@ -289,45 +289,20 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		lblName.setText("Output name: " + params.outputList.get(outputCounter).name);
 		lblType.setText("Output type: " + params.outputList.get(outputCounter).tensorType);
 		// Reinitialise all the params
-		pnOutputInfo.removeAll();
-		firstRow.removeAll();
-		secondRow.removeAll();
-		thirdRow.removeAll();
-		firstRowList = new ArrayList<JTextField>();
-		secondRowList = new ArrayList<JTextField>();
-		thirdRowList = new ArrayList<JTextField>();
+		pnOutputInfo.removeAll(); firstRow.removeAll(); secondRow.removeAll(); thirdRow.removeAll();
+		firstRowList = new ArrayList<JTextField>(); secondRowList = new ArrayList<JTextField>(); thirdRowList = new ArrayList<JTextField>();
 		pn.remove(0);
 		if (params.outputList.get(outputCounter).tensorType.contains("image") && !params.pyramidalNetwork) {
-			// Build the panel
-			HTMLPane info = new HTMLPane(Constants.width, 150);
-			// TODO put this in a method
-			info.append("h", "<b>Output size constraints</b><ul>");
-			info.append("li", "<p>output size = input size * scale + offset</p>");
-			info.append("li", "<p>valid output size = input size * scale + offset - 2*halo</p>");
-			info.append("</ul>");
-			info.append("p", "<b>Scaling factor</b>: the factor by which the output image "
-					+ "dimensions are rescaled. E.g. in superresolution, if the output size "
-					+ "is twice the size of the input, the scaling factor should be [2,2]. See the equation.");
-			info.append("p", "<b>Offset factor</b>: Difference between the input and output size. Note that "
-					+ "this is different from a scaling factor. See the equation.");
-			info.append("p", "<b>Halo facto</b>: Size of the receptive field of one pixel in the "
-					+ "network used to avoid artifacts along the borders of the image. If the "
-					+ "convolutions inside the network do not use padding, set this value to 0.");
-			pn.add(info.getPane(), 0);
+			// Build panel for image
+			writeInfoText("image");
 			getPanelForImage(params);
 		} else if (params.outputList.get(outputCounter).tensorType.contains("image") && params.pyramidalNetwork) {
-			// Build the panel
-			HTMLPane info = new HTMLPane(Constants.width, 150);
-			info.append("h", "<b>Output size constraints</b>");
-			info.append("p", "<b>Output size</b>: Fixed output size of the model");
-			pn.add(info.getPane(), 0);
+			// Build panel for pyramidal net
+			writeInfoText("pyramidalImage");
 			getPanelForImagePyramidalNet(params);
 		}else if (params.outputList.get(outputCounter).tensorType.contains("list")) {
-			HTMLPane info = new HTMLPane(Constants.width, 150);
-			info.append("h", "<b>Output size constraints</b>");
-			info.append("p", "<b>Choose the dimension corresponding to rows and the dimension "
-					+ "corresponding to columns.");
-			pn.add(info.getPane(), 0);
+			// Build panel for list
+			writeInfoText("list");
 			getPanelForList(params);
 		} else {
 			outputCounter ++;
@@ -643,6 +618,33 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 			}
 		}
 		return fixed;
+	}
+	
+	public static void writeInfoText(String definition) {
+		HTMLPane info = new HTMLPane(Constants.width, 150);
+		if (definition.contains("image")) {
+			// TODO put this in a method
+			info.append("h", "<b>Output size constraints</b><ul>");
+			info.append("li", "<p>output size = input size * scale + offset</p>");
+			info.append("li", "<p>valid output size = input size * scale + offset - 2*halo</p>");
+			info.append("</ul>");
+			info.append("p", "<b>Scaling factor</b>: the factor by which the output image "
+					+ "dimensions are rescaled. E.g. in superresolution, if the output size "
+					+ "is twice the size of the input, the scaling factor should be [2,2]. See the equation.");
+			info.append("p", "<b>Offset factor</b>: Difference between the input and output size. Note that "
+					+ "this is different from a scaling factor. See the equation.");
+			info.append("p", "<b>Halo facto</b>: Size of the receptive field of one pixel in the "
+					+ "network used to avoid artifacts along the borders of the image. If the "
+					+ "convolutions inside the network do not use padding, set this value to 0.");
+		} else if (definition.contains("pyramidalImage")) {
+			info.append("h", "<b>Output size constraints</b>");
+			info.append("p", "<b>Output size</b>: Fixed output size of the model");
+		} else if (definition.contains("list")) {
+			info.append("h", "<b>Output size constraints</b>");
+			info.append("p", "<b>Choose the dimension corresponding to rows and the dimension "
+					+ "corresponding to columns.");
+		} 
+		pn.add(info.getPane(), 0);
 	}
 
 	@Override

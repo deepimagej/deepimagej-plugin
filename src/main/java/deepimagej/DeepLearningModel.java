@@ -38,12 +38,15 @@
 package deepimagej;
 
 import java.io.File;
+import java.net.JarURLConnection;
+import java.net.URL;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.tensorflow.SavedModelBundle;
+import org.tensorflow.TensorFlow;
 import org.tensorflow.TensorFlowException;
 import org.tensorflow.framework.MetaGraphDef;
 import org.tensorflow.framework.SignatureDef;
@@ -53,6 +56,7 @@ import org.tensorflow.framework.TensorShapeProto.Dim;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import ai.djl.pytorch.jni.NativeHelper;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
@@ -442,9 +446,17 @@ public class DeepLearningModel {
 	 * where X.Y.Z is the version number
 	 */
 	public static String getPytorchVersion() {
-		String ptJni = getLibPytorchJar();
-		if (!ptJni.contains("jar"))
-			return ptJni;
+		String ptJni = "";
+		try {
+			URL resource = NativeHelper.class.getResource("NativeHelper.class");
+			JarURLConnection connection = null;
+			connection = (JarURLConnection) resource.openConnection();
+			ptJni = connection.getJarFileURL().getFile();
+		} catch (Exception e) {
+			ptJni = getLibPytorchJar();
+			if (!ptJni.contains("jar"))
+				return ptJni;
+		}
 		String ptVersion = getPytorchVersionFromJar(ptJni);
 		return ptVersion;	
 	}
@@ -526,7 +538,7 @@ public class DeepLearningModel {
 		String folderName = new File(jar).getParent();
 		String jarName = folderName + File.pathSeparator + "pytorch-native-auto-";
 		String jarExt = ".jar";
-		String tfVersion = jar.substring(jarName.length(), jar.indexOf(jarExt));
+		String tfVersion = jar.substring(jarName.length() + 1, jar.indexOf(jarExt));
 		return tfVersion;
 	}
 	
@@ -548,10 +560,22 @@ public class DeepLearningModel {
 	 *.jars might be: in the plugins folder or in the jars folder
 	 */
 	public static String getTFVersionIJ() {
-		String tfJni = getLibTfJar();
-		if (!tfJni.contains("jar"))
-			return tfJni;
+		String tfJni = "";
+		try {
+			URL resource = TensorFlow.class.getResource("TensorFlow.class");
+			JarURLConnection connection = null;
+			connection = (JarURLConnection) resource.openConnection();
+			tfJni = connection.getJarFileURL().getFile();
+		} catch (Exception e) {
+			tfJni = getLibTfJar();
+			if (!tfJni.contains("jar"))
+				return tfJni;
+		}
 		String tfVersion = getTfVersionFromJar(tfJni);
+		
+		if (tfVersion.contains("gpu")) {
+			tfVersion = tfVersion.substring(tfVersion.toLowerCase().indexOf("gpu_") + 4) + " GPU";
+		}
 		return tfVersion;	
 	}
 
@@ -576,7 +600,7 @@ public class DeepLearningModel {
 			return "-No Tensorflow version found-";
 		} else if (jarsJar.toLowerCase().contains("more than 1 version") || pluginsJar.toLowerCase().contains("more than 1 version")) {
 			return "-More than one tensorflow version present-";
-		} else if (jarsJar.toLowerCase().contains("tensorflow") && jarsJar.toLowerCase().contains("tensorflow") && !jarsJar.equals(pluginsJar)) {
+		} else if (jarsJar.toLowerCase().contains("tensorflow") && pluginsJar.toLowerCase().contains("tensorflow") && !jarsJar.equals(pluginsJar)) {
 			return "-The plugins and jars directories contains a different version of TF each-";
 		}
 

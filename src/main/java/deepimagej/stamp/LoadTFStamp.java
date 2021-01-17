@@ -183,7 +183,11 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		pnLoad.setCaretPosition(0);
 		pnLoad.setText("");
 		pnLoad.append("p", "Loading available Tensorflow version.");
-		String loadInfo = StartTensorflowService.loadTfLibrary();
+		String loadInfo = "ImageJ";
+		boolean isFiji = SystemUsage.checkFiji();
+		if (isFiji)
+			loadInfo = StartTensorflowService.loadTfLibrary();
+		
 		// If loadlLibrary() returns 'ImageJ', the plugin is running
 		// on an ImageJ1 instance
 		parent.setFiji(!loadInfo.contains("ImageJ"));
@@ -372,6 +376,10 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		// If we loaded either a Bioimage Zoo or Tensoflow model we continue
 		parent.setEnabledBackNext(true);
 	}
+	
+	/*
+	 * Check if the classes 
+	 */
 
 	/*
 	 * Add load information to the panel

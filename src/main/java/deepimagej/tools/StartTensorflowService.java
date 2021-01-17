@@ -39,23 +39,17 @@ package deepimagej.tools;
 import org.scijava.Context;
 
 import ij.IJ;
-import net.imagej.tensorflow.DefaultTensorFlowService;
 import net.imagej.tensorflow.TensorFlowService;
 
 public class StartTensorflowService {
 	
-	private static TensorFlowService tfService = new DefaultTensorFlowService();
+	private static TensorFlowService tfService;
     private static Context ctx;
 
 	static {
-		try {
-			ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
-			if (ctx == null) ctx = new Context(TensorFlowService.class);
-			tfService = ctx.service(TensorFlowService.class);
-		} catch (Exception ex) {
-			// If we are not in an ImageJ2/Fiji instance we
-			// will not be able to initialise any service
-		}
+		ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
+		if (ctx == null) ctx = new Context(TensorFlowService.class);
+		tfService = ctx.service(TensorFlowService.class);
 	}
 
 	/*
@@ -64,21 +58,17 @@ public class StartTensorflowService {
 	 * from the jars library using libtensorflow.jar and libtensorflow_jni.jar
 	 */
 	public static String loadTfLibrary() {
-		try {
-			if (!tfService.getStatus().isLoaded()) {
-				tfService.initialize();
-				tfService.loadLibrary();
-				if (tfService.getStatus().isLoaded()) {
-					return tfService.getStatus().getInfo();
-				} else {
-					IJ.log(tfService.getStatus().getInfo());
-					return "";
-				}
+		if (!tfService.getStatus().isLoaded()) {
+			tfService.initialize();
+			tfService.loadLibrary();
+			if (tfService.getStatus().isLoaded()) {
+				return tfService.getStatus().getInfo();
+			} else {
+				IJ.log(tfService.getStatus().getInfo());
+				return "";
 			}
-			return tfService.getStatus().getInfo();
-		} catch (Exception ex) {
-			return "ImageJ";
 		}
+		return tfService.getStatus().getInfo();
 	}
 	
 	public static TensorFlowService getTfService() {

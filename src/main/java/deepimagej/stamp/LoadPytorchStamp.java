@@ -195,12 +195,17 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 			pnLoad.append("p", "No CUDA distribution found.\n");
 			parent.setGPUTf("CPU");
 		}
-		pnLoad.append("p", DeepLearningModel.TensorflowCUDACompatibility(ptVersion, cudaVersion));
+		pnLoad.append("p", DeepLearningModel.PytorchCUDACompatibility(ptVersion, cudaVersion));
 		pnLoad.append("h2", "Model info");
 		pnLoad.append("p", "Path: " + params.selectedModelPath);
 		pnLoad.append("<p>Loading model...");
 		
 		// Load the model using DJL
+		boolean isFiji = SystemUsage.checkFiji();
+		// If the plugin is running on an IJ1 distribution, set the IJ classloader
+		// as the Thread ContextClassLoader
+		if (isFiji)
+			Thread.currentThread().setContextClassLoader(IJ.getClassLoader());
 		// TODO allow the use of translators and transforms
 		URL url;
 		// Block back button while loading
@@ -262,14 +267,15 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 				pnLoad.append("p", "If you already have installed VS2019 redistributables, the error\n"
 								+ "might be caused by a missing dependency or an incompatible Pytorch version.");
 				pnLoad.append("p", "Please check the DeepImageJ Wiki.");
-			} else if(err.contains("https://github.com/awslabs/djl/blob/master/docs/development/troubleshooting.md")){
+			} else if((os.contains("linux") || os.contains("unix")) && err.contains("https://github.com/awslabs/djl/blob/master/docs/development/troubleshooting.md")){
 				pnLoad.append("p", "DeepImageJ could not load the model.");
 				pnLoad.append("p", "The problem might be caused by a missing dependency or an incompatible Pytorch version.");
-				pnLoad.append("p", "Please check the DeepImageJ Wiki.");
-			}else {
+				pnLoad.append("p", "Check that there are no repeated dependencies on the jars folder.");
+				pnLoad.append("p", "If the problem persists, please check the DeepImageJ Wiki.");
+			} else {
 				pnLoad.append("p", "DeepImageJ could not load the model");
-				pnLoad.append("p", "It seems that the Torchscript model was created with Pytorch>1.6.0.");
-				pnLoad.append("p", "Currently DeepImageJ only supports models created with Pytorch<=1.6.0.");
+				pnLoad.append("p", "It seems that the Torchscript model corresponds to an incompatible Pytorch version.");
+				pnLoad.append("p", "Please check the DeepImageJ Wiki.");
 			}
 			parent.setEnabledBack(true);
 			e.printStackTrace();

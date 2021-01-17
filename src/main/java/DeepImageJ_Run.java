@@ -78,13 +78,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import ai.djl.Device;
 
 
-public class DeepImageJ_Run implements PlugIn, ItemListener {
+public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 
-	private TextArea					info		= new TextArea("Information on the model", 13, 58, TextArea.SCROLLBARS_BOTH);
-	//private TextArea					shapeSpec	= new TextArea("Shape specifications", 6, 58, TextArea.SCROLLBARS_BOTH);
+	private TextArea					info		= new TextArea("Please wait until Tensorflow and Pytorch are loaded...", 13, 58, TextArea.SCROLLBARS_BOTH);
 	private Choice[]					choices		= new Choice[5];
 	private TextField[]	    			texts		= new TextField[2];
 	private Label[]						labels		= new Label[8];
@@ -97,8 +95,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	private HashMap<String, String>		fullnames	= new HashMap<String, String>();
 	private String 						loadInfo 	= ""; 
 	private String						cudaVersion = "noCUDA";
-	
+
 	private boolean 					batch		= true;
+	private boolean 					loadedEngine= false;
 	
 	static public void main(String args[]) {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
@@ -140,6 +139,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				}
 				return;
 			}
+			
+			// Load Deep Learning engines in a separate thread
+			Thread thread = new Thread(this);
+			thread.start();
+			
 			info.setEditable(false);
 			
 			BorderPanel panel = new BorderPanel();
@@ -174,7 +178,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			dlg.addPanel(panel);
 			String msg = "Note: the output of a deep learning model strongly depends on the\n"
 				+ "data and the conditions of the training process. A pre-trained model\n"
-				+ "may require a re-training. Please, check the documentation of this\n"
+				+ "may require re-training. Please, check the documentation of this\n"
 				+ "model to get user guidelines: Help button.";
 			
 			Font font = new Font("Helvetica", Font.BOLD, 12);
@@ -199,43 +203,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 			}
 			texts[0].setEditable(false);
 			texts[1].setEditable(false);
-			
-			loadInfo = StartTensorflowService.loadTfLibrary();
-			// If the version allows GPU, find if there is CUDA
-			if (loadInfo.contains("GPU")) 
-				cudaVersion = SystemUsage.getCUDAEnvVariables();
-			
-			if (loadInfo.equals("")) {
-				info.setCaretPosition(0);
-				info.append("No Tensorflow library found.\n");
-				info.append("Please install a new Tensorflow version.\n");
-				choices[0].setEnabled(false);
-			} else if (loadInfo.equals("ImageJ")) {
-				info.setCaretPosition(0);
-				info.setText("");
-				loadInfo = "Using default TensorFlow version from JAR: TF ";
-				loadInfo += DeepLearningModel.getTFVersion(false);
-				if (!loadInfo.contains("GPU"))
-					loadInfo += "_CPU";
-				loadInfo += "..\n";
-				loadInfo += "To change the TF version download the corresponding\n"
-						  + "libtensorflow and libtensorflow_jni jars and place\n"
-						  + "them in the plugins folder";
-				
-				info.append(loadInfo);
-				getCUDAInfo(loadInfo, cudaVersion);
-				info.append("<Please select a model>\n");
-			} else {
-				info.setCaretPosition(0);
-				info.setText("");
-				loadInfo += ".\n";
-				loadInfo += "To change the TF version go to Edit>Options>Tensorflow";
-				info.append(loadInfo + "\n");
-				getCUDAInfo(loadInfo, cudaVersion);
-				info.append("<Please select a model>\n");	
-			}	
+
+			// Set the 'ok' button and the model choice
+			// combo box disabled until Tf and Pt are loaded
+			choices[0].setEnabled(loadedEngine);
 			
 			dlg.showDialog();
+			
 			if (dlg.wasCanceled()) {
 				// Close every model that has been loaded
 				for (String kk : dps.keySet()) {
@@ -247,8 +221,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 				return;
 			}
 			
-			if (choices[0].getSelectedIndex() == 0) {
+			if (choices[0].getSelectedIndex() == 0 && loadedEngine) {
 				IJ.error("Please select a model.");
+				run("");
+				return;
+			} else if (choices[0].getSelectedIndex() == 0 && !loadedEngine) {
+				IJ.error("Please wait until the Deep Learning engines are loaded.");
 				run("");
 				return;
 			}
@@ -709,34 +687,86 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 	}
 	
 	/*
+	 * Loading Tensorflow with the ImageJ-Tensorflow Manager and Pytorch with
+	 * the DJL takes some time. Normally the GUI would not sho until everything is loaded.
+	 *  In order to show the DeepImageJ Run GUI fast, Tf and Pt are loaded in a separate thread.
+	 */
+	public void loadTfAndPytorch() {
+		
+		loadInfo = "ImageJ";
+		boolean isFiji = SystemUsage.checkFiji();
+		// First load Tensorflow
+		if (isFiji) {
+			loadInfo = StartTensorflowService.loadTfLibrary();
+		} else {
+			// In order to Pytorch to work we have to set
+			// the IJ ClassLoader as the ContextClassLoader
+			Thread.currentThread().setContextClassLoader(IJ.getClassLoader());
+		}
+		// If the version allows GPU, find if there is CUDA
+		if (loadInfo.contains("GPU")) 
+			cudaVersion = SystemUsage.getCUDAEnvVariables();
+		
+		if (loadInfo.equals("")) {
+			loadInfo += "No Tensorflow library found.\n";
+			loadInfo += "Please install a new Tensorflow version.\n";
+		} else if (loadInfo.equals("ImageJ")) {
+			loadInfo = "Using default TensorFlow version from JAR: TF ";
+			loadInfo += DeepLearningModel.getTFVersion(false);
+			if (!loadInfo.contains("GPU"))
+				loadInfo += "_CPU";
+			loadInfo += ".\n";
+			loadInfo += "To change the TF version download the corresponding\n"
+					  + "libtensorflow and libtensorflow_jni jars and place\n"
+					  + "them in the plugins folder.";
+			loadInfo += "For more info check DeepImageJ Wiki.\n";
+		} else {
+			loadInfo += ".\n";
+			loadInfo += "To change the TF version go to Edit>Options>Tensorflow.\n";
+		}	
+		// Then find Pytorch the Pytorch version
+		String ptVersion = DeepLearningModel.getPytorchVersion();
+		loadInfo += "\n";
+		loadInfo += "Currently using Pytorch " + ptVersion + ".\n";
+		loadInfo += "Supported by Deep Java Library " + ptVersion + ".\n";
+
+		getCUDAInfo(loadInfo, ptVersion, cudaVersion);
+		loadInfo += "<Please select a model>\n";
+		info.setText(loadInfo);
+		loadedEngine = true;
+		choices[0].setEnabled(true);
+	}
+	
+	/*
 	 * Find out which CUDA version it is being used and if its use is viable toguether with
 	 * Tensorflow
 	 */
-	public void getCUDAInfo(String tfVersion, String cudaVersion) {
+	public void getCUDAInfo(String tfVersion, String ptVersion, String cudaVersion) {
 
-		if (tfVersion.contains("GPU") && !cudaVersion.contains(File.separator)) {
-			info.append("Currently using CUDA " + cudaVersion);
-			info.append(DeepLearningModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
-		} else if (tfVersion.contains("GPU") && (cudaVersion.contains("bin") || cudaVersion.contains("libnvvp"))) {
-			info.append(DeepLearningModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
+		loadInfo += "\n";
+		if (!cudaVersion.contains(File.separator) && !cudaVersion.toLowerCase().equals("nocuda")) {
+			loadInfo += "Currently using CUDA " + cudaVersion + ".\n";
+			if (tfVersion.contains("GPU"))
+				loadInfo += DeepLearningModel.TensorflowCUDACompatibility(tfVersion, cudaVersion) + ".\n";
+			loadInfo += DeepLearningModel.PytorchCUDACompatibility(ptVersion, cudaVersion) + ".\n";
+		} else if ((cudaVersion.contains("bin") || cudaVersion.contains("libnvvp")) && !cudaVersion.toLowerCase().equals("nocuda")) {
 			String[] outputs = cudaVersion.split(";");
-			info.append("Found CUDA distribution " + outputs[0] + ".\n");
-			info.append("Could not find environment variable:\n - " + outputs[1] + "\n");
+			loadInfo += "Found CUDA distribution " + outputs[0] + ".\n";
+			if (tfVersion.contains("GPU"))
+				loadInfo += DeepLearningModel.TensorflowCUDACompatibility(tfVersion, cudaVersion) + ".\n";
+			loadInfo += DeepLearningModel.PytorchCUDACompatibility(ptVersion, cudaVersion) + ".\n";
+			loadInfo += "Could not find environment variable:\n - " + outputs[1] + ".\n";
 			if (outputs.length == 3)
-				info.append("Could not find environment variable:\n - " + outputs[2] + "\n");
-			info.append("Please add the missing environment variables to the path.\n");
-		} else if (tfVersion.contains("GPU") && cudaVersion.equals("noCUDA")) {
-			info.append("No CUDA distribution found.\n");
+				loadInfo += "Could not find environment variable:\n - " + outputs[2] + ".\n";
+			loadInfo += "Please add the missing environment variables to the path.\n";
+			loadInfo += "For more info, visit DeepImageJ Wiki.\n";
+		} else if (cudaVersion.toLowerCase().equals("nocuda")) {
+			loadInfo += "No CUDA distribution found.\n";
 		}
 	}
 	
 	public void setGUIOriginalParameters() {
-		info.setCaretPosition(0);
-		info.append(loadInfo + ".\n");
-		getCUDAInfo(loadInfo, cudaVersion);
-		info.append("<Please select a model>\n");
-		int nGPUS = Device.getGpuCount();
-		info.append("GPUs available: " + nGPUS + "\n");
+		info.setText(loadInfo);
 		choices[1].removeAll();
 		choices[1].addItem("-----------------Select format-----------------");
 		choices[2].removeAll();
@@ -746,6 +776,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener {
 		texts[0].setText("");
 		texts[1].setText("");
 		texts[1].setEditable(false);
+	}
+
+	@Override
+	public void run() {
+		loadTfAndPytorch();
+		
 	}
 
 }

@@ -47,6 +47,8 @@ import java.lang.management.OperatingSystemMXBean;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import ij.IJ;
+
 public class SystemUsage {
 
 	public static String getMemoryMB() {
@@ -595,6 +597,21 @@ public class SystemUsage {
 			// If bin and libnvvp is missing return 'libnvvp' and 'bin' 
 			// separated by ';'
 			return cudaVersion + ";" + cudaPath + File.separator + "libnvvp" + ";" + cudaPath + File.separator + "bin";
+		}
+	}
+	
+	/*
+	 * Check whether the plugin is running on an IJ1 or Fiji/IJ2 distribution
+	 */
+	public static boolean checkFiji() {
+		try {
+			// Try loading the service 'net.imagej.ImageJService'. This service should
+			// always load in IJ2/Fiji but not in IJ1
+			ClassLoader cl = IJ.getClassLoader();
+			Class<?> dijClass = cl.loadClass("net.imagej.ImageJService");
+			return true;
+		} catch (Exception ex) {
+			return false;
 		}
 	}
 }
