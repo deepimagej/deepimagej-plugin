@@ -220,7 +220,7 @@ public class BuildDialog extends JDialog implements ActionListener {
 					String path = welcome.getModelDir();
 					String name = welcome.getModelName();
 					if (path != null) {
-						dp = new DeepImageJ(path, name, new Log(), true);
+						dp = new DeepImageJ(path, name, true);
 						if (dp.getTfModel() != null)
 							dp.getTfModel().close();
 						else if (dp.getTorchModel() != null)

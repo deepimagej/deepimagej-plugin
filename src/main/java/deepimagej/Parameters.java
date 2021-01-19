@@ -128,9 +128,22 @@ public class Parameters {
 	 */
 	public String saveDir;
 	
-	// Boolean informing if the config file contains the ModelCharacteristics
-	// parameters, needed to load the model
+	/*
+	 *  Boolean informing if the model file sh256 corresponds to the
+	 *  one saved specified in the model.yaml
+	 */
+	public boolean incorrectSha256 = false;
+	
+	/*
+	 *  Boolean informing if the config file contains the ModelCharacteristics
+	 *  parameters, needed to load the model
+	 */
 	public boolean completeConfig = true;
+	
+	/*
+	 * Missing fields in the yaml file
+	 */
+	public ArrayList<String> fieldsMissing = null;
 		
 	/*
 	 *  Parameters providing ModelInformation
@@ -226,12 +239,32 @@ public class Parameters {
 		// If the model is not valid or we are in the developer plugin,
 		// we cannot read the parameters from anywhere as there is no
 		// config file
-		String yamlFile = path + File.separator + "model.yaml";
+		File yamlFile = new File(path + File.separator + "model.yaml");
 		developer = isDeveloper;
-		if (developer || !new File(yamlFile).isFile())
+		if (developer || !yamlFile.isFile())
 			return;
-		Map<String, Object> obj =  YAMLUtils.readConfig(yamlFile);
-
+		Map<String, Object> obj =  YAMLUtils.readConfig(yamlFile.getAbsolutePath());
+		// Find out if there is any missing field in the yaml
+		fieldsMissing = checkYaml(obj);
+		String auxFieldsMissing = fieldsMissing.toString();
+		// List of absolutely necessary fields
+		// The fields followed by comma are intended to refer to the whole field.
+		// This is done to avoid confussion to other subfields that will
+		// be written as mainField::subField
+		String[] neededFields = new String[] {"name", "weights,", "sha256",
+				"inputs,", "axes", "shape", "min", "step", "outputs,",
+				"deepimagej,", "config,", "pyramidal_model", "allow_tiling",
+				"prediction"};
+		for (String ff : neededFields){
+			if (auxFieldsMissing.contains(ff)) {
+				if (!auxFieldsMissing.contains(ff))
+					name = new File(yamlFile.getParent()).getName();
+				else 
+					name = (String) obj.get("name");
+				completeConfig = false;
+				return;
+			}
+		}
 
 		format_version = "" + obj.get("format_version");
 		name = (String) obj.get("name");
@@ -308,113 +341,125 @@ public class Parameters {
 		Map<String, Object> test_information = (Map<String, Object>) deepimagej.get("test_information");
 		List<LinkedHashMap<String, Object>> input_information = (List<LinkedHashMap<String, Object>>) test_information.get("inputs");
 		int tensorCounter = 0;
-		
-		for (Map<String, Object> inp : inputs) {
-			DijTensor inpTensor = new DijTensor((String) inp.get("name"));
-			inpTensor.form = ((String) inp.get("axes")).toUpperCase();
-			inpTensor.dataType = (String) inp.get("data_type");
-			//TODO do we assume inputs in the yaml are always images?
-			inpTensor.tensorType = "image";
-			List<Object> auxDataRange = (ArrayList<Object>) inp.get("data_range");
-			//TODO inpTensor.dataRange = castListToDoubleArray(auxDataRange);
-			
-			// Find by trial and error if the shape of the input is fixed or not
-			try {
-				List<Object> shape = (ArrayList<Object>) inp.get("shape");
-				inpTensor.recommended_patch = castListToIntArray(shape);
-				inpTensor.tensor_shape = inpTensor.recommended_patch;
-				inpTensor.minimum_size = castListToIntArray(shape);
-				inpTensor.step = new int[shape.size()];
-				fixedInput = true;
-			} catch (Exception ex) {
-				Map<String, Object> shape = (Map<String, Object>) inp.get("shape");
-				List auxMinimumSize = (List) shape.get("min");
-				inpTensor.minimum_size = castListToIntArray(auxMinimumSize);
-				List auxStepSize = (List) shape.get("step");
-				inpTensor.step = castListToIntArray(auxStepSize);
-				inpTensor.recommended_patch = new int[auxStepSize.size()];
-				inpTensor.tensor_shape = new int[auxStepSize.size()];
-				// Recreate the tensor shape of the model with the information
-				// of the YAML
-				for (int i = 0; i < inpTensor.step.length; i ++) {
-					if (inpTensor.step[i] == 0) {
-						inpTensor.tensor_shape[i] = inpTensor.minimum_size[i];
-					} else {
-						inpTensor.tensor_shape[i] = -1;
+		try {
+			for (Map<String, Object> inp : inputs) {
+				DijTensor inpTensor = new DijTensor((String) inp.get("name"));
+				inpTensor.form = ((String) inp.get("axes")).toUpperCase();
+				inpTensor.dataType = (String) inp.get("data_type");
+				//TODO do we assume inputs in the yaml are always images?
+				inpTensor.tensorType = "image";
+				List<Object> auxDataRange = (ArrayList<Object>) inp.get("data_range");
+				//TODO inpTensor.dataRange = castListToDoubleArray(auxDataRange);
+				
+				// Find by trial and error if the shape of the input is fixed or not
+				Object objectShape = inp.get("shape");
+				if (objectShape instanceof List<?>) {
+					List<Object> shape = (List<Object>) objectShape;
+					inpTensor.recommended_patch = castListToIntArray(shape);
+					inpTensor.tensor_shape = inpTensor.recommended_patch;
+					inpTensor.minimum_size = castListToIntArray(shape);
+					inpTensor.step = new int[shape.size()];
+					fixedInput = true;
+				} else if (objectShape instanceof Map<?, ?>) {
+					Map<String, Object> shape = (Map<String, Object>) objectShape;
+					List auxMinimumSize = (List) shape.get("min");
+					inpTensor.minimum_size = castListToIntArray(auxMinimumSize);
+					List auxStepSize = (List) shape.get("step");
+					inpTensor.step = castListToIntArray(auxStepSize);
+					inpTensor.recommended_patch = new int[auxStepSize.size()];
+					inpTensor.tensor_shape = new int[auxStepSize.size()];
+					// Recreate the tensor shape of the model with the information
+					// of the YAML
+					for (int i = 0; i < inpTensor.step.length; i ++) {
+						if (inpTensor.step[i] == 0) {
+							inpTensor.tensor_shape[i] = inpTensor.minimum_size[i];
+						} else {
+							inpTensor.tensor_shape[i] = -1;
+						}
 					}
+					fixedInput = false;
 				}
-				fixedInput = false;
-			}
 
-			// Check that the output definition fields are complete
-			if (inpTensor.form == null || inpTensor.dataType == null || inpTensor.minimum_size == null
-					|| inpTensor.tensor_shape == null || inpTensor.step == null || inpTensor.recommended_patch == null) {
-				completeConfig = false;
-				return;
+				// Check that the output definition fields are complete
+				if (inpTensor.form == null || inpTensor.dataType == null || inpTensor.minimum_size == null
+						|| inpTensor.tensor_shape == null || inpTensor.step == null || inpTensor.recommended_patch == null) {
+					completeConfig = false;
+					return;
+				}
+				
+				// Now find the test information of this tensor
+				LinkedHashMap<String, Object> info = input_information.get(tensorCounter ++);
+				inpTensor.exampleInput = (String) info.get("name");
+				inpTensor.inputTestSize =  (String) info.get("size");
+				Map<String, String>  pixel_size =  (Map<String, String>) info.get("pixel_size");
+				inpTensor.inputPixelSizeX = (String) pixel_size.get("x");
+				inpTensor.inputPixelSizeY = (String) pixel_size.get("y");
+				inpTensor.inputPixelSizeZ = (String) pixel_size.get("z");
+				
+				inputList.add(inpTensor);
 			}
-			
-			// Now find the test information of this tensor
-			LinkedHashMap<String, Object> info = input_information.get(tensorCounter ++);
-			inpTensor.exampleInput = (String) info.get("name");
-			inpTensor.inputTestSize =  (String) info.get("size");
-			Map<String, String>  pixel_size =  (Map<String, String>) info.get("pixel_size");
-			inpTensor.inputPixelSizeX = (String) pixel_size.get("x");
-			inpTensor.inputPixelSizeY = (String) pixel_size.get("y");
-			inpTensor.inputPixelSizeZ = (String) pixel_size.get("z");
-			
-			inputList.add(inpTensor);
-		}
-
-		List<Map<String, Object>> outputs = (List<Map<String, Object>>) obj.get("outputs");
-		// Check that the previous version field is complete
-		if (outputs == null) {
+		} catch (Exception ex) {
+			fieldsMissing = new ArrayList<String>();
+			fieldsMissing.add("Inputs are not defined correctly");
 			completeConfig = false;
 			return;
 		}
-		outputList = new ArrayList<DijTensor>();
-		
-		for (Map<String, Object> out : outputs) {
-			DijTensor outTensor = new DijTensor((String) out.get("name"));
-			outTensor.form = (String) out.get("axes");
-			outTensor.form = outTensor.form == null ? null : outTensor.form.toUpperCase();
-			outTensor.tensorType = outTensor.form == null ? "list" : "image";
-			List auxDataRange = (List) out.get("data_range");
-			// TODO outTensor.dataRange = castListToDoubleArray(auxDataRange);
-			outTensor.dataType = (String) out.get("data_type");
-			if (outTensor.tensorType.contains("image") && !pyramidalNetwork) {
-				List auxHalo = (List) out.get("halo");
-				outTensor.halo = castListToIntArray(auxHalo);
-			} else if (outTensor.tensorType.contains("image")) {
-				outTensor.halo = new int[outTensor.form.length()];
-			}
-			
 
-			// Find by trial and error if the shape of the input is fixed or not
-			try {
-				List<Object> shape = (ArrayList<Object>) out.get("shape");
-				outTensor.recommended_patch = castListToIntArray(shape);
-				outTensor.scale = new float[shape.size()];
-				outTensor.offset = new int[shape.size()];
-				if (pyramidalNetwork)
-					outTensor.sizeOutputPyramid = outTensor.recommended_patch;
-			} catch (Exception ex) {
-				Map<String, Object> shape = (Map<String, Object>) out.get("shape");
-				outTensor.referenceImage = (String) shape.get("reference_input");
-				List auxScale = (List) shape.get("scale");
-				outTensor.scale = castListToFloatArray(auxScale);
-				List auxOffset = (List) shape.get("offset");
-				outTensor.offset = castListToIntArray(auxOffset);
-			}		
-			outTensor.form = outTensor.form == null ? Table2Tensor.findTableForm(outTensor.recommended_patch) : outTensor.form;	
-
-			// Check that the output definition fields are complete
-			if (outTensor.form == null || outTensor.dataType == null || outTensor.scale == null
-					|| outTensor.offset == null) {
-				completeConfig = false;
-				return;
-			}
+		try {
+			List<Map<String, Object>> outputs = (List<Map<String, Object>>) obj.get("outputs");
+			outputList = new ArrayList<DijTensor>();
 			
-			outputList.add(outTensor);
+			for (Map<String, Object> out : outputs) {
+				DijTensor outTensor = new DijTensor((String) out.get("name"));
+				outTensor.form = (String) out.get("axes");
+				outTensor.form = outTensor.form == null ? null : outTensor.form.toUpperCase();
+				outTensor.tensorType = outTensor.form == null ? "list" : "image";
+				List auxDataRange = (List) out.get("data_range");
+				// TODO outTensor.dataRange = castListToDoubleArray(auxDataRange);
+				outTensor.dataType = (String) out.get("data_type");
+				if (outTensor.tensorType.contains("image") && !pyramidalNetwork) {
+					List auxHalo = (List) out.get("halo");
+					outTensor.halo = castListToIntArray(auxHalo);
+				} else if (outTensor.tensorType.contains("image")) {
+					outTensor.halo = new int[outTensor.form.length()];
+				}
+				
+	
+				// Find by trial and error if the shape of the input is fixed or not
+				Object objectShape = out.get("shape");
+				if (objectShape instanceof List<?>) {
+					List<Object> shape = (ArrayList<Object>) objectShape;
+					outTensor.recommended_patch = castListToIntArray(shape);
+					outTensor.scale = new float[shape.size()];
+					outTensor.offset = new int[shape.size()];
+					if (pyramidalNetwork)
+						outTensor.sizeOutputPyramid = outTensor.recommended_patch;
+				} else if (objectShape instanceof HashMap<?,?>) {
+					Map<String, Object> shape = (Map<String, Object>) objectShape;
+					outTensor.referenceImage = (String) shape.get("reference_input");
+					List auxScale = (List) shape.get("scale");
+					outTensor.scale = castListToFloatArray(auxScale);
+					List auxOffset = (List) shape.get("offset");
+					outTensor.offset = castListToIntArray(auxOffset);
+				} else {
+					
+				}
+				outTensor.form = outTensor.form == null ? Table2Tensor.findTableForm(outTensor.recommended_patch) : outTensor.form;	
+	
+				// Check that the output definition fields are complete
+				if (outTensor.form == null || outTensor.dataType == null || outTensor.scale == null
+						|| outTensor.offset == null) {
+					completeConfig = false;
+					return;
+				}
+				
+				outputList.add(outTensor);
+			}
+		} catch(Exception ex) {
+			fieldsMissing = new ArrayList<String>();
+			fieldsMissing.add("Outputs are not defined correctly");
+			completeConfig = false;
+			return;
 		}
 		// Output test information
 		List<LinkedHashMap<String, Object>> output_information = (List<LinkedHashMap<String, Object>>) test_information.get("outputs");
@@ -503,6 +548,147 @@ public class Parameters {
 		completeConfig = true;
 		
 		
+	}
+	
+	/*
+	 * Method that checks which required fields of the yaml file are missing in the provided
+	 * file. It returns a list with the missing fields.
+	 */
+	public static ArrayList<String> checkYaml(Map<String, Object> obj) {
+		ArrayList<String> missingFields = new ArrayList<String>();
+		// Array with all the required fields for DeepImageJ
+		String[] requiredFieldsArray = new String[]{"format_version", "name", "timestamp", "description",
+				"authors", "cite", "git_repo", "tags", "license", "documentation",// TODO "attachments",  "packaged_by",
+				"inputs", "outputs", "covers", // TODO "dependencies",
+				"weights", "config"};// TODO , "spec"};
+		Set<String> yamlFields = obj.keySet();
+		List<String> dictionaryFields = Arrays.asList(new String[] {"inputs", "outputs", "config", "weights"});
+		for (String field : requiredFieldsArray) {
+			if (!yamlFields.contains(field))
+				missingFields.add(field);
+			if (dictionaryFields.contains(field)) {
+				missingFields = checkYamlDictionary(field, obj, missingFields);
+			}
+		}
+		return missingFields;
+	}
+	
+	/*
+	 * Method that checks fields inside a dictionary field of the yaml
+	 */
+	public static ArrayList<String> checkYamlDictionary(String ogField, Map<String, Object> obj, ArrayList<String> missingFields) {
+		return checkYamlDictionary(ogField, obj, missingFields, null); 
+	}
+	
+	/*
+	 * Method that checks fields inside a dictionary field of the yaml
+	 */
+	public static ArrayList<String> checkYamlDictionary(String ogField, Map<String, Object> obj, ArrayList<String> missingFields, String aux) {
+		// List of dictionaries inside each file with its required fields
+		HashMap<String, String[]> keywords = new HashMap<String, String[]>();
+		keywords.put("inShape", new String[] {"min", "step"});
+		keywords.put("outShape", new String[] {"reference_input", "scale", "offset"});
+		keywords.put("deepimagej", new String[] {"pyramidal_model", "allow_tiling", "prediction"});
+		keywords.put("weightFormat", new String[] {"source", "sha256", "test_inputs",
+				"test_outputs", "sample_inputs", "sample_outputs"});
+		keywords.put("weights", new String[] {"pytorch_script", "tensorflow_saved_model_bundle"});
+		keywords.put("config", new String[] {"deepimagej"});
+		Set<String> yamlFields = null;
+		HashMap<String, Object> dict = null;
+
+		if (ogField.contentEquals("inputs") || ogField.contentEquals("outputs")) {
+			missingFields = checkInputsOutputsField(ogField, obj, missingFields);
+		} else if (ogField.contentEquals("weights")) {
+			boolean format = false;
+			if (obj.get(ogField) instanceof HashMap<?,?>) {
+				dict = (HashMap<String, Object>) obj.get(ogField);
+				List<String> possibleWeights = Arrays.asList(keywords.get(ogField));
+				for (String weightFormat : dict.keySet()) {
+					if (possibleWeights.contains(weightFormat)) {
+						format = true;
+						// In the case that any weightformat is present, proceed to check everything is in order
+						if (dict.get(weightFormat) != null && dict.get(weightFormat) instanceof HashMap<?,?>)
+							missingFields = checkYamlDictionary("weightFormat", (HashMap<String, Object>) dict.get(weightFormat), missingFields, "weights::" + weightFormat);
+						else
+							missingFields.add("weights::" + weightFormat);
+					}		
+				}
+			}
+			if (!format)
+				missingFields.add("weights");
+		} else if (ogField.contentEquals("weightFormat") || ogField.contentEquals("inShape") ||
+					ogField.contentEquals("outShape") || ogField.contentEquals("deepimagej")) {
+			// Check that all the keys are there
+			String[] list = keywords.get(ogField);
+			yamlFields = obj.keySet();
+			for (String str : list) {
+				if (!yamlFields.contains(str))
+					missingFields.add(aux + "::" + str);
+			}
+		} else if (ogField.contentEquals("config")) {
+			String[] configField = keywords.get(ogField);
+			// The config yaml is organised as a dictionary. Check
+			// if in our case it corresponds to a dictionary
+			if (obj.get(ogField) instanceof HashMap<?,?>) {
+				dict = (HashMap<String, Object>) obj.get(ogField);
+				yamlFields = dict.keySet();
+				for (String str : configField) {
+					if (!yamlFields.contains(str))
+						missingFields.add("config::" + str);
+				}
+				// In the case that deepimagej is present, proceed to check everything is in order
+				if (dict.get("deepimagej") != null && dict.get("deepimagej") instanceof HashMap<?,?>) {
+					missingFields = checkYamlDictionary("deepimagej", (HashMap<String, Object>) dict.get("deepimagej"),
+														missingFields, "config::deepimagej");
+				} else {
+					missingFields.add("config");
+				}
+			} else {
+				missingFields.add("config");
+			}
+		}
+		return missingFields;
+	}
+	
+	/*
+	 * 
+	 */
+	public static ArrayList<String> checkInputsOutputsField(String ogField, Map<String, Object> obj,
+															ArrayList<String> missingFields) {
+		String[] inputsOutputsField = new String[] {"name", "axes", "data_type", "data_range", "shape"};
+		Set<String> yamlFields = null;
+		// The inputs and outputs in the yaml are organised as a list of dictionaries. Check
+		// at each of the possible inputs for all the keywords
+		if (obj.get(ogField) instanceof List<?>) {
+			for (int i = 0; i < ((List<?>) obj.get(ogField)).size(); i ++) {
+				Object inp= ((List<?>) obj.get(ogField)).get(i);
+				if (inp instanceof HashMap<?, ?>) {
+					yamlFields  = ((HashMap<String, Object>) inp).keySet();
+					for (String str : inputsOutputsField) {
+						if (!yamlFields.contains(str))
+							missingFields.add(ogField + "::" + str);
+					}
+					// In the case that the shape is not fixed, look if all the required fields are there
+					if (((HashMap<String, Object>) inp).get("shape") instanceof HashMap<?,?> && ogField.equals("inputs")) {
+						missingFields = checkYamlDictionary("inShape",
+														(HashMap<String, Object>) ((HashMap<String, Object>) inp).get("shape"),
+														missingFields, "inputs#" + i + "::shape");
+					} else if (((HashMap<String, Object>) inp).get("shape") instanceof HashMap<?,?> && ogField.equals("outputs")) {
+						missingFields = checkYamlDictionary("outShape",
+														(HashMap<String, Object>) ((HashMap<String, Object>) inp).get("shape"),
+														missingFields, "outputs#" + i + "::shape");
+					}
+				} else {
+					// If the ith input does not corresponfd to a HashMap, it is faulty
+					missingFields.add(ogField + " #" + i);
+				}
+			}
+		}
+		else {
+			// If the 'inputs' field does not correspond to a List<>, set the whole field as missing
+			missingFields.add(ogField);
+		}
+		return missingFields;
 	}
 	
 	public static String[] castListToStringArray(List list) {

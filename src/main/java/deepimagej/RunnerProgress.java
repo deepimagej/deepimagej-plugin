@@ -66,9 +66,9 @@ public class RunnerProgress extends JDialog implements ActionListener {
 	private BorderLabel			processor	= new BorderLabel("GPU...........");
 	private Timer				timer		= new Timer(true);
 	private JButton				bnStop		= new JButton("Stop");
-	private BorderLabel			time			= new BorderLabel("Elapsed time");
+	private BorderLabel			time		= new BorderLabel("Elapsed time");
 	private double				chrono;
-	private double				peakmem 		= 0;
+	private double				peakmem 	= 0;
 	private Clock				clock;
 	private GridBagLayout		layout		= new GridBagLayout();
 	private GridBagConstraints	constraint	= new GridBagConstraints();
@@ -89,8 +89,6 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		place(prog, 0, 1, 0, title);
 		place(prog, 1, 1, 0, time);
 		infoTag = info;
-		// TODO show tag GPU all the time or only when there is a GPU
-		//sif (!GPU.equals("CPU")) 
 		place(prog, 2, 1, 0, processor);
 		place(prog, 3, 1, 0, peak);
 		place(prog, 4, 1, 0, memory);
@@ -245,7 +243,7 @@ public class RunnerProgress extends JDialog implements ActionListener {
 			processor.setText("Postprocessing image");
 			patches.setText("No patches");
 			return;
-		} else if (infoTag.equals("applyModel") && GPU.equals("GPU")) {
+		} else if (infoTag.equals("applyModel") && GPU.toLowerCase().equals("gpu")) {
 			gpuTag = "YES";
 		} else if (infoTag.equals("applyModel") && GPU.equals("???")) {
 			gpuTag = "Unknown";

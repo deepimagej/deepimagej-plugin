@@ -42,6 +42,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 
 import org.tensorflow.SavedModelBundle;
@@ -53,7 +55,6 @@ import ai.djl.repository.zoo.ModelNotFoundException;
 import ai.djl.repository.zoo.ModelZoo;
 import ai.djl.repository.zoo.ZooModel;
 import ai.djl.training.util.ProgressBar;
-import deepimagej.tools.Log;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.FileTools;
 import ij.IJ;
@@ -62,7 +63,6 @@ import ij.gui.GenericDialog;
 public class DeepImageJ {
 
 	private String					path;
-	private Log 					log;
 	public String					dirname;
 	public Parameters				params;
 	private boolean					valid 			= false;
@@ -70,12 +70,11 @@ public class DeepImageJ {
 	private SavedModelBundle		tfModel			= null;
 	private ZooModel<NDList, NDList>torchModel		= null;
 	
-	public DeepImageJ(String pathModel, String dirname, Log log, boolean dev) {
+	public DeepImageJ(String pathModel, String dirname, boolean dev) {
 		String p = pathModel + File.separator + dirname + File.separator;
 		this.path = p.replace(File.separator + File.separator, File.separator);
 		// Remove double File separators
 		this.path = cleanPathStr(p);
-		this.log = log;
 		this.dirname = dirname;
 		this.developer = dev;
 		if (!dev && !(new File(path, "model.yaml").isFile())) {
@@ -85,18 +84,16 @@ public class DeepImageJ {
 			this.params.path2Model = this.path;
 			this.valid = check(p, false);
 		}
+		// TODO consider if config is missing, the plugin should be displaying it
 		if (this.valid && dev && this.params.framework.equals("Tensorflow/Pytorch")) {
 			askFrameworkGUI();
-		}
-		if (!dev && this.valid && !this.params.completeConfig) {
-			this.valid = false;
 		}
 	}
 
 	/*
 	 * Method that substitutes double path separators ('\\' or '//') by single ones
 	 */
-	private String cleanPathStr(String p) {
+	public static String cleanPathStr(String p) {
 		while (p.indexOf(File.separator + File.separator) != -1) {
 			p = p.replace(File.separator + File.separator, File.separator);
 		}
@@ -132,7 +129,7 @@ public class DeepImageJ {
 		return this.valid;
 	}
 	
-	static public HashMap<String, DeepImageJ> list(String pathModels, Log log, boolean isDeveloper) {
+	static public HashMap<String, DeepImageJ> list(String pathModels, boolean isDeveloper, TextArea textField) {
 		HashMap<String, DeepImageJ> list = new HashMap<String, DeepImageJ>();
 		File models = new File(pathModels);
 		File[] dirs = models.listFiles();
@@ -140,18 +137,16 @@ public class DeepImageJ {
 			return list;
 		}
 
+		// FOrmat for the date
+		Date now = new Date(); 
 		for (File dir : dirs) {
 			if (dir.isDirectory()) {
 				String name = dir.getName();
-				DeepImageJ dp = new DeepImageJ(pathModels + File.separator, name, log, isDeveloper);
-				if (dp.valid && dp.params != null && dp.params.completeConfig == true) {
+				textField.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- Looking for a model at: " + name + "\n");
+				DeepImageJ dp = new DeepImageJ(pathModels + File.separator, name, isDeveloper);
+				if (dp.valid && dp.params != null) {
 					list.put(dp.dirname, dp);
-				} else if (dp.valid && dp.params.completeConfig != true) {
-					IJ.error("Model " + dp.dirname + " could not load\n"
-							+ "because its config.yaml file did not correspond\n"
-							+ "to this version of the plugin.");
 				}
-				
 			}
 		}
 		return list;
@@ -159,7 +154,6 @@ public class DeepImageJ {
 
 
 	public boolean loadTfModel(boolean archi) {
-		log.print("load model from " + path);
 
 		double chrono = System.nanoTime();
 		SavedModelBundle model;
@@ -171,11 +165,9 @@ public class DeepImageJ {
 			IJ.log("Exception in loading model " + dirname);
 			IJ.log(e.toString());
 			IJ.log(e.getMessage());
-			log.print("Exception in loading model " + dirname);
 			return false;
 		}
 		chrono = (System.nanoTime() - chrono) / 1000000.0;
-		log.print("Loaded");
 		return true;
 	}
 
@@ -186,7 +178,6 @@ public class DeepImageJ {
 			
 			String modelName = new File(path).getName();
 			modelName = modelName.substring(0, modelName.indexOf(".pt"));
-			long startTime = System.nanoTime();
 			Criteria<NDList, NDList> criteria = Criteria.builder()
 			        .setTypes(NDList.class, NDList.class)
 			         // only search the model in local directory
@@ -198,10 +189,6 @@ public class DeepImageJ {
 	
 			ZooModel<NDList, NDList> model = ModelZoo.loadModel(criteria);
 			this.setTorchModel(model);
-			String torchscriptSize = FileTools.getFolderSizeKb(params.selectedModelPath);
-			long stopTime = System.nanoTime();
-			// Convert nanoseconds into seconds
-			String loadingTime = "" + ((stopTime - startTime) / (float) 1000000000);
 			
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -371,6 +358,8 @@ public class DeepImageJ {
 				IJ.log(modelFolder.getAbsolutePath() + File.separator + file);
 				IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
 				IJ.log("\n");
+				params.incorrectSha256 = true;
+				return true;
 			}
 		}
 		return false;
@@ -381,8 +370,8 @@ public class DeepImageJ {
 	 * of the folder provided and corresponds to the model defined in the model.yaml
 	 */
 	public boolean findPytorchModel(File modelFolder) {
-		for (String file : modelFolder.list()) {
-			try {
+		try {
+			for (String file : modelFolder.list()) {
 				if (!this.developer && file.contains("pytorch_script.pt") && FileTools.createSHA256(modelFolder.getPath() + File.separator + file).equals(params.ptSha256)) {
 					return true;
 				} else if (this.developer && file.contains(".pt")) {
@@ -392,10 +381,13 @@ public class DeepImageJ {
 					IJ.log(modelFolder.getAbsolutePath() + File.separator + file);
 					IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
 					IJ.log("\n");
+					params.incorrectSha256 = true;
+					return true;
 				}
-			} catch (IOException e) {
-				// If we were not able to gnerate a checksum (sha256) keep iterating over the models
 			}
+		} catch (IOException e) {
+			// If we were not able to gnerate a checksum (sha256) return false
+			return false;
 		}
 		return false;
 	}
