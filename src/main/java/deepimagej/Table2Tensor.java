@@ -37,12 +37,18 @@
 
 package deepimagej;
 
+import java.nio.FloatBuffer;
+import java.util.ArrayList;
+
 import org.tensorflow.Tensor;
 
+import ai.djl.ndarray.NDArray;
+import ai.djl.ndarray.NDManager;
+import ai.djl.ndarray.types.Shape;
+import deepimagej.exceptions.IncorrectNumberOfDimensions;
 import deepimagej.tools.Index;
 import ij.IJ;
 import ij.measure.ResultsTable;
-import ij.process.ImageProcessor;
 
 
 public class Table2Tensor {
@@ -58,125 +64,205 @@ public class Table2Tensor {
 	 * In the string form, N represents batch size; R, rows and C, columns
 	 * For the moment it only admits up to 3 dimensions (one for N)
 	 */
-	public static ResultsTable tensor2Table(Tensor<?> tensor, String form) {
-		//Method to transform an ImagePlus into a TensorFLow tensor of the
-		// dimensions specified by form
-		ResultsTable table = null;
-		long[] tensorShape = tensor.shape();
-		if (tensorShape.length == 2) {
-			table = copyData2table1D(tensor, form);
-		}else if (tensorShape.length == 3) {
-			table = copyData2table2D(tensor, form);
-		}else if (tensorShape.length == 4) {
-			// TODO admit more than 3 dims
+	
+	/*
+	 * Convert a float array into table
+	 */
+	public static ResultsTable flatArrayToTable(float[] flatArray, long[] shape, String form) {
+		int[] completeShape = longShape5(shape);
+		String completeForm = longForm(form);
+		// Get the table dims in the default IJ table format -> RCBXY
+		int[] tableDims = getTableDims(completeForm, completeShape);
+		int numRows = tableDims[0];
+		ResultsTable table = new ResultsTable(numRows);
+		
+		// Get the position of the Rows and Columns dimensions
+		int fRows = completeForm.indexOf("R");
+		int fCols = completeForm.indexOf("C");
+		
+		int pos = 0;
+		int[] auxInd = {0, 0, 0, 0, 0};
+		for (int i0 = 0; i0 < completeShape[0]; i0 ++) {
+			auxInd[0] = i0;
+			for (int i1 = 0; i1 < completeShape[1]; i1 ++) {
+				auxInd[1] = i1;
+				for (int i2 = 0; i2 < completeShape[2]; i2 ++) {
+					auxInd[2] = i2;
+					for (int i3 = 0; i3 < completeShape[3]; i3 ++) {
+						auxInd[3] = i3;
+						for (int i4 = 0; i4 < completeShape[4]; i4 ++) {
+							auxInd[4] = i4;
+							// In reality we only care about the values for positions
+							// corresponding to R and C. HOwever as mentioned in other comments
+							// the whole structure is left for maintenance purposes
+							table.setValue(auxInd[fCols], auxInd[fRows], (double) flatArray[pos ++]);
+						}
+					}
+				}
+			}
 		}
 		return table;
 	}
 
 	
-	
-	
-	//////////////////////////////////////////////////////////////////////////////////////////////
-	///////////////  Convert tensors to arrays  //////////////////////////////////////////////////
 	/*
-	 * Copy the tensor to an ImageJ ResultsTable with only one row.
+	 * Convert NDArrays into results table
 	 */
-	public static ResultsTable copyData2table1D(Tensor<?> tensor, String form){
-		// TODO support batch size different to 1
-		ResultsTable table = null;
-		int batchInd = form.indexOf("B");
-		long[] tensorShape = tensor.shape();
-		//  Create array from tensor
-		float[][] tableMat2D = new float[(int) tensorShape[0]][(int) tensorShape[1]];
-		if (batchInd != -1 && tensorShape[batchInd] != 1) {
-			IJ.error("For the moment DeepImageJ only supports batch size of 1.");
-		} else if (batchInd == -1) {
-			float[][][] auxArray = new float[1][(int) tensorShape[0]][(int) tensorShape[1]];
-			auxArray[0] = tableMat2D;
-			table = getTablefrom3DArray(auxArray, (int)tensorShape[form.indexOf("R")], form, "BRC".split(""));
-		} else {
-			tensor.copyTo(tableMat2D);
-			table = new ResultsTable();
-			int rowCount = 0;
-			for (int i = 0; i < tableMat2D.length; i ++) {
-				for (int k = 0; k < tableMat2D[i].length; k ++) {
-					table.setValue(0, rowCount ++, tableMat2D[i][k]);
-				}
-			}
+	public static ResultsTable tensorToTable(Tensor<?> tensor, String form, String name) throws IncorrectNumberOfDimensions {
+
+		long[] shape = tensor.shape();
+		// Check that the output dimensions correspond to the form length
+		if (shape.length != form.length())
+			throw new IncorrectNumberOfDimensions(shape, form, name);
+				
+		// For the moment DeepImageJ only supports 2D tables, thus
+		// if the tensor has more than to dimensions greater than one,
+		// the plugin throws an exception
+		// TODO support more than 2d tables
+		ArrayList<Integer> non1Occurences = findNon1occurences(shape);
+		if (non1Occurences.size() > 2 || (form.indexOf("B") != -1 && shape[form.indexOf("B")] != 1)) {
+			IJ.error("For the moment DeepImageJ only supports 2D tables as outputs with batch_size = 1.");
+			return null;
 		}
-		return table;		
+
+		// Array of one dimension containing all the data from the tensor
+		int arraySize = 1;
+		for (long el : shape)
+			arraySize = arraySize * ((int) el);
+		float[] flatArray = new float[arraySize];
+
+		FloatBuffer outBuff = FloatBuffer.wrap(flatArray);
+	 	tensor.writeTo(outBuff);
+		return flatArrayToTable(flatArray, shape, form);
 	}
+
+	
 	/*
-	 * Copy the tensor to an ImageJ ResultsTable with th needed rows
-	 * and columns.
-	 * This method is ver similar to the ones in the class ImagePlus2Tensor
+	 * Convert NDArrays into results table
 	 */
-	public static ResultsTable copyData2table2D(Tensor<?> tensor, String form){
-		// TODO support batch size different to 1
-		ResultsTable table = null;
-		String[] tableForm = "BRC".split("");
-		int batchInd = form.indexOf("B");
-		long[] tensorShape = tensor.shape();
-		if (batchInd == -1 || tensorShape[batchInd] != 1) {
-			IJ.error("For the moment DeepImageJ only supports batch size of 1.");
-		} else {
-			int[] relateDims = new int[3];
-			int c = 0;
-			for (String letter : tableForm) {
-				relateDims[c ++] = Index.indexOf(form.split(""), letter);
-			}
-			float[][][] tableMat3D = new float[(int) tensorShape[0]][(int) tensorShape[1]][(int) tensorShape[2]];
-			tensor.copyTo(tableMat3D);
-			table = getTablefrom3DArray(tableMat3D, (int) tensorShape[form.indexOf("R")], form, tableForm);
-			// TODO uncomment
-			/*
-			// Create a results table with the adequate number of rows
-			table = new ResultsTable((int) tensorShape[form.indexOf("R")]);
-			int[] auxCounter = {-1, -1, -1};
-			for (int A = 0; A < tableMat3D.length; A ++) {
-				auxCounter[relateDims[0]] += 1; 
-				auxCounter[relateDims[1]] = -1; 
-				for (int B = 0; B < tableMat3D[A].length; B ++) {
-					auxCounter[relateDims[1]] += 1; 
-					auxCounter[relateDims[2]] = -1; 
-					for (int C = 0; C < tableMat3D[A][B].length; C ++) {
-						auxCounter[relateDims[2]] += 1; 
-						table.setValue(auxCounter[2], auxCounter[1], tableMat3D[A][B][C]);
-					}
-				}
-			}
-			 * 
-			 */
-			// Help to count rows and columns. Dimensions are N, R, C
+	public static ResultsTable tensorToTable(NDArray tensor, String form, String name, String ptVersion) throws IncorrectNumberOfDimensions {
+		// Array of one dimension containing all the data from the tensor
+		float[] flatArray = tensor.toFloatArray();
+		boolean old = ImagePlus2Tensor.olderThanPytorch170(ptVersion);
+		long[] shape = tensor.getShape().getShape();
+		// Check that the output dimensions correspond to the form length
+		if (shape.length != form.length())
+			throw new IncorrectNumberOfDimensions(shape, form, name);
+				
+		// For the moment DeepImageJ only supports 2D tables, thus
+		// if the tensor has more than to dimensions greater than one,
+		// the plugin throws an exception
+		// TODO support more than 2d tables
+		ArrayList<Integer> non1Occurences = findNon1occurences(shape);
+		if (non1Occurences.size() > 2 || (form.indexOf("B") != -1 && shape[form.indexOf("B")] != 1)) {
+			IJ.error("For the moment DeepImageJ only supports 2D tables as outputs with batch_size = 1.");
+			return null;
 		}
-		return table;		
+		return flatArrayToTable(flatArray, shape, form);
 	}
 	
-	public static ResultsTable getTablefrom3DArray(float[][][] tableMat3D, int RIndex,
-													String form, String[] tableForm) {
-		int[] relateDims = new int[3];
-		int c = 0;
-		for (String letter : tableForm) {
-			relateDims[c ++] = Index.indexOf(form.split(""), letter);
+	/*
+	 * find occurences of the number 1 in an array
+	 */
+	private static ArrayList<Integer> findNon1occurences(long[] shape) {
+		ArrayList<Integer> occur = new ArrayList<Integer>();
+		for (int i = 0; i < shape.length; i ++) {
+			if (shape[i] != 1)
+				occur.add(i);
 		}
-		// Create a results table with the adequate number of rows
-		ResultsTable table = new ResultsTable(RIndex);
-		// Help to count rows and columns. Dimensions are N, R, C
-		int[] auxCounter = {-1, -1, -1};
-		for (int A = 0; A < tableMat3D.length; A ++) {
-			auxCounter[relateDims[0]] += 1; 
-			auxCounter[relateDims[1]] = -1; 
-			for (int B = 0; B < tableMat3D[A].length; B ++) {
-				auxCounter[relateDims[1]] += 1; 
-				auxCounter[relateDims[2]] = -1; 
-				for (int C = 0; C < tableMat3D[A][B].length; C ++) {
-					auxCounter[relateDims[2]] += 1; 
-					table.setValue(auxCounter[2], auxCounter[1], tableMat3D[A][B][C]);
-				}
-			}
+		return occur;
+	}
+	
+	/*
+	 * Get the table shape, with 5 dimensions, following 
+	 * the IJ form -> RCBXY, remember that the last 3 dimensions
+	 * should be singleton, at least for the moment
+	 */
+	private static int[] getTableDims(String form, int[] shape) {
+
+		// IJ table default dimensions
+		int[] tableDims = {1, 1, 1, 1, 1};
+		// IJ table default dimension indices, given that
+		// the form should be: 'RCBXY'
+		int rInd = 0; int cInd = 1; int bInd = 2;
+		int xInd = 3; int yInd = 4;
+		int fBatch;
+		if (form.indexOf("B") != -1) {
+			fBatch = form.indexOf("B");
+			tableDims[bInd] = (int) shape[fBatch];
+		} else {
+			fBatch = form.length();
+			form += "B";
 		}
-		return table;
-	}		
+		int fY;
+		if (form.indexOf("Y") != -1) {
+			fY = form.indexOf("Y");
+			tableDims[yInd] = (int) shape[fY];
+		} else {
+			fY = form.length();
+			form += "Y";
+		}
+		int fX;
+		if (form.indexOf("X") != -1) {
+			fX = form.indexOf("X");
+			tableDims[xInd] = (int) shape[fX];
+		} else {
+			fX = form.length();
+			form += "X";
+		}
+		int fCol;
+		if (form.indexOf("C") != -1) {
+			fCol = form.indexOf("C");
+			tableDims[cInd] = (int) shape[fCol];
+		} else {
+			fCol = form.length();
+			form += "C";
+		}
+		int fRow;
+		if (form.indexOf("R") != -1) {
+			fRow = form.indexOf("R");
+			tableDims[rInd] = (int) shape[fRow];
+		} else {
+			fRow = form.length();
+			form += "Z";
+		}
+		return tableDims;
+	}
+	
+	/*
+	 * Add extra dimensions to the form that will be considered as singleton dimensions in the shape. 
+	 * Theoretically only 3 dimensions are needed, as DeepImageJ only supports
+	 * 2D tables (that is 3D considering one singleton dimensionat least).
+	 * I will let up to 5 dimensions just in case this changes in the future (Carlos) 
+	 */
+	private static String longForm(String form) {
+		// In principle DeepImageJ form for tables only can have letters:
+		// B->batch; R->rows; C->columns. I will add X and Y as auxiliary
+
+		// IJ table default form
+		String[] tableForm = "RCBXY".split("");
+		for (String ff : tableForm) {
+			if (form.indexOf(ff) == -1)
+				form += ff;
+		}
+		return form;
+	}
+	
+	/*
+	 * Add singleton dimensions to the shape. 
+	 * Theoretically only 3 dimensions are needed, as DeepImageJ only supports
+	 * 2D tables (that is 3D considering one singleton dimensionat least).
+	 * I will let up to 5 dimensions just in case this changes in the future (Carlos) 
+	 */
+	private static int[] longShape5(long[] shape) {
+		// First convert add the needed entries with value 1 to the array
+		// until its length is 5
+		int[] f_shape = { 1, 1, 1, 1, 1 };
+		for (int i = 0; i < shape.length; i++) {
+			f_shape[i] = (int) shape[i];
+		}
+		return f_shape;
+	}
 	
 	/*TODO add exception for 3D tables ([8,7,9])
 	 * Method to infer automatically which dimension corresponds to rows and 
@@ -200,37 +286,141 @@ public class Table2Tensor {
 		return form;
 	}
 	
-	/*
-	 * Method that converts a ResultsTable into float[] array.
-	 */
-
-	public static float[] table2IntArray(ResultsTable rt){
-		ImageProcessor ip =  rt.getTableAsImage();
-		float[][] fArray = ip.getFloatArray();
-		int ySize = fArray.length;
-		int xSize = fArray[0].length;
-		float[] outArr = new float[xSize * ySize];
-		
-		int pos = 0;
-		for (int x = 0; x < xSize; x ++) {
-			for (int y = 0; y < ySize; y ++) {
-				outArr[pos ++] = ip.getPixelValue(x, y);
-			}
-		}
-		return outArr;
+	
+	public static void main(String[] ags) {
+		ResultsTable rt = new ResultsTable(8);
+		int ss = rt.getLastColumn();
+		System.out.println("2");
 	}
 	
 	/*
-	 * Method that gets an long[] array with the shape of the tensor/image
+	 * Method that gets an long[] array from a given ResultsTable to be able to
+	 * generate a tensor/ndarray with the given form and shape
 	 */
+	public static float[] tableToFlatArray(ResultsTable rt, String form, long[] arrayShape) {
+		// Create the a flat array with as many component as the table has
+		int nComponents = 1;
+		for (long el : arrayShape)
+			nComponents = nComponents * ((int) el);
+		float[] flatRt = new float[nComponents];
+		// Create a 5 components version of the shape just in case the plugin
+		// is later adapted for more dimensions
+		int[] longShape = longShape5(arrayShape);
+		// Get the form with all the possible dimensions.
+		// Doing this is equivalent to extending the tensor with singleton dimensions.
+		// The dimensions added are the missing ones among B,R and C and X and Y, added
+		// just in case in the future more dimensions are accepted
+		form = longForm(form);
 
-	public static long[] getTableShape(ResultsTable rt){
-		ImageProcessor ip =  rt.getTableAsImage();
-		float[][] fArray = ip.getFloatArray();
-		int ySize = fArray.length;
-		int xSize = fArray[0].length;
-		long[] shape = new long[] {xSize, ySize};
-		return shape;
+		// Get the index that corresponds to rows and columsn in the form
+		int rInd = form.indexOf("R");
+		int cInd = form.indexOf("C");
+		// Again with 3 counter should be enough .3 (B,R,C) is the maximum number of 
+		// dimension at the moment (JAnuary 2021). However, do it with 5 just in
+		// case it is changed in the future
+		int[] auxCounter = new int[5];
+		int pos = 0;
+		for (int t0 = 0; t0 < longShape[0]; t0 ++) {
+			auxCounter[0] = t0;
+			for (int t1 = 0; t1 < longShape[1]; t1 ++) {
+				auxCounter[1] = t1;
+				for (int t2 = 0; t2 < longShape[2]; t2 ++) {	
+					auxCounter[2] = t2;
+					for (int t3 = 0; t3 < longShape[3]; t3 ++) {
+						auxCounter[3] = t3;
+						for (int t4 = 0; t4 < longShape[4]; t4 ++) {	
+							auxCounter[4] = t4;
+							
+							flatRt[pos ++] = (float) rt.getValueAsDouble(auxCounter[cInd], auxCounter[rInd]);
+						}
+					}	
+				}
+			}
+		}
+		return flatRt;
+	}
+	
+	/*
+	 * Method that gets a Tensor from a ResultsTable
+	 */
+	// TODO
+	public static NDArray tableToTensor(ResultsTable rt, String form, String ptVersion, NDManager manager){
+		// Get rows and columns (by default sum 1 to the number of columns)
+		int rSize = rt.size();
+		// Get last column indicates position, that is why we sum 1
+		int cSize = rt.getLastColumn() + 1;
+		if (cSize == 0)
+			cSize = 1;
+		if (cSize != 1 && rSize != 1 && form.indexOf("B") != -1) {
+			IJ.error("Batch size should be 1.");
+			return null;
+		} else if (cSize != 1 && rSize != 1 && form.length() == 1) {
+			IJ.error("Table has 2 dimensions but only one (" + form + ") was specified.");
+			return null;
+		}
+		// Create a variable that acts as imp.getDimensions() for ImagePlus types
+		int[] defaultTableDimensions = new int[] {rSize, cSize};
+		long[] arrayShape = getTableTensorDims(defaultTableDimensions, form);
+		// Get the array
+		float[] flatRt = tableToFlatArray(rt, form, arrayShape);
+		// Create the tensor
+		FloatBuffer outBuff = FloatBuffer.wrap(flatRt);
+		NDArray tensor = manager.create(flatRt, new Shape(arrayShape));
+		return tensor;
+	}
+	
+	/*
+	 * Method that gets a Tensor from a ResultsTable
+	 */
+	public static Tensor<Float> tableToTensor(ResultsTable rt, String form){
+		// Get rows and columns (by default sum 1 to the number of columns)
+		int rSize = rt.size();
+		// Get last column indicates position, that is why we sum 1
+		int cSize = rt.getLastColumn() + 1;
+		if (cSize == 0)
+			cSize = 1;
+		if (cSize != 1 && rSize != 1 && form.indexOf("B") != -1) {
+			IJ.error("Batch size should be 1.");
+			return null;
+		} else if (cSize != 1 && rSize != 1 && form.length() == 1) {
+			IJ.error("Table has 2 dimensions but only one (" + form + ") was specified.");
+			return null;
+		}
+		// Create a variable that acts as imp.getDimensions() for ImagePlus types
+		int[] defaultTableDimensions = new int[] {rSize, cSize};
+		long[] arrayShape = getTableTensorDims(defaultTableDimensions, form);
+		// Get the array
+		float[] flatRt = tableToFlatArray(rt, form, arrayShape);
+		// Create the tensor
+		FloatBuffer outBuff = FloatBuffer.wrap(flatRt);
+		Tensor<Float> tensor = Tensor.create(arrayShape, outBuff);
+		return tensor;
+	}
+	
+	/*
+	 * Get the tensor dimension for the table. For the moment only
+	 * suuport Rows, Columns and Batch
+	 */
+	public static long[] getTableTensorDims(int[] dims, String form) {
+		long[] tableDims = new long[form.length()];
+		// Create aux variable to indicate
+		// if it is channels one of the dimensions of
+		// the tensor or it is the batch size
+		if (form.indexOf("B") != -1) {
+			// TODO batch is always 1
+			tableDims[form.indexOf("B")] = (long) 1;
+		}
+		if (form.indexOf("R") != -1) {
+			// Using the default table dimensions (determined by us
+			// in the previous method) rows will always be determined at 0
+			tableDims[form.indexOf("R")] = (long) dims[0];
+		}
+		if (form.indexOf("C") != -1) {
+			// Using the default table dimensions (determined by us
+			// in the previous method) columns will always be determined at 1
+			tableDims[form.indexOf("C")] = (long) dims[1];
+		}
+		return tableDims;
 	}
 
 }

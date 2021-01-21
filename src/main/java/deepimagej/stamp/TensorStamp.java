@@ -71,6 +71,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 	private List<JComboBox<String>>	inTags;
 	private static List<JComboBox<String>>	outTags;
 	private String[]				in			= { "B", "Y", "X", "C", "Z" };
+	private String[]				outPyramidal= { "B", "Y", "X", "C", "N/i/z" };
 	private String[]				inputOptions= { "image", "parameter"};
 	private static String[]			outOptions	= { "image", "list", "ignore"};
 	private HTMLPane				pnDim;
@@ -78,6 +79,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 	private JPanel 					pnInOut 	= new JPanel();
 	private int						iterateOverComboBox;
 	private String					model		  = "";
+	private boolean					pyramidal = false;
 
 	public TensorStamp(BuildDialog parent) {
 		super(parent);
@@ -85,13 +87,14 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 
 	@Override
 	public void buildPanel() {
-		HTMLPane info = new HTMLPane(Constants.width, 150);
+		HTMLPane info = new HTMLPane(Constants.width, 100);
 		info.append("h2", "Tensor Organization");
 		info.append("p", "Each dimension of input and output tensors must"
-				+ " be specified so the image is processed correctly, i.e. "
+				+ " be specified to process  the image correctly, i.e. "
 				+ "the first dimension of the input tensor corresponds to the batch size, "
-				+ "the second dimension to the width and so on.");
-		info.setMaximumSize(new Dimension(Constants.width, 150));
+				+ "the second dimension to the width and so on.<br>"
+				+ "<b>Note that for the moment DeepImageJ only supports BATCH_SIZE = 1.</b>");
+		info.setMaximumSize(new Dimension(Constants.width, 100));
 		
 		//pnInOut.setBorder(BorderFactory.createEtchedBorder());
 
@@ -106,16 +109,42 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 		String dirname = "untitled";
 		if (file.exists())
 			dirname = file.getName();
-		pnDim.append("h2", "Tensor organization of " + dirname);
+		pnDim.append("h2", "Input/Output tensor dimensions of " + dirname);
 		// Save the model we are using to build the interface to check if
-		// we need to rebuild the panel or not
+		// we need to rebuild the panel or not. Same for pyramidal.
 		model = params.path2Model;
+		pyramidal = params.pyramidalNetwork;
 		
-		pnDim.append("i", "X for width (axis X), Y for height (axis Y), Z for depth (axis Z), B for batch, C for channel");
 		for (DijTensor tensor : inputTensors) 
-			pnDim.append("p", tensor.name + " Tensor Dimensions : " + Arrays.toString(tensor.tensor_shape));
+			pnDim.append("<p><b>Input tensor --> </b>" +  tensor.name + " : " + Arrays.toString(tensor.tensor_shape) + "</p>");
 		for (DijTensor tensor : outputTensors) 
-			pnDim.append("p", tensor.name + " Tensor Dimensions : " + Arrays.toString(tensor.tensor_shape));
+			pnDim.append("<p><b>Output tensor --> </b>" +  tensor.name + " : " + Arrays.toString(tensor.tensor_shape) + "</p>");
+		
+		pnDim.append("<br>");
+		pnDim.append("<p><b>Input tensor types:</b></p>");
+		pnDim.append("<ul><li><p><b>Image:</b> <b>X</b> for width (axis X), <b>Y</b> for"
+				+ " height (axis Y), <b>Z</b> for depth (axis Z), <b>B</b> for batch, "
+				+ "<b>C</b> for channel. There can only be one input image.</p></li>");
+		pnDim.append("<li><p><b>Parameter:</b> the tensor must be created using Java preprocessing,"
+				+ " thus no dimension specfication is needed. The tensor is fed directly "
+				+ "to the model from preprocessing.</p></li></ul>");
+		
+		pnDim.append("<p><b>Output tensor types:</b></p>");
+		if (params.pyramidalNetwork) {
+			pnDim.append("<ul><li><p><b>Image:</b> <b>X</b> for width (axis X), <b>Y</b> for"
+					+ " height (axis Y), <b>N/i/z</b> for number of components/patches/objects or depth (axis Z), <b>B</b> for batch, "
+					+ "<b>C</b> for channel or class</p></li>");
+		} else {
+			pnDim.append("<ul><li><p><b>Image:</b> <b>X</b> for width (axis X), <b>Y</b> for"
+					+ " height (axis Y), <b>Z</b> for depth (axis Z), <b>B</b> for batch, "
+					+ "<b>C</b> for channel</p></li>");
+		}
+		pnDim.append("<li><p><b>List:</b> the tensor corresponds to a batch of matrices."
+				+ "<b>R</b> for rows, <b>C</b> for columns, <b>B</b> for batch. This type can be used for tensors"
+				+ "with 3 dimensions at most (being one of them the batch).</p></li>");
+		pnDim.append("<li><p><b>Ignore:</b> the tensor will not be fetched from the model "
+				+ "by the plugin.</p></li></ul>");
+
 		pnDim.setMaximumSize(new Dimension(Constants.width, 250));
 		//JPanel pnInput = new JPanel(new GridLayout(1, 5));
 		GridBagConstraints cTag = new GridBagConstraints ();
@@ -166,7 +195,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 			pnTensor.add(new JLabel(output.name), cLabel);
 			// Now add the tensor specific dimensions
 			for (int j = 0; j < output.tensor_shape.length; j ++) {
-				JComboBox<String> cmbOut = new JComboBox<String>(in);
+				JComboBox<String> cmbOut = new JComboBox<String>(params.pyramidalNetwork ? outPyramidal : in);
 				cmbOut.setPreferredSize(new Dimension(50, 50));
 				pnTensor.add(cmbOut);
 				outputs.add(cmbOut);
@@ -191,7 +220,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 	@Override
 	public void init() {
 		String modelOfInterest = parent.getDeepPlugin().params.path2Model;
-		if (!modelOfInterest.equals(model)) {
+		if (!modelOfInterest.equals(model) || pyramidal != parent.getDeepPlugin().params.pyramidalNetwork) {
 			buildPanel();
 		}
 	}
@@ -262,7 +291,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 	 * Change the letter in each Jcombobox depending on the selected tensor type.
 	 */
 	public void updateTensorDisplay(Parameters params) {
-		// Set disabled the tensors marked as 'ignore'
+		// Set disabled the tensors marked as 'parameter'
 		List<DijTensor> inputTensors = params.totalInputList;
 		// Counter for tensors
 		int cIn = 0;
@@ -296,6 +325,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 			cmbCounterIn += inputTensors.get(cIn).tensor_shape.length;
 			cIn ++;
 		}
+		// Set disabled the tensors marked as 'ignore'
 		List<DijTensor> outputTensors = params.totalOutputList;
 		// Counter for tensors
 		int c = 0;

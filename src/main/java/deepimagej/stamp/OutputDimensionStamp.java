@@ -375,12 +375,17 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 					params.outputList.get(outputCounter).halo[i] = 0;
 					params.outputList.get(outputCounter).offset[i] = 0;
 				} else {
-					scaleValue = Float.valueOf(firstRowList.get(textFieldInd).getText());
+					// If the value for scale is "-" because there is no dimension in the reference image,
+					// save it as -1
+					scaleValue = Float.valueOf(firstRowList.get(textFieldInd).isEditable() ? firstRowList.get(textFieldInd).getText() : "-1");
 					params.outputList.get(outputCounter).scale[i] = scaleValue;
 					haloValue = Integer.valueOf(secondRowList.get(textFieldInd).getText());
 					params.outputList.get(outputCounter).halo[i] = haloValue;
-					offsetValue = Integer.parseInt(thirdRowList.get(textFieldInd++).getText());
+					// If the value for offset is "-" because there is no dimension in the reference image,
+					// save it as -1
+					offsetValue = Integer.parseInt(thirdRowList.get(textFieldInd).isEditable() ? thirdRowList.get(textFieldInd).getText() : "-1");
 					params.outputList.get(outputCounter).offset[i] = offsetValue;
+					textFieldInd++;
 				}
 			} catch( NumberFormatException ex) {
 				IJ.error("Make sure that no text field is empty and\n"
@@ -459,6 +464,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 
 
 		firstLabel.setText("Output size");
+		firstLabel.setVisible(true);
 		firstRow.place(0, 0, firstLabel);
 		
 		for (int i = 0; i < dimValues.length; i ++) {
@@ -498,6 +504,9 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		
 		int[] dimValues = DijTensor.getWorkingDimValues(params.outputList.get(outputCounter).form, params.outputList.get(outputCounter).tensor_shape); 
 		String[] dims = DijTensor.getWorkingDims(params.outputList.get(outputCounter).form);
+		// Get the reference tensor and its working dimensions
+		DijTensor refTensor = DijTensor.retrieveByName((String) referenceImage.getSelectedItem(), params.inputList);
+		String[] refDims = DijTensor.getWorkingDims(refTensor.form);
 
 		for (int i = 0; i < dimValues.length; i ++) {
 			JLabel dimLetter1 = new JLabel(dims[i]);
@@ -512,16 +521,25 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 			txt1 = new JTextField(params.outputList.get(outputCounter).finished ? "" + params.outputList.get(outputCounter).scale[auxInd] : "1", 5);
 			txt2 = new JTextField(params.outputList.get(outputCounter).finished && params.allowPatching ? "" + params.outputList.get(outputCounter).halo[auxInd] : "0", 5);
 			txt3 = new JTextField(params.outputList.get(outputCounter).finished ? "" + params.outputList.get(outputCounter).offset[auxInd] : "0", 5);
+			// Scale and offset are always editable
 			txt1.setEditable(true);
+			txt3.setEditable(true);
 			// If we do not allow patching, do not allow using halo
 			txt2.setEditable(params.allowPatching);
 			
-			int inputFixedSize = findFixedInput((String) referenceImage.getSelectedItem(), dims[i], params.inputList);
+			int inputFixedSize = findFixedInput(refTensor, dims[i]);
 			
 			if (dimValues[i] != -1 && inputFixedSize != -1) {
 				float scale = ((float) dimValues[i]) / ((float) inputFixedSize);
 				txt1.setText("" + scale);
 				txt1.setEditable(true);
+			} else if (!refDims.toString().contains(dims[i])) {
+				// If the reference image does not contain the output
+				//dimension, the output size for that dimension will just be 
+				// whatever comes out of the model
+				txt1.setText(" - "); txt1.setEditable(false);
+				txt2.setText("0"); txt2.setEditable(false);
+				txt3.setText(" - "); txt3.setEditable(false);
 			}
 
 			firstRow.place(0, i + 1, dimLetter1);
@@ -537,9 +555,6 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		}
 		refLabel.setVisible(true);
 		referenceImage.setVisible(true);
-		
-		secondRow.setVisible(true);
-		thirdRow.setVisible(true);
 
 		firstLabel.setText("Scaling factor");
 		secondLabel.setText("Halo factor");
@@ -551,6 +566,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		
 		secondRow.setVisible(true);
 		thirdRow.setVisible(true);
+		firstLabel.setVisible(true);
 		secondLabel.setVisible(true);
 		thirdLabel.setVisible(true);
 
@@ -602,15 +618,8 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		firstRow.repaint();
 	}
 	
-	private static int findFixedInput(String referenceInput, String dim, List<DijTensor> inputTensors) {
-		DijTensor referenceTensor = null;
+	private static int findFixedInput(DijTensor referenceTensor, String dim) {
 		int fixed = -1;
-		for (DijTensor inp : inputTensors) {
-			if (referenceInput.equals(inp.name)) {
-				referenceTensor = inp;
-				break;
-			}
-		}
 		if (referenceTensor != null) {
 			int ind = Index.indexOf(referenceTensor.form.split(""), dim);
 			if (ind != -1 && referenceTensor.step[ind] == 0) {
@@ -623,7 +632,6 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 	public static void writeInfoText(String definition) {
 		HTMLPane info = new HTMLPane(Constants.width, 150);
 		if (definition.contains("image")) {
-			// TODO put this in a method
 			info.append("h", "<b>Output size constraints</b><ul>");
 			info.append("li", "<p>output size = input size * scale + offset</p>");
 			info.append("li", "<p>valid output size = input size * scale + offset - 2*halo</p>");

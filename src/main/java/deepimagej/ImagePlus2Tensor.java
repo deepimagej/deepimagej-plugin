@@ -38,7 +38,6 @@
 package deepimagej;
 
 import java.nio.FloatBuffer;
-import java.util.HashMap;
 
 import org.tensorflow.Tensor;
 
@@ -49,29 +48,50 @@ import deepimagej.exceptions.IncorrectNumberOfDimensions;
 import deepimagej.tools.ArrayOperations;
 import ij.IJ;
 import ij.ImagePlus;
-import ij.measure.ResultsTable;
 import ij.process.ImageProcessor;
 
 
 public class ImagePlus2Tensor {
 	// TODO allow other types of tensors
 	// TODO allow batch size != 1
-	// TODO include tensor to resultstable and viceversa
-	// Methods to transform a Pytorch and TF tensors into ImageJ ImagePlus
+	// Methods to transform a DJL Pytorch and TF tensors into ImageJ ImagePlus
 	
-	public static NDArray imPlus2tensor(NDManager manager, ImagePlus img, String form){
+	public static NDArray imPlus2tensor(NDManager manager, ImagePlus img, String form, String ptVersion){
 		// Convert ImagePlus into tensor calling the corresponding
 		// method depending on the dimensions of the required tensor 
 		// Find the number of dimensions of the tensor
 		int nDim = form.length();
 		NDArray tensor = null;
 		if (nDim >= 2 && nDim <= 5) {
-			tensor = implus2NDArray(img, form, manager);
+			tensor = implus2NDArray(img, form, manager, ptVersion);
 		}
 		return tensor;
 	}
 	
-	public static NDArray implus2NDArray(ImagePlus img, String form, NDManager manager){
+	/*
+	 * Check that if the DJL Pytorch version is older than
+	 * version 1.7.0
+	 */
+	public static boolean olderThanPytorch170(String ptVersion) {
+		boolean older = true;
+		try {
+			int firstDot = ptVersion.indexOf(".");
+			int secondDot = ptVersion.substring(firstDot + 1).indexOf(".") + firstDot + 1;
+			int majorVersion = Integer.parseInt(ptVersion.substring(0, firstDot));
+			int minorVersion = Integer.parseInt(ptVersion.substring(firstDot + 1, secondDot));
+			if ((majorVersion >= 1 && minorVersion >= 7) || majorVersion > 1) {
+				older = false;
+			}
+			
+		} catch(Exception ex) {
+			if (!ptVersion.contains("1.4.") && !ptVersion.contains("1.5.") && !ptVersion.contains("1.6.")) {
+				older = false;
+			}
+		}
+		return older;
+	}
+	
+	public static NDArray implus2NDArray(ImagePlus img, String form, NDManager manager, String ptVersion){
 		// Create a float array of four dimensions out of an 
 		// ImagePlus object
 		float[] matImage;
@@ -94,11 +114,18 @@ public class ImagePlus2Tensor {
 		int fWidth = -1;
 		int fHeight = -1;
 
-		long[] arrayShape;
+		// For DJL Pytorch versions <1.7.0, the batch size is not included in the tensor
+		long[] arrayShape = new long[form.length() - 1];
+		boolean old = olderThanPytorch170(ptVersion);
 		if (form.indexOf("B") != -1) {
 			fBatch = form.indexOf("B");
 			tensorDims[fBatch] = batch;
-			arrayShape = new long[form.length() - 1];
+			// For DJL Pytorch versions >=1.7.0, the batch size is included in the tensor
+			// TODO update with pytorch versions
+			if (!old) {
+				arrayShape = new long[form.length()];
+				arrayShape[fBatch] = (long) batch;
+			}
 		} else {
 			arrayShape = new long[form.length()];
 			fBatch = form.length();
@@ -107,7 +134,7 @@ public class ImagePlus2Tensor {
 		if (form.indexOf("Y") != -1) {
 			fHeight = form.indexOf("Y");
 			tensorDims[fHeight] = ySize;
-			if (fBatch != -1 && fHeight > fBatch)
+			if (fBatch != -1 && fHeight > fBatch && old)
 				arrayShape[fHeight - 1] = (long) ySize;
 			else
 				arrayShape[fHeight] = (long) ySize;
@@ -118,7 +145,7 @@ public class ImagePlus2Tensor {
 		if (form.indexOf("X") != -1) {
 			fWidth = form.indexOf("X");
 			tensorDims[fWidth] = xSize;
-			if (fBatch != -1 && fWidth > fBatch)
+			if (fBatch != -1 && fWidth > fBatch && old)
 				arrayShape[fWidth - 1] = (long) xSize;
 			else
 				arrayShape[fWidth] = (long) xSize;
@@ -129,7 +156,7 @@ public class ImagePlus2Tensor {
 		if (form.indexOf("C") != -1) {
 			fChannel = form.indexOf("C");
 			tensorDims[fChannel] = cSize;
-			if (fBatch != -1 && fChannel > fBatch)
+			if (fBatch != -1 && fChannel > fBatch && old)
 				arrayShape[fChannel - 1] = (long) cSize;
 			else
 				arrayShape[fChannel] = (long) cSize;
@@ -140,7 +167,7 @@ public class ImagePlus2Tensor {
 		if (form.indexOf("Z") != -1) {
 			fDepth = form.indexOf("Z");
 			tensorDims[fDepth] = zSize;
-			if (fBatch != -1 && fDepth > fBatch)
+			if (fBatch != -1 && fDepth > fBatch && old)
 				arrayShape[fDepth - 1] = (long) zSize;
 			else
 				arrayShape[fDepth] = (long) zSize;
@@ -202,7 +229,7 @@ public class ImagePlus2Tensor {
 		int fWidth = -1;
 		int fHeight = -1;
 
-		long[] arrayShape = new long[form.length()];;
+		long[] arrayShape = new long[form.length()];
 		if (form.indexOf("B") != -1) {
 			fBatch = form.indexOf("B");
 			tensorDims[fBatch] = batch;
@@ -279,7 +306,7 @@ public class ImagePlus2Tensor {
 	/////////// Methods to transform an NDArray tensor into an ImageJ ImagePlus
 	
 	
-	public static ImagePlus NDArray2ImagePlus(NDArray tensor, String form, String name) throws IncorrectNumberOfDimensions{
+	public static ImagePlus NDArray2ImagePlus(NDArray tensor, String form, String name, String ptVersion) throws IncorrectNumberOfDimensions{
 		// This method copies the information from the tensor to a matrix. At first only works
 		// if the batch size is 1
 		
@@ -288,12 +315,16 @@ public class ImagePlus2Tensor {
 		
 		ImagePlus imPlus = null;
 		long[] tensorShape = tensor.getShape().getShape();
+		boolean old = olderThanPytorch170(ptVersion);
+		int batchIndex = form.indexOf("B");
+		
+		if (old && batchIndex != -1)
+			// TODO add batch where it is due
 		if (tensorShape.length != form.length())
 			throw new IncorrectNumberOfDimensions(tensorShape, form, name);
 		int[] completeTensorShape = longShape6(tensorShape);
 		int[] imageDims = {1, 1, 1, 1, 1};
 		
-		int batchIndex = form.indexOf("B");
 		if (batchIndex == -1 || tensorShape[batchIndex] == (long) 1) {
 			int fBatch;
 			if (form.indexOf("B") != -1) {
@@ -513,7 +544,7 @@ public class ImagePlus2Tensor {
 	 * Method that converts ImagePLus into float[] array.
 	 */
 
-	// TODO use this as basis for the implus2tensor and implus2ndarray
+	// TODO use this as basis for the implus2tensor and implus2ndarray or remove
 	public static float[] implus2IntArray(ImagePlus img, String form){
 		// Create a float array of four dimensions out of an 
 		// ImagePlus object

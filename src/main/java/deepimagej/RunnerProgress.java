@@ -63,7 +63,7 @@ public class RunnerProgress extends JDialog implements ActionListener {
 	private BorderLabel			patches		= new BorderLabel("Patch not set");
 	private BorderLabel			memory		= new BorderLabel("Memory........");
 	private BorderLabel			peak		= new BorderLabel("Memory........");
-	private BorderLabel			processor	= new BorderLabel("GPU...........");
+	private BorderLabel			processor	= new BorderLabel("Model Inference (GPU: NO)");
 	private Timer				timer		= new Timer(true);
 	private JButton				bnStop		= new JButton("Stop");
 	private BorderLabel			time		= new BorderLabel("Elapsed time");
@@ -80,8 +80,8 @@ public class RunnerProgress extends JDialog implements ActionListener {
 	private boolean unzipping = false;
 	private ExecutorService service;
 	private boolean allowStopping = true;
+	private long startTime = System.currentTimeMillis();
 	
-
 	public RunnerProgress(DeepImageJ dp, String info) {
 		super(new JFrame(), "Run DeepImageJ");
 		name = dp.getName();
@@ -249,7 +249,7 @@ public class RunnerProgress extends JDialog implements ActionListener {
 			gpuTag = "Unknown";
 		}
 		
-		processor.setText("GPU: " + gpuTag);
+		processor.setText("Model Inference (GPU: " + gpuTag + ")");
 		if (runner != null && (runner instanceof RunnerTf))
 			patches.setText("Patches: " + ((RunnerTf) runner).getCurrentPatch() + "/" + ((RunnerTf) runner).getTotalPatch());
 		if (runner != null && (runner instanceof RunnerPt))
@@ -257,14 +257,42 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		
 		
 	}
+	
+	/*
+	 * Get maximum memory used to run the model
+	 */
 	public double getPeakmem() {
 		return this.peakmem;
+	}
+	
+	/*
+	 * Get time that it has taken to run the model (pre-processing,
+	 * inference and postprocessing)
+	 */
+	public String getRuntime() {
+		double time = (System.currentTimeMillis() - startTime) / 1000.0;
+		String timeStr = "" + time;
+		// Only show one decimal
+		timeStr = timeStr.substring(0, timeStr.lastIndexOf(".") + 2);
+		return timeStr;
 	}
 	
 	public class Clock extends TimerTask {
 		public void run() {
 			info();
 		}
+	}
+	
+	/*
+	 * Stop the RunnerProgress window and close the thread
+	 */
+	public static void stopRunnerProgress(ExecutorService thread, RunnerProgress rp) {
+		thread.shutdown();
+		if (!rp.isStopped()) {
+			rp.allowStopping(true);
+			rp.stop();
+		}
+		rp.dispose();
 	}
 
 }

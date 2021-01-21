@@ -56,7 +56,7 @@ import org.tensorflow.framework.TensorShapeProto.Dim;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
-import ai.djl.pytorch.jni.NativeHelper;
+// TODO remove import ai.djl.pytorch.jni.NativeHelper;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
@@ -447,16 +447,19 @@ public class DeepLearningModel {
 	 */
 	public static String getPytorchVersion() {
 		String ptJni = "";
-		try {
+
+		// TODO this only works for 1.7.0
+		/*try {
 			URL resource = NativeHelper.class.getResource("NativeHelper.class");
 			JarURLConnection connection = null;
 			connection = (JarURLConnection) resource.openConnection();
 			ptJni = connection.getJarFileURL().getFile();
 		} catch (Exception e) {
-			ptJni = getLibPytorchJar();
-			if (!ptJni.contains("jar"))
-				return ptJni;
 		}
+		*/
+		ptJni = getLibPytorchJar();
+		if (!ptJni.contains("jar"))
+			return ptJni;
 		String ptVersion = getPytorchVersionFromJar(ptJni);
 		return ptVersion;	
 	}

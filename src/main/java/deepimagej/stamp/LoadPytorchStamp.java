@@ -39,23 +39,30 @@ package deepimagej.stamp;
 import java.awt.BorderLayout;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import ai.djl.MalformedModelException;
+import ai.djl.engine.Engine;
 import ai.djl.engine.EngineException;
 import ai.djl.ndarray.NDList;
+import ai.djl.ndarray.types.Shape;
 import ai.djl.pytorch.jni.LibUtils;
 import ai.djl.repository.zoo.Criteria;
 import ai.djl.repository.zoo.ModelNotFoundException;
 import ai.djl.repository.zoo.ModelZoo;
 import ai.djl.repository.zoo.ZooModel;
 import ai.djl.training.util.ProgressBar;
+import ai.djl.util.PairList;
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
 import deepimagej.DeepLearningModel;
@@ -163,10 +170,10 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 		Parameters params = parent.getDeepPlugin().params;
 		params.selectedModelPath = findPytorchModels(params.path2Model);
 		pnLoad.clear();
-		String ptVersion = DeepLearningModel.getPytorchVersion();
+		params.pytorchVersion = DeepLearningModel.getPytorchVersion();
 		pnLoad.append("h2", "Pytorch version");
-		pnLoad.append("p", "Currently using Pytorch " + ptVersion);
-		pnLoad.append("p", "Supported by Deep Java Library " + ptVersion);
+		pnLoad.append("p", "Currently using Pytorch " + params.pytorchVersion);
+		pnLoad.append("p", "Supported by Deep Java Library " + params.pytorchVersion);
 		String cudaVersion = SystemUsage.getCUDAEnvVariables();
 		// If a CUDA distribution was found, cudaVersion will be equal
 		// to the CUDA version. If not it can be either 'noCuda', if CUDA 
@@ -195,7 +202,7 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 			pnLoad.append("p", "No CUDA distribution found.\n");
 			parent.setGPUTf("CPU");
 		}
-		pnLoad.append("p", DeepLearningModel.PytorchCUDACompatibility(ptVersion, cudaVersion));
+		pnLoad.append("p", DeepLearningModel.PytorchCUDACompatibility(params.pytorchVersion, cudaVersion));
 		pnLoad.append("h2", "Model info");
 		pnLoad.append("p", "Path: " + params.selectedModelPath);
 		pnLoad.append("<p>Loading model...");
@@ -229,7 +236,8 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 			ZooModel<NDList, NDList> model = ModelZoo.loadModel(criteria);
 			parent.getDeepPlugin().setTorchModel(model);
 			pnLoad.append(" -> Loaded!!!</p>");
-			String lib = new File(LibUtils.getLibName()).getName();
+			params.pytorchVersion = Engine.getInstance().getVersion();
+			String lib = getNativeLbraryFile();
 			if (!lib.toLowerCase().contains("cpu")) {
 				pnLoad.append("p", "Model loaded on the <b>GPU</b>.\n");
 				parent.setGPUPt("GPU");
@@ -266,15 +274,21 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 				pnLoad.append("p", " -https://github.com/awslabs/djl/issues/126");
 				pnLoad.append("p", "If you already have installed VS2019 redistributables, the error\n"
 								+ "might be caused by a missing dependency or an incompatible Pytorch version.");
+				pnLoad.append("p", "Furthermore, the DJL Pytorch dependencies (pytorch-egine, pytorch-api and pytorch-native-auto) "
+								+ "should be compatible with each other.");
 				pnLoad.append("p", "Please check the DeepImageJ Wiki.");
 			} else if((os.contains("linux") || os.contains("unix")) && err.contains("https://github.com/awslabs/djl/blob/master/docs/development/troubleshooting.md")){
 				pnLoad.append("p", "DeepImageJ could not load the model.");
-				pnLoad.append("p", "The problem might be caused by a missing dependency or an incompatible Pytorch version.");
 				pnLoad.append("p", "Check that there are no repeated dependencies on the jars folder.");
+				pnLoad.append("p", "The problem might be caused by a missing or repeated dependency or an incompatible Pytorch version.");
+				pnLoad.append("p", "Furthermore, the DJL Pytorch dependencies (pytorch-egine, pytorch-api and pytorch-native-auto) "
+						+ "should be compatible with each other.");
 				pnLoad.append("p", "If the problem persists, please check the DeepImageJ Wiki.");
 			} else {
 				pnLoad.append("p", "DeepImageJ could not load the model");
-				pnLoad.append("p", "It seems that the Torchscript model corresponds to an incompatible Pytorch version.");
+				pnLoad.append("p", "Either the DJL Pytorch version is incompatible with the Torchscript model's "
+						+ "Pytorch version or the DJL Pytorch dependencies (pytorch-egine, pytorch-api and pytorch-native-auto) " + 
+							"are not compatible with each other.");
 				pnLoad.append("p", "Please check the DeepImageJ Wiki.");
 			}
 			parent.setEnabledBack(true);
@@ -333,4 +347,20 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 		}
 		return modelPath + File.separator + dlg.getNextChoice();
 	} 
+	
+	/*
+	 * Method to find the native libraey loaded by DJL to use Pytorch
+	 */
+	public static String getNativeLbraryFile() {
+		String nativeLibrary = "???";
+		try {
+			Method method = LibUtils.class.getDeclaredMethod("findNativeLibrary", new Class[]{AtomicBoolean.class});
+	        method.setAccessible(true); /*promote the method to public access*/
+	        AtomicBoolean bb = new AtomicBoolean(false);
+	        nativeLibrary = (String) method.invoke(LibUtils.class, bb);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return nativeLibrary;
+	}
 }

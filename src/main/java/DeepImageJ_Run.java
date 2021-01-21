@@ -543,6 +543,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				// Remove possible hidden images from IJ workspace
 				removeProcessedInputsFromMemory(inputsMap);
 			    service.shutdown();
+				rp.dispose();
 				return;
 			}
 			
@@ -550,7 +551,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			runStage ++;
 			
 			log.print("start runner");
-			//RunnerProgress rp = new RunnerProgress(dp, false);
 			HashMap<String, Object> output = null;
 			if (dp.params.framework.equals("Tensorflow")) {
 				RunnerTf runner = new RunnerTf(dp, rp, inputsMap, log);
@@ -603,45 +603,14 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			// Remove possible hidden images from IJ workspace
 			removeProcessedInputsFromMemory(inputsMap);
 			
-		}/* catch(MacrosError ex) {
-			if (runStage == 0) {
-				IJ.error("Error during Macro preprocessing.");
-			} else if (runStage == 2) {
-				IJ.error("Error during Macro postprocessing.");
-			}
-		} catch (JavaProcessingError e) {
-			if (runStage == 0) {
-				IJ.error("Error during Java preprocessing.");
-			} else if (runStage == 2) {
-				IJ.error("Error during Java postprocessing.");
-			}
-		}*/ catch (InterruptedException ex) {
+		} catch (InterruptedException ex) {
+			IJ.error("Error during the aplication of the model.");
 			ex.printStackTrace();
-			IJ.log("Exception " + ex.toString());
-			for (StackTraceElement ste : ex.getStackTrace()) {
-				IJ.log("line:" + "Error during the application of the model.");
-				IJ.log(ste.getClassName());
-				IJ.log(ste.getMethodName());
-				IJ.log("line:" + ste.getLineNumber());
-			}
 		} catch (ExecutionException ex) {
+			IJ.error("Error during the aplication of the model.");
 			ex.printStackTrace();
-			IJ.log("Exception " + ex.toString());
-			for (StackTraceElement ste : ex.getStackTrace()) {
-				IJ.log("line:" + "Error during the application of the model.");
-				IJ.log(ste.getClassName());
-				IJ.log(ste.getMethodName());
-				IJ.log("line:" + ste.getLineNumber());
-			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
-			IJ.log("Exception " + ex.toString());
-			for (StackTraceElement ste : ex.getStackTrace()) {
-				IJ.log(ste.getClassName());
-				IJ.log(ste.getMethodName());
-				IJ.log("line:" + ste.getLineNumber());
-			}
-			IJ.log("Exception " + ex.getMessage());
 			if (runStage == 0){
 				IJ.error("Error during preprocessing.");
 			} else if (runStage == 1) {

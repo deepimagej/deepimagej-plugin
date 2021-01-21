@@ -70,8 +70,9 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 	private DeepImageJ				dp;
 	private RunnerProgress			rp;
 	private Log						log;
-private int							currentPatch = 0;
+	private int						currentPatch = 0;
 	private int						totalPatch = 0;
+	public String					error = "";
 
 	public RunnerPt(DeepImageJ dp, RunnerProgress rp,HashMap<String,Object> inputMap, Log log) {
 		this.dp = dp;
@@ -107,7 +108,8 @@ private int							currentPatch = 0;
 			if (tensor.tensorType.contains("image")) {
 				imp = getImageFromMap(inputMap, tensor);
 				if (imp == null) {
-					rp.stop();
+					// TODO maybe we should allow running models without images
+					error = "No image provided.";
 					return null;
 				}
 				String inputPixelSizeX = ((float) imp.getCalibration().pixelWidth) + " " + imp.getCalibration().getUnit();
@@ -122,7 +124,9 @@ private int							currentPatch = 0;
 			} else if (tensor.tensorType.contains("parameter")){
 				Object tensorVal = getTensorFromMap(inputMap, tensor);
 				if (tensorVal == null) {
-					rp.stop();
+					error = "The input tensor '" + tensor.name + "' should be given by"
+							+ "the preprocessing but it is not.";
+					IJ.error(error);
 					return null;
 				} else if (tensorVal instanceof Tensor<?>) {
 					parameterMap.put(tensor.name, (Tensor<?>) tensorVal);
@@ -130,9 +134,9 @@ private int							currentPatch = 0;
 					parameterMap.put(tensor.name, (NDArray) tensorVal);
 				} else  {
 					// TODO improve error message and review what can be a preprocessing output
-					IJ.error("Output of the preprocessing should be either a Tensor object"
-							+ " or a NDArray object");
-					rp.stop();
+					error = "Output of the preprocessing should be either a Tensor object"
+							+ " or a NDArray object";
+					IJ.error(error);
 					return null;
 				}
 			}
@@ -148,7 +152,8 @@ private int							currentPatch = 0;
 		List<ResultsTable> outputTables = new ArrayList<ResultsTable>();
 		
 		if (imp == null) {
-			rp.stop();
+			// TODO maybe we should allow running models without images
+			error = "No image provided.";
 			return null;
 		}
 		// Now check if the image is an RGB, if it is make it composite,
@@ -191,7 +196,6 @@ private int							currentPatch = 0;
 						errorMsg += "\n" + dimLetters[i] + " : " + patchSize[i];
 					}
 					IJ.error(errorMsg);
-					rp.stop();
 					return null;
 				}
 			}
@@ -200,10 +204,10 @@ private int							currentPatch = 0;
 		int px = patchSize[0]; int py = patchSize[1]; int pc = patchSize[2]; int pz = patchSize[3]; 
 
 		if (3 * nx < px || 3 * ny <py || 3 * nz < pz) {
-			IJ.log("Error patch size is too large.\n"
+			IJ.error("Error patch size is too big.\n"
 					+ "Image Size: X = " + nx + ", Y = " + ny + ", Z = " + nz
 					+ "\n Patch Size: X = " + px + ", Y = " + py + ", Z = " + pz);
-			rp.stop();
+			error = "Patch size is too big.";
 			return null;
 		}
 		log.print("patch size " + "X: " +  px + ", Y: " +  py + ", Z: " +  pz + ", C: " +  pc);
@@ -228,10 +232,10 @@ private int							currentPatch = 0;
 		int[] inDim = imp.getDimensions();
 		// TODO should channels always be exact?
 		if (inDim[2] % inputDims[channelPos] != 0 && inputDims[channelPos] != -1) {
-			IJ.log("Error in the number of channels.\n"
-				    + "Image should have " + inputDims[channelPos] 
-					+ " channels instead of " + inDim[2]);
-			rp.stop();
+			error = "The number of channels of the input image is incorrect.\n"
+					   + "The models requires " + inputDims[channelPos] + "channels "
+				   		+ "but the input image provided has " + inDim[2];
+			IJ.error(error);
 			return null;
 		}
 		// Get the padding in case the image needs any
@@ -369,11 +373,12 @@ private int							currentPatch = 0;
 
 					// TODO optimise (take the try out of the loop) 
 					try (NDManager manager = NDManager.newBaseManager()) {
-						inputTensors = getInputTensors(manager, inputTensors, params.inputList, parameterMap, patch);
+						inputTensors = getInputTensors(manager, inputTensors, params.inputList, parameterMap,
+														patch, params.pytorchVersion);
 						// TODO make easier to understand
 						if (inputTensors == null) {
-							IJ.error("Error converting inputs to tensors for the model.");
-							rp.stop();
+							error = "Error retrieving inputs to tensors for the model.";
+							IJ.error(error);
 							return null;
 						}
 
@@ -396,64 +401,65 @@ private int							currentPatch = 0;
 							log.print("Session run " + (c+1) + "/"  + params.outputList.size());
 							NDArray result = outputTensors.get(c);
 							if (outTensor.tensorType.contains("image") && !params.pyramidalNetwork) {
-								impatch[imCounter] = ImagePlus2Tensor.NDArray2ImagePlus(result, outTensor.form, outTensor.name);
+								impatch[imCounter] = ImagePlus2Tensor.NDArray2ImagePlus(result, outTensor.form, outTensor.name, params.pytorchVersion);
 								imCounter ++;
 								c ++;
 							} else if (outTensor.tensorType.contains("image") && (params.pyramidalNetwork || !params.allowPatching)) {
-								outputImages[imCounter] = ImagePlus2Tensor.NDArray2ImagePlus(result, outTensor.form, outTensor.name);
+								outputImages[imCounter] = ImagePlus2Tensor.NDArray2ImagePlus(result, outTensor.form, outTensor.name, params.pytorchVersion);
 								outputImages[imCounter].setTitle(outputTitles[imCounter]);
 								outputImages[imCounter].show();
 								imCounter ++;
 								c ++;
 							} else if (outTensor.tensorType.contains("list")){
-								// TODO make more beautiful and general
-								result = result.squeeze();
-								if (result.getShape().dimension() == 1) {
-									float[] resultsArray = result.toFloatArray();
-									ResultsTable table = new ResultsTable(resultsArray.length);
-									int cRows = 0;
-									for (float f : resultsArray)
-										table.setValue(0, cRows ++, f);
-									outputTables.add(table);
-									table.show(outputTitles[c ++]);
-								} else if (result.getShape().dimension() == 2) {
-									ResultsTable table = new ResultsTable();
-									for (int col = 0; col < result.getShape().get(1); col ++) {
-										for (int row = 0; row < result.getShape().get(0); row ++) {
-											table.addValue(col, result.getFloat(new long[]{row, col}));
-										}
-									}
-									outputTables.add(table);
-									table.show(outputTitles[c ++]);
-								}
+								ResultsTable table = Table2Tensor.tensorToTable(result, outTensor.form, outTensor.name, params.pytorchVersion);
+								outputTables.add(table);
+								table.show(outputTitles[c ++]);
+							}
+							// Check if the user has tried to stop the execution while loading the model
+							// If they have return false and stop
+							if(rp.isStopped()) {
+								outputTensors.close();
+								manager.close();
+								return null;
 							}
 						}
 						outputTensors.close();
 						manager.close();
 					} catch (IncorrectNumberOfDimensions ex) {
 						ex.printStackTrace();	
+						
+						error = "The dimensions specified for the '" + ex.getName() 
+						+ "' (" + ex.getDims() + ") should match the number of dimensions"
+						+ " output tensor " + Arrays.toString(ex.getShape());
+						error += "\n";
+						error += dimensionsMismatch(ex.getMessage());
 						IJ.log("Error applying the model");
-						IJ.log(ex.getMessage());
-						IJ.log("The dimensions specified for the '" + ex.getName() 
-								+ "' (" + ex.getDims() + ") should match the number of dimensions"
-								+ " output tensor " + Arrays.toString(ex.getShape()));
-						rp.stop();
+						IJ.log(error);
+						if (params.pytorchVersion.contains("1.7."))
+							IJ.log("Note that in Pytorch >=1.7.0 the batch dimension has to be specified in the tensor dimensions organization.");
+						else
+							IJ.log("Note that in Pytorch <=1.6.0 the batch dimension should not be provided, it is added automatically.");
 						return null;
 					} catch (EngineException ex) {
 						ex.printStackTrace();	
+						error = dimensionsMismatch(ex.getMessage());
 						IJ.log("Error applying the model");
 						IJ.log("Check that the specifications for the input are compatible with the model architecture.");
-						IJ.log("\n");
-						// TODO remove log if error message is already being displayed.
-						IJ.log(ex.getMessage());
-						rp.stop();
+						IJ.log(error);
+						if (params.pytorchVersion.contains("1.7."))
+							IJ.log("Note that in Pytorch >=1.7.0 the batch dimension has to be specified in the tensor dimensions organization.");
+						else
+							IJ.log("Note that in Pytorch <=1.6.0 the batch dimension should not be provided, it is added automatically.");
 						return null;
 					} catch (Exception ex) {
-						// TODO MAKE THIS EXCEPTION MORE ESPECIFIC
 						ex.printStackTrace();	
+						error = dimensionsMismatch(ex.getMessage());
 						IJ.log("Error applying the model");
-						IJ.log(ex.getMessage());
-						rp.stop();
+						IJ.log(error);
+						if (params.pytorchVersion.contains("1.7."))
+							IJ.log("Note that in Pytorch >=1.7.0 the batch dimension has to be specified in the tensor dimensions organization.");
+						else
+							IJ.log("Note that in Pytorch <=1.6.0 the batch dimension should not be provided, it is added automatically.");
 						return null;
 					}
 					int[][] allOffsets = findOutputOffset(params.outputList);
@@ -497,7 +503,7 @@ private int							currentPatch = 0;
 										+ "with the dimensions specified previously:\n"
 										+ "Specified output dimensions: dimension order -> " + dijForm + ", dimension size -> " + Arrays.toString(pyramidOut) 
 										+ "Actual output dimensions: dimension order -> XYCZB, dimension size -> " + Arrays.toString(outPatchDims));
-								rp.stop();
+								error = "Error specifying output dimensions.";
 								return null;
 							}
 							if (rp.isStopped()) {
@@ -539,7 +545,7 @@ private int							currentPatch = 0;
 										+ "with the dimensions specified previously:\n"
 										+ "Specified output dimensions: dimension order -> XYCZB, dimension size -> " + thSizeStr 
 										+ "Actual output dimensions: dimension order -> XYCZB, dimension size -> " + Arrays.toString(outPatchDims));
-								rp.stop();
+								error = "Error specifying output dimensions.";
 								return null;
 							}
 							if (rp.isStopped()) {
@@ -559,7 +565,6 @@ private int							currentPatch = 0;
 		params.runtime = NumFormat.seconds(endTime - startingTime);
 		// Set Parameter params.memoryPeak
 		params.memoryPeak = NumFormat.bytes(rp.getPeakmem());
-		rp.stop();
 		// Set Parameter  params.outputSize
 		HashMap<String, Object> outputMap = new HashMap<String, Object>();
 		int imageCount = 0;
@@ -608,7 +613,7 @@ private int							currentPatch = 0;
 	}
 	
 	private static NDList getInputTensors(NDManager manager, NDList tensorsArray, List<DijTensor> inputTensors, HashMap<String, Object> paramsMap,
-												ImagePlus im){
+												ImagePlus im, String pytorchVersion){
 		tensorsArray = new NDList();
 		for (DijTensor tensor : inputTensors) {
 			if (tensor.tensorType.contains("parameter") && (paramsMap.get(tensor.name) instanceof NDArray)) {
@@ -629,7 +634,7 @@ private int							currentPatch = 0;
 				}
 			} else if (tensor.tensorType.contains("image")) {
 				 try {
-					 NDArray tt = ImagePlus2Tensor.imPlus2tensor(manager, im, tensor.form);
+					 NDArray tt = ImagePlus2Tensor.imPlus2tensor(manager, im, tensor.form, pytorchVersion);
 					 tensorsArray.add(tt);
 				 } catch (Exception ex) {
 					 tensorsArray.close();
@@ -678,6 +683,27 @@ private int							currentPatch = 0;
 			}
 		}
 		return padding;
+	}
+	
+	/*
+	 * Get dimension mismatch runtime error
+	 * The method looks for the following sentence and copies it:
+	 * 'RuntimeError: Expected 4-dimensional input for 4-dimensional weight [64, 3, 7, 7], but 
+	 * got 5-dimensional input of size [1, 1, 3, 767, 1022] instead'
+	 */
+	public static String dimensionsMismatch(String ex) {
+		String error = "";
+		String skipText = "RuntimeError: "; 
+		String aux1 = "RuntimeError: Expected ";
+		String aux2 = "-dimensional input for ";
+		String aux3 = "-dimensional weight [";
+		boolean firstCondition = ex.indexOf(aux1) + aux1.length() + 1 == ex.indexOf(aux2);
+		boolean secondCondition = ex.indexOf(aux2) + aux2.length() + 1 == ex.indexOf(aux3);
+		if (firstCondition && secondCondition) {
+			error = ex.substring(ex.indexOf(aux1) + skipText.length());
+			error = error.substring(0, error.lastIndexOf("instead") + "instead".length());
+		}
+		return error;
 	}
 	
 	// TODO clean up method (line 559) Make it stable for pyramidal

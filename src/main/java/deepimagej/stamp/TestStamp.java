@@ -45,6 +45,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -56,7 +60,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
-
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
 import deepimagej.DeepImageJ;
@@ -64,21 +67,18 @@ import deepimagej.Parameters;
 import deepimagej.RunnerTf;
 import deepimagej.RunnerProgress;
 import deepimagej.RunnerPt;
-import deepimagej.DeepLearningModel;
 import deepimagej.components.GridPanel;
 import deepimagej.components.HTMLPane;
-import deepimagej.exceptions.IncorrectChannelsSlicesNumber;
-import deepimagej.exceptions.JavaProcessingError;
-import deepimagej.exceptions.MacrosError;
-import deepimagej.processing.ProcessingBridge;
 import deepimagej.tools.ArrayOperations;
+import deepimagej.tools.DijRunnerPostprocessing;
+import deepimagej.tools.DijRunnerPreprocessing;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.Log;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 
-public class TestStamp extends AbstractStamp implements Runnable, ActionListener {
+public class TestStamp extends AbstractStamp implements ActionListener, Runnable {
 
 	private HTMLPane				pnTest;
 	private JButton					bnTest	= new JButton("Run a test");
@@ -87,7 +87,6 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 	private List<JComboBox<String>>	cmbList	= new ArrayList<JComboBox<String>>();
 	private List<JButton>			btnList	= new ArrayList<JButton>();
 	private JPanel					inputsPn = new JPanel(new GridLayout(3, 2));
-	private HashMap<String, Object> inputsMap;
 	
 	private List<DijTensor>		imageTensors;
 
@@ -208,8 +207,11 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 					return;
 				}	
 			}
-			// If all the images selected are opened in ImageJ un test
-			test();
+			// If all the images selected are opened in ImageJ, perform a test run
+			testPreparation();
+			Thread thread = new Thread(this);
+			thread.setPriority(Thread.MIN_PRIORITY);
+			thread.start();
 		}
 		
 		for (int i = 0; i < btnList.size(); i ++) {
@@ -261,10 +263,13 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 			}
 		}
 	}
-
-	public void test() {
+	
+	/*
+	 * Prepare the inputs and check that the image complies with the
+	 * model requirements
+	 */
+	public void testPreparation() {
 		Parameters params = parent.getDeepPlugin().params;
-		inputsMap = new HashMap<String, Object>();
 
 		File file = new File(params.path2Model);
 		if (!file.exists()) {
@@ -301,112 +306,109 @@ public class TestStamp extends AbstractStamp implements Runnable, ActionListener
 		}
 		
 		pnTest.append("Selected input images " + imagesNames);
-	
-		try {
-			// Create a HashMap of the inputs to feed it to the Runner class
-			inputsMap = ProcessingBridge.runPreprocessing(params.testImage, params);
-			// Check if the images have the adequate channels and slices
-			for (DijTensor tensor : imageTensors) {
-				// TODO keep or remove
-				if (((ImagePlus) inputsMap.get(tensor.name)).getType() == 4){
-					IJ.run((ImagePlus) inputsMap.get(tensor.name), "Make Composite", "");
-					inputsMap.put(tensor.name, WindowManager.getCurrentImage());
-				}
-				// TODO fix this for the case where slices or channels are not fixed
-				int channels = DeepLearningModel.nChannelsOrSlices(tensor, "channels");
-				int imageChannels = ((ImagePlus) inputsMap.get(tensor.name)).getNChannels();
-				if (channels != imageChannels) {
-					throw new IncorrectChannelsSlicesNumber(channels, imageChannels, "channels");
-				}
-				/* TODO only dimension that does not allow mirroring should be channels??
-				int slices = TensorFlowModel.nChannelsOrSlices(tensor, "slices");
-				int imageSlices = ((ImagePlus) inputsMap.get(tensor.name)).getNSlices();
-				if (slices != imageSlices) {
-					throw new IncorrectChannelsSlicesNumber(slices, imageSlices, "slices");
-				}
-				*/
-			}
-
-			if (inputsMap != null){
-				Thread thread = new Thread(this);
-				thread.setPriority(Thread.MIN_PRIORITY);
-				thread.start();
-			}
-		}
-		catch (MacrosError e1) {
-			pnTest.append("p", "Error in the  preprocessing Macro's code");
-			IJ.error("Failed preprocessing");
-		} // TODO remove. It seems that it does no make sense
-		catch (IllegalArgumentException e1) {
-			IJ.error("The model failed to execute because " + "at some point \nthe size of the activations map was incorrect");
-			e1.printStackTrace();
-		} // TODO remove. It seems that it does no make sense
-		catch (UnsupportedOperationException e) {
-			pnTest.append("p", "The model could not be executed properly. Try with another parameters.\n");
-		}
-		catch (IncorrectChannelsSlicesNumber e) {
-			String type = e.getExceptionType();
-			pnTest.append("p", "The number of " + type + " of the input image is incorrect.");
-			IJ.error("The number of " + type + " of the input image is incorrect.");
-		} catch (JavaProcessingError e) {
-			e.printStackTrace();
-			pnTest.append("p", "Error in the preprocessing external Java code");
-			IJ.error("Failed preprocessing");
-		}
 	}
 
+	@Override
 	public void run() {
-		DeepImageJ dp = parent.getDeepPlugin();
+		test();
+		
+	}
 
-		Log log = new Log();
-		HashMap<String, Object> output = null;
-		if (dp.params.framework.equals("Tensorflow")) {
-			RunnerProgress rp = new RunnerProgress(dp, parent.getGPUTf());
-			RunnerTf runner = new RunnerTf(dp, rp, inputsMap, log);
-			rp.setRunner(runner);
-			// TODO decide what to store at the end of the execution
-			output = runner.call();
-		} else {
-			RunnerProgress rp = new RunnerProgress(dp, parent.getGPUPt());
-			RunnerPt runner = new RunnerPt(dp, rp, inputsMap, log);
-			rp.setRunner(runner);
-			rp.setInfoTag("applyModel");
-			// TODO decide what to store at the end of the execution
-			output = runner.call();
-		}
-		// Flag to apply post processing if needed
-		if (output == null) {
-			pnTest.append("p", "Test run failed");
-			IJ.error("The execution of the model failed.");
-			return;
-		}
+	/*
+	 * Perform a test run on the selected image
+	 */
+	public void test() {
+		String runnerError = "";
+		ExecutorService service = Executors.newFixedThreadPool(1);
+		DeepImageJ dp = parent.getDeepPlugin();
+		RunnerProgress rp = new RunnerProgress(dp, "preprocessing");
 		
 		try {
-			output = ProcessingBridge.runPostprocessing(dp.params, output);
-		} catch (MacrosError e) {
-			e.printStackTrace();
-			pnTest.append("p", "Error in the  postprocessing Macro's code");
-			IJ.error("Failed postprocessing");
-		} catch (JavaProcessingError e) {
-			e.printStackTrace();
-			pnTest.append("p", "Error in the postprocessing external Java code");
-			IJ.error("Failed postprocessing");
-		}
-		
-		// Print the outputs of the postprocessing
-		// Retrieve the opened windows and compare them to what the model has outputed
-		// Display only what has not already been displayed
+			DijRunnerPreprocessing preprocess = new DijRunnerPreprocessing(dp, rp, null, false);
+			Future<HashMap<String, Object>> f0 = service.submit(preprocess);
+			HashMap<String, Object> inputsMap = f0.get();
+			if (rp.isStopped()) {
+			    RunnerProgress.stopRunnerProgress(service, rp);
+				pnTest.append("p", "Test run was stoped during preprocessing.");
+				IJ.error("Test run was stoped during preprocessing.");
+				return;
+			} else if (inputsMap == null && preprocess.error.contentEquals("")) {
+			    RunnerProgress.stopRunnerProgress(service, rp);
+				pnTest.append("p", "Error during preprocessing.");
+				pnTest.append("p", "The preprocessing did not return anything.");
+				IJ.error("Error during preprocessing.");
+				return;
+			} else if (!preprocess.error.contentEquals("")) {
+			    RunnerProgress.stopRunnerProgress(service, rp);
+				pnTest.append("p", preprocess.error);
+				IJ.error(preprocess.error);
+				return;
+			}
+			
+			HashMap<String, Object> output = null;
+			if (dp.params.framework.equals("Tensorflow")) {
+				rp.setGPU(parent.getGPUTf());
+				RunnerTf runner = new RunnerTf(dp, rp, inputsMap, new Log());
+				rp.setRunner(runner);
+				// TODO decide what to store at the end of the execution
+				Future<HashMap<String, Object>> f1 = service.submit(runner);
+				output = f1.get();
+				runnerError = runner.error;
+			} else {
+				rp.setGPU(parent.getGPUPt());
+				RunnerPt runner = new RunnerPt(dp, rp, inputsMap, new Log());
+				rp.setRunner(runner);
+				// TODO decide what to store at the end of the execution
+				Future<HashMap<String, Object>> f1 = service.submit(runner);
+				output = f1.get();
+				runnerError = runner.error;
+			}
+			
+			if (output == null && !rp.isStopped()) {
+			    RunnerProgress.stopRunnerProgress(service, rp);
+				pnTest.append("p", "Test run failed");
+				pnTest.append("p", runnerError);
+				IJ.error("The execution of the model failed.");
+				return;
+			} else if (rp.isStopped()) {
+			    RunnerProgress.stopRunnerProgress(service, rp);
+				pnTest.append("p", "Model execution of the test run stopped");
+				IJ.error("Model execution of the test run stopped.");
+				return;
+			}
+			
+			DijRunnerPostprocessing postprocess = new DijRunnerPostprocessing(dp, rp, output);
+			Future<HashMap<String, Object>> f2 = service.submit(postprocess);
+			output = f2.get();
 
-		String[] finalFrames = WindowManager.getNonImageTitles();
-		String[] finalImages = WindowManager.getImageTitles();
-		ArrayOperations.displayMissingOutputs(finalImages, finalFrames, output);
-		
-		parent.endsTest();
-		bnTest.setEnabled(true);
-		//dp.params.testResultImage[0].getProcessor().resetMinAndMax();
-		//dp.params.testResultImage[0].show();
-		pnTest.append("p", "Peak memory:" + dp.params.memoryPeak);
-		pnTest.append("p", "Runtime:" + dp.params.runtime);
+			if (rp.isStopped()) {
+				pnTest.append("p", "Test run was stoped during postprocessing.");
+				IJ.error("Test run was stoped during postprocessing.");
+			} else if (!postprocess.error.contentEquals("")) {
+				pnTest.append("p", postprocess.error);
+				IJ.error(postprocess.error);
+			}
+		    RunnerProgress.stopRunnerProgress(service, rp);
+			// Print the outputs of the postprocessing
+			// Retrieve the opened windows and compare them to what the model has outputed
+			// Display only what has not already been displayed
+
+			String[] finalFrames = WindowManager.getNonImageTitles();
+			String[] finalImages = WindowManager.getImageTitles();
+			ArrayOperations.displayMissingOutputs(finalImages, finalFrames, output);
+			
+			parent.endsTest();
+			bnTest.setEnabled(true);
+			pnTest.append("p", "Peak memory:" + dp.params.memoryPeak);
+			dp.params.runtime = rp.getRuntime();
+			pnTest.append("p", "Runtime: " + dp.params.runtime + "s");
+			
+		} catch (InterruptedException | ExecutionException e) {
+			e.printStackTrace();
+			pnTest.append("p", "Thread stopped working during the execution of the model.");
+			IJ.error("Thread stopped working during the execution of the model.");
+		}
+	    RunnerProgress.stopRunnerProgress(service, rp);
 	}
 	
 	public JButton retrieveJComboBoxArrow(Container container) {

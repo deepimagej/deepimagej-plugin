@@ -45,7 +45,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -74,6 +73,7 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 	private List<JComboBox<String>>	inTags;
 	private static List<JComboBox<String>>	outTags;
 	private String[]				in			= { "B", "Y", "X", "C", "Z", "-" };
+	private String[]				outPyramidal= { "B", "Y", "X", "C", "N/i/z", "-" };
 	private String[]				inputOptions= { "image", "parameter"};
 	private static String[]			outOptions	= { "image", "list", "ignore"};
 	private HTMLPane				pnDim;
@@ -81,6 +81,7 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 	private JPanel 					pnInOut 	= new JPanel();
 	private int						iterateOverComboBox;
 	private String					model		  = "";
+	private boolean					pyramidal = false;
 
 	public TensorPytorchTmpStamp(BuildDialog parent) {
 		super(parent);
@@ -88,13 +89,14 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 
 	@Override
 	public void buildPanel() {
-		HTMLPane info = new HTMLPane(Constants.width, 150);
+		HTMLPane info = new HTMLPane(Constants.width, 100);
 		info.append("h2", "Tensor Organization");
 		info.append("p", "Each dimension of input and output tensors must"
-				+ " be specified so the image is processed correctly, i.e. "
+				+ " be specified to process  the image correctly, i.e. "
 				+ "the first dimension of the input tensor corresponds to the batch size, "
-				+ "the second dimension to the width and so on.");
-		info.setMaximumSize(new Dimension(Constants.width, 150));
+				+ "the second dimension to the width and so on.<br>"
+				+ "<b>Note that for the moment DeepImageJ only supports BATCH_SIZE = 1.</b>");
+		info.setMaximumSize(new Dimension(Constants.width, 100));
 		
 		//pnInOut.setBorder(BorderFactory.createEtchedBorder());
 
@@ -109,21 +111,36 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 		String dirname = "untitled";
 		if (file.exists())
 			dirname = file.getName();
-		pnDim.append("h2", "Tensor organization of " + dirname);
 		// Save the model we are using to build the interface to check if
-		// we need to rebuild the panel or not
+		// we need to rebuild the panel or not. Same for pyramidal
 		model = params.path2Model;
+		pyramidal = params.pyramidalNetwork;
 		
-		pnDim.append("i", "X for width (axis X), Y for height (axis Y), Z for depth (axis Z), B for batch, C for channel");
-		/*
-		for (DijTensor tensor : inputTensors) 
-			pnDim.append("p", tensor.name + " Tensor Dimensions : " + Arrays.toString(tensor.tensor_shape));
-		for (DijTensor tensor : outputTensors) 
-			pnDim.append("p", tensor.name + " Tensor Dimensions : " + Arrays.toString(tensor.tensor_shape));
-		*/
-		//pnDim.setMaximumSize(new Dimension(Constants.width, 250));
+		pnDim.append("h2", "Tensor organization of " + dirname);
+		pnDim.append("<p><b>Input tensor types:</b></p>");
+		pnDim.append("<ul><li><p><b>Image:</b> <b>X</b> for width (axis X), <b>Y</b> for"
+				+ " height (axis Y), <b>Z</b> for depth (axis Z), <b>B</b> for batch, "
+				+ "<b>C</b> for channel. There can only be one input image.</p></li>");
+		pnDim.append("<li><p><b>Parameter:</b> the tensor must be created using Java preprocessing,"
+				+ " thus no dimension specfication is needed. The tensor is fed directly "
+				+ "to the model from preprocessing.</p></li></ul>");
+		
+		pnDim.append("<p><b>Output tensor types:</b></p>");
+		if (params.pyramidalNetwork) {
+			pnDim.append("<ul><li><p><b>Image:</b> <b>X</b> for width (axis X), <b>Y</b> for"
+					+ " height (axis Y), <b>N/i/z</b> for number of components/patches/objects or depth (axis Z), <b>B</b> for batch, "
+					+ "<b>C</b> for channel or class</p></li>");
+		} else {
+			pnDim.append("<ul><li><p><b>Image:</b> <b>X</b> for width (axis X), <b>Y</b> for"
+					+ " height (axis Y), <b>Z</b> for depth (axis Z), <b>B</b> for batch, "
+					+ "<b>C</b> for channel</p></li>");
+		}
+		pnDim.append("<li><p><b>List:</b> the tensor corresponds to a batch of matrices."
+				+ "<b>R</b> for rows, <b>C</b> for columns, <b>B</b> for batch. This type can be used for tensors"
+				+ "with 3 dimensions at most (being one of them the batch).</p></li>");
+		pnDim.append("<li><p><b>Ignore:</b> the tensor will not be fetched from the model "
+				+ "by the plugin.</p></li></ul>");
 		pnDim.setMaximumSize(new Dimension(Constants.width, 150));
-		//JPanel pnInput = new JPanel(new GridLayout(1, 5));
 		GridBagConstraints cTag = new GridBagConstraints ();
 		cTag.gridwidth = 3;
 		cTag.gridx = 0;
@@ -174,7 +191,7 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 			// Now add the tensor specific dimensions
 			// TODO fix this when DJL adds retrieving sizes from model
 			for (int j = 0; j < 5; j ++) {
-				JComboBox<String> cmbOut = new JComboBox<String>(in);
+				JComboBox<String> cmbOut = new JComboBox<String>(params.pyramidalNetwork ? outPyramidal : in);
 				cmbOut.setPreferredSize(new Dimension(50, 50));
 				pnTensor.add(cmbOut);
 				outputs.add(cmbOut);
@@ -199,7 +216,7 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 	@Override
 	public void init() {
 		String modelOfInterest = parent.getDeepPlugin().params.path2Model;
-		if (!modelOfInterest.equals(model)) {
+		if (!modelOfInterest.equals(model) || pyramidal != parent.getDeepPlugin().params.pyramidalNetwork) {
 			buildPanel();
 			return;
 		}
@@ -235,8 +252,8 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 			tensor.tensor_shape = shape;
 			tensor.tensorType = (String) inTags.get(tagC ++).getSelectedItem();
 			iterateOverComboBox += tensor.tensor_shape.length;
-			if (checkRepeated(tensor.form) == false && tensor.tensorType.equals("ignore") == false) {
-				IJ.error("Repetition is not allowed in input");
+			if (checkRepeated(tensor.form) == false && !tensor.tensorType.equals("parameter")) {
+				IJ.error("Dimension repetition is not allowed.");
 				return false;
 			}
 			if (DeepLearningModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
@@ -251,7 +268,6 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 		iterateOverComboBox = 0;
 		for (DijTensor tensor : outputTensors) {
 			tensor.form = "";
-			// TODO for (int i = iterateOverComboBox; i < iterateOverComboBox + tensor.tensor_shape.length; i++) {
 			for (int i = iterateOverComboBox; i < iterateOverComboBox + 5; i++) {
 				String selection = (String) outputs.get(i).getSelectedItem();
 				if (!selection.contains("-")) {
@@ -262,14 +278,13 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 			for (int i = 0; i < shape.length; i ++) { shape[i] = -1;}
 			tensor.tensor_shape = shape;
 			tensor.auxForm = tensor.form;
-			// TODO iterateOverComboBox += tensor.tensor_shape.length;
 			iterateOverComboBox += 5;
 			tensor.tensorType = (String) outTags.get(tagC ++).getSelectedItem();
 			if (tensor.tensorType.contains("list"))
 				params.allowPatching = false;
 			
 			if (checkRepeated(tensor.form) == false && tensor.tensorType.equals("ignore") == false) {
-				IJ.error("Repetition is not allowed in input");
+				IJ.error("Dmiension repetition is not allowed.");
 				return false;
 			}
 			if (DeepLearningModel.nBatch(tensor.tensor_shape, tensor.form).equals("1") == false && tensor.tensorType.equals("ignore") == false){
@@ -302,7 +317,44 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 		return true;
 	}
 	
-	public static void updateTensorDisplay(Parameters params) {
+	/*
+	 * Change the letter in each Jcombobox depending on the selected tensor type.
+	 */
+	public void updateTensorDisplay(Parameters params) {
+		// Set disabled the tensors marked as 'parameter'
+		List<DijTensor> inputTensors = params.totalInputList;
+		// Counter for tensors
+		int cIn = 0;
+		int cmbCounterIn = 0;
+		for (JComboBox<String> cmbTag : inTags) {
+			int indSelection = cmbTag.getSelectedIndex();
+			String selection = inputOptions[indSelection];
+			for (int i = cmbCounterIn; i < cmbCounterIn + 5; i++) {
+				if (selection.contains("parameter") && inputs.get(i).getItemAt(0).equals("B")) {
+					inputs.get(i).removeAllItems();
+					inputs.get(i).addItem("-");
+					inputs.get(i).setEnabled(false);
+					String form = inputTensors.get(cIn).form;
+					if (form != null) {
+						inputTensors.get(cIn).form = form.substring(0, i) + "B" + form.substring(i+1);
+					}
+				} else if (selection.contains("image") && inputs.get(i).getItemAt(0).equals("-")) {
+					inputs.get(i).removeAllItems();
+					inputs.get(i).addItem("B");
+					inputs.get(i).addItem("Y");
+					inputs.get(i).addItem("X");
+					inputs.get(i).addItem("C");
+					inputs.get(i).addItem("Z");
+					inputs.get(i).setEnabled(true);
+					String form = inputTensors.get(cIn).form;
+					if (form != null) {
+						inputTensors.get(cIn).form = form.substring(0, i) + "B" + form.substring(i+1);
+					}
+				}
+			}
+			cmbCounterIn += 5;
+			cIn ++;
+		}
 		// Set disabled the tensors marked as 'ignore'
 		List<DijTensor> outputTensors = params.totalOutputList;
 		// Counter for tensors
@@ -311,7 +363,6 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 		for (JComboBox<String> cmbTag : outTags) {
 			int indSelection = cmbTag.getSelectedIndex();
 			String selection = outOptions[indSelection];
-			// TODO for (int i = cmbCounter; i < cmbCounter + outputTensors.get(c).tensor_shape.length; i++) {
 			for (int i = cmbCounter; i < cmbCounter + 5; i++) {
 				if (selection.contains("ignore")) {
 					outputs.get(i).setEnabled(!selection.equals("ignore"));
@@ -322,6 +373,7 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 					outputs.get(i).addItem("C");
 					outputs.get(i).addItem("-");
 					outputs.get(i).setEnabled(true);
+					//outputs.get(i).addActionListener(this);
 					String form = outputTensors.get(c).form;
 					if (form != null)
 						outputTensors.get(c).form = form.substring(0, i) + "B" + form.substring(i+1);
@@ -336,6 +388,19 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 					outputs.get(i).addItem("Z");
 					outputs.get(i).addItem("-");
 					outputs.get(i).setEnabled(true);
+					//outputs.get(i).addActionListener(this);
+					String form = outputTensors.get(c).form;
+					if (form != null)
+						outputTensors.get(c).form = form.substring(0, i) + "B" + form.substring(i+1);
+				} else if (selection.contains("image") && outputs.get(i).getItemAt(1).equals("R") && !params.pyramidalNetwork) {
+					outputs.get(i).removeAllItems();
+					outputs.get(i).addItem("B");
+					outputs.get(i).addItem("Y");
+					outputs.get(i).addItem("X");
+					outputs.get(i).addItem("C");
+					outputs.get(i).addItem("N/i/z");
+					outputs.get(i).setEnabled(true);
+					//outputs.get(i).addActionListener(this);
 					String form = outputTensors.get(c).form;
 					if (form != null)
 						outputTensors.get(c).form = form.substring(0, i) + "B" + form.substring(i+1);
@@ -343,7 +408,6 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 					outputs.get(i).setEnabled(true);
 				}
 			}
-			//cmbCounter += outputTensors.get(c).tensor_shape.length;
 			cmbCounter += 5;
 			c ++;
 		}

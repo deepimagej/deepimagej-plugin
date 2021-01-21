@@ -144,6 +144,11 @@ public class Parameters {
 	 * Missing fields in the yaml file
 	 */
 	public ArrayList<String> fieldsMissing = null;
+	
+	/*
+	 * Version of the DJL Pytorch being used to run Pytorch
+	 */
+	public String pytorchVersion = "";
 		
 	/*
 	 *  Parameters providing ModelInformation

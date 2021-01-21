@@ -69,6 +69,7 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 	private Log						log;
 	private int						currentPatch = 0;
 	private int						totalPatch = 0;
+	public String 					error = "";
 
 	public RunnerTf(DeepImageJ dp, RunnerProgress rp,HashMap<String,Object> inputMap, Log log) {
 		this.dp = dp;
@@ -117,7 +118,8 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 			if (tensor.tensorType.contains("image")) {
 				imp = getImageFromMap(inputMap, tensor);
 				if (imp == null) {
-					rp.stop();
+					// TODO maybe we should allow running models without images
+					error = "No image provided.";
 					return null;
 				}
 				String inputPixelSizeX = ((float) imp.getCalibration().pixelWidth) + " " + imp.getCalibration().getUnit();
@@ -132,7 +134,9 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 			} else if (tensor.tensorType.contains("parameter")){
 				Tensor<?> tensorVal = getTensorFromMap(inputMap, tensor);
 				if (tensorVal == null) {
-					rp.stop();
+					error = "The input tensor '" + tensor.name + "' should be given by"
+							+ "the preprocessing but it is not.";
+					IJ.error(error);
 					return null;
 				}
 				parameterMap.put(tensor.name, tensorVal);
@@ -149,7 +153,8 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 		List<ResultsTable> outputTables = new ArrayList<ResultsTable>();
 		
 		if (imp == null) {
-			rp.stop();
+			// TODO maybe we should allow running models without images
+			error = "No image provided.";
 			return null;
 		}
 		int nx = imp.getWidth();
@@ -191,7 +196,6 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 						errorMsg += "\n" + dimLetters[i] + " : " + patchSize[i];
 					}
 					IJ.error(errorMsg);
-					rp.stop();
 					return null;
 				}
 			}
@@ -200,10 +204,10 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 		int px = patchSize[0]; int py = patchSize[1]; int pc = patchSize[2]; int pz = patchSize[3]; 
 
 		if (3 * nx < px || 3 * ny <py || 3 * nz < pz) {
-			IJ.log("Error patch size is too large.\n"
+			IJ.error("Error patch size is too large.\n"
 					+ "Image Size: X = " + nx + ", Y = " + ny + ", Z = " + nz
 					+ "\n Patch Size: X = " + px + ", Y = " + py + ", Z = " + pz);
-			rp.stop();
+			error = "Patch size is too big";
 			return null;
 		}
 		log.print("patch size " + "X: " +  px + ", Y: " +  py + ", Z: " +  pz + ", C: " +  pc);
@@ -227,10 +231,10 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 		int channelPos = Index.indexOf(inputForm.split(""), "C");
 		int[] inDim = imp.getDimensions();
 		if (inDim[2] != inputDims[channelPos] && inputDims[channelPos] != -1) {
-			IJ.log("Error in nChannel.\n"
-					+ "Image should have " + inputDims[channelPos] 
-							+ " instead of " + inDim[2]);
-			rp.stop();
+			error = "The number of channels of the input image is incorrect.\n"
+					   + "The models requires " + inputDims[channelPos] + "channels "
+				   		+ "but the input image provided has " + inDim[2];
+			IJ.error(error);
 			return null;
 		}
 		// Get the padding in case the image needs any
@@ -422,11 +426,24 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 								imCounter ++;
 								c ++;
 							} else if (outTensor.tensorType.contains("list")){
-								ResultsTable table = Table2Tensor.tensor2Table(result, outTensor.form);
+								ResultsTable table = Table2Tensor.tensorToTable(result, outTensor.form, outTensor.name);
 								outputTables.add(table);
 								table.show(outputTitles[c ++]);
 							}
 							result.close();
+							// TODO put in a method
+							// Check if the user has tried to stop the execution while loading the model
+							// If they have return false and stop
+							if(rp.isStopped()) {
+								// Close every tensor and stop
+								// Close input tensors
+								for (int ii = 0; ii < inputTensors.length; ii ++) 
+									inputTensors[ii].close();
+								for (Tensor<?> oo : fetches)
+									oo.close();
+								return null;
+							}
+							
 						}
 						// Close input tensors
 						for (int ii = 0; ii < inputTensors.length; ii ++) {
@@ -435,29 +452,27 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 					}				
 					catch(IllegalArgumentException ex) {
 						ex.printStackTrace();	
+						error = "Incorrect input dimensions";
 						IJ.log("Error applying the model");
 						IJ.log("The dimensions of the input are incorrect.");
 						IJ.log("The model might require only specific input sizes.");
 						IJ.log("Another of the possible options is that the model has an encoder decoder\n"
 								+ "architecture that requires input to be divisible a certain amount of times.");
 						IJ.log("Please review the model architecture and the step and patch parameters.");
-						rp.stop();
 						return null;
 					}
 					catch(IllegalStateException ex) {
 						ex.printStackTrace();	
+						error = "Missing weights";
 						IJ.log("Error applying the model");
 						IJ.log("Uninitialized weights.");
 						IJ.log("Check that the variables/weights folder contains a correct version of the weights");
-						rp.stop();
 						return null;
 					}
 					catch (Exception ex) {
 						// TODO MAKE THIS EXCEPTION MORE ESPECIFIC
 						ex.printStackTrace();	
 						IJ.log("Error applying the model");
-						IJ.log(ex.getMessage());
-						rp.stop();
 						return null;
 					}
 					int[][] allOffsets = findOutputOffset(params.outputList);
@@ -500,7 +515,7 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 										+ "with the dimensions specified previously:\n"
 										+ "Specified output dimensions: dimension order -> " + dijForm + ", dimension size -> " + Arrays.toString(pyramidOut) 
 										+ "Actual output dimensions: dimension order -> XYCZB, dimension size -> " + Arrays.toString(outPatchDims));
-								rp.stop();
+								error = "Error specifying output dimensions.";
 								return null;
 							}
 							if (rp.isStopped()) {
@@ -542,7 +557,7 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 										+ "with the dimensions specified previously:\n"
 										+ "Specified output dimensions: dimension order -> XYCZB, dimension size -> " + thSizeStr 
 										+ "Actual output dimensions: dimension order -> XYCZB, dimension size -> " + Arrays.toString(outPatchDims));
-								rp.stop();
+								error = "Error specifying output dimensions.";
 								return null;
 							}
 							if (rp.isStopped()) {
@@ -562,7 +577,6 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 		params.runtime = NumFormat.seconds(endTime - startingTime);
 		// Set Parameter params.memoryPeak
 		params.memoryPeak = NumFormat.bytes(rp.getPeakmem());
-		//rp.stop();
 		// Set Parameter  params.outputSize
 		HashMap<String, Object> outputMap = new HashMap<String, Object>();
 		int imageCount = 0;
