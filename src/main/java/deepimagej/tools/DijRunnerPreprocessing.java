@@ -36,6 +36,13 @@
  */
 package deepimagej.tools;
 
+import java.awt.Frame;
+import java.awt.Window;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.concurrent.Callable;
 
@@ -56,6 +63,7 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 	private ImagePlus inp;
 	private boolean batch;
 	public 	String	error = "";
+	private boolean composite = false;
 	
 	public DijRunnerPreprocessing(DeepImageJ dp, RunnerProgress rp, ImagePlus inp, boolean batch) {
 		this.dp = dp;
@@ -82,18 +90,8 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 			// This piece of code is only used in DIJ_Run
 			// Convert RGB image into RGB stack 
 			dev = false;
-			if (batch == false) {
-				ImageWindow windToClose = inp.getWindow();
-				windToClose.dispose();
-				ImagePlus aux = ij.plugin.CompositeConverter.makeComposite(inp);
-				inp = aux == null ? inp : aux;
-				windToClose.setImage(inp);
-				windToClose.setVisible(true);
-				IJ.log("Converting RGB Color image (1 channel) into RGB Stack (3 channels)");
-			} else {
-				ImagePlus aux = ij.plugin.CompositeConverter.makeComposite(inp);
-				inp = aux == null ? inp : aux;
-			}
+			// Check if an image is RGB Color (1channel). If it is the case transform it into RGB Stack (3channels).
+			makeComposite();
 			
 			if (rp.isStopped()) {
 				return null;
@@ -116,22 +114,36 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 		}
 
 		HashMap<String, Object> inputsMap = null;
-		if (inp == null)
+		if (inp == null) {
 			inp = dp.params.testImage;
+			// Check if an image is RGB Color (1channel). If it is the case transform it into RGB Stack (3channels).
+			makeComposite();
+		}
+		
 		
 		rp.allowStopping(false);
 		try {
 			inputsMap = ProcessingBridge.runPreprocessing(inp, dp.params);
 		}catch(MacrosError ex) {
 			ex.printStackTrace();
-			IJ.error("Error during Macro preprocessing.");
 			error = "Error during Macro preprocessing.";
+			if (composite)
+				error += "\nNote that the plugin is internally converting the RGB Color into RGB Stack.";
+			if (lookForRunRGBStack())
+				error += "\nThe command 'run(\"RGB Stack\");' has been found in macro preporcessing.\n"
+						+ "Please remove it to avoid conflicts.";
+			IJ.error(error);
 			rp.allowStopping(true);
 			return inputsMap;
 		} catch (JavaProcessingError e) {
 			e.printStackTrace();
-			IJ.error("Error during Java preprocessing.");
 			error = "Error during Java preprocessing.";
+			if (composite)
+				error += "\nNote that the plugin is internally converting the RGB Color into RGB Stack.";
+			if (lookForRunRGBStack())
+				error += "\nThe command 'run(\"RGB Stack\");' has been found in the macro preporcessing.\n"
+						+ "Please remove it to avoid conflicts.";
+			IJ.error(error);
 			rp.allowStopping(true);
 			return inputsMap;
 		}
@@ -155,5 +167,64 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 		
 		return inputsMap;
 	}
+	
+	/*
+	 * Ckecks if the image to be processed is RGB Color and converts it into RGB Stack
+	 * if it is the case
+	 */
+	private void makeComposite() {
+		if (!batch && inp.getType() == 4) {
+			ImageWindow windToClose = inp.getWindow();
+			windToClose.dispose();
+			ImagePlus aux = ij.plugin.CompositeConverter.makeComposite(inp);
+			// If aux is not null, it means that aux contains a RGB Stack image
+			if (aux != null) {
+				IJ.log("Converting RGB Color image (1 channel) into RGB Stack (3 channels)");
+				IJ.log("Be careful with any macro command that has conflicts with RGB Stack images, for example: 'run(\"RGB Stack\");'");
+				composite = true;
+			}
+			inp = aux == null ? inp : aux;
+			windToClose.setImage(inp);
+			windToClose.setVisible(true);
+		} else if (batch &&  inp.getType() == 4){
+			ImagePlus aux = ij.plugin.CompositeConverter.makeComposite(inp);
+			// If aux is not null, it means that aux contains a RGB Stack image
+			if (aux != null) {
+				composite = true;
+			}
+			inp = aux == null ? inp : aux;
+		}
+		
+	}
 
+	/*
+	 * Look for the command 'run("RGB Stack");' in the macro.
+	 * Executing it after it has already been done by the macro might cause
+	 * an error in the macro preprocessing. If the string is found in the
+	 * macro files, return , else, false.
+	 */
+	public boolean lookForRunRGBStack() {
+		String str2find = "run(\"RGB Stack\")";
+		if (dp.params.firstPreprocessing != null && (dp.params.firstPreprocessing.contains(".txt") || dp.params.firstPreprocessing.contains(".ijm"))) {
+			// Get the file as a String
+			try {
+				byte[] encoded = Files.readAllBytes(Paths.get(dp.params.firstPreprocessing));
+				String fileStr =  new String(encoded, StandardCharsets.UTF_8);
+				if (fileStr.contains(str2find))
+					return true;
+			} catch (IOException e) {
+			}
+		}
+		if (dp.params.secondPreprocessing != null && (dp.params.secondPreprocessing.contains(".txt") || dp.params.secondPreprocessing.contains(".ijm"))) {
+			// Get the file as a String
+			try {
+				byte[] encoded = Files.readAllBytes(Paths.get(dp.params.secondPreprocessing));
+				String fileStr =  new String(encoded, StandardCharsets.UTF_8);
+				if (fileStr.contains(str2find))
+					return true;
+			} catch (IOException e) {
+			}
+		}
+		return false;
+	}
 }

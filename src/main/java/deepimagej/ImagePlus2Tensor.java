@@ -44,6 +44,7 @@ import org.tensorflow.Tensor;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.types.Shape;
+import deepimagej.exceptions.BatchSizeBiggerThanOne;
 import deepimagej.exceptions.IncorrectNumberOfDimensions;
 import deepimagej.tools.ArrayOperations;
 import ij.IJ;
@@ -121,10 +122,13 @@ public class ImagePlus2Tensor {
 			fBatch = form.indexOf("B");
 			tensorDims[fBatch] = batch;
 			// For DJL Pytorch versions >=1.7.0, the batch size is included in the tensor
-			// TODO update with pytorch versions
 			if (!old) {
 				arrayShape = new long[form.length()];
 				arrayShape[fBatch] = (long) batch;
+			} else {
+				String auxForm = form.substring(0, fBatch) +  form.substring(fBatch + 1);
+				IJ.log("WARNING: DJL Pytorch versions <=1.6.0 do not allow definition of the batch size.");
+				IJ.log("WARNING: Image input tensor  dimension organization has changed: " + form + " --> " + auxForm);
 			}
 		} else {
 			arrayShape = new long[form.length()];
@@ -306,7 +310,7 @@ public class ImagePlus2Tensor {
 	/////////// Methods to transform an NDArray tensor into an ImageJ ImagePlus
 	
 	
-	public static ImagePlus NDArray2ImagePlus(NDArray tensor, String form, String name, String ptVersion) throws IncorrectNumberOfDimensions{
+	public static ImagePlus NDArray2ImagePlus(NDArray tensor, String form, String name, String ptVersion) throws IncorrectNumberOfDimensions, BatchSizeBiggerThanOne{
 		// This method copies the information from the tensor to a matrix. At first only works
 		// if the batch size is 1
 		
@@ -318,85 +322,92 @@ public class ImagePlus2Tensor {
 		boolean old = olderThanPytorch170(ptVersion);
 		int batchIndex = form.indexOf("B");
 		
-		if (old && batchIndex != -1)
-			// TODO add batch where it is due
+		// TODO should batch be eliminated always or only when the dimensions are incorrect
+		if (old && batchIndex != -1) {
+			String oldForm = "" + form;
+			form = oldForm.substring(0, batchIndex) +  oldForm.substring(batchIndex + 1);
+			IJ.log("WARNING: DJL Pytorch versions <=1.6.0 do not allow definition of the batch size.");
+			IJ.log("WARNING: Output tensor '" + name + "' dimension organization has changed: " + oldForm + " --> " + form);
+		}
+			
 		if (tensorShape.length != form.length())
 			throw new IncorrectNumberOfDimensions(tensorShape, form, name);
 		int[] completeTensorShape = longShape6(tensorShape);
 		int[] imageDims = {1, 1, 1, 1, 1};
 		
-		if (batchIndex == -1 || tensorShape[batchIndex] == (long) 1) {
-			int fBatch;
-			if (form.indexOf("B") != -1) {
-				fBatch = form.indexOf("B");
-				imageDims[4] = (int) tensorShape[fBatch];
-			} else {
-				fBatch = form.length();
-				form += "B";
-			}
-			int fHeight;
-			if (form.indexOf("Y") != -1) {
-				fHeight = form.indexOf("Y");
-				imageDims[1] = (int) tensorShape[fHeight];
-			} else {
-				fHeight = form.length();
-				form += "Y";
-			}
-			int fWidth;
-			if (form.indexOf("X") != -1) {
-				fWidth = form.indexOf("X");
-				imageDims[0] = (int) tensorShape[fWidth];
-			} else {
-				fWidth = form.length();
-				form += "X";
-			}
-			int fChannel;
-			if (form.indexOf("C") != -1) {
-				fChannel = form.indexOf("C");
-				imageDims[2] = (int) tensorShape[fChannel];
-			} else {
-				fChannel = form.length();
-				form += "C";
-			}
-			int fDepth;
-			if (form.indexOf("Z") != -1) {
-				fDepth = form.indexOf("Z");
-				imageDims[3] = (int) tensorShape[fDepth];
-			} else {
-				fDepth = form.length();
-				form += "Z";
-			}
-			
-			float[] flatImageArray = tensor.toFloatArray();
-			double[][][][][] matImage = new double[imageDims[0]][imageDims[1]][imageDims[2]][imageDims[3]][imageDims[4]];
-			
-			int pos = 0;
-			int[] auxInd = {0, 0, 0, 0, 0};
-			for (int i0 = 0; i0 < completeTensorShape[0]; i0 ++) {
-				auxInd[0] = i0;
-				for (int i1 = 0; i1 < completeTensorShape[1]; i1 ++) {
-					auxInd[1] = i1;
-					for (int i2 = 0; i2 < completeTensorShape[2]; i2 ++) {
-						auxInd[2] = i2;
-						for (int i3 = 0; i3 < completeTensorShape[3]; i3 ++) {
-							auxInd[3] = i3;
-							for (int i4 = 0; i4 < completeTensorShape[4]; i4 ++) {
-								auxInd[4] = i4;
-								matImage[auxInd[fWidth]][auxInd[fHeight]][auxInd[fChannel]][auxInd[fDepth]][auxInd[fBatch]] = (double) flatImageArray[pos ++];
-							}
+		// TODO add possibility of batch>1
+		if (batchIndex != -1 && tensorShape[batchIndex] > 1)
+			throw new BatchSizeBiggerThanOne(tensorShape, form, name);
+	
+		int fBatch;
+		if (form.indexOf("B") != -1) {
+			fBatch = form.indexOf("B");
+			imageDims[4] = (int) tensorShape[fBatch];
+		} else {
+			fBatch = form.length();
+			form += "B";
+		}
+		int fHeight;
+		if (form.indexOf("Y") != -1) {
+			fHeight = form.indexOf("Y");
+			imageDims[1] = (int) tensorShape[fHeight];
+		} else {
+			fHeight = form.length();
+			form += "Y";
+		}
+		int fWidth;
+		if (form.indexOf("X") != -1) {
+			fWidth = form.indexOf("X");
+			imageDims[0] = (int) tensorShape[fWidth];
+		} else {
+			fWidth = form.length();
+			form += "X";
+		}
+		int fChannel;
+		if (form.indexOf("C") != -1) {
+			fChannel = form.indexOf("C");
+			imageDims[2] = (int) tensorShape[fChannel];
+		} else {
+			fChannel = form.length();
+			form += "C";
+		}
+		int fDepth;
+		if (form.indexOf("Z") != -1) {
+			fDepth = form.indexOf("Z");
+			imageDims[3] = (int) tensorShape[fDepth];
+		} else {
+			fDepth = form.length();
+			form += "Z";
+		}
+		
+		float[] flatImageArray = tensor.toFloatArray();
+		double[][][][][] matImage = new double[imageDims[0]][imageDims[1]][imageDims[2]][imageDims[3]][imageDims[4]];
+		
+		int pos = 0;
+		int[] auxInd = {0, 0, 0, 0, 0};
+		for (int i0 = 0; i0 < completeTensorShape[0]; i0 ++) {
+			auxInd[0] = i0;
+			for (int i1 = 0; i1 < completeTensorShape[1]; i1 ++) {
+				auxInd[1] = i1;
+				for (int i2 = 0; i2 < completeTensorShape[2]; i2 ++) {
+					auxInd[2] = i2;
+					for (int i3 = 0; i3 < completeTensorShape[3]; i3 ++) {
+						auxInd[3] = i3;
+						for (int i4 = 0; i4 < completeTensorShape[4]; i4 ++) {
+							auxInd[4] = i4;
+							matImage[auxInd[fWidth]][auxInd[fHeight]][auxInd[fChannel]][auxInd[fDepth]][auxInd[fBatch]] = (double) flatImageArray[pos ++];
 						}
 					}
 				}
 			}
-			imPlus = ArrayOperations.convertArrayToImagePlus(matImage, imageDims);
-		} else {
-			IJ.error("Sorry only batch size equal to 1 is allowed.");
 		}
+		imPlus = ArrayOperations.convertArrayToImagePlus(matImage, imageDims);
+		
 		return imPlus;
 	}	
 	
 	// TODO make specific for different types
-	public static ImagePlus tensor2ImagePlus(Tensor<?> tensor, String form, String name) throws IncorrectNumberOfDimensions{
+	public static ImagePlus tensor2ImagePlus(Tensor<?> tensor, String form, String name) throws IncorrectNumberOfDimensions, BatchSizeBiggerThanOne{
 		// This method copies the information from the tensor to a matrix. At first only works
 		// if the batch size is 1
 		
@@ -411,76 +422,77 @@ public class ImagePlus2Tensor {
 		int[] imageDims = {1, 1, 1, 1, 1};
 		
 		int batchIndex = form.indexOf("B");
-		if (batchIndex == -1 || tensorShape[batchIndex] == (long) 1) {
-			int fBatch;
-			if (form.indexOf("B") != -1) {
-				fBatch = form.indexOf("B");
-				imageDims[4] = (int) tensorShape[fBatch];
-			} else {
-				fBatch = form.length();
-				form += "B";
-			}
-			int fHeight;
-			if (form.indexOf("Y") != -1) {
-				fHeight = form.indexOf("Y");
-				imageDims[1] = (int) tensorShape[fHeight];
-			} else {
-				fHeight = form.length();
-				form += "Y";
-			}
-			int fWidth;
-			if (form.indexOf("X") != -1) {
-				fWidth = form.indexOf("X");
-				imageDims[0] = (int) tensorShape[fWidth];
-			} else {
-				fWidth = form.length();
-				form += "X";
-			}
-			int fChannel;
-			if (form.indexOf("C") != -1) {
-				fChannel = form.indexOf("C");
-				imageDims[2] = (int) tensorShape[fChannel];
-			} else {
-				fChannel = form.length();
-				form += "C";
-			}
-			int fDepth;
-			if (form.indexOf("Z") != -1) {
-				fDepth = form.indexOf("Z");
-				imageDims[3] = (int) tensorShape[fDepth];
-			} else {
-				fDepth = form.length();
-				form += "Z";
-			}
-			
-			float[] flatImageArray = new float[imageDims[0] * imageDims[1] * imageDims[2] * imageDims[3] * imageDims[4]];
 
-			FloatBuffer outBuff = FloatBuffer.wrap(flatImageArray);
-		 	tensor.writeTo(outBuff);
-			double[][][][][] matImage = new double[imageDims[0]][imageDims[1]][imageDims[2]][imageDims[3]][imageDims[4]];
-			
-			int pos = 0;
-			int[] auxInd = {0, 0, 0, 0, 0};
-			for (int i0 = 0; i0 < completeTensorShape[0]; i0 ++) {
-				auxInd[0] = i0;
-				for (int i1 = 0; i1 < completeTensorShape[1]; i1 ++) {
-					auxInd[1] = i1;
-					for (int i2 = 0; i2 < completeTensorShape[2]; i2 ++) {
-						auxInd[2] = i2;
-						for (int i3 = 0; i3 < completeTensorShape[3]; i3 ++) {
-							auxInd[3] = i3;
-							for (int i4 = 0; i4 < completeTensorShape[4]; i4 ++) {
-								auxInd[4] = i4;
-								matImage[auxInd[fWidth]][auxInd[fHeight]][auxInd[fChannel]][auxInd[fDepth]][auxInd[fBatch]] = (double) flatImageArray[pos ++];
-							}
+		// TODO add possibility of batch>1
+		if (batchIndex != -1 && tensorShape[batchIndex] > 1)
+			throw new BatchSizeBiggerThanOne(tensorShape, form, name);
+	
+		int fBatch;
+		if (form.indexOf("B") != -1) {
+			fBatch = form.indexOf("B");
+			imageDims[4] = (int) tensorShape[fBatch];
+		} else {
+			fBatch = form.length();
+			form += "B";
+		}
+		int fHeight;
+		if (form.indexOf("Y") != -1) {
+			fHeight = form.indexOf("Y");
+			imageDims[1] = (int) tensorShape[fHeight];
+		} else {
+			fHeight = form.length();
+			form += "Y";
+		}
+		int fWidth;
+		if (form.indexOf("X") != -1) {
+			fWidth = form.indexOf("X");
+			imageDims[0] = (int) tensorShape[fWidth];
+		} else {
+			fWidth = form.length();
+			form += "X";
+		}
+		int fChannel;
+		if (form.indexOf("C") != -1) {
+			fChannel = form.indexOf("C");
+			imageDims[2] = (int) tensorShape[fChannel];
+		} else {
+			fChannel = form.length();
+			form += "C";
+		}
+		int fDepth;
+		if (form.indexOf("Z") != -1) {
+			fDepth = form.indexOf("Z");
+			imageDims[3] = (int) tensorShape[fDepth];
+		} else {
+			fDepth = form.length();
+			form += "Z";
+		}
+		
+		float[] flatImageArray = new float[imageDims[0] * imageDims[1] * imageDims[2] * imageDims[3] * imageDims[4]];
+
+		FloatBuffer outBuff = FloatBuffer.wrap(flatImageArray);
+	 	tensor.writeTo(outBuff);
+		double[][][][][] matImage = new double[imageDims[0]][imageDims[1]][imageDims[2]][imageDims[3]][imageDims[4]];
+		
+		int pos = 0;
+		int[] auxInd = {0, 0, 0, 0, 0};
+		for (int i0 = 0; i0 < completeTensorShape[0]; i0 ++) {
+			auxInd[0] = i0;
+			for (int i1 = 0; i1 < completeTensorShape[1]; i1 ++) {
+				auxInd[1] = i1;
+				for (int i2 = 0; i2 < completeTensorShape[2]; i2 ++) {
+					auxInd[2] = i2;
+					for (int i3 = 0; i3 < completeTensorShape[3]; i3 ++) {
+						auxInd[3] = i3;
+						for (int i4 = 0; i4 < completeTensorShape[4]; i4 ++) {
+							auxInd[4] = i4;
+							matImage[auxInd[fWidth]][auxInd[fHeight]][auxInd[fChannel]][auxInd[fDepth]][auxInd[fBatch]] = (double) flatImageArray[pos ++];
 						}
 					}
 				}
 			}
-			imPlus = ArrayOperations.convertArrayToImagePlus(matImage, imageDims);
-		} else {
-			IJ.error("Sorry only batch size equal to 1 is allowed.");
 		}
+		imPlus = ArrayOperations.convertArrayToImagePlus(matImage, imageDims);
 		return imPlus;
 	}	
 	

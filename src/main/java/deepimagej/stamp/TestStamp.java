@@ -314,7 +314,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 		
 	}
 
-	/*
+	/*// TODO create methods to group code in charge of stopping the execution
 	 * Perform a test run on the selected image
 	 */
 	public void test() {
@@ -331,17 +331,21 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 			    RunnerProgress.stopRunnerProgress(service, rp);
 				pnTest.append("p", "Test run was stoped during preprocessing.");
 				IJ.error("Test run was stoped during preprocessing.");
+				// Remove possible hidden images from IJ workspace
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 				return;
 			} else if (inputsMap == null && preprocess.error.contentEquals("")) {
 			    RunnerProgress.stopRunnerProgress(service, rp);
 				pnTest.append("p", "Error during preprocessing.");
 				pnTest.append("p", "The preprocessing did not return anything.");
-				IJ.error("Error during preprocessing.");
+				// Remove possible hidden images from IJ workspace
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 				return;
 			} else if (!preprocess.error.contentEquals("")) {
 			    RunnerProgress.stopRunnerProgress(service, rp);
 				pnTest.append("p", preprocess.error);
-				IJ.error(preprocess.error);
+				// Remove possible hidden images from IJ workspace
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 				return;
 			}
 			
@@ -369,11 +373,15 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 				pnTest.append("p", "Test run failed");
 				pnTest.append("p", runnerError);
 				IJ.error("The execution of the model failed.");
+				// Remove possible hidden images from IJ workspace
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 				return;
 			} else if (rp.isStopped()) {
 			    RunnerProgress.stopRunnerProgress(service, rp);
 				pnTest.append("p", "Model execution of the test run stopped");
 				IJ.error("Model execution of the test run stopped.");
+				// Remove possible hidden images from IJ workspace
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 				return;
 			}
 			
@@ -384,10 +392,8 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 			if (rp.isStopped()) {
 				pnTest.append("p", "Test run was stoped during postprocessing.");
 				IJ.error("Test run was stoped during postprocessing.");
-			} else if (!postprocess.error.contentEquals("")) {
-				pnTest.append("p", postprocess.error);
-				IJ.error(postprocess.error);
 			}
+			
 		    RunnerProgress.stopRunnerProgress(service, rp);
 			// Print the outputs of the postprocessing
 			// Retrieve the opened windows and compare them to what the model has outputed
@@ -396,6 +402,8 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 			String[] finalFrames = WindowManager.getNonImageTitles();
 			String[] finalImages = WindowManager.getImageTitles();
 			ArrayOperations.displayMissingOutputs(finalImages, finalFrames, output);
+			// Remove possible hidden images from IJ workspace
+			ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 			
 			parent.endsTest();
 			bnTest.setEnabled(true);

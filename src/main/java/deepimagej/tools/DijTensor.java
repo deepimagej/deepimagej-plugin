@@ -127,10 +127,23 @@ public class DijTensor {
 	 */
 	public String auxForm;
 	
-	
+	/*
+	 * Contructor to create a tensor
+	 */
 	public DijTensor(String name) {
 		this.name = name;
 	}
+
+	/*
+	 * Auxiliary constructor to create a copy of a tensor with a few 
+	 * specific parameters. This is done to know if the tensors have changed  
+	 * at @see deepimagej.stamp.InputDimensionStamp#init or @see deepimagej.stamp.OutputDimensionStamp#init
+	 */
+	public DijTensor(DijTensor original) {
+	    this.name = original.name;  
+	    this.form = original.form;  
+	    this.tensorType = original.tensorType;   
+	  }
 	
 	public void setInDimensions(int[] inDimensions) {
 		this.tensor_shape = inDimensions;
@@ -202,6 +215,13 @@ public class DijTensor {
 				imageTensors.add(tensor);
 		}
 		return imageTensors;
+	}
+	
+	public static List<DijTensor> copyTensorList(List<DijTensor> inputList){
+		List<DijTensor> newTensors = new ArrayList<DijTensor>();
+		for (DijTensor tt : inputList)
+			newTensors.add(new DijTensor(tt));
+		return newTensors;
 	}
 
 }

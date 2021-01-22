@@ -228,6 +228,10 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 	@Override
 	public boolean finish() {
 		Parameters params = parent.getDeepPlugin().params;
+		// Parameter to make sure only one tensor corresponds to the
+		// image type
+		// TODO support several image inputs
+		boolean image = false;
 		// Reset 'allowPatching' parameter to its default value (true)
 		if (!params.pyramidalNetwork)
 			params.allowPatching = true;
@@ -240,6 +244,13 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 			for (int i = iterateOverComboBox; i < iterateOverComboBox + tensor.tensor_shape.length; i++)
 				tensor.form = tensor.form + (String) inputs.get(i).getSelectedItem();
 			tensor.tensorType = (String) inTags.get(tagC ++).getSelectedItem();
+			// TODO accept more than one input image
+			if (!image && tensor.tensorType.contains("image")) {
+				image = true;
+			} else if (tensor.tensorType.contains("image")) {
+				IJ.error("The current DeepImageJ version only admits on input image tensor.");
+				return false;
+			}
 			iterateOverComboBox += tensor.tensor_shape.length;
 			if (checkRepeated(tensor.form) == false && tensor.tensorType.equals("parameter") == false) {
 				IJ.error("Dimension repetition is not allowed");
@@ -283,6 +294,14 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 				params.outputList.add(tensor);
 		    }
 		}
+		if (!image) {
+			IJ.error("The model must have at least 1 input image.");
+			return false;
+		}
+		if (params.outputList.size() < 1) {
+			IJ.error("The model must have at least 1 output.");
+			return false;
+		}
 		
 		return true;
 	}
@@ -305,8 +324,8 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					inputs.get(i).addItem("-");
 					inputs.get(i).setEnabled(false);
 					String form = inputTensors.get(cIn).form;
-					if (form != null) {
-						inputTensors.get(cIn).form = form.substring(0, i) + "B" + form.substring(i+1);
+					if (form != null && !form.contentEquals("")) {
+						inputTensors.get(cIn).form = "";
 					}
 				} else if (selection.contains("image") && inputs.get(i).getItemAt(0).equals("-")) {
 					inputs.get(i).removeAllItems();
@@ -317,8 +336,8 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					inputs.get(i).addItem("Z");
 					inputs.get(i).setEnabled(true);
 					String form = inputTensors.get(cIn).form;
-					if (form != null) {
-						inputTensors.get(cIn).form = form.substring(0, i) + "B" + form.substring(i+1);
+					if (form != null && !form.contentEquals("")) {
+						inputTensors.get(cIn).form = "";
 					}
 				}
 			}
@@ -344,8 +363,8 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					outputs.get(i).setEnabled(true);
 					outputs.get(i).addActionListener(this);
 					String form = outputTensors.get(c).form;
-					if (form != null)
-						outputTensors.get(c).form = form.substring(0, i) + "B" + form.substring(i+1);
+					if (form != null && !form.contentEquals(""))
+						outputTensors.get(c).form = "";
 				} else if (selection.contains("list") && !outputs.get(i).isEnabled()) {
 					outputs.get(i).setEnabled(true);
 				} else if (selection.contains("image") && outputs.get(i).getItemAt(1).equals("R") && !params.pyramidalNetwork) {
@@ -358,8 +377,8 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					outputs.get(i).setEnabled(true);
 					outputs.get(i).addActionListener(this);
 					String form = outputTensors.get(c).form;
-					if (form != null)
-						outputTensors.get(c).form = form.substring(0, i) + "B" + form.substring(i+1);
+					if (form != null && !form.contentEquals(""))
+						outputTensors.get(c).form = "";
 				} else if (selection.contains("image") && outputs.get(i).getItemAt(1).equals("R") && !params.pyramidalNetwork) {
 					outputs.get(i).removeAllItems();
 					outputs.get(i).addItem("B");
@@ -370,8 +389,8 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					outputs.get(i).setEnabled(true);
 					outputs.get(i).addActionListener(this);
 					String form = outputTensors.get(c).form;
-					if (form != null)
-						outputTensors.get(c).form = form.substring(0, i) + "B" + form.substring(i+1);
+					if (form != null && !form.contentEquals(""))
+						outputTensors.get(c).form = "";
 				} else if (selection.contains("image") && !outputs.get(i).isEnabled()) {
 					outputs.get(i).setEnabled(true);
 				}

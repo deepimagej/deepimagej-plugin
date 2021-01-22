@@ -419,6 +419,8 @@ public class Parameters {
 				outTensor.form = (String) out.get("axes");
 				outTensor.form = outTensor.form == null ? null : outTensor.form.toUpperCase();
 				outTensor.tensorType = outTensor.form == null ? "list" : "image";
+				if (outTensor.form == null || outTensor.form.contains("R") || (outTensor.form.length() <= 2 && (outTensor.form.contains("B") || outTensor.form.contains("C"))))
+					outTensor.tensorType = "list";
 				List auxDataRange = (List) out.get("data_range");
 				// TODO outTensor.dataRange = castListToDoubleArray(auxDataRange);
 				outTensor.dataType = (String) out.get("data_type");
@@ -449,8 +451,7 @@ public class Parameters {
 				} else {
 					
 				}
-				outTensor.form = outTensor.form == null ? Table2Tensor.findTableForm(outTensor.recommended_patch) : outTensor.form;	
-	
+				
 				// Check that the output definition fields are complete
 				if (outTensor.form == null || outTensor.dataType == null || outTensor.scale == null
 						|| outTensor.offset == null) {

@@ -53,6 +53,7 @@ import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.repository.zoo.ZooModel;
+import deepimagej.exceptions.BatchSizeBiggerThanOne;
 import deepimagej.exceptions.IncorrectNumberOfDimensions;
 import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.CompactMirroring;
@@ -155,11 +156,6 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 			// TODO maybe we should allow running models without images
 			error = "No image provided.";
 			return null;
-		}
-		// Now check if the image is an RGB, if it is make it composite,
-		// so ImageJ can see the 3 channels of the RGB image
-		if (imp.getType() == 4){
-			IJ.run(imp, "Make Composite", "");
 		}
 		
 		int nx = imp.getWidth();
@@ -435,10 +431,16 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 						error += dimensionsMismatch(ex.getMessage());
 						IJ.log("Error applying the model");
 						IJ.log(error);
-						if (params.pytorchVersion.contains("1.7."))
-							IJ.log("Note that in Pytorch >=1.7.0 the batch dimension has to be specified in the tensor dimensions organization.");
-						else
-							IJ.log("Note that in Pytorch <=1.6.0 the batch dimension should not be provided, it is added automatically.");
+						commentAboutPytorchVersions();
+						return null;
+					} catch(BatchSizeBiggerThanOne ex) {
+						ex.printStackTrace();	
+						error = "Output batch size bigger than 1 for tensor '" + ex.getName() + "'.\n Batch_size > 1 not supported by this version of DeepImageJ";
+						IJ.log("Error applying the model");
+						IJ.log(error);
+						IJ.log(ex.toString());
+						IJ.log("\n");
+						commentAboutPytorchVersions();
 						return null;
 					} catch (EngineException ex) {
 						ex.printStackTrace();	
@@ -446,20 +448,14 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 						IJ.log("Error applying the model");
 						IJ.log("Check that the specifications for the input are compatible with the model architecture.");
 						IJ.log(error);
-						if (params.pytorchVersion.contains("1.7."))
-							IJ.log("Note that in Pytorch >=1.7.0 the batch dimension has to be specified in the tensor dimensions organization.");
-						else
-							IJ.log("Note that in Pytorch <=1.6.0 the batch dimension should not be provided, it is added automatically.");
+						commentAboutPytorchVersions();
 						return null;
 					} catch (Exception ex) {
 						ex.printStackTrace();	
 						error = dimensionsMismatch(ex.getMessage());
 						IJ.log("Error applying the model");
 						IJ.log(error);
-						if (params.pytorchVersion.contains("1.7."))
-							IJ.log("Note that in Pytorch >=1.7.0 the batch dimension has to be specified in the tensor dimensions organization.");
-						else
-							IJ.log("Note that in Pytorch <=1.6.0 the batch dimension should not be provided, it is added automatically.");
+						commentAboutPytorchVersions();
 						return null;
 					}
 					int[][] allOffsets = findOutputOffset(params.outputList);
@@ -583,6 +579,14 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 		
 		
 		return outputMap;
+	}
+	
+	private void commentAboutPytorchVersions() {
+		if (dp.params.pytorchVersion.contains("1.7."))
+			IJ.log("Note that in Pytorch >=1.7.0 the batch dimension has to be specified in the tensor dimensions organization.");
+		else
+			IJ.log("Note that in Pytorch <=1.6.0 the batch dimension should not be provided, it is added automatically.");
+		
 	}
 	
 	private static ImagePlus getImageFromMap(HashMap<String, Object> inputMap, DijTensor tensor) {

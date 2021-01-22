@@ -51,6 +51,7 @@ import org.tensorflow.framework.SignatureDef;
 import org.tensorflow.framework.TensorInfo;
 
 import ai.djl.ndarray.NDArray;
+import deepimagej.exceptions.BatchSizeBiggerThanOne;
 import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.CompactMirroring;
 import deepimagej.tools.DijTensor;
@@ -162,12 +163,6 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 		int nc = imp.getNChannels();
 		int nz = imp.getNSlices();
 		log.print("image size " + nx + "x" + ny + "x" + nz);
-		
-		// Now check if the image is an RGB, if it is make it composite,
-		// so ImageJ can see the 3 channels of the RGB image
-		if (imp.getType() == 4){
-			IJ.run(imp, "Make Composite", "");
-		}
 		
 		int[] indices = new int[4];
 		String[] dimLetters = "XYCZ".split("");
@@ -460,8 +455,14 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 								+ "architecture that requires input to be divisible a certain amount of times.");
 						IJ.log("Please review the model architecture and the step and patch parameters.");
 						return null;
-					}
-					catch(IllegalStateException ex) {
+					} catch(BatchSizeBiggerThanOne ex) {
+						ex.printStackTrace();	
+						error = "Output batch size bigger than 1 for tensor '" + ex.getName() + "'.\n Batch_size > 1 not supported by this version of DeepImageJ";
+						IJ.log("Error applying the model");
+						IJ.log(error);
+						IJ.log(ex.toString());
+						return null;
+					} catch(IllegalStateException ex) {
 						ex.printStackTrace();	
 						error = "Missing weights";
 						IJ.log("Error applying the model");

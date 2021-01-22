@@ -37,9 +37,7 @@
 
 package deepimagej.stamp;
 
-import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
@@ -184,17 +182,19 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		// Repaint interface if model has changed
 		if (!modelOfInterest.equals(model)) {
 			showCorrespondingInputInterface(params);
-			tiling = params.allowPatching;
-			savedInputs = params.inputList;
+			// To avoid referencing
+			tiling = true == params.allowPatching;
+			savedInputs = DijTensor.copyTensorList(params.inputList);
 			model = modelOfInterest;
 			inputCounter = 0;
 			return;
 		}
-		// Repaint interface if the number of input tensors
+		// Repaint interface if the number of input tensors has changed
 		if (params.inputList.size() != savedInputs.size()) {
 			showCorrespondingInputInterface(params);
-			tiling = params.allowPatching;
-			savedInputs = params.inputList;
+			// To avoid referencing
+			tiling = true == params.allowPatching;
+			savedInputs = DijTensor.copyTensorList(params.inputList);
 			inputCounter = 0;
 			return;
 		}
@@ -203,8 +203,9 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			if (!params.inputList.get(i).tensorType.equals(savedInputs.get(i).tensorType) 
 				|| !params.inputList.get(i).form.equals(savedInputs.get(i).form)) {
 				showCorrespondingInputInterface(params);
-				tiling = params.allowPatching;
-				savedInputs = params.inputList;
+				// To avoid referencing
+				tiling = true == params.allowPatching;
+				savedInputs = DijTensor.copyTensorList(params.inputList);
 				inputCounter = 0;
 				return;
 			}
@@ -213,7 +214,8 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		// or from pyramidal to not pyramidal, repaint again.
 		if (tiling != params.allowPatching) {
 			showCorrespondingInputInterface(params);
-			tiling = params.allowPatching;
+			// To avoid referencing
+			tiling = true == params.allowPatching;
 			inputCounter = 0;
 			return;
 		}

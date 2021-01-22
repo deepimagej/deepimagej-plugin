@@ -541,7 +541,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			
 			if (rp.isStopped() || inputsMap == null) {
 				// Remove possible hidden images from IJ workspace
-				removeProcessedInputsFromMemory(inputsMap);
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 			    service.shutdown();
 				rp.dispose();
 				return;
@@ -577,7 +577,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			
 			if (output == null || rp.isStopped()) {
 				// Remove possible hidden images from IJ workspace
-				removeProcessedInputsFromMemory(inputsMap);
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 				rp.dispose();
 			    service.shutdown();
 				return;
@@ -601,7 +601,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			ArrayOperations.displayMissingOutputs(finalImages, finalFrames, output);
 
 			// Remove possible hidden images from IJ workspace
-			removeProcessedInputsFromMemory(inputsMap);
+			ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 			
 		} catch (InterruptedException ex) {
 			IJ.error("Error during the aplication of the model.");
@@ -627,20 +627,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			rp.stop();
 			rp.dispose();
 	    }
-	}
-	
-	/*
-	 * REmove the inputs images that result after preprocessing from the memory of
-	 * ImageJ workspace
-	 */
-	private void removeProcessedInputsFromMemory(HashMap<String, Object> inputsMap) {
-		for (String kk : inputsMap.keySet()) {
-			if (inputsMap.get(kk) instanceof ImagePlus) {
-				((ImagePlus) inputsMap.get(kk)).changes = false;
-				((ImagePlus) inputsMap.get(kk)).close();
-			}
-		}
-		
 	}
 	
 	/*

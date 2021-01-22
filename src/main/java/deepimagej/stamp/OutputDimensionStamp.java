@@ -101,6 +101,8 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 	private static JComboBox<String>	cmbRangeLow = new JComboBox<String>(new String [] {"-inf", "-1", "0", "1", "inf"});
 	private static JComboBox<String>	cmbRangeHigh = new JComboBox<String>(new String [] {"-inf", "-1", "0", "1", "inf"});
 	
+	 // Parameter to observe if there has been any change in form or tensor type
+	private static List<DijTensor>	savedInputs   = null;
 	
 
 	public OutputDimensionStamp(BuildDialog parent) {
@@ -243,7 +245,31 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		String modelOfInterest = params.path2Model;
 		if (!modelOfInterest.equals(model)) {
 			model = modelOfInterest;
+			savedInputs = DijTensor.copyTensorList(params.outputList);
 			outputCounter = 0;
+		} else if (params.outputList.size() != savedInputs.size()) {
+			savedInputs = DijTensor.copyTensorList(params.outputList);
+			outputCounter = 0;
+		} else {
+			// Check if any output tensor definition has changed, an if it has
+			// put the attention on it
+			boolean changed = false;
+			for (int i = 0; i < params.outputList.size(); i ++) {
+				boolean sameTensor = params.outputList.get(i).name.equals(savedInputs.get(i).name);
+				boolean sameForm = params.outputList.get(i).form.equals(savedInputs.get(i).form);
+				boolean sameType = params.outputList.get(i).tensorType.equals(savedInputs.get(i).tensorType) ;
+				if (!sameTensor || !sameType || !sameForm) {
+					// Ask the user to repeat the tensor changed
+					params.outputList.get(i).finished = false;
+					// Start at the first tensor changed
+					if (!changed) {
+						savedInputs = DijTensor.copyTensorList(params.outputList);
+						outputCounter = i;
+						changed = true;
+					}
+				}
+				
+			}
 		}
 		bnNextOutput.setEnabled(true);
 		bnPrevOutput.setEnabled(true);

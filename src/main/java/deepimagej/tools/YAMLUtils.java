@@ -93,14 +93,7 @@ public class YAMLUtils {
 					shape.put("step", Arrays.toString(aux));
 					inputTensorMap.put("shape", shape);
 				}
-				/* TODO remove
-				Map<String, Object> preprocessing = new LinkedHashMap<>();
-				preprocessing.put("name", null);
-				// TODO what to do Map<String, Object> kwargs = new LinkedHashMap<>();
-				preprocessing.put("kwargs", null);
-				inputTensorMap.put("preprocessing", preprocessing);
-				*/
-				modelInputMapsList.add(inputTensorMap);
+				inputTensorMap.put("preprocessing", null);
 				
 				// Now write the test data info
 				Map<String, Object> inputTestInfo = new LinkedHashMap<>();
@@ -183,6 +176,12 @@ public class YAMLUtils {
 		Map<String, Map<String, Object>> weights = new LinkedHashMap<>();
 		// Map for a specific format containing the info for the weigths of a given format
 		Map<String, Object> format_info = new LinkedHashMap<>();
+		// Authors of the model. Authors of the package if this model
+		// is the original model
+		// TODO how to put it in the interface
+		format_info.put("authors", null);
+		format_info.put("parent", null);
+		
 		// TODO allow uploading models to github, zenodo or drive
 		format_info.put("source", null);
 		// For Tensorflow, if upload to biozoo is selected, calculate checksum
@@ -216,15 +215,6 @@ public class YAMLUtils {
 				outputExamples.add("./" + TfSaveStamp.getTitleWithoutExtension(out.get("name")) + ".csv");
 			sampleOutputs.add("./" + TfSaveStamp.getTitleWithoutExtension(out.get("name")) + ".npy");
 		}
-		if (params.biozoo) {
-			format_info.put("test_inputs", inputExamples);
-			format_info.put("test_outputs", outputExamples);
-		} else {
-			format_info.put("test_inputs", null);
-			format_info.put("test_outputs", null);
-		}
-		format_info.put("sample_inputs", sampleInputs);
-		format_info.put("sample_outputs", sampleOutputs);
 		
 		if (params.framework.equals("Pytorch")) {
 			weights.put("pytorch_script", format_info);
@@ -268,7 +258,12 @@ public class YAMLUtils {
 		deepimagej.put("test_information", testInformation);
 		
 				
+		// Put the example inputs and outputs
+		data.put("test_inputs", inputExamples);
+		data.put("test_outputs", outputExamples);
 		
+		data.put("sample_inputs", sampleInputs);
+		data.put("sample_outputs", sampleOutputs);
 		// Link to the folder containing the weights
 		data.put("weights", weights);
 		
@@ -418,18 +413,13 @@ public class YAMLUtils {
 			outputTensorMap.put("shape", Arrays.toString(out.sizeOutputPyramid));
 			
 		}else if (out.tensorType.contains("list")) {
-			outputTensorMap.put("axes", null);
+			outputTensorMap.put("axes", out.form.toLowerCase());
 			outputTensorMap.put("shape", Arrays.toString(out.tensor_shape));
 			outputTensorMap.put("data_type", "float32");
 			outputTensorMap.put("data_range", Arrays.toString(out.dataRange));
 		}
-		/* TODO remove
-		Map<String, Object> postprocessing = new LinkedHashMap<>();
-		postprocessing.put("name", null);
-		// TODO what to do Map<String, Object> kwargs = new LinkedHashMap<>();
-		postprocessing.put("kwargs", null);
-		outputTensorMap.put("postprocessing", postprocessing);
-		*/
+		// TODO what to do with postprocesing
+		outputTensorMap.put("postprocessing", null);
 		return outputTensorMap;
 	}
 	

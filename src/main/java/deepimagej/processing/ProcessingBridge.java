@@ -76,7 +76,7 @@ public class ProcessingBridge {
 			map = runPreprocessingJava(map, params.secondPreprocessing, params);
 		} else if (params.secondPreprocessing == null && (params.firstPreprocessing == null || params.firstPreprocessing.contains(".txt") || params.firstPreprocessing.contains(".ijm"))) {
 			map = manageInputs(map, true, params);
-		} else if (params.secondPreprocessing == null && (params.firstPreprocessing.contains(".jar") || new File(params.firstPreprocessing).isDirectory())) {
+		} else if (params.secondPreprocessing == null && (params.firstPreprocessing.contains(".jar") || params.secondPreprocessing.contains(".class") || new File(params.firstPreprocessing).isDirectory())) {
 			//TODO check if an input is missing. If it is missing try to recover it from the workspace.
 		}
 		return map;
@@ -128,8 +128,13 @@ public class ProcessingBridge {
 
 	private static ImagePlus runProcessingMacro(ImagePlus img, String macroPath, boolean developer) throws MacrosError {
 		WindowManager.setTempCurrentImage(img);
-
-		String aborted = IJ.runMacroFile(macroPath);
+		String aborted = "";
+		try {
+			aborted = IJ.runMacroFile(macroPath);
+		} catch (Exception ex) {
+			aborted = "[aborted]";
+		}
+		
 		if (aborted == "[aborted]") {
 			throw new MacrosError();
 		}
@@ -164,12 +169,9 @@ public class ProcessingBridge {
 		
 
 		if (params.secondPostprocessing != null && (params.secondPostprocessing.contains(".txt") || params.secondPostprocessing.contains(".ijm"))) {
-			runPostprocessingMacro(params.firstPreprocessing);
-			map = manageOutputs();
+			runPostprocessingMacro(params.secondPostprocessing);
 		} else if (params.secondPostprocessing != null && (params.secondPostprocessing.contains(".jar") || params.secondPostprocessing.contains(".class") || new File(params.secondPostprocessing).isDirectory())) {
 			map = runPostprocessingJava(map, params.secondPostprocessing, params);
-		} else if (params.secondPreprocessing == null && (params.firstPostprocessing == null || params.firstPostprocessing.contains(".jar") || new File(params.firstPostprocessing).isDirectory())) {
-			map = manageOutputs();
 		}
 		return map;
 	}

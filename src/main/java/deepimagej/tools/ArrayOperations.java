@@ -182,6 +182,20 @@ public class ArrayOperations {
 						 String.format("%.2E", pixDepth) + units;
 		return pixSize;
 	}
+	
+	/*
+	 * REmove the inputs images that result after preprocessing from the memory of
+	 * ImageJ workspace
+	 */
+	public static void removeProcessedInputsFromMemory(HashMap<String, Object> inputsMap) {
+		for (String kk : inputsMap.keySet()) {
+			if (inputsMap.get(kk) instanceof ImagePlus) {
+				((ImagePlus) inputsMap.get(kk)).changes = false;
+				((ImagePlus) inputsMap.get(kk)).close();
+			}
+		}
+		
+	}
 
 	/*
 	 * Method that displays the outputs that have not been shown
