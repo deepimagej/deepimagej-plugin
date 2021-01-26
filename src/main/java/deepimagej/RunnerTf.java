@@ -133,14 +133,23 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 				params.inputList.get(c).inputPixelSizeZ = inputPixelSizeZ;
 				inputImageInd = c;
 			} else if (tensor.tensorType.contains("parameter")){
-				Tensor<?> tensorVal = getTensorFromMap(inputMap, tensor);
+				Object tensorVal = getTensorFromMap(inputMap, tensor);
 				if (tensorVal == null) {
 					error = "The input tensor '" + tensor.name + "' should be given by"
 							+ "the preprocessing but it is not.";
 					IJ.error(error);
 					return null;
+				} else if (tensorVal instanceof Tensor<?>) {
+					parameterMap.put(tensor.name, (Tensor<?>) tensorVal);
+				} else if (tensorVal instanceof NDArray) {
+					parameterMap.put(tensor.name, (NDArray) tensorVal);
+				} else  {
+					// TODO improve error message and review what can be a preprocessing output
+					error = "Output of the preprocessing should be either a Tensor object"
+							+ " or a NDArray object";
+					IJ.error(error);
+					return null;
 				}
-				parameterMap.put(tensor.name, tensorVal);
 			}
 			c ++;
 		}
@@ -612,7 +621,7 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 		return imp;
 	}
 	
-	private static Tensor<?> getTensorFromMap(HashMap<String, Object> inputMap, DijTensor tensor){
+	private static Object getTensorFromMap(HashMap<String, Object> inputMap, DijTensor tensor){
 		if (!inputMap.containsKey(tensor.name)){
 			IJ.error("Preprocessing should provide a HashMap with\n"
 					+ "the key " + tensor.name);
@@ -622,7 +631,7 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 					+ " be an instance of a Tensor.");
 			return null;
 		}
-		return (Tensor<?>) inputMap.get(tensor.name);
+		return inputMap.get(tensor.name);
 	}
 	
 	private static Tensor<?>[] getInputTensors(List<DijTensor> inputTensors, HashMap<String, Object> paramsMap,

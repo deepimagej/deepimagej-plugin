@@ -36,9 +36,6 @@
  */
 package deepimagej.tools;
 
-import java.awt.Frame;
-import java.awt.Window;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -136,6 +133,18 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 			rp.allowStopping(true);
 			return inputsMap;
 		} catch (JavaProcessingError e) {
+			e.printStackTrace();
+			error = "Error during Java preprocessing.";
+			error += "\n" + e.getJavaError();
+			if (composite)
+				error += "\nNote that the plugin is internally converting the RGB Color into RGB Stack.";
+			if (lookForRunRGBStack())
+				error += "\nThe command 'run(\"RGB Stack\");' has been found in the macro preporcessing.\n"
+						+ "Please remove it to avoid conflicts.";
+			IJ.error(error);
+			rp.allowStopping(true);
+			return inputsMap;
+		} catch (Exception e) {
 			e.printStackTrace();
 			error = "Error during Java preprocessing.";
 			if (composite)

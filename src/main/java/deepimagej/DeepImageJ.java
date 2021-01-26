@@ -66,6 +66,7 @@ public class DeepImageJ {
 	public String					dirname;
 	public Parameters				params;
 	private boolean					valid 			= false;
+	public boolean					presentYaml		= true;
 	private boolean					developer		= true;
 	private SavedModelBundle		tfModel			= null;
 	private ZooModel<NDList, NDList>torchModel		= null;
@@ -78,13 +79,14 @@ public class DeepImageJ {
 		this.dirname = dirname;
 		this.developer = dev;
 		if (!dev && !(new File(path, "model.yaml").isFile())) {
-			this.valid = false;
+			this.presentYaml = false;
+			this.params = new Parameters(valid, path, dev);
+			this.valid = check(p, false);
 		} else if (dev || new File(path, "model.yaml").isFile()) {
 			this.params = new Parameters(valid, path, dev);
 			this.params.path2Model = this.path;
 			this.valid = check(p, false);
 		}
-		// TODO consider if config is missing, the plugin should be displaying it
 		if (this.valid && dev && this.params.framework.equals("Tensorflow/Pytorch")) {
 			askFrameworkGUI();
 		}
@@ -308,11 +310,6 @@ public class DeepImageJ {
 		}
 		boolean validTf = false;
 		boolean validPt = false;
-		
-		File configFile = new File(path + "model.yaml");
-		if (!configFile.exists() && !developer) {
-			return false;
-		}
 
 		File modelFile = new File(path + "saved_model.pb");
 		File variableFile = new File(path + "variables");
@@ -349,12 +346,13 @@ public class DeepImageJ {
 	 */
 	public boolean findZippedBiozooModel(File modelFolder) throws IOException {
 		for (String file : modelFolder.list()) {
-			// TODO are we sure that it is 'equals' maybe it 'contains'
 			// If we find the model and the checksum (sha256) is the same as specified in the yaml file, load the model
-			if (file.equals("tensorflow_saved_model_bundle.zip") && FileTools.createSHA256(modelFolder.getPath() + File.separator + file).equals(params.tfSha256)) {
+			if (file.equals("tensorflow_saved_model_bundle.zip") && !this.presentYaml) {
+				return true;
+			}else if (file.equals("tensorflow_saved_model_bundle.zip") && FileTools.createSHA256(modelFolder.getPath() + File.separator + file).equals(params.tfSha256)) {
 				return true;
 			} else if (file.equals("tensorflow_saved_model_bundle.zip")) {
-				IJ.log("Zipped Bioimage Model Zoo model at: \n");
+				IJ.log("Zipped Bioimage Model Zoo model at:");
 				IJ.log(modelFolder.getAbsolutePath() + File.separator + file);
 				IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
 				IJ.log("\n");
@@ -372,12 +370,14 @@ public class DeepImageJ {
 	public boolean findPytorchModel(File modelFolder) {
 		try {
 			for (String file : modelFolder.list()) {
-				if (!this.developer && file.contains("pytorch_script.pt") && FileTools.createSHA256(modelFolder.getPath() + File.separator + file).equals(params.ptSha256)) {
+				if (!this.developer && file.contains("pytorch_script.pt") && !this.presentYaml) {
+					return true;
+				} else if (!this.developer && file.contains("pytorch_script.pt") && FileTools.createSHA256(modelFolder.getPath() + File.separator + file).equals(params.ptSha256)) {
 					return true;
 				} else if (this.developer && file.contains(".pt")) {
 					return true;
 				} else if (!this.developer && file.contains("pytorch_script.pt")) {
-					IJ.log("Pytorch model at: \n");
+					IJ.log("Pytorch model at:");
 					IJ.log(modelFolder.getAbsolutePath() + File.separator + file);
 					IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
 					IJ.log("\n");

@@ -39,10 +39,8 @@ package deepimagej.stamp;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Frame;
-import java.awt.GridLayout;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -58,7 +56,6 @@ import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -277,7 +274,8 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 					IJ.saveAsTiff(im, params.saveDir + File.separator + nameNoExtension + ".tif");
 					pane.append("p", nameNoExtension + ".tif" + ": saved");
 					if (params.biozoo) {
-						TfSaveStamp.saveNpyFile(im, "XYCZN", params.saveDir + File.separator + nameNoExtension + ".npy");
+						// TODO put particular form of the tensor
+						TfSaveStamp.saveNpyFile(im, "XYCZ", params.saveDir + File.separator + nameNoExtension + ".npy");
 						pane.append("p", nameNoExtension + ".npy" + ": saved");
 					}
 				} else if (output.get("type").contains("ResultsTable")){
@@ -287,7 +285,7 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 						rt.save(params.saveDir + File.separator + nameNoExtension + ".csv");
 						pane.append("p", nameNoExtension + ".csv" + ": saved");
 						if (params.biozoo) {
-							TfSaveStamp.saveNpyFile(rt, params.saveDir + File.separator + nameNoExtension + ".npy");
+							TfSaveStamp.saveNpyFile(rt, params.saveDir + File.separator + nameNoExtension + ".npy", "RC");
 							pane.append("p", nameNoExtension + ".npy" + ": saved");
 						}
 					} else {

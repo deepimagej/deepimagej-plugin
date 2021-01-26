@@ -36,13 +36,22 @@
  */package deepimagej.exceptions;
 
 public class JavaProcessingError extends Exception {
-	
+	private String error = "";
+
 	public JavaProcessingError() {
 		
 	}
 	
+	public JavaProcessingError(String error) {
+		this.error = error;
+	}
+	
 	public String toString() {
 		return "Error in the external Java code.";
+	}
+	
+	public String getJavaError() {
+		return error;
 	}
 
 }

@@ -40,13 +40,9 @@ package deepimagej.processing;
 import java.io.File;
 import java.util.*;
 
-import org.tensorflow.Tensor;
-
 import deepimagej.Parameters;
 import deepimagej.exceptions.JavaProcessingError;
-import deepimagej.tools.DijTensor;
 import ij.IJ;
-import ij.ImagePlus;
 
 public class ExternalClassManager {
 	
@@ -86,7 +82,6 @@ public class ExternalClassManager {
 		} else if (jarDir.contains(".jar") && (preProc == false)) {
 			postProcessingClass = LoadJar.loadPostProcessingInterface(jarDir, params);
 		} else {
-			// TODO allow .class files to be loaded
 			getClasses(interfaceOfInterest, params);
 		}
 	}
@@ -144,26 +139,18 @@ public class ExternalClassManager {
 	    return fileList;
 	}
 
-	// TODO
-	public HashMap<String, Object> javaPreprocess(HashMap<String, Object> map) throws JavaProcessingError {
+	public HashMap<String, Object> javaPreprocess(HashMap<String, Object> map, String path2config) throws JavaProcessingError {
 		try {
-			PreProcessingInterface pf = (PreProcessingInterface) preProcessingClass;
-			map = pf.preProcessingRoutineUsingMap(map);
+			preProcessingClass.setConfigFile(path2config);
+			map = preProcessingClass.deepimagejPreprocessing(map);
+			if (!preProcessingClass.error().contentEquals("")) {
+				IJ.log(preProcessingClass.error());
+				throw new JavaProcessingError(preProcessingClass.error());
+			}
 		} catch (SecurityException secEx) {
 			secEx.printStackTrace();
 			System.err.println("Procesing plugin tried to do something illegal");
-			throw new JavaProcessingError();
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			IJ.log("Error in the Java preprocessing class");
-			IJ.log("Exception " + ex.toString());
-			for (StackTraceElement ste : ex.getStackTrace()) {
-				IJ.log(ste.getClassName());
-				IJ.log(ste.getMethodName());
-				IJ.log("line:" + ste.getLineNumber());
-			}
-			IJ.log("Exception " + ex.getMessage());
-			throw new JavaProcessingError();
+			throw new JavaProcessingError(preProcessingClass.error());
 		} catch (AbstractMethodError ex) {
 			ex.printStackTrace();
 			IJ.log("Error in the Java preprocessing class");
@@ -174,30 +161,34 @@ public class ExternalClassManager {
 				IJ.log("line:" + ste.getLineNumber());
 			}
 			IJ.log("Exception " + ex.getMessage());
-			throw new JavaProcessingError();
+			throw new JavaProcessingError(preProcessingClass.error());
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			IJ.log("Error in the Java preprocessing class");
+			IJ.log("Exception " + ex.toString());
+			for (StackTraceElement ste : ex.getStackTrace()) {
+				IJ.log(ste.getClassName());
+				IJ.log(ste.getMethodName());
+				IJ.log("line:" + ste.getLineNumber());
+			}
+			IJ.log("Exception " + ex.getMessage());
+			throw new JavaProcessingError(preProcessingClass.error());
 		}
 		return map;
 	}
 
-	public HashMap<String, Object> javaPostprocess(HashMap<String, Object> map) throws JavaProcessingError {
+	public HashMap<String, Object> javaPostprocess(HashMap<String, Object> map, String path2config) throws JavaProcessingError {
 		try {
-			PostProcessingInterface pf = (PostProcessingInterface) postProcessingClass;
-			map = pf.postProcessingRoutineUsingMap(map);
+			postProcessingClass.setConfigFile(path2config);
+			postProcessingClass.deepimagejPostprocessing(map);
+			if (!postProcessingClass.error().contentEquals("")) {
+				IJ.log(postProcessingClass.error());
+				throw new JavaProcessingError(postProcessingClass.error());
+			}
 		} catch (SecurityException secEx) {
 			secEx.printStackTrace();
 			System.err.println("Procesing plugin tried to do something illegal");
-			throw new JavaProcessingError();
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			IJ.log("Error in the Java preprocessing class");
-			IJ.log("Exception " + ex.toString());
-			for (StackTraceElement ste : ex.getStackTrace()) {
-				IJ.log(ste.getClassName());
-				IJ.log(ste.getMethodName());
-				IJ.log("line:" + ste.getLineNumber());
-			}
-			IJ.log("Exception " + ex.getMessage());
-			throw new JavaProcessingError();
+			throw new JavaProcessingError(postProcessingClass.error());
 		} catch (AbstractMethodError ex) {
 			ex.printStackTrace();
 			IJ.log("Error in the Java preprocessing class");
@@ -208,7 +199,7 @@ public class ExternalClassManager {
 				IJ.log("line:" + ste.getLineNumber());
 			}
 			IJ.log("Exception " + ex.getMessage());
-			throw new JavaProcessingError();
+			throw new JavaProcessingError(postProcessingClass.error());
 		}
 		return map;
 	}

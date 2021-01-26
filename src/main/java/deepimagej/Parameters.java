@@ -153,7 +153,7 @@ public class Parameters {
 	/*
 	 *  Parameters providing ModelInformation
 	 */
-	public String		name					= "";
+	public String		name					= "n.a.";
 	public List<String>	author					= new ArrayList<String>();
 	public String		timestamp				= "";
 	public String		format_version			= "0.3.0";
@@ -168,7 +168,7 @@ public class Parameters {
 	public List<String>	infoTags				= Arrays.asList(deepImageJTag);
 	public String		license					= null;
 	public String		language				= "Java";
-	public String		framework				= null;
+	public String		framework				= "";
 	public String		source					= null;
 	public String		description				= null;
 	public String		git_repo				= null;
@@ -211,12 +211,12 @@ public class Parameters {
 	 * Checksum of the tf Bioimage model zoo file. Only useful if
 	 * we use a Bioimage Zoo model that comes with a zipped model.
 	 */
-	public String tfSha256;
+	public String tfSha256 = "";
 	/*
 	 * Checksum of the Pytorch scripts file. Only useful if
 	 * there is a Pytorch model
 	 */
-	public String ptSha256;
+	public String ptSha256 = "";
 	/*
 	 * Specifies if the folder contains a Bioimage Zoo model
 	 */
@@ -236,9 +236,7 @@ public class Parameters {
 	 * is always a .pt or .pth file. In the case of a Tensorflow model, path to the 
 	 * weights folder
 	 */
-	public String selectedModelPath;
-	
-	
+	public String selectedModelPath = "";
 	
 	public Parameters(boolean valid, String path, boolean isDeveloper) {
 		// If the model is not valid or we are in the developer plugin,
@@ -453,7 +451,8 @@ public class Parameters {
 				}
 				
 				// Check that the output definition fields are complete
-				if (outTensor.form == null || outTensor.dataType == null || outTensor.scale == null
+				if ((outTensor.form == null && outTensor.tensorType.contentEquals("image")) 
+						|| outTensor.dataType == null || outTensor.scale == null
 						|| outTensor.offset == null) {
 					completeConfig = false;
 					return;

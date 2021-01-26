@@ -42,22 +42,42 @@ import java.util.HashMap;
 
 
 public interface PreProcessingInterface {
-	/*
-	// retrieve the wanted parameter processing the given image
-	public ImagePlus processingRoutineWithoutImage();
-	*/
 	
-	// return the name of this plugin
-	public String getPluginName();
+	public String configFile = "";
 
-	// can be called to determine whether the plugin
-	// aborted execution due to an error condition
-	public boolean hasError();
+	/**
+	 * Method containing the whole Java pre-processing routine. 
+	 * @param map: inputs to be pre-processed. It is provided by deepImageJ. The keys
+	 * correspond to name given by the model to the inputs. And the values are the images
+	 * selected to be applied to the model and any ResultsTable that is called as any of
+	 * the parameter inputs of the model
+	 * @return this method has to return HashMap whose keys are the inputs to the model as
+	 * named by the model. The values types depend on the input type of tensor. For images,
+	 * they should correspond to an ImagePlus. FOr parameters, the output provided should be either
+	 * a Tensorflow tensor or a DJL NDArray
+	 * Here is some documentation about creating Tensorflow tensors from Java Arrays:
+	 * See <a href="https://www.tensorflow.org/api_docs/java/org/tensorflow/Tensors#public-static-tensorfloat-create-float[][][]-data">https://www.tensorflow.org/api_docs/java/org/tensorflow/Tensors#public-static-tensorfloat-create-float[][][]-data</a>
+	 * 
+	 * To create DJL NDArrays:
+	 * See <a href="https://javadoc.io/doc/ai.djl/api/latest/ai/djl/ndarray/NDManager.html">https://javadoc.io/doc/ai.djl/api/latest/ai/djl/ndarray/NDManager.html</a>
+	 */
+	public HashMap<String, Object> deepimagejPreprocessing(HashMap<String, Object> map);
 	
-	// let the application pass in a parameter
-	public void setParameter (int param);
-
-	public HashMap<String, Object> preProcessingRoutineUsingMap(HashMap<String, Object> map);
+	/**
+	 * Auxiliary method to be able to change some pre-processing parameters without
+	 * having to change the code. DeepImageJ gives the option of providing a .txt or .ijm
+	 * file in the pre-processing which can act both as a macro and as a config file.
+	 * It can act as a config file because the needed parameters can be specified in
+	 * a comment block and the parsed by the pre-processing method
+	 * @param configFile: macro file which might contain parameters for the pre-processing 
+	 */
+	public void setConfigFile(String file);
+	
+	/**
+	 * Method that recovers an error message from the pre-processing execution
+	 * @return
+	 */
+	public String error();
 
 
 }

@@ -56,7 +56,6 @@ import org.tensorflow.framework.TensorShapeProto.Dim;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
-// TODO remove import ai.djl.pytorch.jni.NativeHelper;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
@@ -406,7 +405,7 @@ public class DeepLearningModel {
 					+ "For optimal performance please install CUDA 9.2 or CUDA 10.1.\n";
 		} else if (!ptVersion.contains("noCuda")) {
 			errMessage = "";
-		} else {
+		} else if (!CUDAVersion.toLowerCase().contains("nocuda")) {
 			errMessage = "Make sure that the DJL Pytorch version is compatible with the installed CUDA version.\n"
 					+ "Check the DeepImageJ Wiki for more information";
 		}
@@ -472,7 +471,7 @@ public class DeepLearningModel {
 		// Search in the plugins folder
 		String ijDirectory = IJ.getDirectory("imagej") + File.separator;
 		// TODO remove 
-		//ijDirectory = "C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app";
+		//ijDirectory = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app";
 		String pluginsDirectory = ijDirectory + File.separator + "plugins" + File.separator;
 		String pluginsJar = findPytorchJar(pluginsDirectory);
 

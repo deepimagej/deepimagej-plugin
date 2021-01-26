@@ -160,13 +160,13 @@ public class DownloadProgress extends JDialog implements ActionListener {
 			return;
 		if (clock == null)
 			return;
-		thread.interrupt();
 		clock.cancel();
 		timer.cancel();
 		timer.purge();
 		timer = null;
-		dispose();
 		stop = true;
+		dispose();
+		thread.interrupt();
 	}
  
 	public void info() {

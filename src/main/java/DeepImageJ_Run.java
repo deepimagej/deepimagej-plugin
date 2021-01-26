@@ -108,6 +108,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	// Array that contains the index of all the models whose yaml Sha256 
 	// does not coincide with the sha256
 	private ArrayList<Integer>			incorrectSha256IndexList;
+	// Array that contains the index of all the models whose yaml is missing 
+	private ArrayList<Integer>			missingYamlList;
 	// Array containing all the models loaded by the plugin
 	private String[] 					items;
 	
@@ -417,6 +419,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			} else if (incorrectSha256IndexList.contains(ind)) {
 				setIncorrectSha256Text();
 				return;
+			} else if (missingYamlList.contains(ind)) {
+				setMissingYamlText();
+				return;
 			}
 			if (dp.params.framework.equals("Tensorflow/Pytorch")) {
 				choices[1].removeAll();
@@ -658,6 +663,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		// incorrect so it cannot be loaded
 		ignoreModelsIndexList = new ArrayList<Integer>();
 		incorrectSha256IndexList = new ArrayList<Integer>();
+		missingYamlList = new ArrayList<Integer>();
 		dps = DeepImageJ.list(path, false, info);
 		int k = 1;
 		items = new String[dps.size() + 1];
@@ -672,6 +678,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				} else if (dp.params.incorrectSha256) {
 					fullname += " (wrong sha256)";
 					incorrectSha256IndexList.add(k);
+				} else if (!dp.presentYaml) {
+					fullname += " (missing yaml)";
+					missingYamlList.add(k);
 				}
 				items[k++] = fullname;
 				int index = k - 1;
@@ -791,7 +800,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	 * indicate which fields have missing information or are incorrect
 	 */
 	private void setUnavailableModelText(ArrayList<String> fieldsMissing) {
-		info.setText("The selected model contains error in the model.yaml.\n");
+		info.setText("\nThe selected model contains error in the model.yaml.\n");
 		info.append("The errors are in the following fields:\n");
 		for (String err : fieldsMissing)
 			info.append(" - " + err + "\n");
@@ -804,10 +813,21 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	 * indicate which fields have missing information or are incorrect
 	 */
 	private void setIncorrectSha256Text() {
-		info.setText("The selected model's Sha256 checksum does not agree\n"
+		info.setText("\nThe selected model's Sha256 checksum does not agree\n"
 				+ "with the one in the model.yaml file.\n");
 		info.append("The model file might have been modified after creation.\n");
 		info.append("Run at your own risk.\n");
+		dlg.getButtons()[0].setEnabled(false);
+		info.setCaretPosition(0);
+	}
+
+	/*
+	 * Indicate that a model folder is missing the yaml file
+	 */
+	private void setMissingYamlText() {
+		info.setText("\nThe selected model folder does not contain a model.yaml file.\n");
+		info.append("The model.yaml file contains all the info necessary to run a model.\n");
+		info.append("Please select another model.\n");
 		dlg.getButtons()[0].setEnabled(false);
 		info.setCaretPosition(0);
 	}

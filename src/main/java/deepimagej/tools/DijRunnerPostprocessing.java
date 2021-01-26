@@ -72,23 +72,30 @@ public class DijRunnerPostprocessing implements Callable<HashMap<String, Object>
 			output = ProcessingBridge.runPostprocessing(dp.params, output);
 		} catch (MacrosError e) {
 			e.printStackTrace();
-			IJ.error("Error during Macro postprocessing.");
 			error = "Error during Macro postprocessing.";
+			IJ.error(error);
 			rp.allowStopping(true);
-			return output;
+			return null;
 		} catch (JavaProcessingError e) {
 			e.printStackTrace();
-			IJ.error("Error during Java postprocessing.");
 			error = "Error during Java postprocessing.";
+			error += "\n" + e.getJavaError();
+			IJ.error(error);
 			rp.allowStopping(true);
-			return output;
+			return null;
+		} catch (Exception e) {
+			e.printStackTrace();
+			error = "Error during Java postprocessing.";
+			IJ.error(error);
+			rp.allowStopping(true);
+			return null;
 		}
 
 		rp.allowStopping(true);
 		// Check if the user has tried to stop the execution while loading the model
 		// If they have return false and stop
 		if(rp.isStopped())
-			return output;
+			return null;
 		
 		return output;
 	}

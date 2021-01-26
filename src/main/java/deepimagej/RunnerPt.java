@@ -603,7 +603,7 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 		return imp;
 	}
 	
-	private static Tensor<?> getTensorFromMap(HashMap<String, Object> inputMap, DijTensor tensor){
+	private static Object getTensorFromMap(HashMap<String, Object> inputMap, DijTensor tensor){
 		if (!inputMap.containsKey(tensor.name)){
 			IJ.error("Preprocessing should provide a HashMap with\n"
 					+ "the key " + tensor.name);
@@ -613,7 +613,7 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 					+ " be an instance of a Tensor.");
 			return null;
 		}
-		return (Tensor<?>) inputMap.get(tensor.name);
+		return inputMap.get(tensor.name);
 	}
 	
 	private static NDList getInputTensors(NDManager manager, NDList tensorsArray, List<DijTensor> inputTensors, HashMap<String, Object> paramsMap,

@@ -188,13 +188,14 @@ public class ArrayOperations {
 	 * ImageJ workspace
 	 */
 	public static void removeProcessedInputsFromMemory(HashMap<String, Object> inputsMap) {
-		for (String kk : inputsMap.keySet()) {
-			if (inputsMap.get(kk) instanceof ImagePlus) {
-				((ImagePlus) inputsMap.get(kk)).changes = false;
-				((ImagePlus) inputsMap.get(kk)).close();
+		if (inputsMap != null) {
+			for (String kk : inputsMap.keySet()) {
+				if (inputsMap.get(kk) instanceof ImagePlus) {
+					((ImagePlus) inputsMap.get(kk)).changes = false;
+					((ImagePlus) inputsMap.get(kk)).close();
+				}
 			}
 		}
-		
 	}
 
 	/*
@@ -203,6 +204,8 @@ public class ArrayOperations {
 	public static void displayMissingOutputs(String[] finalImages, String[] finalFrames,
 												HashMap<String, Object> output) {
 
+		if (output == null)
+			return;
 		List<String> frameList = Arrays.asList(finalFrames);
 		List<String> framesList = Arrays.asList(finalImages);
 		

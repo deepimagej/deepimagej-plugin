@@ -65,7 +65,7 @@ public class ProcessingBridge {
 			im = runProcessingMacro(im, params.firstPreprocessing, params.developer);
 			map = manageInputs(map, false, params, im);
 		} else if (params.firstPreprocessing != null && (params.firstPreprocessing.contains(".jar") || params.firstPreprocessing.contains(".class") || new File(params.firstPreprocessing).isDirectory())) {
-			map = runPreprocessingJava(map, params.firstPreprocessing, params);
+			map = runPreprocessingJava(map, params.firstPreprocessing, params.secondPreprocessing, params);
 		}
 		
 
@@ -73,7 +73,7 @@ public class ProcessingBridge {
 			im = runProcessingMacro(im, params.secondPreprocessing, params.developer);
 			map = manageInputs(map, true,  params, im);
 		} else if (params.secondPreprocessing != null && (params.secondPreprocessing.contains(".jar") || params.secondPreprocessing.contains(".class") || new File(params.secondPreprocessing).isDirectory())) {
-			map = runPreprocessingJava(map, params.secondPreprocessing, params);
+			map = runPreprocessingJava(map, params.secondPreprocessing, params.firstPreprocessing, params);
 		} else if (params.secondPreprocessing == null && (params.firstPreprocessing == null || params.firstPreprocessing.contains(".txt") || params.firstPreprocessing.contains(".ijm"))) {
 			map = manageInputs(map, true, params);
 		} else if (params.secondPreprocessing == null && (params.firstPreprocessing.contains(".jar") || params.secondPreprocessing.contains(".class") || new File(params.firstPreprocessing).isDirectory())) {
@@ -119,10 +119,21 @@ public class ProcessingBridge {
 		return map;
 	}
 
-	private static HashMap<String, Object> runPreprocessingJava(HashMap<String, Object> map, String processingPath, Parameters params) throws JavaProcessingError {
+	/****************************************+
+	 * Method to run a pre-processing routine in Java on the model inputs
+	 * @param map: hashmap containing all the images and tables opened in ImageJ with the keys
+	 * being the title of the window
+	 * @param processingPath: path to the java file that specifies the processing
+	 * @param config: path to the config file. The config file is considered to be the other
+	 * pre-tprocessing file. HOwever it only will be used if it is not null and ends with .txt or .ijm
+	 * @param params: model parameters
+	 * @return map: hashmap containing the results of the processing routine
+	 * @throws JavaProcessingError 
+	 */
+	private static HashMap<String, Object> runPreprocessingJava(HashMap<String, Object> map, String processingPath, String config, Parameters params) throws JavaProcessingError {
 		boolean preprocessing = true;
 		ExternalClassManager processingRunner = new ExternalClassManager (processingPath, preprocessing, params);
-		map = processingRunner.javaPreprocess(map);
+		map = processingRunner.javaPreprocess(map, config);
 		return map;
 	}
 
@@ -162,16 +173,16 @@ public class ProcessingBridge {
 		
 		if (params.firstPostprocessing != null && (params.firstPostprocessing.contains(".txt") || params.firstPostprocessing.contains(".ijm"))) {
 			runPostprocessingMacro(params.firstPostprocessing);
-			map = manageOutputs();
+			map = manageOutputs(map);
 		} else if (params.firstPostprocessing != null && (params.firstPostprocessing.contains(".jar") || params.firstPostprocessing.contains(".class") || new File(params.firstPostprocessing).isDirectory())) {
-			map = runPostprocessingJava(map, params.firstPostprocessing, params);
+			map = runPostprocessingJava(map, params.firstPostprocessing, params.secondPostprocessing, params);
 		}
 		
 
 		if (params.secondPostprocessing != null && (params.secondPostprocessing.contains(".txt") || params.secondPostprocessing.contains(".ijm"))) {
 			runPostprocessingMacro(params.secondPostprocessing);
 		} else if (params.secondPostprocessing != null && (params.secondPostprocessing.contains(".jar") || params.secondPostprocessing.contains(".class") || new File(params.secondPostprocessing).isDirectory())) {
-			map = runPostprocessingJava(map, params.secondPostprocessing, params);
+			map = runPostprocessingJava(map, params.secondPostprocessing, params.firstPostprocessing, params);
 		}
 		return map;
 	}
@@ -182,13 +193,16 @@ public class ProcessingBridge {
 	 * @param map: hashmap containing all the images and tables opened in ImageJ with the keys
 	 * being the title of the window
 	 * @param processingPath: path to the java file that specifies the processing
+	 * @param config: path to the config file. The config file is considered to be the other
+	 * postprocessing file. HOwever it only will be used if it is not null and ends with .txt or .ijm
+	 * @param params: model parameters
 	 * @return map: hashmap containing the results of the processing routine
 	 * @throws JavaProcessingError 
 	 */
-	private static HashMap<String, Object> runPostprocessingJava(HashMap<String, Object> map, String processingPath, Parameters params) throws JavaProcessingError {
+	private static HashMap<String, Object> runPostprocessingJava(HashMap<String, Object> map, String processingPath, String config, Parameters params) throws JavaProcessingError {
 		boolean preprocessing = false;
 		ExternalClassManager processingRunner = new ExternalClassManager (processingPath, preprocessing, params);
-		map = processingRunner.javaPostprocess(map);
+		map = processingRunner.javaPostprocess(map, config);
 		return map;
 	}
 
@@ -211,8 +225,7 @@ public class ProcessingBridge {
 	 * in a hashmap.
 	 * @return map: hashmap containing all the images and results tables.
 	 */
-	private static HashMap<String, Object> manageOutputs() {
-		HashMap<String, Object> map = new HashMap<String, Object>();
+	private static HashMap<String, Object> manageOutputs(HashMap<String, Object> map) {
 		Frame[] nonImageWindows = WindowManager.getNonImageWindows();
 		String[] imageTitles = WindowManager.getImageTitles();
 		for (String title : imageTitles) {

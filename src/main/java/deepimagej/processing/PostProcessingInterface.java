@@ -40,26 +40,33 @@ package deepimagej.processing;
 
 import java.util.HashMap;
 
-import ij.ImagePlus;
 
 public interface PostProcessingInterface {
 
-	// retrieve the wanted parameter processing the given image
-	public HashMap<String, Object> postProcessingRoutineUsingMap(HashMap<String, Object> map);
-	/*
-	// retrieve the wanted parameter processing the given image
-	public ImagePlus processingRoutineWithoutImage();
-	*/
+	public String configFile = "";
+
+	/**
+	 * Method containing the whole Java post-processing routine. 
+	 * @param map: outputs to be post-processed. It is provided by deepImageJ. The keys
+	 * correspond to name given by the model to the outputs. And the values are the images and 
+	 * ResultsTables outputes by the model.
+	 * @return this method has to return a HashMap with the post-processing results.
+	 */
+	public HashMap<String, Object> deepimagejPostprocessing(HashMap<String, Object> map);
 	
-	// return the name of this plugin
-	public String getPluginName();
-
-	// can be called to determine whether the plugin
-	// aborted execution due to an error condition
-	public boolean hasError();
+	/**
+	 * Auxiliary method to be able to change some post-processing parameters without
+	 * having to change the code. DeepImageJ gives the option of providing a .txt or .ijm
+	 * file in the post-processing which can act both as a macro and as a config file.
+	 * It can act as a config file because the needed parameters can be specified in
+	 * a comment block and the parsed by the post-processing method
+	 * @param configFile: macro file which might contain parameters for the post-processing 
+	 */
+	public void setConfigFile(String file);
 	
-	// let the application pass in a parameter
-	public void setParameter (int param);
-
-
+	/**
+	 * Method that recovers an error message from the post-processing execution
+	 * @return
+	 */
+	public String error();
 }

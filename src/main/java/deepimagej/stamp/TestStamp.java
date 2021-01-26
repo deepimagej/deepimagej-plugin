@@ -208,7 +208,9 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 				}	
 			}
 			// If all the images selected are opened in ImageJ, perform a test run
-			testPreparation();
+			
+			if (!testPreparation())
+				return;
 			Thread thread = new Thread(this);
 			thread.setPriority(Thread.MIN_PRIORITY);
 			thread.start();
@@ -267,14 +269,15 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 	/*
 	 * Prepare the inputs and check that the image complies with the
 	 * model requirements
+	 * Return false if something is wrong
 	 */
-	public void testPreparation() {
+	public boolean testPreparation() {
 		Parameters params = parent.getDeepPlugin().params;
 
 		File file = new File(params.path2Model);
 		if (!file.exists()) {
 			IJ.error("The model was removed from its original location.");
-			return;
+			return false;
 		}
 		String dirname = file.getName();
 		bnTest.setEnabled(false);
@@ -288,7 +291,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 			int[] tileSize = ArrayOperations.getPatchSize(dims, imageTensors.get(i).form, sizeTxt.getText(), sizeTxt.isEditable());
 			boolean isTileCorrect = checkInputTileSize(tileSize, imageTensors.get(i).name, params);
 			if (tileSize == null || !isTileCorrect)
-				return;
+				return false;
 			imageTensors.get(i).recommended_patch = tileSize;
 		}
 		if (images.length == 1)
@@ -299,13 +302,14 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 			if (WindowManager.getImage(im) == null) {
 				pnTest.append("p", im + " does not correspond to an open image");
 				IJ.error("No selected test image.");
-				return;
+				return false;
 			}
 			params.testImageBackup = WindowManager.getImage(im).duplicate();
 			params.testImageBackup.setTitle("DUP_" + im);
 		}
 		
 		pnTest.append("Selected input images " + imagesNames);
+		return true;
 	}
 
 	@Override
@@ -322,6 +326,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 		ExecutorService service = Executors.newFixedThreadPool(1);
 		DeepImageJ dp = parent.getDeepPlugin();
 		RunnerProgress rp = new RunnerProgress(dp, "preprocessing");
+		String step = "pre";
 		
 		try {
 			DijRunnerPreprocessing preprocess = new DijRunnerPreprocessing(dp, rp, null, false);
@@ -349,6 +354,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 				return;
 			}
 			
+			step = "model";
 			HashMap<String, Object> output = null;
 			if (dp.params.framework.equals("Tensorflow")) {
 				rp.setGPU(parent.getGPUTf());
@@ -385,6 +391,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 				return;
 			}
 			
+			step = "post";
 			DijRunnerPostprocessing postprocess = new DijRunnerPostprocessing(dp, rp, output);
 			Future<HashMap<String, Object>> f2 = service.submit(postprocess);
 			output = f2.get();
@@ -413,8 +420,20 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 			
 		} catch (InterruptedException | ExecutionException e) {
 			e.printStackTrace();
-			pnTest.append("p", "Thread stopped working during the execution of the model.");
-			IJ.error("Thread stopped working during the execution of the model.");
+			if (step.contains("pre")) {
+				pnTest.append("p", "Thread stopped working during the preprocessing.\n"
+									+ "The reason might be a faulty preprocessing");
+				IJ.error("p", "Thread stopped working during the preprocessing.\n"
+						+ "The reason might be a faulty preprocessing");
+			} else if (step.contains("model")) {
+				pnTest.append("p", "Thread stopped working during the execution of the model.");
+				IJ.error("Thread stopped working during the execution of the model.");
+			} else if (step.contains("post")) {
+				pnTest.append("p", "Thread stopped working during the execution of the model.\n"
+								+ "The reason might be a faulty postprocessing");
+				IJ.error("p", "Thread stopped working during the execution of the model.\n"
+						+ "The reason might be a faulty postprocessing");
+			}
 		}
 	    RunnerProgress.stopRunnerProgress(service, rp);
 	}
@@ -528,7 +547,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 		if (params.pyramidalNetwork)
 			return true;
 		for (DijTensor outTensor : params.outputList) {
-			if (outTensor.tensorType.contains("image"))
+			if (!outTensor.tensorType.contains("image"))
 				continue;
 			String[] outForm = outTensor.form.split("");
 			int[] outShape = outTensor.tensor_shape;
@@ -536,7 +555,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 			int[] offset = outTensor.offset;
 			float[] scale = outTensor.scale;
 			for ( int i = 0; i < outForm.length; i ++) {
-				// Find which dimension corresponds to the cirrent output dimension
+				// Find which dimension corresponds to the current output dimension
 				int ind = inpTensor.form.indexOf(outForm[i]);
 				if (ind == -1)
 					continue;

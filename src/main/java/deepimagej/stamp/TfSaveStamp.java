@@ -59,7 +59,6 @@ import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -174,6 +173,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		params.saveDir = txt.getText() + File.separator;
 		params.saveDir = params.saveDir.replace(File.separator + File.separator, File.separator);
 		File dir = new File(params.saveDir);
+		// TODO remove
 		boolean ok = true;
 		
 		if (dir.exists() && dir.isDirectory()) {
@@ -298,7 +298,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 						rt.save(params.saveDir + File.separator + nameNoExtension + ".csv");
 						pane.append("p", nameNoExtension + ".csv" + ": saved");
 						if (params.biozoo) {
-							saveNpyFile(rt, params.saveDir + File.separator + nameNoExtension + ".npy");
+							saveNpyFile(rt, params.saveDir + File.separator + nameNoExtension + ".npy", "RC");
 							pane.append("p", nameNoExtension + ".npy" + ": saved");
 						}
 					} else {
@@ -353,14 +353,14 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		NpyFile.write(path, imArray, imShape);
 	}
 	
-	public static void saveNpyFile(ResultsTable table, String name) {
+	public static void saveNpyFile(ResultsTable table, String name, String form) {
 		Path path = Paths.get(name);
-		long[] shapeLong = Table2Tensor.getTableShape(table);
-		int[] shape = new int[shapeLong.length];
-		for (int i = 0; i < shape.length; i ++)
-			shape[i] = (int) shapeLong[i];
-		float[] tableArray = Table2Tensor.table2IntArray(table);
-		NpyFile.write(path, tableArray, shape);
+		int[] shape = Table2Tensor.getTableShape(form, table);
+		// Convert the array into long
+		long[] shapeLong = new long[shape.length];
+		// Get the array
+		float[] flatRt = Table2Tensor.tableToFlatArray(table, form, shapeLong);
+		NpyFile.write(path, flatRt, shape);
 	}
 
 	public class LocalDropTarget extends DropTarget {

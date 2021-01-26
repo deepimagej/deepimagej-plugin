@@ -476,5 +476,25 @@ public class Table2Tensor {
 		}
 		return tableDims;
 	}
+	
+	public static int[] getTableShape(String form, ResultsTable rt) {
+		int[] shape = new int[form.length()];
+		// Get rows and columns (by default sum 1 to the number of columns)
+		int rSize = rt.size();
+		// Get last column indicates position, that is why we sum 1
+		int cSize = rt.getLastColumn() + 1;
+		if (cSize == 0)
+			cSize = 1;
+		for (int i = 0; i < form.length(); i ++) {
+			if (form.split("")[i].contentEquals("B")) {
+				shape[i] = 1;
+			} else if (form.split("")[i].contentEquals("R")) {
+				shape[i] = rSize;
+			} else if (form.split("")[i].contentEquals("C")) {
+				shape[i] = cSize;
+			}
+		}
+		return shape;
+	}
 
 }
