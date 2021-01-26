@@ -51,6 +51,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -197,31 +198,37 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			e.printStackTrace();
 			pane.append("p", "torchscript model (.pt or .pth): not saved");
 		}
-		
+
+	    // List with processing files saved
+		ArrayList<String> saved = new ArrayList<String>();
 		// Save preprocessing
 		if (params.firstPreprocessing != null) {
 			try {
 				File destFile = new File(params.saveDir + File.separator + new File(params.firstPreprocessing).getName());
 				FileTools.copyFile(new File(params.firstPreprocessing), destFile);
 				pane.append("p", "First preprocessing: saved");
+				saved.add(params.firstPreprocessing);
 			}
 			catch (Exception e) {
 				pane.append("p", "First preprocessing: not saved");
 			}
 		}
-		if (params.secondPreprocessing != null) {
+		if (params.secondPreprocessing != null && !saved.contains(params.secondPreprocessing)) {
 			try {
 				File destFile = new File(params.saveDir + File.separator + new File(params.secondPreprocessing).getName());
 				FileTools.copyFile(new File(params.secondPreprocessing), destFile);
 				pane.append("p", "Second preprocessing: saved");
+				saved.add(params.secondPreprocessing);
 			}
 			catch (Exception e) {
 				pane.append("p", "Second preprocessing: not saved");
 			}
+		} else if (params.secondPreprocessing != null) {
+			pane.append("p", "Second preprocessing: saved");
 		}
 
 		// Save postprocessing
-		if (params.firstPostprocessing != null) {
+		if (params.firstPostprocessing != null && !saved.contains(params.firstPostprocessing)) {
 			try {
 				File destFile = new File(params.saveDir + File.separator + new File(params.firstPostprocessing).getName());
 				FileTools.copyFile(new File(params.firstPostprocessing), destFile);
@@ -230,8 +237,10 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			catch (Exception e) {
 				pane.append("p", "First postprocessing: not saved");
 			}
+		} else if (params.firstPostprocessing != null) {
+			pane.append("p", "First postprocessing: saved");
 		}
-		if (params.secondPostprocessing != null) {
+		if (params.secondPostprocessing != null && !saved.contains(params.secondPostprocessing)) {
 			try {
 				File destFile = new File(params.saveDir + File.separator + new File(params.secondPostprocessing).getName());
 				FileTools.copyFile(new File(params.secondPostprocessing), destFile);
@@ -240,6 +249,8 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			catch (Exception e) {
 				pane.append("p", "Second postprocessing: not saved");
 			}
+		} else if (params.secondPostprocessing != null) {
+			pane.append("p", "Second postprocessing: saved");
 		}
 
 		// Save input image

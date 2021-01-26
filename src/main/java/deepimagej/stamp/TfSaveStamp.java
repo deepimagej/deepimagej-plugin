@@ -54,6 +54,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -173,8 +174,6 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		params.saveDir = txt.getText() + File.separator;
 		params.saveDir = params.saveDir.replace(File.separator + File.separator, File.separator);
 		File dir = new File(params.saveDir);
-		// TODO remove
-		boolean ok = true;
 		
 		if (dir.exists() && dir.isDirectory()) {
 			pane.append("p", "Path introduced corresponded to an already existing directory.");
@@ -204,35 +203,38 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			e.printStackTrace();
 			pane.append("p", "Error zipping the varaibles folder and saved_model.pb");
 			pane.append("p", "Zipped Tensorflow model: not saved");
-			ok = false;
 		}
 
+	    // List with processing files saved
+		ArrayList<String> saved = new ArrayList<String>();
 		// Save preprocessing
 		if (params.firstPreprocessing != null) {
 			try {
 				File destFile = new File(params.saveDir + File.separator + new File(params.firstPreprocessing).getName());
 				FileTools.copyFile(new File(params.firstPreprocessing), destFile);
 				pane.append("p", "First preprocessing: saved");
+				saved.add(params.firstPreprocessing);
 			}
 			catch (Exception e) {
 				pane.append("p", "First preprocessing: not saved");
-				ok = false;
 			}
 		}
-		if (params.secondPreprocessing != null) {
+		if (params.secondPreprocessing != null && !saved.contains(params.secondPreprocessing)) {
 			try {
 				File destFile = new File(params.saveDir + File.separator + new File(params.secondPreprocessing).getName());
 				FileTools.copyFile(new File(params.secondPreprocessing), destFile);
 				pane.append("p", "Second preprocessing: saved");
+				saved.add(params.secondPreprocessing);
 			}
 			catch (Exception e) {
 				pane.append("p", "Second preprocessing: not saved");
-				ok = false;
 			}
+		} else if (params.secondPreprocessing != null) {
+			pane.append("p", "Second preprocessing: saved");
 		}
 
 		// Save postprocessing
-		if (params.firstPostprocessing != null) {
+		if (params.firstPostprocessing != null && !saved.contains(params.firstPostprocessing)) {
 			try {
 				File destFile = new File(params.saveDir + File.separator + new File(params.firstPostprocessing).getName());
 				FileTools.copyFile(new File(params.firstPostprocessing), destFile);
@@ -240,10 +242,11 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			}
 			catch (Exception e) {
 				pane.append("p", "First postprocessing: not saved");
-				ok = false;
 			}
+		} else if (params.firstPostprocessing != null) {
+			pane.append("p", "First postprocessing: saved");
 		}
-		if (params.secondPostprocessing != null) {
+		if (params.secondPostprocessing != null && !saved.contains(params.secondPostprocessing)) {
 			try {
 				File destFile = new File(params.saveDir + File.separator + new File(params.secondPostprocessing).getName());
 				FileTools.copyFile(new File(params.secondPostprocessing), destFile);
@@ -251,8 +254,9 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			}
 			catch (Exception e) {
 				pane.append("p", "Second postprocessing: not saved");
-				ok = false;
 			}
+		} else if (params.secondPostprocessing != null) {
+			pane.append("p", "Second postprocessing: saved");
 		}
 
 		// Save input image
@@ -275,7 +279,6 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			pane.append("p", "exampleImage.tif: not saved");
 			if (params.biozoo)
 				pane.append("p", "exampleImage.npy: not saved");
-			ok = false;
 		}
 
 		// Save output images and tables (tables as saved as csv)
@@ -309,7 +312,6 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 				pane.append("p", nameNoExtension + ".tif:  not saved");
 				if (params.biozoo)
 					pane.append("p", nameNoExtension + ".npy:  not saved");
-				ok = false;
 			}
 		}
 		
@@ -320,13 +322,11 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		} 
 		catch(IOException ex) {
 			pane.append("p", "model.yaml: not saved");
-			ok = false;
 			IJ.error("Model file was locked or does not exist anymore.");
 		}
 		catch(Exception ex) {
 			ex.printStackTrace();
 			pane.append("p", "model.yaml: not saved");
-			ok = false;
 		}
 		pane.append("p", "Done!!");
 

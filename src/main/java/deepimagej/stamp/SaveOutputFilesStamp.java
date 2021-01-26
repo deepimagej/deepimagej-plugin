@@ -149,6 +149,9 @@ public class SaveOutputFilesStamp extends AbstractStamp implements ActionListene
 					Frame f = WindowManager.getFrame(name);
 			        if (f!=null && (f instanceof TextWindow)) {
 			        	 ResultsTable resultstable = ((TextWindow)f).getResultsTable();
+			        	 int cols = resultstable.getLastColumn() + 1;
+			        	 if (cols == 0)
+			        		 cols = 1;
 						size = Integer.toString(resultstable.size()) + " x " + Integer.toString(resultstable.getLastColumn());
 			        }
 				}
