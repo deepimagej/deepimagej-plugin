@@ -188,11 +188,24 @@ public class ArrayOperations {
 	 * ImageJ workspace
 	 */
 	public static void removeProcessedInputsFromMemory(HashMap<String, Object> inputsMap) {
+		removeProcessedInputsFromMemory(inputsMap, false);
+	}
+	
+	/*
+	 * REmove the inputs images that result after preprocessing from the memory of
+	 * ImageJ workspace
+	 */
+	public static void removeProcessedInputsFromMemory(HashMap<String, Object> inputsMap, boolean dev) {
 		if (inputsMap != null) {
 			for (String kk : inputsMap.keySet()) {
-				if (inputsMap.get(kk) instanceof ImagePlus) {
-					((ImagePlus) inputsMap.get(kk)).changes = false;
-					((ImagePlus) inputsMap.get(kk)).close();
+				Object im = inputsMap.get(kk);
+				if (im instanceof ImagePlus && !dev) {
+					((ImagePlus) im).changes = false;
+					((ImagePlus) im).close();
+				} else if (im instanceof ImagePlus && dev && ((ImagePlus) im).getWindow() == null) {
+					// For developer only close images that are not showing (i.e, that are not shown in a window)
+					((ImagePlus) im).changes = false;
+					((ImagePlus) im).close();
 				}
 			}
 		}
