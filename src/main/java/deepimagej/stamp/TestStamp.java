@@ -410,7 +410,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 			String[] finalImages = WindowManager.getImageTitles();
 			ArrayOperations.displayMissingOutputs(finalImages, finalFrames, output);
 			// Remove possible hidden images from IJ workspace
-			ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
+			ArrayOperations.removeProcessedInputsFromMemory(inputsMap, true);
 			
 			parent.endsTest();
 			bnTest.setEnabled(true);
