@@ -337,20 +337,20 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 				pnTest.append("p", "Test run was stoped during preprocessing.");
 				IJ.error("Test run was stoped during preprocessing.");
 				// Remove possible hidden images from IJ workspace
-				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap, true);
 				return;
 			} else if (inputsMap == null && preprocess.error.contentEquals("")) {
 			    RunnerProgress.stopRunnerProgress(service, rp);
 				pnTest.append("p", "Error during preprocessing.");
 				pnTest.append("p", "The preprocessing did not return anything.");
 				// Remove possible hidden images from IJ workspace
-				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap, true);
 				return;
 			} else if (!preprocess.error.contentEquals("")) {
 			    RunnerProgress.stopRunnerProgress(service, rp);
 				pnTest.append("p", preprocess.error);
 				// Remove possible hidden images from IJ workspace
-				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap, true);
 				return;
 			}
 			
@@ -380,14 +380,14 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 				pnTest.append("p", runnerError);
 				IJ.error("The execution of the model failed.");
 				// Remove possible hidden images from IJ workspace
-				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap, true);
 				return;
 			} else if (rp.isStopped()) {
 			    RunnerProgress.stopRunnerProgress(service, rp);
 				pnTest.append("p", "Model execution of the test run stopped");
 				IJ.error("Model execution of the test run stopped.");
 				// Remove possible hidden images from IJ workspace
-				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap, true);
 				return;
 			}
 			
