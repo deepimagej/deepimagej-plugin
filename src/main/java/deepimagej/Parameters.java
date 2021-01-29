@@ -249,28 +249,18 @@ public class Parameters {
 		Map<String, Object> obj =  YAMLUtils.readConfig(yamlFile.getAbsolutePath());
 		// Find out if there is any missing field in the yaml
 		fieldsMissing = checkYaml(obj);
-		String auxFieldsMissing = fieldsMissing.toString();
-		// List of absolutely necessary fields
-		// The fields followed by comma are intended to refer to the whole field.
-		// This is done to avoid confussion to other subfields that will
-		// be written as mainField::subField
-		String[] neededFields = new String[] {"name", "weights,", "sha256",
-				"inputs,", "axes", "shape", "min", "step", "outputs,",
-				"deepimagej,", "config,", "pyramidal_model", "allow_tiling",
-				"prediction"};
-		for (String ff : neededFields){
-			if (auxFieldsMissing.contains(ff)) {
-				if (!auxFieldsMissing.contains(ff))
-					name = new File(yamlFile.getParent()).getName();
-				else 
-					name = (String) obj.get("name");
-				completeConfig = false;
-				return;
-			}
-		}
+		// Until every parameter is checkef complete config is false
+		completeConfig = false;
+
+		Set<String> kk = obj.keySet();
 
 		format_version = "" + obj.get("format_version");
-		name = (String) obj.get("name");
+		if (kk.contains("name")) {
+			name = (String) obj.get("name");
+		} else {
+			completeConfig = false;
+			return;
+		}
 		author = (List<String>) obj.get("authors");
 		timestamp = "" +  obj.get("timestamp");
 		if (author == null) {
@@ -326,7 +316,7 @@ public class Parameters {
 		pyramidalNetwork = (boolean) deepimagej.get("pyramidal_model");
 		allowPatching = (boolean) deepimagej.get("allow_tiling");
 		// Model keys
-		if (framework.contains("Tensorflow")) {
+		if (deepimagej.keySet().contains("model_keys")) {
 			Map<String, Object> model_keys = (Map<String, Object>) deepimagej.get("model_keys");
 			tag = (String) model_keys.get("tensorflow_model_tag");
 			graph = (String) model_keys.get("tensorflow_siganture_def");
@@ -342,6 +332,7 @@ public class Parameters {
 		inputList = new ArrayList<DijTensor>();
 		
 		Map<String, Object> test_information = (Map<String, Object>) deepimagej.get("test_information");
+
 		List<LinkedHashMap<String, Object>> input_information = (List<LinkedHashMap<String, Object>>) test_information.get("inputs");
 		int tensorCounter = 0;
 		try {
@@ -408,8 +399,12 @@ public class Parameters {
 			return;
 		}
 
+		List<Map<String, Object>> outputs = (List<Map<String, Object>>) obj.get("outputs");
+		if (outputs == null) {
+			completeConfig = false;
+			return;
+		}
 		try {
-			List<Map<String, Object>> outputs = (List<Map<String, Object>>) obj.get("outputs");
 			outputList = new ArrayList<DijTensor>();
 			
 			for (Map<String, Object> out : outputs) {
@@ -468,6 +463,8 @@ public class Parameters {
 		}
 		// Output test information
 		List<LinkedHashMap<String, Object>> output_information = (List<LinkedHashMap<String, Object>>) test_information.get("outputs");
+		if (output_information == null)
+			output_information = new ArrayList<LinkedHashMap<String, Object>>();
 		savedOutputs = new ArrayList<HashMap<String, String>>();
 		for (LinkedHashMap<String, Object> out : output_information) {
 			HashMap<String, String> info = new LinkedHashMap<String, String>();
@@ -488,6 +485,8 @@ public class Parameters {
 		
 		// Get all the preprocessings available in the Yaml
 		Map<String, Object> prediction = (Map<String, Object>) deepimagej.get("prediction");
+		if (prediction == null)
+			prediction = new HashMap<String, Object>();
 		pre = new HashMap<String, String[]>();
 		post = new HashMap<String, String[]>();
 		Set<String> keys = prediction.keySet();
@@ -709,7 +708,7 @@ public class Parameters {
 		int[] array = new int[list.size()];
 		int c = 0;
 		for (Object in : list) {
-			array[c ++] = (int) in;
+			array[c ++] = Integer.parseInt(in.toString());
 		}
 		return array;
 	}
@@ -719,7 +718,7 @@ public class Parameters {
 			double[] array = new double[list.size()];
 			int c = 0;
 			for (Object in : list) {
-				array[c ++] = (double) in;
+				array[c ++] = Double.parseDouble(in.toString());
 			}
 			return array;
 		} catch (Exception ex) {
@@ -732,7 +731,7 @@ public class Parameters {
 			float[] array = new float[list.size()];
 			int c = 0;
 			for (Object in : list) {
-				array[c ++] = ((Double) in).floatValue();
+				array[c ++] = Float.parseFloat(in.toString());
 			}
 			return array;
 		} catch (ClassCastException ex) {
