@@ -40,8 +40,12 @@ package deepimagej.stamp;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GridBagConstraints;
 import java.awt.GridLayout;
+import java.awt.Insets;
+import java.awt.Panel;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -52,23 +56,27 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.BorderFactory;
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 
 import deepimagej.BuildDialog;
 import deepimagej.Constants;
 import deepimagej.Parameters;
+import deepimagej.components.BorderPanel;
 import deepimagej.components.HTMLPane;
-import deepimagej.stamp.JavaPreprocessingStamp.LocalDropTarget1;
-import deepimagej.stamp.JavaPreprocessingStamp.LocalDropTarget2;
 import ij.IJ;
+import ij.gui.GenericDialog;
 
 public class JavaPostprocessingStamp extends AbstractStamp implements ActionListener {
 
@@ -76,6 +84,12 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 	private JTextField txt2 = new JTextField("Drop zone for the second postprocessing file");
 	private JButton bnBrowse1 = new JButton("Browse");
 	private JButton bnBrowse2 = new JButton("Browse");
+	
+	private static JTextField depPath = new JTextField("Introduce/drop post-processing dependecy jar file");
+	public static JList<String> dependenciesList = new JList<String>();
+	private static DefaultListModel<String> dependenciesModel;
+	public static JButton addBtn = new JButton("Add");
+	public static JButton rmvBtn = new JButton("Remove");
 	
 	// Variable to keep track of the model being used
 	private String model = "";
@@ -123,24 +137,34 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 		
 		panel.add(pn);
 		
-		txt1.setDropTarget(new LocalDropTarget1());
-		load1.setDropTarget(new LocalDropTarget1());
+		txt1.setDropTarget(new LocalDropTarget(txt1));
+		load1.setDropTarget(new LocalDropTarget(txt1));
 		bnBrowse1.addActionListener(this);
 		
-		txt2.setDropTarget(new LocalDropTarget2());
-		load2.setDropTarget(new LocalDropTarget2());
+		txt2.setDropTarget(new LocalDropTarget(txt2));
+		load2.setDropTarget(new LocalDropTarget(txt2));
 		bnBrowse2.addActionListener(this);
+		
+		// Action listeners for the build path GUI.
+		// This GUI only appears if a Java processing is included
+		depPath.setDropTarget(new LocalDropTarget(depPath));
+		addBtn.addActionListener(this);
+		rmvBtn.addActionListener(this);
 	}
 
 	@Override
 	public void init() {
 		Parameters params = parent.getDeepPlugin().params;
-		if (!model.contentEquals(params.path2Model))
-			model = params.path2Model;
 		if (params.firstPostprocessing == null || !model.contentEquals(params.path2Model))
 			txt1.setText("Drop zone for the first postprocessing");
 		if (params.secondPostprocessing == null || !model.contentEquals(params.path2Model))
 			txt2.setText("Drop zone for the second postprocessing");
+		if (!model.contentEquals(params.path2Model)) {
+			model = params.path2Model;
+		}
+		parent.getDeepPlugin().params.postAttachments = new ArrayList<String>();
+		dependenciesModel = new DefaultListModel<String>();
+		dependenciesList.setModel(dependenciesModel);
 		
 	}
 
@@ -175,43 +199,18 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 			}
 			parent.getDeepPlugin().params.secondPostprocessing = filename2;
 		}
-			
-		return true;
-	}
-	public void upadateInterface(){
-	}
-
-	public class LocalDropTarget1 extends DropTarget {
-
-		@Override
-		public void drop(DropTargetDropEvent e) {
-			e.acceptDrop(DnDConstants.ACTION_COPY);
-			e.getTransferable().getTransferDataFlavors();
-			Transferable transferable = e.getTransferable();
-			DataFlavor[] flavors = transferable.getTransferDataFlavors();
-			for (DataFlavor flavor : flavors) {
-				if (flavor.isFlavorJavaFileListType()) {
-					try {
-						List<File> files = (List<File>) transferable.getTransferData(flavor);
-						for (File file : files) {
-							txt1.setText(file.getAbsolutePath());
-							txt1.setCaretPosition(1);
-						}
-					}
-					catch (UnsupportedFlavorException ex) {
-						ex.printStackTrace();
-					}
-					catch (IOException ex) {
-						ex.printStackTrace();
-					}
-				}
-			}
-			e.dropComplete(true);
-			super.drop(e);
+		boolean result = true;
+		if (filename1.endsWith(".jar") || filename1.endsWith(".class") || filename2.endsWith(".jar") || filename2.endsWith(".class")) {
+			result = addJavaDependencies();
 		}
+		return result;
 	}
 
-	public class LocalDropTarget2 extends DropTarget {
+	public class LocalDropTarget extends DropTarget {
+		private JTextField id;
+		public LocalDropTarget(JTextField id) {
+			this.id = id;
+		}
 
 		@Override
 		public void drop(DropTargetDropEvent e) {
@@ -224,8 +223,8 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 					try {
 						List<File> files = (List<File>) transferable.getTransferData(flavor);
 						for (File file : files) {
-							txt2.setText(file.getAbsolutePath());
-							txt2.setCaretPosition(1);
+							id.setText(file.getAbsolutePath());
+							id.setCaretPosition(1);
 						}
 					}
 					catch (UnsupportedFlavorException ex) {
@@ -264,5 +263,123 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 				txt2.setCaretPosition(1);
 			}
 		}
+	}
+	
+	/**
+	 * Opens GUI to link Java dependencies
+	 */
+	public boolean addJavaDependencies() {
+		GenericDialog dlg = new GenericDialog("Java Build Path");
+		dlg.addMessage("Add path to the Java .jar dependencies needed to run the post-processing.");
+		dlg.addMessage("If there are no dependencies simply press 'OK'.");
+
+		Panel loadPath = new Panel();
+		loadPath.setLayout(new FlowLayout());
+		loadPath.add(depPath, BorderLayout.CENTER);
+		depPath.setText("Drop pre-processing dependecy .jar file");
+		depPath.setFont(new Font("Arial", Font.BOLD, 11));
+		depPath.setForeground(Color.GRAY);
+		
+		// Panel for buttons
+		JPanel buttons = new JPanel();
+		buttons.setLayout(new GridLayout());
+		buttons.add(addBtn);
+		buttons.add(rmvBtn);
+
+		loadPath.add(buttons, BorderLayout.EAST);
+		loadPath.setVisible(true);
+		dlg.addPanel(loadPath, GridBagConstraints.CENTER, new Insets(5, 0, 5, 0));
+		Dimension panelSize = loadPath.getPreferredSize();
+		
+		BorderPanel panel = new BorderPanel();
+		dependenciesModel = new DefaultListModel<String>();
+		dependenciesModel.addElement("");
+		dependenciesList = new JList<String>(dependenciesModel);
+		dependenciesList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		dependenciesList.setLayoutOrientation(JList.VERTICAL);
+		dependenciesList.setVisibleRowCount(2);
+		JScrollPane listScroller = new JScrollPane(dependenciesList);
+		panel.add(listScroller);
+		dlg.addPanel(panel, GridBagConstraints.CENTER, new Insets(5, 0, 0, 0));
+
+
+		loadPath.setPreferredSize(new Dimension((int) Math.round(panelSize.getWidth() * 1), (int) Math.round(panelSize.getHeight() * 1)));
+		depPath.setPreferredSize(new Dimension((int) Math.round(panelSize.getWidth() * 0.6), (int) Math.round(panelSize.getHeight() * 0.8)));
+		listScroller.setPreferredSize(new Dimension((int) Math.round(panelSize.getWidth() * 1), (int) Math.round(panelSize.getHeight() * 2)));
+
+		dlg.showDialog();
+		
+		if (dlg.wasOKed()) {
+			parent.getDeepPlugin().params.attachments = new ArrayList<String>();
+			for (String pre : parent.getDeepPlugin().params.preAttachments)
+				parent.getDeepPlugin().params.attachments.add(pre);
+			for (String post : parent.getDeepPlugin().params.postAttachments)
+				parent.getDeepPlugin().params.attachments.add(post);
+			return true;
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Adds dependency introduced to the list. Only accept .jar file
+	 */
+	public void addDependency() {
+		// Get the author introduced
+		String tag = depPath.getText().trim();
+		if (tag.equals("")) {
+			IJ.error("Introduce the path to an existing .jar file.");
+			// Empty the text in the text field
+			depPath.setText("Drop post-processing dependecy .jar file");
+			return;
+		} else if(!tag.endsWith(".jar") || !(new File(tag)).isFile()) {
+			IJ.error("The path introduced does not correspond to an existing .jar file.");
+			// Empty the text in the text field
+			depPath.setText("Drop post-processing dependecy .jar file");
+			return;
+		}
+		for (String dep : parent.getDeepPlugin().params.postAttachments) {
+			if (dep.contentEquals(tag)) {
+				IJ.error("Do not add the same dependency twice.");
+				// Empty the text in the text field
+				depPath.setText("Drop post-processing dependecy .jar file");
+				return;
+			}
+		}
+		
+		parent.getDeepPlugin().params.postAttachments.add(tag);
+
+		dependenciesModel = new DefaultListModel<String>();
+		
+		// Add the elements to the list
+
+		for (String name : parent.getDeepPlugin().params.postAttachments){
+			dependenciesModel.addElement(name);
+		}
+		dependenciesList.setModel(dependenciesModel);
+		// Set the info text once the file is added
+		depPath.setText("Drop post-processing dependecy .jar file");
+	}
+	
+	/**
+	 * Remove dependency previoulsy introduced
+	 */
+	public void removeDependency() {
+		// Get the author selected
+		int tag = dependenciesList.getSelectedIndex();
+		if (tag == -1) {
+			IJ.error("No file selected to remove");
+			return;
+		}
+		parent.getDeepPlugin().params.postAttachments.remove(tag);
+
+		dependenciesModel = new DefaultListModel<String>();
+		
+		// Add the elements to the list
+
+		for (String name : parent.getDeepPlugin().params.postAttachments){
+			dependenciesModel.addElement(name);
+		}
+		dependenciesList.setModel(dependenciesModel);
 	}
 }

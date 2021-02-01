@@ -388,7 +388,7 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		pnLoad.append("p", "Path to model: " + params.path2Model + "\n");
 		String timeStr = (time / 1000000000) + "";
 		timeStr = timeStr.substring(0, timeStr.lastIndexOf(".") + 3);
-		pnLoad.append("p", "Time to load model: " + timeStr + "\n");
+		pnLoad.append("p", "Time to load model: " + timeStr + " s\n");
 		String modelSize = "" + FileTools.getFolderSize(params.path2Model + File.separator + "variables") / (1024*1024.0);
 		modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 		pnLoad.append("p", "Size of the weights: " + modelSize + " MB");

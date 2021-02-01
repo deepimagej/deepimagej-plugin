@@ -39,6 +39,8 @@ package deepimagej.processing;
 
 import java.awt.Frame;
 import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -55,7 +57,9 @@ import ij.text.TextWindow;
 public class ProcessingBridge {
 	
 	// TODO decide whether to allow or not more than 1 image input to the model
-	public static HashMap<String, Object> runPreprocessing(ImagePlus im, Parameters params) throws MacrosError, JavaProcessingError {
+	public static HashMap<String, Object> runPreprocessing(ImagePlus im, Parameters params) throws MacrosError, JavaProcessingError, NoSuchMethodException, SecurityException,
+																					IllegalAccessException, IllegalArgumentException, InvocationTargetException,
+																					ClassNotFoundException, InstantiationException, IOException {
 		HashMap<String, Object> map = new HashMap<String, Object>();
 		params.javaPreprocessingClass = new ArrayList<String>();
 		// Assume that the image selected will result in the input image to the model
@@ -100,7 +104,7 @@ public class ProcessingBridge {
 				ImagePlus inputImage = WindowManager.getImage(tensor.name);
 				if (inputImage != null) {
 					map.put(tensor.name, inputImage);
-		        } else if (im != null) {
+		        } else if (map.get(tensor.name) == null && im != null) {
 					map.put(tensor.name, im);
 		        }
 			} else if (tensor.tensorType == "parameter") {
@@ -108,7 +112,7 @@ public class ProcessingBridge {
 		        if (f!=null && (f instanceof TextWindow)) {
 		        	 ResultsTable inputTable = ((TextWindow)f).getResultsTable();
 					map.put(tensor.name, inputTable);
-		        } else if (lastStep){
+		        } else if (map.get(tensor.name) == null && lastStep){
 		        	IJ.error("There is no ResultsTable named: " + tensor.name + ".\n" +
 		        			"There should be as it is one of the inputs required\n"
 		        			+ "by the model.");
@@ -129,8 +133,16 @@ public class ProcessingBridge {
 	 * @param params: model parameters
 	 * @return map: hashmap containing the results of the processing routine
 	 * @throws JavaProcessingError 
+	 * @throws IOException 
+	 * @throws InstantiationException 
+	 * @throws ClassNotFoundException 
+	 * @throws InvocationTargetException 
+	 * @throws IllegalArgumentException 
+	 * @throws IllegalAccessException 
+	 * @throws SecurityException 
+	 * @throws NoSuchMethodException 
 	 */
-	private static HashMap<String, Object> runPreprocessingJava(HashMap<String, Object> map, String processingPath, String config, Parameters params) throws JavaProcessingError {
+	private static HashMap<String, Object> runPreprocessingJava(HashMap<String, Object> map, String processingPath, String config, Parameters params) throws JavaProcessingError, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException, InstantiationException, IOException {
 		boolean preprocessing = true;
 		ExternalClassManager processingRunner = new ExternalClassManager (processingPath, preprocessing, params);
 		map = processingRunner.javaPreprocess(map, config);
@@ -166,8 +178,19 @@ public class ProcessingBridge {
 	 * @return map: map containing all the paths to the processing files
 	 * @throws MacrosError is thrown if the Macro file does not work
 	 * @throws JavaProcessingError 
+	 * @throws IOException 
+	 * @throws InstantiationException 
+	 * @throws ClassNotFoundException 
+	 * @throws InvocationTargetException 
+	 * @throws IllegalArgumentException 
+	 * @throws IllegalAccessException 
+	 * @throws SecurityException 
+	 * @throws NoSuchMethodException 
 	 */
-	public static HashMap<String, Object> runPostprocessing(Parameters params, HashMap<String, Object> map) throws MacrosError, JavaProcessingError {
+	public static HashMap<String, Object> runPostprocessing(Parameters params, HashMap<String, Object> map) throws MacrosError, JavaProcessingError,
+														NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
+														InvocationTargetException, ClassNotFoundException, InstantiationException,
+														IOException {
 
 		params.javaPostprocessingClass = new ArrayList<String>();
 		
@@ -198,8 +221,18 @@ public class ProcessingBridge {
 	 * @param params: model parameters
 	 * @return map: hashmap containing the results of the processing routine
 	 * @throws JavaProcessingError 
+	 * @throws IOException 
+	 * @throws InstantiationException 
+	 * @throws ClassNotFoundException 
+	 * @throws InvocationTargetException 
+	 * @throws IllegalArgumentException 
+	 * @throws IllegalAccessException 
+	 * @throws SecurityException 
+	 * @throws NoSuchMethodException 
 	 */
-	private static HashMap<String, Object> runPostprocessingJava(HashMap<String, Object> map, String processingPath, String config, Parameters params) throws JavaProcessingError {
+	private static HashMap<String, Object> runPostprocessingJava(HashMap<String, Object> map, String processingPath, String config, Parameters params) throws JavaProcessingError, NoSuchMethodException,
+																													SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
+																													ClassNotFoundException, InstantiationException, IOException {
 		boolean preprocessing = false;
 		ExternalClassManager processingRunner = new ExternalClassManager (processingPath, preprocessing, params);
 		map = processingRunner.javaPostprocess(map, config);

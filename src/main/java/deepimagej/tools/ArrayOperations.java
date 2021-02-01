@@ -284,7 +284,9 @@ public class ArrayOperations {
 					c ++;
 				}
 				((ImagePlus) f).setTitle(newTitle);
-				((ImagePlus) f).getWindow().setVisible(true);
+				if (((ImagePlus) f).getWindow() != null) {
+					((ImagePlus) f).getWindow().setVisible(true);
+				}
 			}
 		}
 	}

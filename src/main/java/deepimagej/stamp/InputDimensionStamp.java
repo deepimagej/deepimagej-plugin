@@ -110,17 +110,17 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		HTMLPane info = new HTMLPane(Constants.width, 265);
 		info.append("h", "<b>Input size constraints</b>");
 		info.append("p", "<b>Input tile size (Q) </b>: Input size of the model. If <i>Allow tiling</i> or"
-				+ " <i>Do not allow tiling (variable input size)</i> is selected, <i>Q</i> will automatically "
-				+ "change for each image during the inference.");
-		info.append("p", "<b>Minimum size (m) </b>: Minimum size the model can process..");
-		info.append("p", "<b>Step (s) </b>: If the network has an auto-encoder architecture, the size of each"
+				+ " <i>Do not allow tiling (with variable input size)</i> is selected, <i>Q</i> will automatically "
+				+ "change for each image during the inference and suggested to the user in DeepImageJ Run.");
+		info.append("p", "<b>Minimum size (m) </b>: Size of the smallest input that the model can process.");
+		info.append("p", "<b>Step (s) </b>: If the network supports different input sizes, the size of each"
 				+ " dimension of the input image (Q), has to be the result of 'Minimum size (m) + N * Step (s)',"
 				+ " where N can be any positive integer.");
 			
 		info.append("h", "<b>Tiling strategies</b>");
 		info.append("p", "<b>Allow tiling</b>: <i>Q</i> is editable by the user as long as it "
 				+ "fulfills the <i>step (s)</i> and <i>minimum (m)</i> constraints. Large images are processed using a tiling strategy.");
-		info.append("p", "<b>Do not allow patches</b>: The input size will be processed as a whole (no tiling). Depending "
+		info.append("p", "<b>Do not allow tiling</b>: The input size will be processed as a whole (no tiling). Depending "
 				+ "on the <i>step (s)</i> and <i>minimum (m)</i> constraints, the model might not be applicable to "
 				+ "some images (too big or small).");
 		

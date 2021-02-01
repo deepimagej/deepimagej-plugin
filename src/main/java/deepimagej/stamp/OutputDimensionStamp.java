@@ -46,6 +46,7 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.swing.BorderFactory;
@@ -559,7 +560,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 				float scale = ((float) dimValues[i]) / ((float) inputFixedSize);
 				txt1.setText("" + scale);
 				txt1.setEditable(true);
-			} else if (!refDims.toString().contains(dims[i])) {
+			} else if (!Arrays.toString(refDims).contains(dims[i])) {
 				// If the reference image does not contain the output
 				//dimension, the output size for that dimension will just be 
 				// whatever comes out of the model

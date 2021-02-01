@@ -120,26 +120,27 @@ public class TensorPytorchTmpStamp extends AbstractStamp implements ActionListen
 		pnDim.append("<p><b>Input tensor types:</b></p>");
 		pnDim.append("<ul><li><p><b>Image:</b> <b>X</b> for width (axis X), <b>Y</b> for"
 				+ " height (axis Y), <b>Z</b> for depth (axis Z), <b>B</b> for batch, "
-				+ "<b>C</b> for channel. There can only be one input image.</p></li>");
-		pnDim.append("<li><p><b>Parameter:</b> the tensor must be created using Java preprocessing,"
-				+ " thus no dimension specfication is needed. The tensor is fed directly "
-				+ "to the model from preprocessing.</p></li></ul>");
+				+ "<b>C</b> for channel. DeepImageJ can only process one image at a time. If the "
+				+ "input is not an image, you should include a pre-processing written in Java.</p></li>");
+		pnDim.append("<li><p><b>Parameter:</b> If the input is a parameter, the corresponding tensor must be "
+				+ "created using Java pre-processing,"
+				+ " thus no dimension specification is needed. The tensor is fed directly "
+				+ "to the model from pre-processing.</p></li></ul>");
 		
 		pnDim.append("<p><b>Output tensor types:</b></p>");
 		if (params.pyramidalNetwork) {
 			pnDim.append("<ul><li><p><b>Image:</b> <b>X</b> for width (axis X), <b>Y</b> for"
-					+ " height (axis Y), <b>N/i/z</b> for number of components/patches/objects or depth (axis Z), <b>B</b> for batch, "
+					+ " height (axis Y), <b>N/i/z</b> for number of components/patches/objects or depth (axis Z), <b>B</b> for the batch, "
 					+ "<b>C</b> for channel or class</p></li>");
 		} else {
 			pnDim.append("<ul><li><p><b>Image:</b> <b>X</b> for width (axis X), <b>Y</b> for"
-					+ " height (axis Y), <b>Z</b> for depth (axis Z), <b>B</b> for batch, "
+					+ " height (axis Y), <b>Z</b> for depth (axis Z), <b>B</b> for the batch, "
 					+ "<b>C</b> for channel</p></li>");
 		}
 		pnDim.append("<li><p><b>List:</b> the tensor corresponds to a batch of matrices."
-				+ "<b>R</b> for rows, <b>C</b> for columns, <b>B</b> for batch. This type can be used for tensors"
+				+ "<b>R</b> for rows, <b>C</b> for columns, <b>B</b> for the batch. This type can be used for tensors"
 				+ "with 3 dimensions at most (being one of them the batch).</p></li>");
-		pnDim.append("<li><p><b>Ignore:</b> the tensor will not be fetched from the model "
-				+ "by the plugin.</p></li></ul>");
+		pnDim.append("<li><p><b>Ignore:</b> DeepImageJ will not retrieve the tensor from the model.</p></li></ul>");
 		pnDim.setMaximumSize(new Dimension(Constants.width, 150));
 		GridBagConstraints cTag = new GridBagConstraints ();
 		cTag.gridwidth = 3;

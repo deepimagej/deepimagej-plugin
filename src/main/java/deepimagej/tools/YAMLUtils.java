@@ -264,6 +264,10 @@ public class YAMLUtils {
 		
 		data.put("sample_inputs", sampleInputs);
 		data.put("sample_outputs", sampleOutputs);
+		// Add information asking the developer to add plugin requirements to the attachments list
+		params.attachments.add("Include here any plugin that might be required for pre- or post-processing");
+		// List of Java files that need to be included to make the plugin run
+		data.put("attachments", params.attachments);
 		// Link to the folder containing the weights
 		data.put("weights", weights);
 		

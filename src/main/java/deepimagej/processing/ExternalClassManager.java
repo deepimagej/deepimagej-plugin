@@ -38,6 +38,11 @@
 package deepimagej.processing;
 
 import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.*;
 
 import deepimagej.Parameters;
@@ -45,6 +50,11 @@ import deepimagej.exceptions.JavaProcessingError;
 import ij.IJ;
 
 public class ExternalClassManager {
+	
+	/*
+	 * URLClassLoader that contains all the classes needed to run the pre- or post-processing 
+	 */
+	URLClassLoader processingClassLoader;
 	
 	/*
 	 * The directory where we keep the plugin classes
@@ -72,71 +82,75 @@ public class ExternalClassManager {
 	 */
 	boolean preprocessing;
 
-	public ExternalClassManager (String jarDir, boolean preProc, Parameters params) {
-		String interfaceOfInterest = "ProcessingInterface";
+	public ExternalClassManager (String jarDir, boolean preProc, Parameters params) throws NoSuchMethodException,
+																					SecurityException, IllegalAccessException, IllegalArgumentException,
+																					InvocationTargetException, IOException, ClassNotFoundException, InstantiationException {
 		processingDir = jarDir;
 		preprocessing = preProc;
-		//System.setSecurityManager(new PluginSecurityManager(processingDir));
+		// Create a class loader with the wanted dependencies
+		createProcessingClassLoader(params);
 		if (jarDir.contains(".jar") && (preProc == true)) {
-			preProcessingClass = LoadJar.loadPreProcessingInterface(jarDir, params);
+			processingClassLoader = LoadJar.loadSingleJarToExistingURLClassLoader(jarDir, processingClassLoader);
+			preProcessingClass = LoadJar.loadPreProcessingInterface(jarDir, params, processingClassLoader);
 		} else if (jarDir.contains(".jar") && (preProc == false)) {
-			postProcessingClass = LoadJar.loadPostProcessingInterface(jarDir, params);
+			processingClassLoader = LoadJar.loadSingleJarToExistingURLClassLoader(jarDir, processingClassLoader);
+			postProcessingClass = LoadJar.loadPostProcessingInterface(jarDir, params, processingClassLoader);
 		} else {
-			getClasses(interfaceOfInterest, params);
+			processingClassLoader = LoadJar.loadClassFileIntoURLClassLoader(jarDir, new File(jarDir).getParent(), processingClassLoader);
+			getInterface(jarDir, params);
 		}
 	}
-
-	protected void getClasses(String interfaceOfInterest, Parameters params) {
-		File dir = new File(processingDir);
-		List<String> fileList = new ArrayList<String>();
-		if (processingDir.contains(".class")) {
-			fileList.add(new File(processingDir).getName());
-		} else {
-			fileList = listFilesForFolder(dir, fileList, processingDir.length());
-		}
-		ClassLoader cl = new PluginClassLoader(dir);
-		for (String file : fileList) {
-			try {
-				// only consider files ending in ".class"
-				if (! file.endsWith(".class"))
+	
+	/**
+	 * Find if the class provided contains the needed interface
+	 * @param classFile: file containing the external class
+	 * @param params: model parameters
+	 * @throws ClassNotFoundException
+	 * @throws InstantiationException
+	 * @throws IllegalAccessException
+	 */
+	protected void getInterface(String classFile, Parameters params) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+		Class c;
+		String file = new File(classFile).getName();
+		String className = file.substring(0, file.indexOf("."));
+		className = className.replace(File.separator, ".");
+			c = processingClassLoader.loadClass(className);
+		Class[] intf = c.getInterfaces();
+		for (int j=0; j<intf.length; j++) {
+			if (intf[j].getName().contains("PreProcessingInterface") || intf[j].getName().contains("PostProcessingInterface")){
+				if (preprocessing == true) {
+					// the following line assumes that PluginFunction has a no-argument constructor
+					PreProcessingInterface pf = (PreProcessingInterface) c.newInstance();
+					preProcessingClass = pf;
+					params.javaPreprocessingClass.add(className);
 					continue;
-				
-				String className = file.substring(0, file.indexOf("."));
-				className = className.replace(File.separator, ".");
-				Class c = cl.loadClass(className);
-				Class[] intf = c.getInterfaces();
-				for (int j=0; j<intf.length; j++) {
-					if (interfaceOfInterest.contains("ProcessingInterface") && intf[j].getName().contains(interfaceOfInterest)){
-						if (preprocessing == true) {
-							// the following line assumes that PluginFunction has a no-argument constructor
-							PreProcessingInterface pf = (PreProcessingInterface) c.newInstance();
-							preProcessingClass = pf;
-							params.javaPreprocessingClass.add(className);
-							continue;
-						} else {
-							// the following line assumes that PluginFunction has a no-argument constructor
-							PostProcessingInterface pf = (PostProcessingInterface) c.newInstance();
-							postProcessingClass = pf;
-							params.javaPostprocessingClass.add(className);
-							continue;
-						}
-					}
+				} else {
+					// the following line assumes that PluginFunction has a no-argument constructor
+					PostProcessingInterface pf = (PostProcessingInterface) c.newInstance();
+					postProcessingClass = pf;
+					params.javaPostprocessingClass.add(className);
+					continue;
 				}
-			} catch (Exception ex) {
-				System.err.println("File " + file + " does not contain a valid PluginFunction class.");
 			}
 		}
 	}
 	
-	public List<String> listFilesForFolder(final File folder, List<String> fileList, int relPathLength) {
-	    for (final File fileEntry : folder.listFiles()) {
-	        if (fileEntry.isDirectory()) {
-	            fileList = listFilesForFolder(fileEntry, fileList, relPathLength);
-	        } else {
-	        	fileList.add(fileEntry.getPath().substring(relPathLength + 1));
-	        }
-	    }
-	    return fileList;
+	/**
+	 * Method that creates classloader with the needed Java dependencies
+	 * @param params: model parameters, contains dependencies to build the path
+	 */
+	private void createProcessingClassLoader(Parameters params) {
+		URL[] urls = new URL[params.attachments.size()];
+		int c = 0;
+		for (String url : params.attachments) {
+			try {
+				urls[c ++] = new File(url).toURI().toURL();
+			} catch (MalformedURLException e) {
+				IJ.log("Cannot find file: " + url);
+				e.printStackTrace();
+			}
+		}
+		processingClassLoader = new URLClassLoader(urls);
 	}
 
 	public HashMap<String, Object> javaPreprocess(HashMap<String, Object> map, String path2config) throws JavaProcessingError {
@@ -180,7 +194,7 @@ public class ExternalClassManager {
 	public HashMap<String, Object> javaPostprocess(HashMap<String, Object> map, String path2config) throws JavaProcessingError {
 		try {
 			postProcessingClass.setConfigFile(path2config);
-			postProcessingClass.deepimagejPostprocessing(map);
+			map = postProcessingClass.deepimagejPostprocessing(map);
 			if (!postProcessingClass.error().contentEquals("")) {
 				IJ.log(postProcessingClass.error());
 				throw new JavaProcessingError(postProcessingClass.error());

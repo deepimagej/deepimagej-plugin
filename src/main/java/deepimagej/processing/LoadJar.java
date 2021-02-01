@@ -37,8 +37,13 @@
 
 package deepimagej.processing;
 
+import java.io.DataInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -51,20 +56,78 @@ import deepimagej.Parameters;
 
 public class LoadJar {
 	
-	public static PostProcessingInterface loadPostProcessingInterface(String jar, Parameters params) {
-		File f = new File(jar);
+	public static URLClassLoader loadClassFileIntoURLClassLoader(String classFilePath, String dir,
+																URLClassLoader urlClassLoader) throws NoSuchMethodException,
+																SecurityException, IllegalAccessException, IllegalArgumentException,
+																InvocationTargetException, IOException {
+		// Obtain the class name from the .class file
+		String className = classFilePath.substring(dir.length());
+		if (className.indexOf(File.separator) == 0) {
+			className = className.substring(1);
+		}
+		className = className.substring(0, className.lastIndexOf("."));
+		className = className.replace(File.separator, ".");
+		// Check if the class is already loaded
+		// As these methods are protected, the methods have to be called using reflect
+        Method method = URLClassLoader.class.getDeclaredMethod("findLoadedClass", String.class);
+		method.setAccessible(true);
+		Class c = (Class) method.invoke(urlClassLoader, className);
+		// If it was not load, try to load it as a system class.
+		// Again use reflect
+		if (c == null) {
+			try {
+				method = URLClassLoader.class.getDeclaredMethod("findSystemClass", String.class);
+				method.setAccessible(true);
+				c = (Class) method.invoke(urlClassLoader, className);
+			} catch(Exception ex) {
+			}
+		}
+		// If the class is not loaded yet. Load directly from the class file
+		if (c == null) {
+			File f = new File(classFilePath);
+			// Get the length of the class file, allocate an array of bytes for
+	        // it, and read it in all at once.
+	        int length = (int) f.length();
+	        byte[] classbytes = new byte[length];
+	        DataInputStream in = new DataInputStream(new FileInputStream(f));
+	        in.readFully(classbytes);
+	        in.close();
+	        // Now call an inherited method to convert those bytes into a Class
+	        // Again call it from reflect
+			method = URLClassLoader.class.getDeclaredMethod("defineClass", String.class, byte[].class, Integer.class, Integer.class);
+			method.setAccessible(true);
+			c = (Class) method.invoke(urlClassLoader, className, classbytes, 0, length);
+		}
+		return urlClassLoader;
+	}
+	
+	/**
+	 * Adds Jar file classes to an already existing URLClassLoder
+	 * @param jar: path to the file to be added
+	 * @param urlClassLoader: already existing class loader
+	 * @return URLClassLoader with the new jar added
+	 * @throws SecurityException 
+	 * @throws NoSuchMethodException 
+	 * @throws MalformedURLException 
+	 * @throws InvocationTargetException 
+	 * @throws IllegalArgumentException 
+	 * @throws IllegalAccessException 
+	 */
+	public static URLClassLoader loadSingleJarToExistingURLClassLoader(String jar, URLClassLoader urlClassLoader) throws NoSuchMethodException, SecurityException, MalformedURLException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		URL url = new File(jar).toURI().toURL();
+
+		Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+		method.setAccessible(true);
+		method.invoke(urlClassLoader, url);
+		return urlClassLoader;
+	}
+	
+	public static PostProcessingInterface loadPostProcessingInterface(String jar, Parameters params, URLClassLoader urlClassLoader) {
 		PostProcessingInterface pf = null;
-        // Add plugin directory to search path
+		 // Load all the classes from the pre-processing file and look for the wanted interface
+        ZipFile jarFile;
 		try {
-	        URL url;
-			url = f.toURI().toURL();
-	        // Getting the jar URL which contains target class
-	        URL[] classLoaderUrls = new URL[]{url};
-	         
-	        // Create a new URLClassLoader 
-	        URLClassLoader urlClassLoader = new URLClassLoader(classLoaderUrls);
-	         
-	        ZipFile jarFile = new ZipFile(jar);
+			jarFile = new ZipFile(jar);
             Enumeration entries = jarFile.entries();
             while (entries.hasMoreElements() && pf == null) {
                 ZipEntry entry = (ZipEntry) entries.nextElement();
@@ -84,38 +147,22 @@ public class LoadJar {
     				}
                 }
             }
-		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
+            jarFile.close();
+		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InstantiationException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return pf;
 	}
 	
-	public static PreProcessingInterface loadPreProcessingInterface(String jar, Parameters params) {
-		File f = new File(jar);
-        // Add plugin directory to search path
+	public static PreProcessingInterface loadPreProcessingInterface(String jar, Parameters params, URLClassLoader urlClassLoader) {
 		PreProcessingInterface pf = null;
 		try {
-	        URL url;
-			url = f.toURI().toURL();
-	        // Getting the jar URL which contains target class
-	        URL[] classLoaderUrls = new URL[]{url};
-	         
-	        // Create a new URLClassLoader 
-	        URLClassLoader urlClassLoader = new URLClassLoader(classLoaderUrls);
-	         
 	        ZipFile jarFile = new ZipFile(jar);
             Enumeration entries = jarFile.entries();
             while (entries.hasMoreElements() && pf == null) {
@@ -136,20 +183,14 @@ public class LoadJar {
     				}
                 }
             }
-		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
+            jarFile.close();
+		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InstantiationException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return pf;

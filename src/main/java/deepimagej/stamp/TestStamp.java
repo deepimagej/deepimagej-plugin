@@ -87,6 +87,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 	private List<JComboBox<String>>	cmbList	= new ArrayList<JComboBox<String>>();
 	private List<JButton>			btnList	= new ArrayList<JButton>();
 	private JPanel					inputsPn = new JPanel(new GridLayout(3, 2));
+	private String					selectedImage = "";
 	
 	private List<DijTensor>		imageTensors;
 
@@ -263,6 +264,15 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 				
 				break;
 			}
+		}
+		
+		// If the selected image has changed, update the patch size
+		// TODO generalise for several inputa images
+		String newSelectedImage = (String) cmbList.get(0).getSelectedItem();
+		if (!selectedImage.contentEquals(newSelectedImage)) {
+			selectedImage = newSelectedImage;
+			if (Arrays.asList(WindowManager.getImageTitles()).contains(selectedImage))
+				setOptimalPatch(selectedImage, 0);
 		}
 	}
 	

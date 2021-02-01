@@ -18,8 +18,8 @@ public class IncorrectNumberOfDimensions extends Exception {
 	}
 	
 	public String toString() {
-		return "Only " + dims.length() + " dimensions specified (" + dims + 
-				") for tensor '" + name + "' with " + shape.length + " dimensions and shape "
+		return "Tensor dimensions mismatch, " + dims.length() + " dimensions specified (" + dims + 
+				") for tensor '" + name + "' whereas it has " + shape.length + " dimensions with shape "
 				+ Arrays.toString(shape);
 	}
 	

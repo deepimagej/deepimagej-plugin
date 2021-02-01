@@ -68,8 +68,9 @@ public class DijRunnerPostprocessing implements Callable<HashMap<String, Object>
 		// The thread cannot be stopped while loading a model, thus block the button
 		// while executing the task
 		rp.allowStopping(false);
+		HashMap<String, Object> fin = null;
 		try {
-			output = ProcessingBridge.runPostprocessing(dp.params, output);
+			fin = ProcessingBridge.runPostprocessing(dp.params, output);
 		} catch (MacrosError e) {
 			e.printStackTrace();
 			error = "Error during Macro postprocessing.";
@@ -97,7 +98,7 @@ public class DijRunnerPostprocessing implements Callable<HashMap<String, Object>
 		if(rp.isStopped())
 			return null;
 		
-		return output;
+		return fin;
 	}
 
 }
