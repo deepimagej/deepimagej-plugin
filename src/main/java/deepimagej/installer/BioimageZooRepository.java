@@ -62,7 +62,7 @@ public class BioimageZooRepository {
 	public String title = "Bioimage Zoo";
 	public String name = "Bioimage Zoo";
 
-	public HashMap<String, Model> models2 = new HashMap<String, Model>();
+	public HashMap<String, Model> models = new HashMap<String, Model>();
 	public ArrayList<String> logs = new ArrayList<String>();
 	
 	
@@ -80,12 +80,12 @@ public class BioimageZooRepository {
 			name = getString(json2, "name", "n.a");
 			title = getString(json2, "splash_title", "n.a");
 			JsonArray resources2 = (JsonArray) json2.get("resources");
-			if (models2 != null) {
+			if (models != null) {
 				for (Object resource : resources2) {
 					JsonObject jm2 = (JsonObject) resource;
 					Model model2 = parseModel(jm2);
 					if (model2 != null) {
-						models2.put(model2.getFacename(), model2);
+						models.put(model2.getFacename(), model2);
 					}
 				}
 			}
@@ -100,7 +100,7 @@ public class BioimageZooRepository {
 	}
 	
 	public HashMap<String, Model> getModels() {
-		return models2;
+		return models;
 	}
 
 	private Model parseModel(JsonObject json) {

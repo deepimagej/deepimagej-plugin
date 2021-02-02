@@ -264,10 +264,15 @@ public class YAMLUtils {
 		
 		data.put("sample_inputs", sampleInputs);
 		data.put("sample_outputs", sampleOutputs);
+		
+		ArrayList<String> aux = new ArrayList<String>();
+		for (String str : params.attachments) {
+			aux.add(new File(str).getName());
+		}
 		// Add information asking the developer to add plugin requirements to the attachments list
-		params.attachments.add("Include here any plugin that might be required for pre- or post-processing");
+		aux.add("Include here any plugin that might be required for pre- or post-processing");
 		// List of Java files that need to be included to make the plugin run
-		data.put("attachments", params.attachments);
+		data.put("attachments", aux);
 		// Link to the folder containing the weights
 		data.put("weights", weights);
 		

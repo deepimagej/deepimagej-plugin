@@ -38,8 +38,6 @@
 package deepimagej.processing;
 
 import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -82,9 +80,7 @@ public class ExternalClassManager {
 	 */
 	boolean preprocessing;
 
-	public ExternalClassManager (String jarDir, boolean preProc, Parameters params) throws NoSuchMethodException,
-																					SecurityException, IllegalAccessException, IllegalArgumentException,
-																					InvocationTargetException, IOException, ClassNotFoundException, InstantiationException {
+	public ExternalClassManager (String jarDir, boolean preProc, Parameters params) throws JavaProcessingError {
 		processingDir = jarDir;
 		preprocessing = preProc;
 		// Create a class loader with the wanted dependencies
@@ -105,34 +101,49 @@ public class ExternalClassManager {
 	 * Find if the class provided contains the needed interface
 	 * @param classFile: file containing the external class
 	 * @param params: model parameters
-	 * @throws ClassNotFoundException
-	 * @throws InstantiationException
-	 * @throws IllegalAccessException
+	 * @throws JavaProcessingError 
 	 */
-	protected void getInterface(String classFile, Parameters params) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+	protected void getInterface(String classFile, Parameters params) throws JavaProcessingError {
 		Class c;
-		String file = new File(classFile).getName();
-		String className = file.substring(0, file.indexOf("."));
-		className = className.replace(File.separator, ".");
+		JavaProcessingError ex = new JavaProcessingError();
+		String className = "";
+		try {
+			String file = new File(classFile).getName();
+			className = file.substring(0, file.indexOf("."));
+			className = className.replace(File.separator, ".");
 			c = processingClassLoader.loadClass(className);
-		Class[] intf = c.getInterfaces();
-		for (int j=0; j<intf.length; j++) {
-			if (intf[j].getName().contains("PreProcessingInterface") || intf[j].getName().contains("PostProcessingInterface")){
-				if (preprocessing == true) {
-					// the following line assumes that PluginFunction has a no-argument constructor
-					PreProcessingInterface pf = (PreProcessingInterface) c.newInstance();
-					preProcessingClass = pf;
-					params.javaPreprocessingClass.add(className);
-					continue;
-				} else {
-					// the following line assumes that PluginFunction has a no-argument constructor
-					PostProcessingInterface pf = (PostProcessingInterface) c.newInstance();
-					postProcessingClass = pf;
-					params.javaPostprocessingClass.add(className);
-					continue;
+			Class[] intf = c.getInterfaces();
+			for (int j=0; j<intf.length; j++) {
+				if (intf[j].getName().contains("PreProcessingInterface") || intf[j].getName().contains("PostProcessingInterface")){
+					if (preprocessing == true) {
+						// the following line assumes that PluginFunction has a no-argument constructor
+						PreProcessingInterface pf = (PreProcessingInterface) c.newInstance();
+						preProcessingClass = pf;
+						params.javaPreprocessingClass.add(className);
+						continue;
+					} else {
+						// the following line assumes that PluginFunction has a no-argument constructor
+						PostProcessingInterface pf = (PostProcessingInterface) c.newInstance();
+						postProcessingClass = pf;
+						params.javaPostprocessingClass.add(className);
+						continue;
+					}
 				}
 			}
+		} catch (ClassNotFoundException e) {
+			ex.setJavaError("Cannot load Java class " + className + " from file " + new File(classFile).getName() + ".\n"
+					+ "Check that the file exists and that ImageJ/Fiji has the permissions to open the it.");
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			ex.setJavaError("Cannot load Java class dinamically from file " + new File(classFile).getName() + ".\n"
+					+ "Check that the file exists and that ImageJ/Fiji has the permissions to open the it.");
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			ex.setJavaError("Cannot load Java class dinamically from file " + new File(classFile).getName() + ".\n"
+					+ "Check that the file exists and that ImageJ/Fiji has the permissions to open the it.");
+			e.printStackTrace();
 		}
+		throw ex;
 	}
 	
 	/**

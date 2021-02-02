@@ -324,6 +324,14 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			ex.printStackTrace();
 		}
 		
+		// Finally save Java dependencies
+		boolean saveDeps = TfSaveStamp.saveJavaDependencies(params);
+		if (saveDeps && params.attachments.size() > 0) {
+			pane.append("p", "Java .jar dependencies: saved");
+		} else if (!saveDeps && params.attachments.size() > 0) {
+			pane.append("p", "Java .jar dependencies: not saved");
+		}
+		
 		pane.append("p", "<b>Done!!</b>");
 
 	}

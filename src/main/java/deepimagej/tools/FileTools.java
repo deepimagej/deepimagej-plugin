@@ -54,7 +54,6 @@ import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
@@ -100,17 +99,15 @@ public class FileTools {
 		}
 		FileChannel source = null;
 		FileChannel destination = null;
-		source = new FileInputStream(sourceFile).getChannel();
-		destination = new FileOutputStream(destFile).getChannel();
+		FileInputStream fileStrm = new FileInputStream(sourceFile);
+		FileInputStream fileOutStrm = new FileInputStream(destFile);
+		source = fileStrm.getChannel();
+		destination = fileOutStrm.getChannel();
 		if (destination != null && source != null) {
 			destination.transferFrom(source, 0, source.size());
 		}
-		if (source != null) {
-			source.close();
-		}
-		if (destination != null) {
-			destination.close();
-		}
+		fileStrm.close();
+		fileOutStrm.close();
 
 	}
 	
@@ -335,6 +332,7 @@ public class FileTools {
                 bytesRead += read;
             }
             zos.closeEntry();
+            bis.close();
         }
     }
     /**
@@ -357,6 +355,7 @@ public class FileTools {
             bytesRead += read;
         }
         zos.closeEntry();
+        bis.close();
     }
     
     public static String createSHA256(String fileName) throws  IOException {

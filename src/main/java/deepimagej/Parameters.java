@@ -112,6 +112,13 @@ public class Parameters {
 	 */
 	public ArrayList<String> attachments = new ArrayList<String>();
 	/*
+	 * List of dependencies needed for the Java pre- and post-processing.
+	 * This variable is the union of preAttachments and postAttachments
+	 * that are not included in the model folder. This variable will only be
+	 * used by the DIJ Run
+	 */
+	public ArrayList<String> attachmentsNotIncluded = new ArrayList<String>();
+	/*
 	 * Whether the network has a pyramidal pooling structure or not.
 	 * If it has it, the way to define the model changes. By default
 	 * it is false.
@@ -297,9 +304,12 @@ public class Parameters {
 		git_repo = (String) obj.get("git_repo");
 		ArrayList<String> attachmentsAux = (ArrayList<String>) obj.get("attachments");
 		attachments = new ArrayList<String>();
+		attachmentsNotIncluded = new ArrayList<String>();
 		for (String str : attachmentsAux) {
 			if (new File(path2Model, str).isFile())
 				attachments.add(new File(path2Model, str).getAbsolutePath());
+			else
+				attachmentsNotIncluded.add(str);
 		}
 		
 		LinkedHashMap<String, LinkedHashMap<String, Object>> weights = (LinkedHashMap<String, LinkedHashMap<String, Object>>) obj.get("weights");

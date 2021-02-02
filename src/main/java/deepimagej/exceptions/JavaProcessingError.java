@@ -50,6 +50,10 @@ public class JavaProcessingError extends Exception {
 		return "Error in the external Java code.";
 	}
 	
+	public void setJavaError(String err) {
+		this.error = err;
+	}
+	
 	public String getJavaError() {
 		return error;
 	}

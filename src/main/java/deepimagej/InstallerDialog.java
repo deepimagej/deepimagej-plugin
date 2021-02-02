@@ -49,6 +49,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -56,14 +57,20 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextField;
 
 import deepimagej.components.HTMLPane;
+import deepimagej.components.TitleHTMLPane;
 import deepimagej.installer.BioimageZooRepository;
 import deepimagej.installer.Model;
 import deepimagej.tools.FileTools;
@@ -83,12 +90,23 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 										+ "<br>data and the conditions of the training process. I understand that a pre-trained model may require a re-training." 
 										+ "<br>If you have any doubt, please check the documentation of the model. To get user guidelines press the Help button.", false);
 	private JComboBox<String> cmb = new JComboBox<String>();
+	
+	// Buttons to support dual behaviour of the plugin
+	private JTextField txtURL = new JTextField("http://", 20);
+	private JTextField txtZIP = new JTextField("", 20);
+	private JRadioButton rbURL = new JRadioButton("From URL web link", true);
+	private JRadioButton rbZIP = new JRadioButton("From ZIP file", false);
+	private JTabbedPane tab = new JTabbedPane();
+	
 	private DownloadProgress progressScreen;
 	private String fileName = "";
 	private String modelsDir = IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
 	private long webFileSize = 1;
 	private Model model = null;
 	boolean stopped = true;
+	
+	// URL used to download the model
+	private String downloadURL;
 	
 	public InstallerDialog(BioimageZooRepository zoo) {
 		super(new JFrame(), "DeepImageJ Model Installer");
@@ -99,8 +117,8 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		cmb.setFont(new Font(font.getFamily(), Font.BOLD, font.getSize()+2));
 		cmb.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 5));
 		cmb.addItem("<html>&laquo Select a compatible model &raquo</html>");
-		for(String name : zoo.models2.keySet()) {
-			cmb.addItem(zoo.models2.get(name).getFacename());
+		for(String name : zoo.models.keySet()) {
+			cmb.addItem(zoo.models.get(name).getFacename());
 		}
 
 		pack();
@@ -124,10 +142,54 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		bn.add(cancel);
 		bn.add(install);
 
+		JPanel repo = new JPanel(new BorderLayout());
+		repo.add(pn1, BorderLayout.NORTH);
+		repo.add(pn2, BorderLayout.CENTER);
+
+		JPanel botton = new JPanel(new BorderLayout());
+		botton.add(chk, BorderLayout.NORTH);
+		botton.add(bn, BorderLayout.CENTER);
+
+		ButtonGroup group = new ButtonGroup();
+		group.add(rbURL);
+		group.add(rbZIP);
+
+		JPanel pn31 = new JPanel(new BorderLayout());
+		pn31.setBorder(BorderFactory.createEtchedBorder());
+		pn31.add(rbURL, BorderLayout.NORTH);
+		pn31.add(txtURL, BorderLayout.CENTER);
+		
+		JPanel pn31a = new JPanel(new BorderLayout());
+		pn31a.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+		pn31a.add(pn31, BorderLayout.CENTER);
+		
+		JPanel pn32 = new JPanel(new BorderLayout());
+		pn32.setBorder(BorderFactory.createEtchedBorder());
+		pn32.add(rbZIP, BorderLayout.NORTH);
+		pn32.add(txtZIP, BorderLayout.CENTER);
+
+		JPanel pn32a = new JPanel(new BorderLayout());
+		pn32a.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+		pn32a.add(pn32, BorderLayout.CENTER);
+
+		JPanel pn3 = new JPanel(new BorderLayout());
+		pn3.add(pn31a, BorderLayout.NORTH);
+		pn3.add(pn32a, BorderLayout.CENTER);
+
+		JPanel pn3f = new JPanel(new BorderLayout());
+		pn3f.add(pn3, BorderLayout.NORTH);
+		pn3f.add(new JLabel(), BorderLayout.CENTER);
+
+		
+		tab.addTab("Bioimage Zoo", repo);
+		tab.addTab("Private Model", pn3f);
+		
 		JPanel main = new JPanel(new BorderLayout());
-		main.add(pn1, BorderLayout.NORTH);
-		main.add(pn2, BorderLayout.CENTER);
-		main.add(bn, BorderLayout.SOUTH);
+		main.add(new TitleHTMLPane().getPane(), BorderLayout.NORTH);
+		main.add(tab, BorderLayout.CENTER);
+		main.add(botton, BorderLayout.SOUTH);
+
+
 		add(main);
 
 		chk.addItemListener(this);
@@ -143,12 +205,15 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	}
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if (e.getSource() == cancel)
+		if (e.getSource() == cancel) {
 			dispose();
-		else if (e.getSource() == install) {
-			installModel();
-		}
-		else if (e.getSource() == help) {
+		} else if (e.getSource() == install && tab.getSelectedIndex() == 0) {
+			// If the tab selected is the first one, install from Bioimage.io
+			installModelBioimageio();
+		} else if (e.getSource() == install && tab.getSelectedIndex() == 1 && rbURL.isSelected()) {
+			// If the tab selected is the seond one, install from URL
+			installModelUrl();
+		} else if (e.getSource() == help) {
 			openWebBrowser("https://deepimagej.github.io/deepimagej/");
 		}
 	}
@@ -160,7 +225,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			chk.setSelected(false);
 			String name = (String)cmb.getSelectedItem();
 			if (name != null && !name.equals("")) {
-				Model model = zoo.models2.get(name);
+				Model model = zoo.models.get(name);
 				if (model != null) {
 					String s = "";
 					if (model.deepImageJ)
@@ -214,7 +279,42 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		}
 	}
 	
-	private void installModel() {
+	private void installModelUrl() {
+		String name = (String) txtURL.getText();
+		if (name == null || name.equals("")) {
+			IJ.log("Please introduce a valid URL.");
+			return;
+		}
+		try {
+			// Check if the String introduced can be converted into an URL. If
+			// itt can, set the downloadURL to that string
+			URL url = new URL(name);
+			downloadURL = name;
+		} catch (MalformedURLException e) {
+			IJ.log("String introduced does not correspond to a valid URL.");
+			return;
+		}
+		
+		// First check that "Fiji.App\models" exist or create it if not
+		modelsDir = IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
+		// TODO modelsDir = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models";
+
+		// Add timestamp to the model name. 
+		// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
+        Calendar cal = Calendar.getInstance();
+		SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
+		String dateString = sdf.format(cal.getTime());
+		fileName = "deepImageJModel" + "_" + dateString + ".zip";
+		
+		Thread thread = new Thread(this);
+		thread.setPriority(Thread.MIN_PRIORITY);
+		progressScreen = new DownloadProgress();
+		progressScreen.setThread(thread);
+		stopped = false;
+		thread.start();
+	}
+	
+	private void installModelBioimageio() {
 		String name = (String)cmb.getSelectedItem();
 		if (name != null && !name.equals("")) {
 			// First check that "Fiji.App\models" exist or create it if not
@@ -222,9 +322,9 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			// TODO modelsDir = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models";
 			if (!(new File(modelsDir).exists()))
 				new File(modelsDir).mkdir();
-			model = zoo.models2.get(name);
+			model = zoo.models.get(name);
 			if (model != null) {
-
+				downloadURL = model.downloadUrl;
 				int nameStart = model.downloadUrl.lastIndexOf("/") + 1;
 				fileName = model.downloadUrl.substring(nameStart);
 				// Add timestamp to the model name. 
@@ -250,7 +350,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		FileOutputStream fos = null;
 		ReadableByteChannel rbc = null;
 		try {
-			URL website = new URL(model.downloadUrl);
+			URL website = new URL(downloadURL);
 			webFileSize = getFileSize(website);
 			rbc = Channels.newChannel(website.openStream());
 			// Create the new model file as a zip

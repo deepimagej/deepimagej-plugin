@@ -229,6 +229,13 @@ public class DeepImageJ {
 			info.append("No params\n");
 			return;
 		}
+		// If there is any external dependency, add it here
+		if (params.attachmentsNotIncluded.size() != 0) {
+			info.append("----------- ATTENTION -----------\n");
+			info.append("Please make sure that the following plugins/jars are installed:\n");
+			for (String str : params.attachmentsNotIncluded)
+				info.append(" - " + str + "\n");
+		}
 		info.append("----------- METADATA -----------\n");
 		info.append("Authors" + "\n");
 		for (String auth : params.author)

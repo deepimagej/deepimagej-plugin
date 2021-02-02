@@ -88,7 +88,6 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 	private JTextField	txt			= new JTextField(IJ.getDirectory("imagej") + File.separator + "models" + File.separator);
 	private JButton		bnBrowse	= new JButton("Browse");
 	private JButton		bnSave	= new JButton("Save Bundled Model");
-	//private JCheckBox	bnSaveBiozoo	= new JCheckBox("Save model into the Bioimage Zoo format");
 	private HTMLPane 	pane;
 	
 	public TfSaveStamp(BuildDialog parent) {
@@ -110,7 +109,6 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 					txt.setText(dp.params.path2Model);
 		txt.setFont(new Font("Arial", Font.BOLD, 14));
 		txt.setForeground(Color.red);
-		//txt.setPreferredSize(new Dimension(Constants.width, 25));
 		txt.setText(IJ.getDirectory("imagej") + File.separator + "models" + File.separator);
 		JPanel load = new JPanel(new BorderLayout());
 		load.setBorder(BorderFactory.createEtchedBorder());
@@ -328,9 +326,45 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			ex.printStackTrace();
 			pane.append("p", "model.yaml: not saved");
 		}
+		
+		// Finally save Java dependencies
+		boolean saveDeps = saveJavaDependencies(params);
+		if (saveDeps && params.attachments.size() > 0) {
+			pane.append("p", "Java .jar dependencies: saved");
+		} else if (!saveDeps && params.attachments.size() > 0) {
+			pane.append("p", "Java .jar dependencies: not saved");
+		}
+		
 		pane.append("p", "Done!!");
 
-		//parent.setEnabledBackNext(ok);
+	}
+	
+	/**
+	 * Save jar dependency files indicated by the developer and saved at params.attachments
+	 * @param params
+	 * @return true if saving was successful or false otherwise
+	 */
+	public static boolean saveJavaDependencies(Parameters params) {
+		boolean saved = true;
+		ArrayList<String> savedFiles = new ArrayList<String>();
+		String errMsg = "DeepImageJ unable to save:\n";
+		for (String dep : params.attachments) {
+			if (savedFiles.contains(new File(dep).getName())) 
+				continue;
+			File destFile = new File(params.saveDir + File.separator + new File(dep).getName());
+			try {
+				FileTools.copyFile(new File(dep), destFile);
+				savedFiles.add(new File(dep).getName());
+			} catch (IOException e) {
+				saved = false;
+				errMsg += " - " + new File(dep).getName();
+				e.printStackTrace();
+			}
+		}
+		if (!saved) {
+			IJ.error(errMsg);
+		}
+		return saved;
 	}
 	
 	/*
