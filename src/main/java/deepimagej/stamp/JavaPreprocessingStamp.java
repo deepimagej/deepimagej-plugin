@@ -282,20 +282,20 @@ public class JavaPreprocessingStamp extends AbstractStamp implements ActionListe
 
 		Panel loadPath = new Panel();
 		loadPath.setLayout(new FlowLayout());
-		loadPath.add(depPath, BorderLayout.CENTER);
+		loadPath.add(depPath);
 		depPath.setText("Drop pre-processing dependecy .jar file");
 		depPath.setFont(new Font("Arial", Font.BOLD, 11));
 		depPath.setForeground(Color.GRAY);
+		depPath.setPreferredSize(new Dimension(300, 50));
 		
 		// Panel for buttons
 		JPanel buttons = new JPanel();
 		buttons.setLayout(new GridLayout());
 		buttons.add(addBtn);
 		buttons.add(rmvBtn);
-
-		dlg.addPanel(loadPath, GridBagConstraints.CENTER, new Insets(5, 0, 5, 0));
 		loadPath.add(buttons, BorderLayout.EAST);
 		loadPath.setVisible(true);
+		dlg.addPanel(loadPath, GridBagConstraints.CENTER, new Insets(5, 0, 0, 0));
 		Dimension panelSize = loadPath.getPreferredSize();
 		
 		BorderPanel panel = new BorderPanel();
@@ -305,12 +305,11 @@ public class JavaPreprocessingStamp extends AbstractStamp implements ActionListe
 		dependenciesList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		dependenciesList.setLayoutOrientation(JList.VERTICAL);
 		dependenciesList.setVisibleRowCount(2);
-		JScrollPane listScroller = new JScrollPane(dependenciesList);
+		JScrollPane listScroller = new JScrollPane(dependenciesList);		
 		panel.add(listScroller);
 		dlg.addPanel(panel, GridBagConstraints.CENTER, new Insets(5, 0, 0, 0));
 
 		loadPath.setPreferredSize(new Dimension((int) Math.round(panelSize.getWidth() * 1), (int) Math.round(panelSize.getHeight() * 1)));
-		depPath.setPreferredSize(new Dimension((int) Math.round(panelSize.getWidth() * 0.6), (int) Math.round(panelSize.getHeight() * 0.8)));
 		listScroller.setPreferredSize(new Dimension((int) Math.round(panelSize.getWidth() * 1), (int) Math.round(panelSize.getHeight() * 2)));
 
 		dlg.showDialog();

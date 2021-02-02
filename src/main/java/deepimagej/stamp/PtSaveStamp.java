@@ -261,7 +261,7 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + title + ".tif");
 				pane.append("p", title + ".tif" + ": saved");
 				if (params.biozoo) {
-					TfSaveStamp.saveNpyFile(params.testImageBackup, "XYCZN", params.saveDir + File.separator + title + ".npy");
+					TfSaveStamp.saveNpyFile(params.testImageBackup, "XYCZB", params.saveDir + File.separator + title + ".npy");
 					pane.append("p", title + ".npy" + ": saved");
 				}
 				params.testImageBackup.setTitle("DUP_" + params.testImageBackup.getTitle());

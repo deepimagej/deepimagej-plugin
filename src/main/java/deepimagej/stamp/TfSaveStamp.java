@@ -289,7 +289,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 					IJ.saveAsTiff(im, params.saveDir + File.separator + nameNoExtension + ".tif");
 					pane.append("p", nameNoExtension + ".tif" + ": saved");
 					if (params.biozoo) {
-						saveNpyFile(im, "XYCZN", params.saveDir + File.separator + nameNoExtension + ".npy");
+						saveNpyFile(im, "XYCZB", params.saveDir + File.separator + nameNoExtension + ".npy");
 						pane.append("p", nameNoExtension + ".npy" + ": saved");
 					}
 				} else if (output.get("type").contains("ResultsTable")){
@@ -377,21 +377,47 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		return title.substring(0, lastDot);
 	}
 	
-	public static void saveNpyFile(ImagePlus im, String form, String name) {
+	public static void saveNpyFile(ImagePlus im, String form, String name) throws Exception {
 		Path path = Paths.get(name);
 		long[] imShapeLong = ImagePlus2Tensor.getTensorShape(im, form);
 		int[] imShape = new int[imShapeLong.length];
-		for (int i = 0; i < imShape.length; i ++)
+		int numPixels = 1;
+		for (int i = 0; i < imShape.length; i ++) {
 			imShape[i] = (int) imShapeLong[i];
+			numPixels *= (int) imShapeLong[i];
+		}
+		// If the number of pixels is too big let the user know that they might prefer not saving
+		// the results in npy format
+		if (numPixels > 50000) {
+			String msg = "The image " + im.getTitle() + " is too big to save it in .npy format.\n"
+						+ "Saving it might take too long. Do you want to continue?";
+			boolean accept = IJ.showMessageWithCancel("Cancel .npy file save", msg);
+			if (!accept)
+				throw new Exception();
+		}
 		float[] imArray = ImagePlus2Tensor.implus2IntArray(im, form);
 		NpyFile.write(path, imArray, imShape);
 	}
 	
-	public static void saveNpyFile(ResultsTable table, String name, String form) {
+	public static void saveNpyFile(ResultsTable table, String name, String form) throws Exception {
 		Path path = Paths.get(name);
 		int[] shape = Table2Tensor.getTableShape(form, table);
 		// Convert the array into long
 		long[] shapeLong = new long[shape.length];
+		int numPixels = 1;
+		for (int i = 0; i < shape.length; i ++) {
+			shapeLong[i] = (int) shape[i];
+			numPixels *= shape[i];
+		}
+		// If the number of pixels is too big let the user know that they might prefer not saving
+		// the results in npy format
+		if (numPixels > 50000) {
+			String msg = "The table " + table.getTitle() + " is too big to save it in .npy format.\n"
+						+ "Saving it might take too long. Do you want to continue?";
+			boolean accept = IJ.showMessageWithCancel("Cancel .npy file save", msg);
+			if (!accept)
+				throw new Exception();
+		}
 		// Get the array
 		float[] flatRt = Table2Tensor.tableToFlatArray(table, form, shapeLong);
 		NpyFile.write(path, flatRt, shape);

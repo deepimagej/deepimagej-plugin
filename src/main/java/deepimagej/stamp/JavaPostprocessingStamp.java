@@ -279,6 +279,7 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 		depPath.setText("Drop pre-processing dependecy .jar file");
 		depPath.setFont(new Font("Arial", Font.BOLD, 11));
 		depPath.setForeground(Color.GRAY);
+		depPath.setPreferredSize(new Dimension(300, 50));
 		
 		// Panel for buttons
 		JPanel buttons = new JPanel();
@@ -304,7 +305,6 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 
 
 		loadPath.setPreferredSize(new Dimension((int) Math.round(panelSize.getWidth() * 1), (int) Math.round(panelSize.getHeight() * 1)));
-		depPath.setPreferredSize(new Dimension((int) Math.round(panelSize.getWidth() * 0.6), (int) Math.round(panelSize.getHeight() * 0.8)));
 		listScroller.setPreferredSize(new Dimension((int) Math.round(panelSize.getWidth() * 1), (int) Math.round(panelSize.getHeight() * 2)));
 
 		dlg.showDialog();

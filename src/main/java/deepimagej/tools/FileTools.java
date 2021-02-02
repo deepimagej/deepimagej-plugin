@@ -46,6 +46,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -97,17 +101,9 @@ public class FileTools {
 		if (!destFile.exists()) {
 			destFile.createNewFile();
 		}
-		FileChannel source = null;
-		FileChannel destination = null;
-		FileInputStream fileStrm = new FileInputStream(sourceFile);
-		FileInputStream fileOutStrm = new FileInputStream(destFile);
-		source = fileStrm.getChannel();
-		destination = fileOutStrm.getChannel();
-		if (destination != null && source != null) {
-			destination.transferFrom(source, 0, source.size());
-		}
-		fileStrm.close();
-		fileOutStrm.close();
+	    Path originalPath = sourceFile.toPath();
+		Path copied = destFile.toPath();
+	    Files.copy(originalPath, copied, StandardCopyOption.REPLACE_EXISTING);
 
 	}
 	

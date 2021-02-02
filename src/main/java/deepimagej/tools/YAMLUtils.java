@@ -94,6 +94,7 @@ public class YAMLUtils {
 					inputTensorMap.put("shape", shape);
 				}
 				inputTensorMap.put("preprocessing", null);
+				modelInputMapsList.add(inputTensorMap);
 				
 				// Now write the test data info
 				Map<String, Object> inputTestInfo = new LinkedHashMap<>();

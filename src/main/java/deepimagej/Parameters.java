@@ -298,18 +298,20 @@ public class Parameters {
 			cite.add(c);
 		}
 		
-		documentation = (String) obj.get("documentation");
-		license = (String) obj.get("license");
-		framework = (String) obj.get("framework");
-		git_repo = (String) obj.get("git_repo");
+		documentation = (String) "" + obj.get("documentation");
+		license = (String) "" + obj.get("license");
+		framework = (String) "" + obj.get("framework");
+		git_repo = (String) "" + obj.get("git_repo");
 		ArrayList<String> attachmentsAux = (ArrayList<String>) obj.get("attachments");
 		attachments = new ArrayList<String>();
 		attachmentsNotIncluded = new ArrayList<String>();
-		for (String str : attachmentsAux) {
-			if (new File(path2Model, str).isFile())
-				attachments.add(new File(path2Model, str).getAbsolutePath());
-			else
-				attachmentsNotIncluded.add(str);
+		if (attachmentsAux != null) {
+			for (String str : attachmentsAux) {
+				if (new File(path2Model, str).isFile())
+					attachments.add(new File(path2Model, str).getAbsolutePath());
+				else
+					attachmentsNotIncluded.add(str);
+			}
 		}
 		
 		LinkedHashMap<String, LinkedHashMap<String, Object>> weights = (LinkedHashMap<String, LinkedHashMap<String, Object>>) obj.get("weights");
@@ -326,14 +328,14 @@ public class Parameters {
 		
 		if (tf && pt) {
 			framework = "Tensorflow/Pytorch";
-			ptSha256 = (String) weights.get("pytorch_script").get("sha256");
-			tfSha256 = (String) weights.get("tensorflow_saved_model_bundle").get("sha256");
+			ptSha256 = (String) "" + weights.get("pytorch_script").get("sha256");
+			tfSha256 = (String) "" + weights.get("tensorflow_saved_model_bundle").get("sha256");
 		} else if (tf) {
 			framework = "Tensorflow";
-			tfSha256 = (String) weights.get("tensorflow_saved_model_bundle").get("sha256");
+			tfSha256 = (String) "" + weights.get("tensorflow_saved_model_bundle").get("sha256");
 		} else if (pt) {
 			framework = "Pytorch";
-			ptSha256 = (String) weights.get("pytorch_script").get("sha256");
+			ptSha256 = (String) "" + weights.get("pytorch_script").get("sha256");
 		} else if (!tf && !pt) {
 			completeConfig = false;
 			return;
@@ -347,14 +349,16 @@ public class Parameters {
 		// Model keys
 		if (deepimagej.keySet().contains("model_keys")) {
 			Map<String, Object> model_keys = (Map<String, Object>) deepimagej.get("model_keys");
-			tag = (String) model_keys.get("tensorflow_model_tag");
-			graph = (String) model_keys.get("tensorflow_siganture_def");
+			tag = (String) "" + model_keys.get("tensorflow_model_tag");
+			graph = (String) "" + model_keys.get("tensorflow_siganture_def");
 		}		
 		
 		
 		List<Map<String, Object>> inputs = (List<Map<String, Object>>) obj.get("inputs");
 		// Check that the previous version field is complete
-		if (inputs == null) {
+		if (inputs == null || inputs.size() == 0) {
+			fieldsMissing = new ArrayList<String>();
+			fieldsMissing.add("Inputs are not defined correctly");
 			completeConfig = false;
 			return;
 		}
@@ -366,9 +370,9 @@ public class Parameters {
 		int tensorCounter = 0;
 		try {
 			for (Map<String, Object> inp : inputs) {
-				DijTensor inpTensor = new DijTensor((String) inp.get("name"));
-				inpTensor.form = ((String) inp.get("axes")).toUpperCase();
-				inpTensor.dataType = (String) inp.get("data_type");
+				DijTensor inpTensor = new DijTensor((String) "" + inp.get("name"));
+				inpTensor.form = ((String) "" + inp.get("axes")).toUpperCase();
+				inpTensor.dataType = (String) "" + inp.get("data_type");
 				//TODO do we assume inputs in the yaml are always images?
 				inpTensor.tensorType = "image";
 				List<Object> auxDataRange = (ArrayList<Object>) inp.get("data_range");
@@ -412,12 +416,12 @@ public class Parameters {
 				
 				// Now find the test information of this tensor
 				LinkedHashMap<String, Object> info = input_information.get(tensorCounter ++);
-				inpTensor.exampleInput = (String) info.get("name");
-				inpTensor.inputTestSize =  (String) info.get("size");
+				inpTensor.exampleInput = (String) "" + info.get("name");
+				inpTensor.inputTestSize =  (String) "" + info.get("size");
 				Map<String, String>  pixel_size =  (Map<String, String>) info.get("pixel_size");
-				inpTensor.inputPixelSizeX = (String) pixel_size.get("x");
-				inpTensor.inputPixelSizeY = (String) pixel_size.get("y");
-				inpTensor.inputPixelSizeZ = (String) pixel_size.get("z");
+				inpTensor.inputPixelSizeX = (String) "" + pixel_size.get("x");
+				inpTensor.inputPixelSizeY = (String) "" + pixel_size.get("y");
+				inpTensor.inputPixelSizeZ = (String) "" + pixel_size.get("z");
 				
 				inputList.add(inpTensor);
 			}
@@ -429,7 +433,9 @@ public class Parameters {
 		}
 
 		List<Map<String, Object>> outputs = (List<Map<String, Object>>) obj.get("outputs");
-		if (outputs == null) {
+		if (outputs == null || outputs.size() == 0) {
+			fieldsMissing = new ArrayList<String>();
+			fieldsMissing.add("outputs are not defined correctly");
 			completeConfig = false;
 			return;
 		}
@@ -445,7 +451,7 @@ public class Parameters {
 					outTensor.tensorType = "list";
 				List auxDataRange = (List) out.get("data_range");
 				// TODO outTensor.dataRange = castListToDoubleArray(auxDataRange);
-				outTensor.dataType = (String) out.get("data_type");
+				outTensor.dataType = (String) "" + out.get("data_type");
 				if (outTensor.tensorType.contains("image") && !pyramidalNetwork) {
 					List auxHalo = (List) out.get("halo");
 					outTensor.halo = castListToIntArray(auxHalo);
@@ -497,19 +503,19 @@ public class Parameters {
 		savedOutputs = new ArrayList<HashMap<String, String>>();
 		for (LinkedHashMap<String, Object> out : output_information) {
 			HashMap<String, String> info = new LinkedHashMap<String, String>();
-			String outName =  (String) out.get("name");
+			String outName =  (String) "" + out.get("name");
 			info.put("name", outName);
-			String size =  (String) out.get("size");
+			String size =  (String) "" + out.get("size");
 			info.put("size", size);
-			String type = (String) out.get("type");
+			String type = (String) "" + out.get("type");
 			info.put("type", type);
 
 			savedOutputs.add(info);
 		}
 		
 		// Info about runtime and memory
-		memoryPeak = (String) test_information.get("memory_peak");
-		runtime = (String) test_information.get("runtime");
+		memoryPeak = (String) test_information.get("memory_peak") + "";
+		runtime = (String) "" + test_information.get("runtime");
 
 		
 		// Get all the preprocessings available in the Yaml
@@ -531,10 +537,12 @@ public class Parameters {
 						commands[processingCount] = processing.get("kwargs");
 					} else if (spec != null && !processing.containsKey("kwargs") && spec.contains(".jar")) {
 						int extensionPosition = spec.indexOf(".jar");
-						commands[processingCount] = spec.substring(0, extensionPosition + 4);
+						if (extensionPosition != -1)
+							commands[processingCount] = spec.substring(0, extensionPosition + 4);
 					} else if (spec != null && !processing.containsKey("kwargs") && spec.contains(".class")) {
 						int extensionPosition = spec.indexOf(".class");
-						commands[processingCount] = spec.substring(0, extensionPosition + 6);
+						if (extensionPosition != -1)
+							commands[processingCount] = spec.substring(0, extensionPosition + 6);
 					} else if (spec == null) {
 						commands = null;
 					}
@@ -554,11 +562,12 @@ public class Parameters {
 						commands[processingCount] = processing.get("kwargs");
 					} else if (spec != null && !processing.containsKey("kwargs") && spec.contains(".jar")) {
 						int extensionPosition = spec.indexOf(".jar");
-						if (extensionPosition == -1)
-						commands[processingCount] = spec.substring(0, extensionPosition + 4);
+						if (extensionPosition != -1)
+							commands[processingCount] = spec.substring(0, extensionPosition + 4);
 					} else if (spec != null && !processing.containsKey("kwargs") && spec.contains(".class")) {
 						int extensionPosition = spec.indexOf(".class");
-						commands[processingCount] = spec.substring(0, extensionPosition + 6);
+						if (extensionPosition != -1)
+							commands[processingCount] = spec.substring(0, extensionPosition + 6);
 					} else if (spec == null) {
 						commands = null;
 					}
