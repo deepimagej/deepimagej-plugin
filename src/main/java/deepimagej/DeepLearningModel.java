@@ -537,10 +537,10 @@ public class DeepLearningModel {
 	 */
 	public static String getPytorchVersionFromJar(String jar) {
 		// Name of the TF jni without the version
-		String folderName = new File(jar).getParent();
-		String jarName = folderName + File.pathSeparator + "pytorch-native-auto-";
+		jar = jar.toLowerCase();
+		String flag = "pytorch-native-auto-";
 		String jarExt = ".jar";
-		String tfVersion = jar.substring(jarName.length() + 1, jar.indexOf(jarExt));
+		String tfVersion = jar.substring(jar.lastIndexOf(flag) + flag.length(), jar.indexOf(jarExt));
 		return tfVersion;
 	}
 	
@@ -564,7 +564,9 @@ public class DeepLearningModel {
 	public static String getTFVersionIJ() {
 		String tfJni = "";
 		try {
-			URL resource = TensorFlow.class.getResource("TensorFlow.class");
+			URL resource = ClassLoader.getSystemClassLoader().getResource("org/tensorflow/native");
+			if (resource == null)
+				resource = IJ.getClassLoader().getResource("org/tensorflow/native");
 			JarURLConnection connection = null;
 			connection = (JarURLConnection) resource.openConnection();
 			tfJni = connection.getJarFileURL().getFile();
@@ -576,7 +578,7 @@ public class DeepLearningModel {
 		String tfVersion = getTfVersionFromJar(tfJni);
 		
 		if (tfVersion.contains("gpu")) {
-			tfVersion = tfVersion.substring(tfVersion.toLowerCase().indexOf("gpu_") + 4) + " GPU";
+			tfVersion = tfVersion.substring(tfVersion.toLowerCase().indexOf("gpu_") + 5) + " GPU";
 		}
 		return tfVersion;	
 	}
@@ -655,10 +657,10 @@ public class DeepLearningModel {
 	 */
 	public static String getTfVersionFromJar(String jar) {
 		// Name of the TF jni without the version
-		String folderName = new File(jar).getParent();
-		String jarName = folderName + File.pathSeparator + "libtensorflow_jni-";
+		jar = jar.toLowerCase();
+		String flag = "libtensorflow_jni";
 		String jarExt = ".jar";
-		String tfVersion = jar.substring(jarName.length(), jar.indexOf(jarExt));
+		String tfVersion = jar.substring(jar.lastIndexOf(flag) + flag.length() + 1, jar.indexOf(jarExt));
 		return tfVersion;
 	}
 

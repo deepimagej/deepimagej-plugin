@@ -137,7 +137,9 @@ public class LoadJar {
 		JavaProcessingError ex = new JavaProcessingError();
 		try {
 			URL url = new File(jar).toURI().toURL();
-	
+			URLClassLoader finalClassLoader = new URLClassLoader(new URL[] {url}, urlClassLoader);
+			return finalClassLoader;
+			/*
 			Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
 			method.setAccessible(true);
 			method.invoke(urlClassLoader, url);
@@ -154,6 +156,7 @@ public class LoadJar {
 			ex.setJavaError("Cannot load Java class dinamically from file " + new File(jar).getName() + ".\n"
 					+ "Check that the file exists and that ImageJ/Fiji has the permissions to open the it.");
 			e.printStackTrace();
+			*/
 		} catch (IOException e) {
 			ex.setJavaError("Cannot load Java class dinamically from file " + new File(jar).getName() + ".\n"
 					+ "Check that the file exists and that ImageJ/Fiji has the permissions to open the it.");
@@ -234,6 +237,7 @@ public class LoadJar {
         JavaProcessingError ex = new JavaProcessingError();
         String className = "";
 		try {
+			URL[] a = urlClassLoader.getURLs();
 	        jarFile = new ZipFile(jar);
             Enumeration entries = jarFile.entries();
             while (entries.hasMoreElements() && pf == null) {

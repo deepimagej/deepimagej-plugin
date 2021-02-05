@@ -286,6 +286,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep); 
 		String[] dims = DijTensor.getWorkingDims(tensorForm);
 
+		int[] haloSize = ArrayOperations.findTotalPadding(dp.params.inputList.get(0), dp.params.outputList, dp.params.pyramidalNetwork);
 		
 		patch = ArrayOperations.getPatchSize(dims, dp.params.inputList.get(0).form, texts[1].getText(), texts[1].isEditable());
 		if (patch == null) {
@@ -331,6 +332,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				IJ.error(errMsg);
 				run("");
 				return;
+			} else if(haloSize[i] * 2 >= patch[i] && patch[i] != -1) {
+				String errMsg = "Error: Tiles cannot be smaller or equal than 2 times the halo at any dimension.\n"
+							  + "Please, either choose a bigger tile size or change the halo in the model.yaml.";
 			}
 		}
 		for (DijTensor inp: dp.params.inputList) {

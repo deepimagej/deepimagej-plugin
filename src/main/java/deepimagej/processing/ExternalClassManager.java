@@ -45,6 +45,7 @@ import java.util.*;
 
 import deepimagej.Parameters;
 import deepimagej.exceptions.JavaProcessingError;
+import deepimagej.tools.SystemUsage;
 import ij.IJ;
 
 public class ExternalClassManager {
@@ -84,7 +85,21 @@ public class ExternalClassManager {
 		processingDir = jarDir;
 		preprocessing = preProc;
 		// Create a class loader with the wanted dependencies
-		createProcessingClassLoader(params);
+		/*
+		 *  TODO remove if dependencies should be installed by the user 
+     	 *  createProcessingClassLoader(params);
+		 */
+		// In order to run pre- and post-processing, the class has to be loaded on a ClassLoader
+		// that includes the basic dependencies (DeepImageJ.jar, tensorflow.jar, api.jar, etc)
+		// There are two options: creating a new ClassLoader and loading all the required dependencies,
+		// which would be useful if the model was packed with the jar dependencies for running the 
+		// processing. The other option is using the class loader that has all the classes laoded already. In
+		// this option we rely that the user has all the needed dependencies installed correctly
+		// in the jars folder.
+		if (SystemUsage.checkFiji())
+			processingClassLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
+		else 
+			processingClassLoader = (URLClassLoader) IJ.getClassLoader();
 		if (jarDir.contains(".jar") && (preProc == true)) {
 			processingClassLoader = LoadJar.loadSingleJarToExistingURLClassLoader(jarDir, processingClassLoader);
 			preProcessingClass = LoadJar.loadPreProcessingInterface(jarDir, params, processingClassLoader);

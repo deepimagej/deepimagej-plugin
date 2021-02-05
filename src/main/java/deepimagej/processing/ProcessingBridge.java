@@ -64,11 +64,11 @@ public class ProcessingBridge {
 		params.javaPreprocessingClass = new ArrayList<String>();
 		// Assume that the image selected will result in the input image to the model
 		// Assumes 'im' will be the input to the model
-		map.put(params.inputList.get(0).name, im);
 		if (params.firstPreprocessing != null && (params.firstPreprocessing.contains(".txt") || params.firstPreprocessing.contains(".ijm"))) {
 			im = runProcessingMacro(im, params.firstPreprocessing, params.developer);
 			map = manageInputs(map, false, params, im);
 		} else if (params.firstPreprocessing != null && (params.firstPreprocessing.contains(".jar") || params.firstPreprocessing.contains(".class") || new File(params.firstPreprocessing).isDirectory())) {
+			map.put(params.inputList.get(0).name, im);
 			map = runPreprocessingJava(map, params.firstPreprocessing, params.secondPreprocessing, params);
 		}
 		
@@ -77,6 +77,8 @@ public class ProcessingBridge {
 			im = runProcessingMacro(im, params.secondPreprocessing, params.developer);
 			map = manageInputs(map, true,  params, im);
 		} else if (params.secondPreprocessing != null && (params.secondPreprocessing.contains(".jar") || params.secondPreprocessing.contains(".class") || new File(params.secondPreprocessing).isDirectory())) {
+			if (map.keySet().size() == 0)
+				map.put(params.inputList.get(0).name, im);
 			map = runPreprocessingJava(map, params.secondPreprocessing, params.firstPreprocessing, params);
 		} else if (params.secondPreprocessing == null && (params.firstPreprocessing == null || params.firstPreprocessing.contains(".txt") || params.firstPreprocessing.contains(".ijm"))) {
 			map = manageInputs(map, true, params);

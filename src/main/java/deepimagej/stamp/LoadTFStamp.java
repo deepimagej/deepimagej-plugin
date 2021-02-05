@@ -227,7 +227,10 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 		// is not installed, or if there is a CUDA_PATH in the environment variables
 		// but the needed variables are not in the PATH, it will return the missing 
 		// environment variables
-		if (tfVersion.contains("GPU") && !cudaVersion.contains(File.separator) && !cudaVersion.contains("---")) {
+		if (tfVersion.contains("GPU") && cudaVersion.equals("nocuda")) {
+				pnLoad.append("p", "No CUDA distribution found.\n");
+				parent.setGPUTf("CPU");
+		} else if (tfVersion.contains("GPU") && !cudaVersion.contains(File.separator) && !cudaVersion.contains("---")) {
 			pnLoad.append("p", "Currently using CUDA " + cudaVersion);
 			pnLoad.append("p", DeepLearningModel.TensorflowCUDACompatibility(tfVersion, cudaVersion));
 		} else if (tfVersion.contains("GPU") && !cudaVersion.contains(File.separator) && cudaVersion.contains("---")) {
@@ -248,10 +251,8 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			if (outputs.length == 3)
 				pnLoad.append("p", "Could not find environment variable:\n - " + outputs[2] + "\n");
 			pnLoad.append("p", "Please add the missing environment variables to the path.\n");
-		} else if (tfVersion.contains("GPU") && cudaVersion.equals("noCUDA")) {
-			pnLoad.append("p", "No CUDA distribution found.\n");
-			parent.setGPUTf("CPU");
 		}
+		
 		pnLoad.append("h2", "Model info");
 		File file = new File(params.path2Model);
 		if (file.exists())

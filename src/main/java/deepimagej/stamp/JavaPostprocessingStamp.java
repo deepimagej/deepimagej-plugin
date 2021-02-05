@@ -246,6 +246,10 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 			browse(true);
 		} else if (e.getSource() == bnBrowse2) {
 			browse(false);
+		} else if (e.getSource() == addBtn) {
+			addDependency();
+		} else if (e.getSource() == rmvBtn) {
+			removeDependency();
 		}
 	}
 	

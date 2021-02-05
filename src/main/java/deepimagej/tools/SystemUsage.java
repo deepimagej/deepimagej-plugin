@@ -50,6 +50,9 @@ import java.util.Arrays;
 import ij.IJ;
 
 public class SystemUsage {
+	
+	private static String checkFiji = null;
+	private static boolean fiji;
 
 	public static String getMemoryMB() {
 		MemoryMXBean mem = ManagementFactory.getMemoryMXBean();
@@ -365,9 +368,9 @@ public class SystemUsage {
 		else if (os.contains("linux") || os.contains("unix"))
 			return getCUDAEnvVariablesLinux();
 		else if (os.contains("mac"))
-			return "noCuda";
+			return "nocuda";
 		else 
-			return "noCuda";
+			return "nocuda";
 	}
 
 	/*
@@ -567,7 +570,7 @@ public class SystemUsage {
 		// Look for environment variable containing the path to CUDA
 		String cudaPath = System.getenv("CUDA_PATH");
 		if (cudaPath == null || !(new File(cudaPath).exists()))
-			return "noCuda";
+			return "nocuda";
 		String cudaVersion = new File(cudaPath).getName();
 		String vars = System.getenv("path");
 		String[] arrVars = vars.split(";");
@@ -604,14 +607,21 @@ public class SystemUsage {
 	 * Check whether the plugin is running on an IJ1 or Fiji/IJ2 distribution
 	 */
 	public static boolean checkFiji() {
+		if (checkFiji != null) {
+			return fiji;
+		}
 		try {
 			// Try loading the service 'net.imagej.ImageJService'. This service should
 			// always load in IJ2/Fiji but not in IJ1
 			ClassLoader cl = IJ.getClassLoader();
 			Class<?> dijClass = cl.loadClass("net.imagej.ImageJService");
-			return true;
+			fiji = true;
+			checkFiji = "done";
+			return fiji;
 		} catch (Exception ex) {
-			return false;
+			fiji = false;
+			checkFiji = "done";
+			return fiji;
 		}
 	}
 }

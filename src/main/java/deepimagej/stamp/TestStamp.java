@@ -40,6 +40,8 @@ import java.awt.Container;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,7 +69,6 @@ import deepimagej.Parameters;
 import deepimagej.RunnerTf;
 import deepimagej.RunnerProgress;
 import deepimagej.RunnerPt;
-import deepimagej.components.GridPanel;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.DijRunnerPostprocessing;
@@ -78,7 +79,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 
-public class TestStamp extends AbstractStamp implements ActionListener, Runnable {
+public class TestStamp extends AbstractStamp implements ActionListener, MouseListener, Runnable {
 
 	private HTMLPane				pnTest;
 	private JButton					bnTest	= new JButton("Run a test");
@@ -86,7 +87,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 	private JTextField				sizeTxt	= new JTextField("3,256,256");
 	private List<JComboBox<String>>	cmbList	= new ArrayList<JComboBox<String>>();
 	private List<JButton>			btnList	= new ArrayList<JButton>();
-	private JPanel					inputsPn = new JPanel(new GridLayout(3, 2));
+	private JPanel					inputsPn = new JPanel(new GridLayout(3, 1));
 	private String					selectedImage = "";
 	
 	private List<DijTensor>		imageTensors;
@@ -116,19 +117,36 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 				       + "automatically");
 		pane.append("p", "After setting the tile size for the test run, click on <b>Run a test</b>");
 		
-		GridPanel pn1 = new GridPanel(true);
+		JPanel pn1 = new JPanel();
+		pn1.setLayout(new BoxLayout(pn1, BoxLayout.Y_AXIS));
 		JComboBox<String> cmb = new JComboBox<String>();
 		cmbList.add(cmb);
 		JButton btn = retrieveJComboBoxArrow(cmb);
 		btnList.add(btn);
-		inputsPn.add(new JLabel("Image"));
-		inputsPn.add(cmb);
-		inputsPn.add(new JLabel("Axes"));
-		inputsPn.add(axesTxt);
-		inputsPn.add(new JLabel("Tile size"));
-		inputsPn.add(sizeTxt);
-		pn1.place(1, 0, inputsPn);
-		pn1.place(2, 0, 1, 2, bnTest);
+		JPanel firstPn = new JPanel();
+		firstPn.setLayout(new BoxLayout(firstPn, BoxLayout.LINE_AXIS));
+		firstPn.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
+		//JPanel firstPn = new JPanel(new GridLayout(1, 2));
+		firstPn.add(new JLabel("input"));
+		firstPn.add(cmb);
+		//JPanel secondPn = new JPanel(new GridLayout(1, 2));
+		JPanel secondPn = new JPanel();
+		secondPn.setLayout(new BoxLayout(secondPn, BoxLayout.LINE_AXIS));
+		secondPn.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
+		secondPn.add(new JLabel("Axes"));
+		secondPn.add(axesTxt);
+		//JPanel thirdPn = new JPanel(new GridLayout(1, 2));
+		JPanel thirdPn = new JPanel();
+		thirdPn.setLayout(new BoxLayout(thirdPn, BoxLayout.LINE_AXIS));
+		thirdPn.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
+		thirdPn.add(new JLabel("Input tile size"));
+		thirdPn.add(sizeTxt);
+		inputsPn.add(firstPn);
+		inputsPn.add(secondPn);
+		inputsPn.add(thirdPn);
+		pn1.add(inputsPn, BorderLayout.CENTER);
+		pn1.add(bnTest, BorderLayout.SOUTH);
+		pn1.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 		
 		JPanel pnt = new JPanel();
 		pnt.setLayout(new BoxLayout(pnt, BoxLayout.PAGE_AXIS));
@@ -137,7 +155,6 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 
 		JPanel pn = new JPanel(new BorderLayout());
 		pn.add(pnt, BorderLayout.NORTH);
-		//pn.add(pnTest, BorderLayout.CENTER);
 		pn.add(pnTestScroller, BorderLayout.CENTER);
 		
 		pnTest.setEnabled(true);
@@ -152,8 +169,8 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 		Parameters params = parent.getDeepPlugin().params;
 		inputsPn.removeAll();
 		imageTensors = DijTensor.getImageTensors(params.inputList);
-		//inputsPn.setLayout(new GridLayout(2, imageTensors.size()));
-		inputsPn.setLayout(new GridLayout(3, 2));
+		//inputsPn.setLayout(new GridLayout(3, 1));
+		inputsPn.setLayout(new BoxLayout(inputsPn, BoxLayout.PAGE_AXIS));
 		cmbList = new ArrayList<JComboBox<String>>();
 		btnList = new ArrayList<JButton>();
 		JComboBox<String> cmb = new JComboBox<String>();
@@ -173,17 +190,37 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 				cmb.addItem("No image");
 				cmbList.add(cmb);
 			}
-			inputsPn.add(new JLabel(tensor.name));
-			inputsPn.add(cmb);
-			inputsPn.add(new JLabel("Axes"));
-			inputsPn.add(axesTxt);
+			
+			JPanel firstPn = new JPanel();
+			firstPn.setLayout(new BoxLayout(firstPn, BoxLayout.LINE_AXIS));
+			firstPn.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 10));
+			JLabel lab1 = new JLabel(tensor.name);
+			firstPn.add(lab1);
+			firstPn.add(cmb);
+			lab1.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
+			JPanel secondPn = new JPanel();
+			secondPn.setLayout(new BoxLayout(secondPn, BoxLayout.LINE_AXIS));
+			secondPn.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 10));
+			JLabel lab2 = new JLabel("Axes");
+			secondPn.add(lab2);
+			secondPn.add(axesTxt);
+			lab2.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
 			setAxes(c);
-			inputsPn.add(new JLabel("Input tile size"));
-			inputsPn.add(sizeTxt);
+			JPanel thirdPn = new JPanel();
+			thirdPn.setLayout(new BoxLayout(thirdPn, BoxLayout.LINE_AXIS));
+			thirdPn.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 10));
+			JLabel lab3 = new JLabel("Input tile size");
+			thirdPn.add(lab3);
+			thirdPn.add(sizeTxt);
+			lab3.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
 			setOptimalPatch((String) cmb.getSelectedItem(), c);
+			inputsPn.add(firstPn);
+			inputsPn.add(secondPn);
+			inputsPn.add(thirdPn);
 			
 			btnList.add(retrieveJComboBoxArrow(cmb));
-			btnList.get(c).addActionListener(this);
+			btnList.get(c).addMouseListener(this);
+			cmbList.get(c).addMouseListener(this);
 			cmbList.get(c ++).addActionListener(this);
 		}
 	}
@@ -209,37 +246,11 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 				}	
 			}
 			// If all the images selected are opened in ImageJ, perform a test run
-			
 			if (!testPreparation())
 				return;
 			Thread thread = new Thread(this);
 			thread.setPriority(Thread.MIN_PRIORITY);
 			thread.start();
-		}
-		
-		for (int i = 0; i < btnList.size(); i ++) {
-			if (e.getSource() == btnList.get(i)) {
-				String[] titlesList = WindowManager.getImageTitles();
-
-				cmbList.get(0).removeActionListener(this);
-				cmbList.get(0).removeAllItems();
-				// Update the list of options provided by each of 
-				// the images
-				for (int j = 0; j < cmbList.size(); j ++) {
-					//cmbList.get(j).removeAllItems();
-					if (titlesList.length != 0) {
-						for (String title : titlesList)
-							cmbList.get(j).addItem(title);
-						bnTest.setEnabled(true);
-					} else {
-						cmbList.get(j).addItem("No image");
-						bnTest.setEnabled(false);
-					}	
-				}
-				cmbList.get(0).addActionListener(this);
-				
-				break;
-			}
 		}
 		
 		for (int i = 0; i < cmbList.size(); i ++) {
@@ -573,14 +584,14 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 				//  Check that the input to the model is not automatically calculated by
 				// the plugin. If it is, we cannot make sure anything.
 				if (params.allowPatching || inpTensor.step[ind] == 0)
-					outSize = ((int) (Math.round(((double)tileSize[ind]) * scale[i])) - 2 * offset[i] - 2 * halo[i]);
+					outSize = ((int) (Math.round(((double)tileSize[ind]) * scale[i])) - 2 * offset[i]);
 				if ((params.allowPatching || inpTensor.step[ind] == 0) && outShape[i] != -1 && outSize != outShape[i]) {
 					// Check that with the given parameters, the input size gives the 
 					// output size specified by the model
 					IJ.error("         INCORRECT INPUT TILE SIZE         \n"
 						   + "The output size for this model at dimension '" + outForm[i]+ "'\n"
 				   		   + "is specified to be " + outShape[i] + ". Applying the\n"
-		   		   		   + "scaling, halo and offset specified for dimension '" + outForm[i]+ "'\n"
+		   		   		   + "scaling and offset specified for dimension '" + outForm[i]+ "'\n"
    		   		   		   + "considering an input size of " + tileSize[ind] + " yields an\n"
 	   		   		   	   + "incorrect output size of " + outSize + ". Please, correct these parameters.");
 					return false;
@@ -588,15 +599,107 @@ public class TestStamp extends AbstractStamp implements ActionListener, Runnable
 					// Check that taking into account halo and offset
 					// the output produced is bigger than 0
 					IJ.error("        INCORRECT INPUT TILE SIZE        \n"
-						   + "Applying the scaling, halo and offset for\n"
+						   + "Applying the scaling and offset for\n"
 						   + "output '" + outTensor.name + "' at dimension '" + outForm[i] + "' the\n"
 					   	   + "resulting output size was " + outSize + " which is\n"
 					   	   + "smaller than 0. The output size cannot\n"
 					   	   + "be negative. Please, correct these parameters.");
 					return false;
+				} else if (2 * halo[i] > outSize) {
+					// The size of the halo is too big for the chosen tile size
+					IJ.error("        INCORRECT INPUT TILE SIZE        \n"
+							   + "Applying the scaling, offset and halo for\n"
+							   + "output '" + outTensor.name + "' at dimension '" + outForm[i] + "' the\n"
+						   	   + "resulting output size was " + (outSize - 2 * halo[i]) + " which is\n"
+						   	   + "smaller than 0. The output size cannot\n"
+						   	   + "be negative. Please, correct these parameters.");
+						return false;
 				}
 			}
 		}
 		return true;
+	}
+
+	@Override
+	/*
+	 * Update the JComboBox list when it is clicked
+	 */
+	public void mouseClicked(MouseEvent e) {
+		// Check for clicks on the arrow
+		for (int i = 0; i < btnList.size(); i ++) {
+			if (e.getSource() == btnList.get(i)) {
+				String[] titlesList = WindowManager.getImageTitles();
+
+				cmbList.get(0).removeActionListener(this);
+				cmbList.get(0).removeAllItems();
+				// Update the list of options provided by each of 
+				// the images
+				for (int j = 0; j < cmbList.size(); j ++) {
+					//cmbList.get(j).removeAllItems();
+					if (titlesList.length != 0) {
+						for (String title : titlesList)
+							cmbList.get(j).addItem(title);
+						bnTest.setEnabled(true);
+					} else {
+						cmbList.get(j).addItem("No image");
+						bnTest.setEnabled(false);
+					}	
+				}
+				cmbList.get(0).addActionListener(this);
+				
+				break;
+			}
+		}
+		
+		// Check for clicks on the text field
+		for (int i = 0; i < cmbList.size(); i ++) {
+			if (e.getSource() == cmbList.get(i)) {
+				String[] titlesList = WindowManager.getImageTitles();
+
+				cmbList.get(0).removeActionListener(this);
+				cmbList.get(0).removeAllItems();
+				// Update the list of options provided by each of 
+				// the images
+				for (int j = 0; j < cmbList.size(); j ++) {
+					//cmbList.get(j).removeAllItems();
+					if (titlesList.length != 0) {
+						for (String title : titlesList)
+							cmbList.get(j).addItem(title);
+						bnTest.setEnabled(true);
+					} else {
+						cmbList.get(j).addItem("No image");
+						bnTest.setEnabled(false);
+					}	
+				}
+				cmbList.get(0).addActionListener(this);
+				
+				break;
+			}
+		}
+		
+	}
+
+	@Override
+	public void mousePressed(MouseEvent e) {
+		// Not necessary for our use case
+		
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent e) {
+		// Not necessary for our use case
+		
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent e) {
+		// Not necessary for our use case
+		
+	}
+
+	@Override
+	public void mouseExited(MouseEvent e) {
+		// Not necessary for our use case
+		
 	}
 }

@@ -175,7 +175,10 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 		// is not installed, or if there is a CUDA_PATH in the environment variables
 		// but the needed variables are not in the PATH, it will return the missing 
 		// environment variables
-		if (!cudaVersion.contains(File.separator) && !cudaVersion.contains("---") && !cudaVersion.toLowerCase().contains("nocuda")) {
+		 if (cudaVersion.toLowerCase().equals("nocuda")) {
+			pnLoad.append("p", "No CUDA distribution found.\n");
+			parent.setGPUTf("CPU");
+		} else if (!cudaVersion.contains(File.separator) && !cudaVersion.contains("---")) {
 			pnLoad.append("p", "Currently using CUDA " + cudaVersion);
 		} else if (!cudaVersion.contains(File.separator) && cudaVersion.contains("---")) {
 			// In linux several CUDA versions are allowed. These versions will be separated by "---"
@@ -193,9 +196,6 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 			if (outputs.length == 3)
 				pnLoad.append("p", "Could not find environment variable:\n - " + outputs[2] + "\n");
 			pnLoad.append("p", "Please add the missing environment variables to the path.\n");
-		} else if (cudaVersion.toLowerCase().equals("nocuda")) {
-			pnLoad.append("p", "No CUDA distribution found.\n");
-			parent.setGPUTf("CPU");
 		}
 		pnLoad.append("p", DeepLearningModel.PytorchCUDACompatibility(params.pytorchVersion, cudaVersion));
 		pnLoad.append("h2", "Model info");
