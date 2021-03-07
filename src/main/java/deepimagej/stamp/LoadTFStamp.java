@@ -39,6 +39,7 @@ package deepimagej.stamp;
 import java.awt.BorderLayout;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Set;
 
 import javax.swing.BoxLayout;
@@ -151,6 +152,8 @@ public class LoadTFStamp extends AbstractStamp implements Runnable {
 			params.totalOutputList = new ArrayList<>();
 			String[] inputs = DeepLearningModel.returnTfInputs(sig);
 			String[] outputs = DeepLearningModel.returnTfOutputs(sig);
+			Arrays.sort(inputs);
+			Arrays.sort(outputs);
 			pnLoad.append("p", "Number of outputs: " + outputs.length);
 			boolean valid = true;
 			try {

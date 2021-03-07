@@ -303,8 +303,15 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	public boolean saveInputData(Parameters params) {
 		// If the methods saving the info were successful, wasSaved=true
 		boolean wasSaved = false;
-		if (params.inputList.get(inputCounter).tensorType.contains("image")) {
-			wasSaved = saveInputDataForImage(params);
+		ArrayList<Integer> imageTensorInds = new ArrayList<Integer>();
+		for (int i = 0; i < params.inputList.size(); i ++) {
+			if (params.inputList.get(i).tensorType.contains("image"))
+				imageTensorInds.add(i);
+		}
+		int trueInd = imageTensorInds.get(inputCounter);
+		DijTensor tensor = params.inputList.get(trueInd);
+		if (imageTensorInds.size() > 0 && tensor.tensorType.contains("image")) {
+			wasSaved = saveInputDataForImage(params, tensor);
 		}
 
 		int lowInd = cmbRangeLow.getSelectedIndex();
@@ -314,9 +321,9 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			return false;
 		}
 		
-		params.inputList.get(inputCounter).dataRange[0] = rangeOptions[lowInd];
-		params.inputList.get(inputCounter).dataRange[1] = rangeOptions[highInd];
-		params.inputList.get(inputCounter).finished = wasSaved;
+		params.inputList.get(trueInd).dataRange[0] = rangeOptions[lowInd];
+		params.inputList.get(trueInd).dataRange[1] = rangeOptions[highInd];
+		params.inputList.get(trueInd).finished = wasSaved;
 		
 		return wasSaved;
 	}
@@ -325,12 +332,12 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 	 * Method to retrieve from the UI the information necessary to build an 
 	 * image from the tensor inputed to the model
 	 */
-	public boolean saveInputDataForImage(Parameters params) {
+	public boolean saveInputDataForImage(Parameters params, DijTensor tensor) {
 		params.fixedInput = true;
-		int[] min_size = new int[params.inputList.get(inputCounter).form.length()];
-		int[] step = new int[params.inputList.get(inputCounter).form.length()];
+		int[] min_size = new int[tensor.form.length()];
+		int[] step = new int[tensor.form.length()];
 		
-		int batchInd = Index.indexOf(params.inputList.get(0).form.split(""), "B");
+		int batchInd = Index.indexOf(tensor.form.split(""), "B");
 		if (batchInd != -1) {
 			min_size[batchInd] = 1; step[batchInd] = 0;
 		}
@@ -341,7 +348,7 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 		boolean auxDetectError = true;
 		try {
 			int auxCount = 0;
-			for (int c = 0; c < params.inputList.get(inputCounter).tensor_shape.length; c ++) {
+			for (int c = 0; c < tensor.tensor_shape.length; c ++) {
 				if (c != batchInd) {
 					auxDetectError = false;
 					min_size[c] = Integer.parseInt(allTxtMinSize.get(auxCount).getText());
@@ -355,19 +362,6 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 						IJ.error("The step size should be larger or equal to 0");
 						return false;
 					}
-					/*
-					if (step[c] != 0 && (patch[c] - min_size[c]) % step[c] != 0) {
-						IJ.error("Dimension " + params.inputList.get(inputCounter).form.split("")[c] + " has size " +
-								patch[c] + ". \nIt does not fulfill the condition: patch_size = min_size + step * X,"
-								+ " for a step " + step[c] + " and a min_size " + min_size[c]);
-						return false;
-					} else if (step[c] == 0 && patch[c] !=  min_size[c]) {
-						IJ.error("Dimension " + params.inputList.get(inputCounter).form.split("")[c] + " has size " +
-								patch[c] + ". \nIt does not fulfill the condition: patch_size = min_size + step * X,"
-								+ " for a step " + step[c] + " and a min_size " + min_size[c]);
-						return false;
-					}
-					*/
 					auxCount ++;
 				}
 			}
@@ -396,8 +390,8 @@ public class InputDimensionStamp extends AbstractStamp implements ActionListener
 			}
 		}
 		
-		params.inputList.get(inputCounter).minimum_size = min_size;
-		params.inputList.get(inputCounter).step = step;
+		tensor.minimum_size = min_size;
+		tensor.step = step;
 		
 		return true;
 	}
