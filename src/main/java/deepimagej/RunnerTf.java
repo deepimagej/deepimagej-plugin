@@ -82,20 +82,25 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 
 	@Override
 	public HashMap<String, Object> call() {
-		log.print("call runner");
+		
 		rp.setInfoTag("applyModel");
-		if (log.getLevel() >= 1)
+		if (log.getLevel() >= 1) {
+			log.print("call runner");
 			rp.setVisible(true);
+		}
 
 
 		Parameters params = dp.params;
 		// Load the model first
 		SavedModelBundle model = dp.getTfModel();
-		log.print("model " + (model == null));
 		
 		String sigeDefTag = params.developer ? params.graph : DeepLearningModel.returnStringSig(params.graph);
 		SignatureDef sig = DeepLearningModel.getSignatureFromGraph(model, DeepLearningModel.returnStringSig(sigeDefTag));
-		log.print("sig " + (sig == null));
+		
+		if (log.getLevel() >= 1) {
+			log.print("model " + (model == null));
+			log.print("sig " + (sig == null));
+		}
 		
 		if (!params.developer) {
 			String[] inputs = DeepLearningModel.returnTfInputs(sig);
@@ -171,7 +176,9 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 		int ny = imp.getHeight();
 		int nc = imp.getNChannels();
 		int nz = imp.getNSlices();
-		log.print("image size " + nx + "x" + ny + "x" + nz);
+		
+		if (log.getLevel() >= 1)
+			log.print("image size " + nx + "x" + ny + "x" + nz);
 		
 		int[] indices = new int[4];
 		String[] dimLetters = "XYCZ".split("");
@@ -214,7 +221,8 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 			error = "Patch size is too big";
 			return null;
 		}
-		log.print("patch size " + "X: " +  px + ", Y: " +  py + ", Z: " +  pz + ", C: " +  pc);
+		if (log.getLevel() >= 1)
+			log.print("patch size " + "X: " +  px + ", Y: " +  py + ", Z: " +  pz + ", C: " +  pc);
 		
 		// To define the runtime for config.xml. Starting time
 		long startingTime = System.nanoTime();
@@ -266,7 +274,7 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 		ImagePlus mirrorImage = CompactMirroring.mirrorXY(imp, mirrorPixels[0][0], mirrorPixels[1][0],
 														  	   mirrorPixels[0][1], mirrorPixels[1][1],
 														       mirrorPixels[0][3], mirrorPixels[1][3]);
-		if (log.getLevel() == 3) {
+		if (log.getLevel() == 2) {
 			mirrorImage.setTitle("Extended image");
 			mirrorImage.getProcessor().resetMinAndMax();
 			mirrorImage.show();
@@ -296,14 +304,16 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 			overlapZ = (pz - nz) / 2;
 		}
 
-		log.print("start " + npx + "x" + npy);
+		if (log.getLevel() >= 1)
+			log.print("start " + npx + "x" + npy);
 		
 		for (int i = 0; i < npx; i++) {
 			for (int j = 0; j < npy; j++) {
 				for (int z = 0; z < npz; z++) {
 					// TODO reduce this mega big loop to something more modular
 					currentPatch++;
-					log.print("currentPatch " + currentPatch);
+					if (log.getLevel() >= 1)
+						log.print("currentPatch " + currentPatch);
 					if (rp.isStopped()) {
 						rp.stop();
 						return null;
@@ -369,8 +379,9 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 					// Observé que se compensaba erroneamente
 					ImagePlus patch = ArrayOperations.extractPatch(mirrorImage, patchSize, xMirrorStartPatch, yMirrorStartPatch,
 																	zMirrorStartPatch, overlapX, overlapY, overlapZ);
-					log.print("Extract Patch (" + (i + 1) + ", " + (j + 1) + ") patch size: " + patch.getWidth() + "x" + patch.getHeight() + " pixels");
-					if (log.getLevel() == 3) {
+					if (log.getLevel() >= 1)
+						log.print("Extract Patch (" + (i + 1) + ", " + (j + 1) + ") patch size: " + patch.getWidth() + "x" + patch.getHeight() + " pixels");
+					if (log.getLevel() == 2) {
 						patch.setTitle("Patch (" + i + "," + j + ")");
 						patch.getProcessor().resetMinAndMax();
 					}
@@ -396,7 +407,8 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 						// while executing the task
 						rp.allowStopping(false);
 						sess = sess.fetch(opName(sig.getOutputsOrThrow(outTensor.name)));
-						log.print("Session fetch " + (c ++));
+						if (log.getLevel() >= 1)
+							log.print("Session fetch " + (c ++));
 						rp.allowStopping(true);
 						// Check if the user has tried to stop the execution while loading the model
 						// If they have return false and stop
@@ -417,7 +429,8 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 						c = 0;
 						int imCounter = 0;
 						for (DijTensor outTensor : params.outputList) {
-							log.print("Session run " + (c+1) + "/"  + params.outputList.size());
+							if (log.getLevel() >= 1)
+								log.print("Session run " + (c+1) + "/"  + params.outputList.size());
 							Tensor<?> result = fetches.get(c);
 							if (outTensor.tensorType.contains("image") && !params.pyramidalNetwork && params.allowPatching) {
 								impatch[imCounter] = ImagePlus2Tensor.tensor2ImagePlus(result, outTensor.form, outTensor.name);
@@ -577,7 +590,8 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 							imCounter ++;
 						}
 					}
-					log.print("Create Output ");
+					if (log.getLevel() >= 1)
+						log.print("Create Output ");
 				}
 			}
 		}

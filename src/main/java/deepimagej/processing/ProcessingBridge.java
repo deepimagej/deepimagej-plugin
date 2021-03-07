@@ -108,6 +108,12 @@ public class ProcessingBridge {
 					map.put(tensor.name, inputImage);
 		        } else if (map.get(tensor.name) == null && im != null) {
 					map.put(tensor.name, im);
+		        } else if (map.get(tensor.name) == null && im == null && lastStep) {
+		        	im = WindowManager.getCurrentImage();
+		        	if (im == null) {
+			        	im = WindowManager.getTempCurrentImage();
+		        	}
+					map.put(tensor.name, im);
 		        }
 			} else if (tensor.tensorType == "parameter") {
 				Frame f = WindowManager.getFrame(tensor.name);

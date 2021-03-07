@@ -100,6 +100,7 @@ public class ExternalClassManager {
 			processingClassLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
 		else 
 			processingClassLoader = (URLClassLoader) IJ.getClassLoader();
+		createProcessingClassLoader(params);
 		if (jarDir.contains(".jar") && (preProc == true)) {
 			processingClassLoader = LoadJar.loadSingleJarToExistingURLClassLoader(jarDir, processingClassLoader);
 			preProcessingClass = LoadJar.loadPreProcessingInterface(jarDir, params, processingClassLoader);
@@ -176,7 +177,7 @@ public class ExternalClassManager {
 				e.printStackTrace();
 			}
 		}
-		processingClassLoader = new URLClassLoader(urls);
+		processingClassLoader = new URLClassLoader(urls, processingClassLoader);
 	}
 
 	public HashMap<String, Object> javaPreprocess(HashMap<String, Object> map, String path2config) throws JavaProcessingError {

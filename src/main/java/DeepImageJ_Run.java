@@ -39,6 +39,7 @@ import java.awt.BorderLayout;
 import java.awt.Choice;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Label;
 import java.awt.TextArea;
@@ -159,7 +160,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		dlg.addStringField("Axes order", "", 30);
 		dlg.addStringField("Tile size", "", 30);
 		
-		dlg.addChoice("Logging", new String[] { "mute", "normal                                                       ", "verbose", "debug" }, "normal                                                       ");
+		dlg.addChoice("Logging", new String[] { "mute", "normal", "debug" }, "normal");
 		
 		dlg.addHelp(Constants.url);
 		dlg.addPanel(panel);
@@ -180,6 +181,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				if (countChoice == 0)
 					choice.addItemListener(this);
 				choices[countChoice++] = choice;
+				choices[countChoice - 1].setPreferredSize(new Dimension(234, 20));
 			}
 			if (c instanceof TextField) {
 				texts[countTxt ++] = (TextField) c;
@@ -223,6 +225,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		}
 		// This is used for the macro, as in the macro, there is no selection from the list
 		String fullname = (String) choices[0].getSelectedItem();
+		fullname = dlg.getNextChoice();
 		// The index is the method that is going to be used normally to select a model.
 		// The plugin looks at the index of the selection of the user and retrieves the
 		// directory associated with it. With this, it allows to have the same model with
@@ -244,14 +247,18 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 
 		String dirname = fullnames.get(index);
 		
-		log.print("Load model: " + fullname + "(" + dirname + ")");
+		if (log.getLevel() >= 1)
+			log.print("Load model: " + fullname + "(" + dirname + ")");
 		dp = dps.get(dirname);
 		
 		String format = (String) choices[1].getSelectedItem();
-		dp.params.framework = format.contains("pytorch") ? "Pytorch" : "Tensorflow";
+		format = dlg.getNextChoice();
+		dp.params.framework = format.contains("pytorch") ? "pytorch" : "tensorflow";
 
 		processingFile[0] = (String) choices[2].getSelectedItem();
+		processingFile[0] = dlg.getNextChoice();
 		processingFile[1] = (String) choices[3].getSelectedItem();
+		processingFile[1] = dlg.getNextChoice();
 		
 		info.setText("");
 		info.setCaretPosition(0);
@@ -289,6 +296,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		int[] haloSize = ArrayOperations.findTotalPadding(dp.params.inputList.get(0), dp.params.outputList, dp.params.pyramidalNetwork);
 		
 		patch = ArrayOperations.getPatchSize(dims, dp.params.inputList.get(0).form, texts[1].getText(), texts[1].isEditable());
+		String aux = dlg.getNextString();
+		String introducedPatch = dlg.getNextString();
+		patch = ArrayOperations.getPatchSize(dims, dp.params.inputList.get(0).form, introducedPatch, texts[1].isEditable());
 		if (patch == null) {
 			IJ.error("Please, introduce the patch size as integers separated by commas.\n"
 					+ "For the axes order 'Y,X,C' with:\n"
@@ -335,6 +345,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			} else if(haloSize[i] * 2 >= patch[i] && patch[i] != -1) {
 				String errMsg = "Error: Tiles cannot be smaller or equal than 2 times the halo at any dimension.\n"
 							  + "Please, either choose a bigger tile size or change the halo in the model.yaml.";
+				IJ.error(errMsg);
+				run("");
+				return;
 			}
 		}
 		for (DijTensor inp: dp.params.inputList) {
@@ -359,12 +372,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		ExecutorService service = Executors.newFixedThreadPool(1);
 		RunnerProgress rp = new RunnerProgress(dp, "load", service);
 
-		if (dp.params.framework.contains("Tensorflow") && !(new File(dp.getPath() + File.separator + "variables").exists())) {
+		if (dp.params.framework.contains("tensorflow") && !(new File(dp.getPath() + File.separator + "variables").exists())) {
 			info.append("Unzipping Tensorflow model. Please wait...\n");
 			rp.setUnzipping(true);
 		}
 		
-		ModelLoader loadModel = new ModelLoader(dp, rp, loadInfo.contains("GPU"), DeepLearningModel.TensorflowCUDACompatibility(loadInfo, cudaVersion).equals(""));
+		boolean iscuda = DeepLearningModel.TensorflowCUDACompatibility(loadInfo, cudaVersion).equals("");
+		ModelLoader loadModel = new ModelLoader(dp, rp, loadInfo.contains("GPU"), iscuda, log.getLevel() >= 1);
 
 		Future<Boolean> f1 = service.submit(loadModel);
 		boolean output = false;
@@ -390,7 +404,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		
 		// If the model was not loaded, run again the plugin
 		if (!output) {
-			log.print("Load model error: " + (dp.getTfModel() == null || dp.getTorchModel() == null));
+			IJ.error("Load model error: " + (dp.getTfModel() == null || dp.getTorchModel() == null));
 			service.shutdown();
 			run("");
 			return;
@@ -427,15 +441,15 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				setMissingYamlText();
 				return;
 			}
-			if (dp.params.framework.equals("Tensorflow/Pytorch")) {
+			if (dp.params.framework.equals("tensorflow/pytorch")) {
 				choices[1].removeAll();
 				choices[1].addItem("-----------------Select format-----------------");
 				choices[1].addItem("tensorflow_saved_model_bundle");
 				choices[1].addItem("pytorch_script");
-			} else if (dp.params.framework.equals("Pytorch")) {
+			} else if (dp.params.framework.equals("pytorch")) {
 				choices[1].removeAll();
 				choices[1].addItem("pytorch_script");
-			} else if (dp.params.framework.equals("Tensorflow")) {
+			} else if (dp.params.framework.equals("tensorflow")) {
 				choices[1].removeAll();
 				choices[1].addItem("tensorflow_saved_model_bundle");
 			}
@@ -537,14 +551,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	}
 
 	public void calculateImage(ImagePlus inp, RunnerProgress rp, ExecutorService service) {
-		//RunnerProgress rp = new RunnerProgress(dp, "CPU");
-		//rp.setVisible(true);
 		
 		int runStage = 0;
 		try {
-
-			log.print("start preprocessing");
-			DijRunnerPreprocessing preprocess = new DijRunnerPreprocessing(dp, rp, inp, batch);
+			if (log.getLevel() >= 1)
+				log.print("start preprocessing");
+			DijRunnerPreprocessing preprocess = new DijRunnerPreprocessing(dp, rp, inp, batch, log.getLevel() >= 1);
 			Future<HashMap<String, Object>> f0 = service.submit(preprocess);
 			HashMap<String, Object> inputsMap = f0.get();
 			
@@ -556,12 +568,14 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				return;
 			}
 			
-			log.print("end preprocessing");
+			if (log.getLevel() >= 1)
+				log.print("end preprocessing");
 			runStage ++;
 			
-			log.print("start runner");
+			if (log.getLevel() >= 1)
+				log.print("start runner");
 			HashMap<String, Object> output = null;
-			if (dp.params.framework.equals("Tensorflow")) {
+			if (dp.params.framework.equals("tensorflow")) {
 				RunnerTf runner = new RunnerTf(dp, rp, inputsMap, log);
 				rp.setRunner(runner);
 				// TODO decide what to store at the end of the execution
@@ -644,10 +658,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	public void freeIJMemory(GenericDialog dlg, ImagePlus imp) {
 		// Free memory allocated by the plugin 
 		dlg.dispose();
-		if (dp.params.framework.equals("Tensorflow")) {
+		if (dp.params.framework.equals("tensorflow")) {
 			dp.getTfModel().session().close();
 			dp.getTfModel().close();
-		} else if (dp.params.framework.equals("Pytorch")) {
+		} else if (dp.params.framework.equals("pytorch")) {
 			dp.getTorchModel().close();
 		}
 		this.dp = null;
@@ -659,10 +673,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	 * Load all the models present in the models folder of IJ/Fiji
 	 */
 	public void loadModels() {
-		IJ.log("Lookin for models at --> " + DeepImageJ.cleanPathStr(path));
+		info.setText("Looking for models at --> " + DeepImageJ.cleanPathStr(path) + "\n");
 		// FOrmat for the date
 		Date now = new Date(); 
-		info.setText(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- LOADING MODELS\n");
+		info.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- LOADING MODELS\n");
 		// Array that contains the index of all the models whose yaml is 
 		// incorrect so it cannot be loaded
 		ignoreModelsIndexList = new ArrayList<Integer>();
@@ -748,6 +762,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 
 		info.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- Looking for installed CUDA distributions");
 		getCUDAInfo(loadInfo, ptVersion, cudaVersion);
+		
+		loadInfo += "Showing models found at --> " + DeepImageJ.cleanPathStr(path) + "\n";
 		loadInfo += "<Please select a model>\n";
 		info.setText(loadInfo);
 		loadedEngine = true;

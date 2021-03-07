@@ -187,7 +187,7 @@ public class Parameters {
 	private String[] 	deepImageJTag			= {"deepImageJ"};
 	public List<String>	infoTags				= Arrays.asList(deepImageJTag);
 	public String		license					= null;
-	public String		language				= "Java";
+	public String		language				= "java";
 	public String		framework				= "";
 	public String		source					= null;
 	public String		description				= null;
@@ -281,7 +281,15 @@ public class Parameters {
 			completeConfig = false;
 			return;
 		}
-		author = (List<String>) obj.get("authors");
+		if (obj.get("authors") instanceof List) {
+			author = (List<String>) obj.get("authors");
+		} else if (obj.get("authors") instanceof String) {
+			String aux = "" + obj.get("authors");
+			author = new ArrayList<String>();
+			author.add(aux);
+		} else {
+			
+		}
 		timestamp = "" +  obj.get("timestamp");
 		if (author == null) {
 			author = new ArrayList<String>();
@@ -289,7 +297,11 @@ public class Parameters {
 		}
 
 		// Citation
-		cite = (List<HashMap<String, String>>) obj.get("cite");
+		if (!(cite instanceof List))
+				cite = null;
+		else
+			cite = (List<HashMap<String, String>>) obj.get("cite");
+		
 		if (cite == null) {
 			cite = new ArrayList<HashMap<String, String>>();
 			HashMap<String, String> c = new HashMap<String, String>();
@@ -302,14 +314,19 @@ public class Parameters {
 		license = (String) "" + obj.get("license");
 		framework = (String) "" + obj.get("framework");
 		git_repo = (String) "" + obj.get("git_repo");
-		ArrayList<String> attachmentsAux = (ArrayList<String>) obj.get("attachments");
+		
+		ArrayList<String> attachmentsAux = null;
+		if (obj.get("attachments") instanceof ArrayList)
+			attachmentsAux = (ArrayList<String>) obj.get("attachments");
+		
 		attachments = new ArrayList<String>();
 		attachmentsNotIncluded = new ArrayList<String>();
+		String defaultFlag = "Include here any plugin that might be required for pre- or post-processing";
 		if (attachmentsAux != null) {
 			for (String str : attachmentsAux) {
-				if (new File(path2Model, str).isFile())
+				if (new File(path2Model, str).isFile() && !str.contentEquals(""))
 					attachments.add(new File(path2Model, str).getAbsolutePath());
-				else
+				else if (!str.contentEquals(defaultFlag))
 					attachmentsNotIncluded.add(str);
 			}
 		}
@@ -327,14 +344,14 @@ public class Parameters {
 		}
 		
 		if (tf && pt) {
-			framework = "Tensorflow/Pytorch";
+			framework = "tensorflow/pytorch";
 			ptSha256 = (String) "" + weights.get("pytorch_script").get("sha256");
 			tfSha256 = (String) "" + weights.get("tensorflow_saved_model_bundle").get("sha256");
 		} else if (tf) {
-			framework = "Tensorflow";
+			framework = "tensorflow";
 			tfSha256 = (String) "" + weights.get("tensorflow_saved_model_bundle").get("sha256");
 		} else if (pt) {
-			framework = "Pytorch";
+			framework = "pytorch";
 			ptSha256 = (String) "" + weights.get("pytorch_script").get("sha256");
 		} else if (!tf && !pt) {
 			completeConfig = false;
@@ -347,7 +364,7 @@ public class Parameters {
 		pyramidalNetwork = (boolean) deepimagej.get("pyramidal_model");
 		allowPatching = (boolean) deepimagej.get("allow_tiling");
 		// Model keys
-		if (deepimagej.keySet().contains("model_keys")) {
+		if (deepimagej.keySet().contains("model_keys") && deepimagej.get("model_keys") != null) {
 			Map<String, Object> model_keys = (Map<String, Object>) deepimagej.get("model_keys");
 			tag = (String) "" + model_keys.get("tensorflow_model_tag");
 			graph = (String) "" + model_keys.get("tensorflow_siganture_def");
@@ -366,7 +383,14 @@ public class Parameters {
 		
 		Map<String, Object> test_information = (Map<String, Object>) deepimagej.get("test_information");
 
-		List<LinkedHashMap<String, Object>> input_information = (List<LinkedHashMap<String, Object>>) test_information.get("inputs");
+		List<LinkedHashMap<String, Object>> input_information = new ArrayList <LinkedHashMap<String, Object>>();
+		if (test_information.get("inputs") instanceof LinkedHashMap) {
+			LinkedHashMap<String, Object> aux = (LinkedHashMap<String, Object>) test_information.get("inputs");
+			input_information.add(aux);
+		} else if (test_information.get("inputs") instanceof List){
+			input_information = (List<LinkedHashMap<String, Object>>) test_information.get("inputs");
+		}
+		
 		int tensorCounter = 0;
 		try {
 			for (Map<String, Object> inp : inputs) {
@@ -375,7 +399,7 @@ public class Parameters {
 				inpTensor.dataType = (String) "" + inp.get("data_type");
 				//TODO do we assume inputs in the yaml are always images?
 				inpTensor.tensorType = "image";
-				List<Object> auxDataRange = (ArrayList<Object>) inp.get("data_range");
+				//TODO List<Object> auxDataRange = (ArrayList<Object>) inp.get("data_range");
 				//TODO inpTensor.dataRange = castListToDoubleArray(auxDataRange);
 				
 				// Find by trial and error if the shape of the input is fixed or not
@@ -416,12 +440,21 @@ public class Parameters {
 				
 				// Now find the test information of this tensor
 				LinkedHashMap<String, Object> info = input_information.get(tensorCounter ++);
-				inpTensor.exampleInput = (String) "" + info.get("name");
-				inpTensor.inputTestSize =  (String) "" + info.get("size");
-				Map<String, String>  pixel_size =  (Map<String, String>) info.get("pixel_size");
-				inpTensor.inputPixelSizeX = (String) "" + pixel_size.get("x");
-				inpTensor.inputPixelSizeY = (String) "" + pixel_size.get("y");
-				inpTensor.inputPixelSizeZ = (String) "" + pixel_size.get("z");
+				try {
+					inpTensor.exampleInput = (String) "" + info.get("name");
+					inpTensor.inputTestSize =  (String) "" + info.get("size");
+					Map<String, Object>  pixel_size =  (Map<String, Object>) info.get("pixel_size");
+					inpTensor.inputPixelSizeX = (String) "" + pixel_size.get("x");
+					inpTensor.inputPixelSizeY = (String) "" + pixel_size.get("y");
+					inpTensor.inputPixelSizeZ = (String) "" + pixel_size.get("z");
+				} catch (Exception ex) {
+					inpTensor.exampleInput = (String) "";
+					inpTensor.inputTestSize =  (String) "";
+					Map<String, Object>  pixel_size =  (Map<String, Object>) info.get("pixel_size");
+					inpTensor.inputPixelSizeX = (String) "";
+					inpTensor.inputPixelSizeY = (String) "";
+					inpTensor.inputPixelSizeZ = (String) "";
+				}
 				
 				inputList.add(inpTensor);
 			}
@@ -449,7 +482,7 @@ public class Parameters {
 				outTensor.tensorType = outTensor.form == null ? "list" : "image";
 				if (outTensor.form == null || outTensor.form.contains("R") || (outTensor.form.length() <= 2 && (outTensor.form.contains("B") || outTensor.form.contains("C"))))
 					outTensor.tensorType = "list";
-				List auxDataRange = (List) out.get("data_range");
+				// TODO List auxDataRange = (List) out.get("data_range");
 				// TODO outTensor.dataRange = castListToDoubleArray(auxDataRange);
 				outTensor.dataType = (String) "" + out.get("data_type");
 				if (outTensor.tensorType.contains("image") && !pyramidalNetwork) {
@@ -497,9 +530,14 @@ public class Parameters {
 			return;
 		}
 		// Output test information
-		List<LinkedHashMap<String, Object>> output_information = (List<LinkedHashMap<String, Object>>) test_information.get("outputs");
-		if (output_information == null)
-			output_information = new ArrayList<LinkedHashMap<String, Object>>();
+		List<LinkedHashMap<String, Object>> output_information = new ArrayList <LinkedHashMap<String, Object>>();
+		if (test_information.get("outputs") instanceof LinkedHashMap) {
+			LinkedHashMap<String, Object> aux = (LinkedHashMap<String, Object>) test_information.get("outputs");
+			output_information.add(aux);
+		} else if (test_information.get("outputs") instanceof List){
+			output_information = (List<LinkedHashMap<String, Object>>) test_information.get("outputs");
+		}
+		
 		savedOutputs = new ArrayList<HashMap<String, String>>();
 		for (LinkedHashMap<String, Object> out : output_information) {
 			HashMap<String, String> info = new LinkedHashMap<String, String>();
@@ -527,14 +565,14 @@ public class Parameters {
 		Set<String> keys = prediction.keySet();
 		for (String key : keys) {
 			if (key.contains("preprocess")) {
-				List<Map<String, String>> preprocess = (List<Map<String, String>>) prediction.get(key);
+				List<Map<String, Object>> preprocess = (List<Map<String, Object>>) prediction.get(key);
 				// TODO convert into a list of processings
 				String[] commands = new String[preprocess.size()];
 				int processingCount = 0;
-				for (Map<String, String> processing : preprocess) {
-					String spec = processing.get("spec");
+				for (Map<String, Object> processing : preprocess) {
+					String spec = "" + processing.get("spec");
 					if (spec != null && processing.containsKey("kwargs")) {
-						commands[processingCount] = processing.get("kwargs");
+						commands[processingCount] = "" + processing.get("kwargs");
 					} else if (spec != null && !processing.containsKey("kwargs") && spec.contains(".jar")) {
 						int extensionPosition = spec.indexOf(".jar");
 						if (extensionPosition != -1)
@@ -552,14 +590,14 @@ public class Parameters {
 				pre.put(key, commands);
 			}
 			if (key.contains("postprocess")) {
-				List<Map<String, String>> postprocess = (List<Map<String, String>>) prediction.get(key);
+				List<Map<String, Object>> postprocess = (List<Map<String, Object>>) prediction.get(key);
 				// TODO convert into a list of processings
 				String[] commands = new String[postprocess.size()];
 				int processingCount = 0;
-				for (Map<String, String> processing : postprocess) {
-					String spec = processing.get("spec");
+				for (Map<String, Object> processing : postprocess) {
+					String spec = "" + processing.get("spec");
 					if (spec != null && processing.containsKey("kwargs")) {
-						commands[processingCount] = processing.get("kwargs");
+						commands[processingCount] = "" + processing.get("kwargs");
 					} else if (spec != null && !processing.containsKey("kwargs") && spec.contains(".jar")) {
 						int extensionPosition = spec.indexOf(".jar");
 						if (extensionPosition != -1)

@@ -14,19 +14,21 @@ public class ModelLoader implements Callable<Boolean>{
 	private RunnerProgress rp;
 	private boolean gpu;
 	private boolean cuda;
+	private boolean show;
 	
-	public ModelLoader(DeepImageJ dp, RunnerProgress rp, boolean gpu, boolean cuda) {
+	public ModelLoader(DeepImageJ dp, RunnerProgress rp, boolean gpu, boolean cuda, boolean show) {
 		this.dp = dp;
 		this.rp = rp;
 		this.gpu = gpu;
 		this.cuda = cuda;
+		this.show = show;
 	}
 
 	@Override
 	public Boolean call()  {
-		if (dp.params.framework.contains("Tensorflow") && !(new File(dp.getPath() + File.separator + "variables").exists())) {
+		if (dp.params.framework.contains("tensorflow") && !(new File(dp.getPath() + File.separator + "variables").exists())) {
 			rp.setUnzipping(true);
-			rp.setVisible(true);
+			rp.setVisible(this.show);
 			String fileName = dp.getPath() + File.separator + "tensorflow_saved_model_bundle.zip";
 			try {
 				FileTools.unzipFolder(new File(fileName), dp.getPath());
@@ -42,7 +44,7 @@ public class ModelLoader implements Callable<Boolean>{
 		// Set tag to write the correct message in the progress screen
 		rp.setUnzipping(false);
 		if (!rp.isVisible())
-			rp.setVisible(true);
+			rp.setVisible(this.show);
 		
 		// Parameter to know if we are using GPU or not 
 		ArrayList<String> initialSmi = null;
@@ -52,17 +54,17 @@ public class ModelLoader implements Callable<Boolean>{
 		// while executing the task
 		rp.allowStopping(false);
 		boolean ret = false;
-		if (dp.params.framework.equals("Tensorflow")) {
+		if (dp.params.framework.equals("tensorflow")) {
 			ret = dp.loadTfModel(true);
-		} else if (dp.params.framework.equals("Pytorch")) {
+		} else if (dp.params.framework.equals("pytorch")) {
 			String ptWeightsPath = dp.getPath() + File.separatorChar + "pytorch_script.pt" ;
 			ret = dp.loadPtModel(ptWeightsPath);
 		}
-		if (ret == false && dp.params.framework.equals("Tensorflow")) {
+		if (ret == false && dp.params.framework.equals("tensorflow")) {
 			IJ.error("Error loading " + dp.getName() + 
 					"\nTry using another Tensorflow version.");
 			return false;
-		} else if (ret == false && dp.params.framework.equals("Pytorch")) {
+		} else if (ret == false && dp.params.framework.equals("pytorch")) {
 			IJ.error("Error loading " + dp.getName() + 
 					"\nDeepImageJ loads models until Pytorch 1.6.");
 			return false;

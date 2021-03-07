@@ -362,7 +362,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					outputs.get(i).addItem("R");
 					outputs.get(i).addItem("C");
 					outputs.get(i).setEnabled(true);
-					outputs.get(i).addActionListener(this);
+					//outputs.get(i).addActionListener(this);
 					String form = outputTensors.get(c).form;
 					if (form != null && !form.contentEquals(""))
 						outputTensors.get(c).form = "";
@@ -376,11 +376,11 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					outputs.get(i).addItem("C");
 					outputs.get(i).addItem("Z");
 					outputs.get(i).setEnabled(true);
-					outputs.get(i).addActionListener(this);
+					//outputs.get(i).addActionListener(this);
 					String form = outputTensors.get(c).form;
 					if (form != null && !form.contentEquals(""))
 						outputTensors.get(c).form = "";
-				} else if (selection.contains("image") && outputs.get(i).getItemAt(1).equals("R") && !params.pyramidalNetwork) {
+				} else if (selection.contains("image") && outputs.get(i).getItemAt(1).equals("R") && params.pyramidalNetwork) {
 					outputs.get(i).removeAllItems();
 					outputs.get(i).addItem("B");
 					outputs.get(i).addItem("Y");
@@ -388,7 +388,7 @@ public class TensorStamp extends AbstractStamp implements ActionListener {
 					outputs.get(i).addItem("C");
 					outputs.get(i).addItem("N/i/z");
 					outputs.get(i).setEnabled(true);
-					outputs.get(i).addActionListener(this);
+					//outputs.get(i).addActionListener(this);
 					String form = outputTensors.get(c).form;
 					if (form != null && !form.contentEquals(""))
 						outputTensors.get(c).form = "";

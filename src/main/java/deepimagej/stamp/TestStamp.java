@@ -350,7 +350,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, MouseLis
 		String step = "pre";
 		
 		try {
-			DijRunnerPreprocessing preprocess = new DijRunnerPreprocessing(dp, rp, null, false);
+			DijRunnerPreprocessing preprocess = new DijRunnerPreprocessing(dp, rp, null, false, true);
 			Future<HashMap<String, Object>> f0 = service.submit(preprocess);
 			HashMap<String, Object> inputsMap = f0.get();
 			if (rp.isStopped()) {
@@ -377,7 +377,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, MouseLis
 			
 			step = "model";
 			HashMap<String, Object> output = null;
-			if (dp.params.framework.equals("Tensorflow")) {
+			if (dp.params.framework.equals("tensorflow")) {
 				rp.setGPU(parent.getGPUTf());
 				RunnerTf runner = new RunnerTf(dp, rp, inputsMap, new Log());
 				rp.setRunner(runner);
@@ -444,7 +444,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, MouseLis
 			if (step.contains("pre")) {
 				pnTest.append("p", "Thread stopped working during the preprocessing.\n"
 									+ "The reason might be a faulty preprocessing");
-				IJ.error("p", "Thread stopped working during the preprocessing.\n"
+				IJ.error("Thread stopped working during the preprocessing.\n"
 						+ "The reason might be a faulty preprocessing");
 			} else if (step.contains("model")) {
 				pnTest.append("p", "Thread stopped working during the execution of the model.");
@@ -452,7 +452,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, MouseLis
 			} else if (step.contains("post")) {
 				pnTest.append("p", "Thread stopped working during the execution of the model.\n"
 								+ "The reason might be a faulty postprocessing");
-				IJ.error("p", "Thread stopped working during the execution of the model.\n"
+				IJ.error("Thread stopped working during the execution of the model.\n"
 						+ "The reason might be a faulty postprocessing");
 			}
 		}

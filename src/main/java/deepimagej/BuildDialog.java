@@ -198,11 +198,11 @@ public class BuildDialog extends JDialog implements ActionListener {
 
 	private void setCard(String name) {
 		CardLayout cl = (CardLayout) (pnCards.getLayout());
-		if (name.equals("2") && dp.params.framework.equals("Pytorch"))
+		if (name.equals("2") && dp.params.framework.equals("pytorch"))
 			name = "20";
-		else if (name.equals("4") && dp.params.framework.equals("Pytorch"))
+		else if (name.equals("4") && dp.params.framework.equals("pytorch"))
 			name = "40";
-		else if (name.equals("12") && dp.params.framework.equals("Pytorch"))
+		else if (name.equals("12") && dp.params.framework.equals("pytorch"))
 			name = "120";
 		cl.show(pnCards, name);
 	}
@@ -227,9 +227,9 @@ public class BuildDialog extends JDialog implements ActionListener {
 							dp.getTorchModel().close();
 						if (dp != null) {
 							dp.params.path2Model = path + File.separator + name + File.separator;
-							if (dp.getValid() && dp.params.framework.contains("Tensorflow")) {
+							if (dp.getValid() && dp.params.framework.contains("tensorflow")) {
 								loaderTf.init();
-							} else if (dp.getValid() && dp.params.framework.contains("Pytorch")) {
+							} else if (dp.getValid() && dp.params.framework.contains("pytorch")) {
 								loaderPt.init();
 							} else if (!dp.getValid()) {
 								IJ.error("Please select a correct model");
@@ -240,9 +240,9 @@ public class BuildDialog extends JDialog implements ActionListener {
 				}
 				break;
 			case 2:
-				if (dp.params.framework.contains("Tensorflow")) {
+				if (dp.params.framework.contains("tensorflow")) {
 					card = loaderTf.finish() ? card+1 : card;
-				} else if (dp.params.framework.contains("Pytorch")) {
+				} else if (dp.params.framework.contains("pytorch")) {
 					card = loaderPt.finish() ? card+1 : card;
 				}
 				break;
@@ -250,9 +250,9 @@ public class BuildDialog extends JDialog implements ActionListener {
 				card = selectPyramid.finish() ? card+1 : card;
 				break;
 			case 4:
-				if (dp.params.framework.contains("Tensorflow")) {
+				if (dp.params.framework.contains("tensorflow")) {
 					card = tensorTf.finish() ? card+1 : card;
-				} else if (dp.params.framework.contains("Pytorch")) {
+				} else if (dp.params.framework.contains("pytorch")) {
 					card = tensorPt.finish() ? card+1 : card;
 				}
 				break;
@@ -292,9 +292,9 @@ public class BuildDialog extends JDialog implements ActionListener {
 
 		setCard("" + card);
 		bnBack.setEnabled(card > 1);
-		if (card == 4 && dp.params.framework.contains("Tensorflow"))
+		if (card == 4 && dp.params.framework.contains("tensorflow"))
 			tensorTf.init();
-		else if (card == 4 && dp.params.framework.contains("Pytorch"))
+		else if (card == 4 && dp.params.framework.contains("pytorch"))
 			tensorPt.init();
 		else if (card == 5)
 			dim3.init();

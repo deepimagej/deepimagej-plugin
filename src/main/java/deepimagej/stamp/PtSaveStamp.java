@@ -324,6 +324,8 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			ex.printStackTrace();
 		}
 		
+		/*
+		 * TODO remove if the dependencies are not saved
 		// Finally save Java dependencies
 		boolean saveDeps = TfSaveStamp.saveJavaDependencies(params);
 		if (saveDeps && params.attachments.size() > 0) {
@@ -331,6 +333,7 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		} else if (!saveDeps && params.attachments.size() > 0) {
 			pane.append("p", "Java .jar dependencies: not saved");
 		}
+		 */
 		
 		pane.append("p", "<b>Done!!</b>");
 

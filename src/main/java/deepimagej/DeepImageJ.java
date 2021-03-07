@@ -87,7 +87,7 @@ public class DeepImageJ {
 			this.params.path2Model = this.path;
 			this.valid = check(p, false);
 		}
-		if (this.valid && dev && this.params.framework.equals("Tensorflow/Pytorch")) {
+		if (this.valid && dev && this.params.framework.equals("tensorflow/pytorch")) {
 			askFrameworkGUI();
 		}
 	}
@@ -248,7 +248,7 @@ public class DeepImageJ {
 		}
 		info.append("Framework:" + params.framework + "\n");
 		
-		if (params.framework.contains("Tensorflow")) {
+		if (params.framework.contains("tensorflow")) {
 			info.append("Tag: " + params.tag + "\n");
 			info.append("Signature: " + params.graph + "\n");
 		}
@@ -275,19 +275,19 @@ public class DeepImageJ {
 		info.append("Runtime: " + params.runtime + "\n");
 		String modelSize = "-1";
 		
-		if (params.framework.equals("Pytorch")) {
+		if (params.framework.equals("pytorch")) {
 			modelSize = "" + new File(this.getPath() + File.separator + "pytorch_script.pt").length() / (1024 * 1024.0);
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 			info.append("Weights size: " + modelSize + " MB\n");
-		} else if (params.framework.equals("Tensorflow") && new File(this.getPath(), "variables").exists()) {
+		} else if (params.framework.equals("tensorflow") && new File(this.getPath(), "variables").exists()) {
 			modelSize = "" + FileTools.getFolderSize(this.getPath() + File.separator + "variables") / (1024 * 1024.0);
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 			info.append("Weights size: " + modelSize + " MB\n");
-		} else if (params.framework.equals("Tensorflow")) {
+		} else if (params.framework.equals("tensorflow")) {
 			modelSize = "" + new File(this.getPath() + File.separator + "tensorflow_saved_model_bundle.zip").length() / (1024 * 1024.0);
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 2);
 			info.append("Zipped model size: " + modelSize + " MB\n");
-		} else if (params.framework.equals("Tensorflow/Pytorch") && new File(this.getPath(), "variables").exists()) {
+		} else if (params.framework.equals("tensorflow/pytorch") && new File(this.getPath(), "variables").exists()) {
 			modelSize = "" + new File(this.getPath() + File.separator + "pytorch_script.pt").length() / (1024 * 1024.0);
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 			info.append("Pytorch weights size: " + modelSize + " MB\n");
@@ -295,7 +295,7 @@ public class DeepImageJ {
 			modelSize = "" + FileTools.getFolderSize(this.getPath() + File.separator + "variables") / (1024 * 1024.0);
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 			info.append("Tensorflow weights size: " + modelSize + " MB\n");
-		} else if (params.framework.equals("Tensorflow/Pytorch")) {
+		} else if (params.framework.equals("tensorflow/pytorch")) {
 			modelSize = "" + new File(this.getPath() + File.separator + "pytorch_script.pt").length() / (1024 * 1024.0);
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 			info.append("Pytorch weights size: " + modelSize + " MB\n");
@@ -322,18 +322,18 @@ public class DeepImageJ {
 		File variableFile = new File(path + "variables");
 		if (modelFile.exists() && variableFile.exists()){
 			validTf = true; 
-			this.params.framework = "Tensorflow";
+			this.params.framework = "tensorflow";
 		}
 		
 		// If no tf model has been found. Look for a pytorch torchscript model
 		if (findPytorchModel(dir)) {
 			this.params.selectedModelPath = dir.getAbsolutePath();
 			validPt = true;
-			this.params.framework = "Pytorch";
+			this.params.framework = "pytorch";
 		}
 		
 		if (validTf && validPt)
-			this.params.framework = "Tensorflow/Pytorch";
+			this.params.framework = "tensorflow/pytorch";
 		
 		if (!validTf && !validPt && !recurrence) {
 			// Find zipped biozoo model
@@ -415,7 +415,7 @@ public class DeepImageJ {
 		GenericDialog dlg = new GenericDialog("Choose model framework");
 		dlg.addMessage("The folder provided contained both a Tensorflow and a Pytorch model");
 		dlg.addMessage("Select which do you want to load.");
-		dlg.addChoice("Select framework", new String[]{"Tensorflow", "Pytorch"}, "Tensorflow");
+		dlg.addChoice("Select framework", new String[]{"tensorflow", "pytorch"}, "tensorflow");
 		dlg.showDialog();
 		if (dlg.wasCanceled()) {
 			dlg.dispose();

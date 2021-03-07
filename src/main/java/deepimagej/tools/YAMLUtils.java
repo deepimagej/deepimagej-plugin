@@ -45,11 +45,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -138,7 +140,7 @@ public class YAMLUtils {
 		// Short description of the model
 		data.put("description", params.description);
 		// Timestamp of when the model was created following ISO 8601
-		String thisMoment = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneOffset.UTC).format(Instant.now());
+		String thisMoment = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS").format(Calendar.getInstance().getTime());
 		data.put("timestamp", thisMoment);
 		
 		// Citation
@@ -187,11 +189,11 @@ public class YAMLUtils {
 		format_info.put("source", null);
 		// For Tensorflow, if upload to biozoo is selected, calculate checksum
 		// For Pytorch, always calculate checksum
-		if (params.framework.equals("Pytorch")) {
+		if (params.framework.equals("pytorch")) {
 			format_info.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + "pytorch_script.pt"));
-		} else if (params.framework.equals("Tensorflow") && params.biozoo) {
+		} else if (params.framework.equals("tensorflow") && params.biozoo) {
 			format_info.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + "tensorflow_saved_model_bundle.zip"));
-		} else if (params.framework.equals("Tensorflow") && !params.biozoo) {
+		} else if (params.framework.equals("tensorflow") && !params.biozoo) {
 			format_info.put("sha256", null);
 		}
 		// Path to the test inputs
@@ -217,7 +219,7 @@ public class YAMLUtils {
 			sampleOutputs.add("./" + TfSaveStamp.getTitleWithoutExtension(out.get("name")) + ".npy");
 		}
 		
-		if (params.framework.equals("Pytorch")) {
+		if (params.framework.equals("pytorch")) {
 			weights.put("pytorch_script", format_info);
 		} else {
 			weights.put("tensorflow_saved_model_bundle", format_info);
@@ -232,14 +234,14 @@ public class YAMLUtils {
 		deepimagej.put("allow_tiling", params.allowPatching);
 		
 		// TF model keys
-		if (params.framework.contains("Tensorflow")) {
+		if (params.framework.contains("tensorflow")) {
 			Map<String, Object> modelKeys = new LinkedHashMap<>();
 			// Model tag
 			modelKeys.put("tensorflow_model_tag", DeepLearningModel.returnTfTag(params.tag));
 			// Model signature definition
 			modelKeys.put("tensorflow_siganture_def", DeepLearningModel.returnTfSig(params.graph));
 			deepimagej.put("model_keys", modelKeys);
-		} else if (params.framework.contains("Pytorch")) {
+		} else if (params.framework.contains("pytorch")) {
 			deepimagej.put("model_keys", null);
 		}
 		

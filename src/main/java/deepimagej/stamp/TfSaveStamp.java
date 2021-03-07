@@ -326,7 +326,9 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			ex.printStackTrace();
 			pane.append("p", "model.yaml: not saved");
 		}
-		
+
+		/*
+		 * TODO remove if the dependencies are not saved
 		// Finally save Java dependencies
 		boolean saveDeps = saveJavaDependencies(params);
 		if (saveDeps && params.attachments.size() > 0) {
@@ -334,6 +336,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		} else if (!saveDeps && params.attachments.size() > 0) {
 			pane.append("p", "Java .jar dependencies: not saved");
 		}
+		*/
 		
 		pane.append("p", "Done!!");
 
@@ -344,6 +347,8 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 	 * @param params
 	 * @return true if saving was successful or false otherwise
 	 */
+	/*
+	 * TODO remove if the dependencies are not saved
 	public static boolean saveJavaDependencies(Parameters params) {
 		boolean saved = true;
 		ArrayList<String> savedFiles = new ArrayList<String>();
@@ -366,6 +371,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		}
 		return saved;
 	}
+	*/
 	
 	/*
 	 * Gets the image title without the extension

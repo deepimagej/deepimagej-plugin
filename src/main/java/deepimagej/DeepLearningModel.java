@@ -387,7 +387,9 @@ public class DeepLearningModel {
 	 */
 	public static String PytorchCUDACompatibility(String ptVersion, String CUDAVersion) {
 		String errMessage = "";
-		if (ptVersion.contains("1.7.0") && !(CUDAVersion.contains("10.2") || CUDAVersion.contains("10.1") || CUDAVersion.contains("11.0"))) {
+		if (CUDAVersion.equals("nocuda")) {
+				errMessage = "";
+		} else if (ptVersion.contains("1.7.0") && !(CUDAVersion.contains("10.2") || CUDAVersion.contains("10.1") || CUDAVersion.contains("11.0"))) {
 			errMessage = "Installed CUDA version " + CUDAVersion + " is not compatible with DJL Pytorch 1.7.0.\n"
 					+ "The plugin might not be able to run on GPU.\n"
 					+ "For optimal performance please install either CUDA 10.1, CUDA 10.2 or CUDA 11.0.\n";
@@ -403,8 +405,6 @@ public class DeepLearningModel {
 			errMessage = "Installed CUDA version " + CUDAVersion + " is not compatible with DJL Pytorch  1.4.0.\n"
 					+ "The plugin might not be able to run on GPU.\n"
 					+ "For optimal performance please install CUDA 9.2 or CUDA 10.1.\n";
-		} else if (!ptVersion.contains("noCuda")) {
-			errMessage = "";
 		} else if (!CUDAVersion.toLowerCase().contains("nocuda")) {
 			errMessage = "Make sure that the DJL Pytorch version is compatible with the installed CUDA version.\n"
 					+ "Check the DeepImageJ Wiki for more information";

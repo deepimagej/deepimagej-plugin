@@ -206,7 +206,7 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 		boolean isFiji = SystemUsage.checkFiji();
 		// If the plugin is running on an IJ1 distribution, set the IJ classloader
 		// as the Thread ContextClassLoader
-		if (isFiji)
+		if (!isFiji)
 			Thread.currentThread().setContextClassLoader(IJ.getClassLoader());
 		// TODO allow the use of translators and transforms
 		URL url;

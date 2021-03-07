@@ -61,12 +61,14 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 	private boolean batch;
 	public 	String	error = "";
 	private boolean composite = false;
+	private boolean show;
 	
-	public DijRunnerPreprocessing(DeepImageJ dp, RunnerProgress rp, ImagePlus inp, boolean batch) {
+	public DijRunnerPreprocessing(DeepImageJ dp, RunnerProgress rp, ImagePlus inp, boolean batch, boolean show) {
 		this.dp = dp;
 		this.rp = rp;
 		this.inp = inp;
 		this.batch = batch;
+		this.show = show;
 	}
 
 	@Override
@@ -76,7 +78,7 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 		rp.setInfoTag("preprocessing");
 		// Show the progress window if it is not showing
 		if (!rp.isVisible())
-			rp.setVisible(true);
+			rp.setVisible(this.show);
 		
 		// Auxiliary variables for DIJ_Run
 		ImagePlus im = null;

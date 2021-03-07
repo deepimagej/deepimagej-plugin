@@ -52,7 +52,7 @@ import ij.IJ;
 public class SystemUsage {
 	
 	private static String checkFiji = null;
-	private static boolean fiji;
+	private static boolean fiji = false;
 
 	public static String getMemoryMB() {
 		MemoryMXBean mem = ManagementFactory.getMemoryMXBean();
