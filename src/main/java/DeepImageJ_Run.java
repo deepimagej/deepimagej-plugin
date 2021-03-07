@@ -418,9 +418,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		// Free memory allocated by the plugin 
 		freeIJMemory(dlg, imp);
 	}
-
-	@Override
-	public void itemStateChanged(ItemEvent e) {
+	
+	/**
+	 * Whenever a model is selected or changed, this method updates
+	 * the user interface
+	 * @param e: the event that represents a model selection
+	 */
+	public void updateInterface(ItemEvent e) {
 		if (e.getSource() == choices[0]) {
 			info.setText("");
 			int ind = choices[0].getSelectedIndex();
@@ -547,6 +551,19 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				texts[1].setEditable(false);
 			}
 			dlg.getButtons()[0].setEnabled(true);
+		}
+		
+	}
+
+	@Override
+	public void itemStateChanged(ItemEvent e) {
+		try {
+			updateInterface(e);
+		} catch (Exception ex) {
+			IJ.error("It seems that either the inputs or outputs of the\n"
+					+ "model are not well defined in the model.yaml.\n"
+					+ "Please correct the model.yaml or select another model.");
+			setGUIOriginalParameters();
 		}
 	}
 
