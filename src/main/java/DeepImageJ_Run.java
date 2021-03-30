@@ -72,6 +72,7 @@ import deepimagej.tools.StartTensorflowService;
 import deepimagej.tools.SystemUsage;
 import ij.IJ;
 import ij.ImagePlus;
+import ij.Macro;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
@@ -113,6 +114,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	private ArrayList<Integer>			missingYamlList;
 	// Array containing all the models loaded by the plugin
 	private String[] 					items;
+	// Check if the plugin is being run from a macro or not
+	private boolean 					isMacro = false;
+	
 	
 	static public void main(String args[]) {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
@@ -130,6 +134,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 
 	@Override
 	public void run(String arg) {
+		
+
+		isMacro = IJ.isMacro();
 
 		ImagePlus imp = WindowManager.getTempCurrentImage();
 		
@@ -151,11 +158,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 
 		dlg = new GenericDialog("DeepImageJ Run [" + Constants.version + "]");
 		
-		String[] defaultSelection = new String[] {"       <select a model from this list>       "};
+		String[] defaultSelection = new String[] {"<Select a model from this list>"};
 		dlg.addChoice("Model", defaultSelection, defaultSelection[0]);
-		dlg.addChoice("Format", new String[]         { "-----------------Select format-----------------" }, "-----------------Select format-----------------");
-		dlg.addChoice("Preprocessing ", new String[] { "-----------Select preprocessing----------- " }, "-----------Select preprocessing----------- ");
-		dlg.addChoice("Postprocessing", new String[] { "-----------Select postprocessing----------" }, "-----------Select postprocessing----------");
+		dlg.addChoice("Format", new String[]         { "Select format" }, "Select format");
+		dlg.addChoice("Preprocessing ", new String[] { "Select preprocessing " }, "Select preprocessing");
+		dlg.addChoice("Postprocessing", new String[] { "Select postprocessing" }, "Select postprocessing");
 		
 		dlg.addStringField("Axes order", "", 30);
 		dlg.addStringField("Tile size", "", 30);
@@ -193,9 +200,18 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		texts[0].setEditable(false);
 		texts[1].setEditable(false);
 
-		// Load the models and Deep Learning engines in a separate thread
-		Thread thread = new Thread(this);
-		thread.start();
+		// Load the models and Deep Learning engines in a separate thread if 
+		// th plugin is not run from a macro
+		if (isMacro) {
+			// If it is a macro, load models, tf and pt directly in the same thread.
+			// If this was done in another thread, the plugin would try to execute the
+			// models before everything was ready
+			loadModels();
+			loadTfAndPytorch();
+		} else {
+			Thread thread = new Thread(this);
+			thread.start();
+		}
 		
 		// Set the 'ok' button and the model choice
 		// combo box disabled until Tf and Pt are loaded
@@ -214,15 +230,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			return;
 		}
 		
-		if (choices[0].getSelectedIndex() == 0 && loadedEngine) {
-			IJ.error("Please select a model.");
-			run("");
-			return;
-		} else if (choices[0].getSelectedIndex() == 0 && !loadedEngine) {
-			IJ.error("Please wait until the Deep Learning engines are loaded.");
-			run("");
-			return;
-		}
 		// This is used for the macro, as in the macro, there is no selection from the list
 		String fullname = (String) choices[0].getSelectedItem();
 		fullname = dlg.getNextChoice();
@@ -238,13 +245,19 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		// For example, the model 'red' is selecte, and the possible models are
 		// {'orange', 'red, 'blue'} --> index = "1"
 		// has to be selected again 
-		if (index.equals("0") == true) {
+		if (isMacro && index.equals("0") == true) {
 			index = Integer.toString(Index.indexOf(items, fullname));
 		}
-		if (index.equals("-1") || index.equals("0")) {
+		if ((index.equals("-1") || index.equals("0")) && loadedEngine) {
 			IJ.error("Select a valid model.");
+			return;
+		} else if ((choices[0].getSelectedIndex() == -1 ||choices[0].getSelectedIndex() == 0) && !loadedEngine) {
+			IJ.error("Please wait until the Deep Learning engines are loaded.");
+			run("");
+			return;
 		}
 
+		// Select the model name using its index in the list
 		String dirname = fullnames.get(index);
 		
 		if (log.getLevel() >= 1)
@@ -447,7 +460,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			}
 			if (dp.params.framework.equals("tensorflow/pytorch")) {
 				choices[1].removeAll();
-				choices[1].addItem("-----------------Select format-----------------");
+				choices[1].addItem("Select format");
 				choices[1].addItem("tensorflow_saved_model_bundle");
 				choices[1].addItem("pytorch_script");
 			} else if (dp.params.framework.equals("pytorch")) {
@@ -560,10 +573,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		try {
 			updateInterface(e);
 		} catch (Exception ex) {
-			IJ.error("It seems that either the inputs or outputs of the\n"
-					+ "model are not well defined in the model.yaml.\n"
-					+ "Please correct the model.yaml or select another model.");
+			String modelName = choices[0].getSelectedItem();
 			setGUIOriginalParameters();
+			info.append("\n");
+			info.setText("It seems that either the inputs or outputs of the\n"
+					+ "model (" + modelName + ") are not well defined in the model.yaml.\n"
+					+ "Please correct the model.yaml or select another model.");
+			dlg.getButtons()[0].setEnabled(false);
 		}
 	}
 
@@ -702,7 +718,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		dps = DeepImageJ.list(path, false, info);
 		int k = 1;
 		items = new String[dps.size() + 1];
-		items[0] = "       <select a model from this list>       ";
+		items[0] = "<Select a model from this list>";
 		for (String dirname : dps.keySet()) {
 			DeepImageJ dp = dps.get(dirname);
 			if (dp != null) {
@@ -792,7 +808,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	 * Tensorflow
 	 */
 	public void getCUDAInfo(String tfVersion, String ptVersion, String cudaVersion) {
-
+		//  For when no Pt version has been found.
+		if (ptVersion == null)
+			ptVersion = "";
+		
 		loadInfo += "\n";
 		if (!cudaVersion.contains(File.separator) && !cudaVersion.toLowerCase().equals("nocuda")) {
 			loadInfo += "Currently using CUDA " + cudaVersion + ".\n";
@@ -821,11 +840,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	public void setGUIOriginalParameters() {
 		info.setText(loadInfo);
 		choices[1].removeAll();
-		choices[1].addItem("-----------------Select format-----------------");
+		choices[1].addItem("Select format");
 		choices[2].removeAll();
-		choices[2].addItem("-----------Select preprocessing----------- ");
+		choices[2].addItem("Select preprocessing");
 		choices[3].removeAll();
-		choices[3].addItem("-----------Select postprocessing-----------");
+		choices[3].addItem("Select postprocessing");
 		texts[0].setText("");
 		texts[1].setText("");
 		texts[1].setEditable(false);
@@ -871,6 +890,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 
 	@Override
 	public void run() {
+
 		loadModels();
 		loadTfAndPytorch();
 		
