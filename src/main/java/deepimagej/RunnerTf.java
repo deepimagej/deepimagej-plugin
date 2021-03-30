@@ -438,10 +438,9 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 								c ++;
 							} else if (outTensor.tensorType.contains("image") && (params.pyramidalNetwork  || !params.allowPatching)) {
 								outputImages[imCounter] = ImagePlus2Tensor.tensor2ImagePlus(result, outTensor.form, outTensor.name);
-								outputImages[imCounter].setTitle(outputTitles[imCounter]);
+								outputImages[imCounter].setTitle(outputTitles[c ++]);
 								outputImages[imCounter].show();
 								imCounter ++;
-								c ++;
 							} else if (outTensor.tensorType.contains("list")){
 								ResultsTable table = Table2Tensor.tensorToTable(result, outTensor.form, outTensor.name);
 								outputTables.add(table);
@@ -505,7 +504,7 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 							float[] outSize = findOutputSize(size, params.outputList.get(counter), params.inputList, impatch[imCounter].getDimensions());
 							if (outputImages[imCounter] == null) {
 								int[] dims = impatch[imCounter].getDimensions();
-								outputImages[imCounter] = IJ.createHyperStack(outputTitles[imCounter], (int)outSize[0], (int)outSize[1], (int)outSize[2], (int)outSize[3], dims[4], 32);
+								outputImages[imCounter] = IJ.createHyperStack(outputTitles[counter], (int)outSize[0], (int)outSize[1], (int)outSize[2], (int)outSize[3], dims[4], 32);
 								outputImages[imCounter].getProcessor().resetMinAndMax();
 								outputImages[imCounter].show();
 							}

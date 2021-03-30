@@ -213,6 +213,9 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		} else if (e.getSource() == install && tab.getSelectedIndex() == 1 && rbURL.isSelected()) {
 			// If the tab selected is the seond one, install from URL
 			installModelUrl();
+		} else if (e.getSource() == install && tab.getSelectedIndex() == 1 && rbZIP.isSelected()) {
+			// If the tab selected is the seond one, install from URL
+			installModelZip();
 		} else if (e.getSource() == help) {
 			openWebBrowser("https://deepimagej.github.io/deepimagej/");
 		}
@@ -279,10 +282,52 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		}
 	}
 	
+	/**
+	 * Copy DeepImageJ model from path and unzip it in the 
+	 * models folder of Fiji/ImageJ
+	 */
+	private void installModelZip() {
+		String name = (String) txtZIP.getText();
+		File zipFile = new File(name);
+		if (name == null || name.equals("") || !zipFile.isFile() || !name.endsWith(".zip")) {
+			IJ.error("The path introduced has to correspond to a valid zip file in the system.");
+			chk.setSelected(false);
+			return;
+		}
+		downloadURL = name;
+		// First check that "Fiji.App\models" exist or create it if not
+		modelsDir = IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
+		// TODO modelsDir = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models";
+		
+		webFileSize = (long) (zipFile.length() / (1024 * 1024.0));
+		// Add timestamp to the model name. 
+		// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
+        Calendar cal = Calendar.getInstance();
+		SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
+		String dateString = sdf.format(cal.getTime());
+		// Get the original name of the zip file
+		fileName = zipFile.getName();
+		fileName = fileName.substring(0, fileName.lastIndexOf("."));
+		fileName = fileName + "_" + dateString + ".zip";
+		
+		Thread thread = new Thread(this);
+		thread.setPriority(Thread.MIN_PRIORITY);
+		progressScreen = new DownloadProgress(false);
+		progressScreen.setThread(thread);
+		stopped = false;
+		thread.start();
+		chk.setSelected(false);
+	}
+	
+	/**
+	 * Download DeepImageJ model from URL and unzip it in the 
+	 * models folder of Fiji/ImageJ
+	 */
 	private void installModelUrl() {
 		String name = (String) txtURL.getText();
 		if (name == null || name.equals("")) {
-			IJ.log("Please introduce a valid URL.");
+			IJ.error("Please introduce a valid URL.");
+			chk.setSelected(false);
 			return;
 		}
 		try {
@@ -291,7 +336,8 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			URL url = new URL(name);
 			downloadURL = name;
 		} catch (MalformedURLException e) {
-			IJ.log("String introduced does not correspond to a valid URL.");
+			IJ.error("String introduced does not correspond to a valid URL.");
+			chk.setSelected(false);
 			return;
 		}
 		
@@ -308,12 +354,18 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		
 		Thread thread = new Thread(this);
 		thread.setPriority(Thread.MIN_PRIORITY);
-		progressScreen = new DownloadProgress();
+		progressScreen = new DownloadProgress(true);
 		progressScreen.setThread(thread);
 		stopped = false;
 		thread.start();
+		chk.setSelected(false);
 	}
+
 	
+	/**
+	 * Download DeepImageJ model from the Bioimage.io and unzip it in the 
+	 * models folder of Fiji/ImageJ
+	 */
 	private void installModelBioimageio() {
 		String name = (String)cmb.getSelectedItem();
 		if (name != null && !name.equals("")) {
@@ -336,10 +388,11 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 				
 				Thread thread = new Thread(this);
 				thread.setPriority(Thread.MIN_PRIORITY);
-				progressScreen = new DownloadProgress();
+				progressScreen = new DownloadProgress(true);
 				progressScreen.setThread(thread);
 				stopped = false;
 				thread.start();
+				chk.setSelected(false);
 			}
 		}
 	}
@@ -347,6 +400,54 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	@Override
 	public void run() {
 		install.setEnabled(false);
+		if (new File(downloadURL).isFile()) {
+			copyFromPath();
+		} else {
+			downloadModelFromInternet();
+		}
+		
+		stopped = true;
+		chk.setSelected(false);
+	}
+	
+	/**
+	 * Method that copies zip model from introduced
+	 * location into the models folder and unzips it
+	 */
+	public void copyFromPath() {
+		boolean copied = false;
+		try {
+			File originalModel = new File(downloadURL);
+			File destFile = new File(modelsDir + File.separator +  fileName);
+			progressScreen.setFileName(modelsDir + File.separator +  fileName);
+			progressScreen.setmodelName(fileName);
+			progressScreen.setFileSize(webFileSize);
+			progressScreen.buildScreen();
+			progressScreen.setVisible(true);
+			FileTools.copyFile(originalModel, destFile);
+			copied = true;
+			if (!Thread.interrupted()) {
+				// Once it is already downloaded unzip the model
+				String unzippedFileName = modelsDir + File.separator + fileName.substring(0, fileName.lastIndexOf("."));
+				FileTools.unzipFolder(new File(modelsDir, fileName), unzippedFileName);
+			}
+		} catch(Exception ex) {
+			ex.printStackTrace();
+			if (!copied) {
+				IJ.error("Unable to copy file from desired location.\n"
+						+ "Check the permissions.");
+			} else {
+				IJ.error("Unable to unzip he file in the models folder.");
+			}
+		}
+		progressScreen.stop();
+	}
+
+	/**
+	 * Method that downloads the model selected from the internet,
+	 * copies it and unzips it into the models folder
+	 */
+	public void downloadModelFromInternet() {
 		FileOutputStream fos = null;
 		ReadableByteChannel rbc = null;
 		try {
@@ -384,8 +485,6 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			}
 		}
 		progressScreen.stop();
-		stopped = true;
-		chk.setSelected(false);
+		
 	}
-
 }

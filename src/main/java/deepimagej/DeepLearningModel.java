@@ -405,7 +405,7 @@ public class DeepLearningModel {
 			errMessage = "Installed CUDA version " + CUDAVersion + " is not compatible with DJL Pytorch  1.4.0.\n"
 					+ "The plugin might not be able to run on GPU.\n"
 					+ "For optimal performance please install CUDA 9.2 or CUDA 10.1.\n";
-		} else if (!CUDAVersion.toLowerCase().contains("nocuda")) {
+		} else if (!CUDAVersion.toLowerCase().contains("nocuda") && !ptVersion.equals("")) {
 			errMessage = "Make sure that the DJL Pytorch version is compatible with the installed CUDA version.\n"
 					+ "Check the DeepImageJ Wiki for more information";
 		}
@@ -459,6 +459,7 @@ public class DeepLearningModel {
 		ptJni = getLibPytorchJar();
 		if (!ptJni.contains("jar"))
 			return ptJni;
+		
 		String ptVersion = getPytorchVersionFromJar(ptJni);
 		return ptVersion;	
 	}
@@ -472,6 +473,7 @@ public class DeepLearningModel {
 		String ijDirectory = IJ.getDirectory("imagej") + File.separator;
 		// TODO remove 
 		//ijDirectory = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app";
+		
 		String pluginsDirectory = ijDirectory + File.separator + "plugins" + File.separator;
 		String pluginsJar = findPytorchJar(pluginsDirectory);
 
@@ -510,6 +512,7 @@ public class DeepLearningModel {
 
 		File folder = new File(folderDir);
 		File[] listOfFiles = folder.listFiles();
+		
 		if (listOfFiles == null)
 			return "";
 

@@ -45,7 +45,6 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ExecutorService;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -75,9 +74,18 @@ public class DownloadProgress extends JDialog implements ActionListener {
 	private long totalFileSize = 1;
 	private Thread thread = null;
 	private double modelSizeMb = 1;
+	private String progressString = "Download progress: ";
 	
-	public DownloadProgress() {
-		super(new JFrame(), "Downloading model");
+	public DownloadProgress(boolean downloading) {
+		super(new JFrame(), "");
+		String header = "Downloading model";
+		if (!downloading)
+			header = "Copying model: ";
+		this.setTitle(header);
+		
+		if (!downloading)
+			progressString = "Copying progress";
+		
 	}
 	
 	public void buildScreen() {
@@ -142,7 +150,7 @@ public class DownloadProgress extends JDialog implements ActionListener {
 			String txt = "" + this.modelSizeMb;
 			if (txt.lastIndexOf(".") != -1 && txt.length() - txt.lastIndexOf(".") >= 2)
 				txt = txt.substring(0, txt.lastIndexOf(".") + 2);
-			modelSize.setText("Model size: " + txt + " GB");
+			modelSize.setText("Model size: " + txt + " MB");
 		}
 			
 	}
@@ -177,7 +185,7 @@ public class DownloadProgress extends JDialog implements ActionListener {
 		progress = Math.round(currentFileSize * 100 / totalFileSize) + "";
 
 		if (currentFileSize < totalFileSize)
-			downloadedSize.setText("Download progress: " + progress + "%");
+			downloadedSize.setText(progressString + progress + "%");
 		else
 			downloadedSize.setText("Unzipping model");
 	}
