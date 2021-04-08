@@ -395,7 +395,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		// If the number of pixels is too big let the user know that they might prefer not saving
 		// the results in npy format
 		if (numPixels > 50000) {
-			String msg = "The image " + im.getTitle() + " is too big to save it in .npy format.\n"
+			String msg = "Do you want to save the image '" + im.getTitle() + "' in .npy format.\n"
 						+ "Saving it might take too long. Do you want to continue?";
 			boolean accept = IJ.showMessageWithCancel("Cancel .npy file save", msg);
 			if (!accept)
@@ -418,7 +418,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		// If the number of pixels is too big let the user know that they might prefer not saving
 		// the results in npy format
 		if (numPixels > 50000) {
-			String msg = "The table " + table.getTitle() + " is too big to save it in .npy format.\n"
+			String msg = "Do you want to save the table '" + table.getTitle() + "' in .npy format.\n"
 						+ "Saving it might take too long. Do you want to continue?";
 			boolean accept = IJ.showMessageWithCancel("Cancel .npy file save", msg);
 			if (!accept)
