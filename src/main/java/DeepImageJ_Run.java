@@ -391,7 +391,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		}
 		
 		boolean iscuda = DeepLearningModel.TensorflowCUDACompatibility(loadInfo, cudaVersion).equals("");
-		ModelLoader loadModel = new ModelLoader(dp, rp, loadInfo.contains("GPU"), iscuda, log.getLevel() >= 1);
+		ModelLoader loadModel = new ModelLoader(dp, rp, loadInfo.contains("GPU"), iscuda, log.getLevel() >= 1, SystemUsage.checkFiji());
 
 		Future<Boolean> f1 = service.submit(loadModel);
 		boolean output = false;
@@ -615,12 +615,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				Future<HashMap<String, Object>> f1 = service.submit(runner);
 				output = f1.get();
 			} else {
-				String lib = new File(LibUtils.getLibName()).getName();
-				if (!lib.toLowerCase().contains("cpu")) {
-					rp.setGPU("cpu");
-				} else {
-					rp.setGPU("gpu");
-				}
 				RunnerPt runner = new RunnerPt(dp, rp, inputsMap, log);
 				rp.setRunner(runner);
 				// TODO decide what to store at the end of the execution
@@ -659,6 +653,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			// Remove possible hidden images from IJ workspace
 			ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 			
+		} catch (IllegalStateException ex) {
+			IJ.error("Error during the aplication of the model.\n"
+					+ "Pytorch native library not found.");
+			ex.printStackTrace();
 		} catch (InterruptedException ex) {
 			IJ.error("Error during the aplication of the model.");
 			ex.printStackTrace();

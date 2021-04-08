@@ -688,6 +688,8 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 		int[] padding = {0, 0, 0, 0};
 		String[] form = "XYCZ".split("");
 		for (DijTensor out: outputs) {
+			if (!out.tensorType.equals("image"))
+				continue;
 			for (int i = 0; i < form.length; i ++) {
 				int ind = Index.indexOf(out.form.split(""), form[i]);
 				if (out.tensorType.contains("image") && ind != -1 && form[i].equals("B") == false) {
@@ -731,6 +733,8 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 		String[] form = "XYCZ".split("");
 		int c1 = 0;
 		for (DijTensor out: outputs) {
+			if (!out.tensorType.equals("tensorType"))
+				continue;
 			int c2 = 0;
 			for (int i = 0; i < offsets[0].length; i ++) {
 				int ind = Index.indexOf(out.form.split(""), form[i]);

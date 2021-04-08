@@ -37,7 +37,6 @@
 
 package deepimagej.validation;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 
 import ij.IJ;
@@ -70,6 +69,8 @@ public class Poisson extends AbstractLoss {
 	
 		int nzr = reference.getStack().getSize();
 		int nzt = test.getStack().getSize();
+
+		double avoidNanConstant = Math.pow(10, -100);
 		
 		for (int z=1; z<=Math.max(nzr, nzt); z++) {
 			int ir = Math.min(z, nzr);
@@ -77,17 +78,19 @@ public class Poisson extends AbstractLoss {
 			ImageProcessor ipt = test.getStack().getProcessor(it);
 			ImageProcessor ipr = reference.getStack().getProcessor(ir);
 			int n=0;
-			double s, g, poisson=0.0, rmse;
+			double s, g, poisson=0.0;
 			for (int x = 0; x < nxr; x++) {
 				for (int y = 0; y < nyr; y++) {
 					
 					s =  ipr.getPixelValue(x, y);
-					g = ipt.getPixelValue(x, y);
-					if (!Double.isNaN(g))
-						if (!Double.isNaN(s)) {
-							poisson += g-s*Math.log(g);
-							n++;
-						}
+					g = ipt.getPixelValue(x, y) + avoidNanConstant;
+					if (!Double.isNaN(g) && !Double.isNaN(s)) {
+						double term = 0;
+						if (s != 0)
+							term = s*Math.log(g);
+						poisson += g - term;
+						n++;
+					}
 				}
 			}
 			poisson=poisson/n;

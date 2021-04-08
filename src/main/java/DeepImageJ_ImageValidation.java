@@ -52,12 +52,13 @@ import java.util.ArrayList;
 import java.util.Vector;
 
 import ij.IJ;
+import ij.ImageJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.measure.ResultsTable;
 import ij.plugin.PlugIn;
-
+import ij.process.ImageStatistics;
 import deepimagej.validation.AbstractLoss;
 import deepimagej.validation.Bce;
 import deepimagej.validation.CategoricalHinge;
@@ -104,6 +105,13 @@ public class DeepImageJ_ImageValidation implements ActionListener,PlugIn, ItemLi
 	
 	
 	public static void main(String arg[]) {
+		new ImageJ();
+		ImagePlus imp = IJ.openImage("/Users/sara/Downloads/SkinLesions/0066_binary2.tif");
+		if (imp != null)
+			imp.show();
+		ImagePlus imp2 = IJ.openImage("/Users/sara/Downloads/SkinLesions/0066_binary.tif");
+		if (imp2 != null)
+			imp2.show();
 		new DeepImageJ_ImageValidation().run("");
 	}
 
@@ -279,9 +287,7 @@ public class DeepImageJ_ImageValidation implements ActionListener,PlugIn, ItemLi
 			IJ.error("Images do not have the same dimensions");
 		
 		
-		
-		
-		place_jacc =(int)img1.getStack().getProcessor(1).getMax()+1;
+		place_jacc =(int)img1.getStack().getProcessor(1).getStatistics().max + 1;
 		
 		//Verify some constraints of the loss functions and display an error if there is one
 		for(AbstractLoss function : functions)
@@ -306,8 +312,8 @@ public class DeepImageJ_ImageValidation implements ActionListener,PlugIn, ItemLi
 			}
 		
 		//create a table which will store results
-		String results[][]= new String[nb_function_selected][Math.max(nzr, nzt)];
-		String results_segmented[][]= new String[nb_function_segmented][place_jacc*Math.max(nzr, nzt)];
+		String results[][]= new String[nb_function_selected][Math.max(nzr, nzt) + 1];
+		String results_segmented[][]= new String[nb_function_segmented][place_jacc*Math.max(nzr, nzt) + 1];
 		ArrayList<String> funcname = new ArrayList<String>();
 		ArrayList<String> funcname_segmented = new ArrayList<String>();
 		
@@ -401,18 +407,18 @@ public class DeepImageJ_ImageValidation implements ActionListener,PlugIn, ItemLi
 		//Create the table of results
 		for (int l = 0; l < Math.max(nzr, nzt) ; l++) {
 			if(segmented) {
-				for(int m = 0; m < place_jacc; m++) {
+				for(int m = 0; m <= place_jacc; m++) {
 					
 					table.incrementCounter();
 					table.addValue("ref", img1.getTitle());
 					table.addValue("test", img2.getTitle());
-					if(m==place_jacc-1) {
+					if(m==place_jacc) {
 						table.addValue("N Ref", Integer.toString(stack1)+"(average)");
 						table.addValue("N Test", Integer.toString(stack2)+"(average)");
 					}
 					else {
-						table.addValue("N Ref", Integer.toString(stack1)+"("+Integer.toString(m+1)+")");
-						table.addValue("N Test", Integer.toString(stack2)+"("+Integer.toString(m+1)+")");
+						table.addValue("N Ref", Integer.toString(stack1)+"("+Integer.toString(m)+")");
+						table.addValue("N Test", Integer.toString(stack2)+"("+Integer.toString(m)+")");
 					}
 					for (int i = 0; i < funcname_segmented.size(); i++) {
 						table.addValue(funcname_segmented.get(i), results_segmented[i][no_im_jacc+m]);
@@ -456,9 +462,7 @@ public class DeepImageJ_ImageValidation implements ActionListener,PlugIn, ItemLi
 					stack2++;
 				}
 				
-			}
-			
-			
+			}			
 		}
 		// display table of results
 		table.show("Loss");

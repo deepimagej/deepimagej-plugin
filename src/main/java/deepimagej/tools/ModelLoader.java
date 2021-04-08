@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
+import ai.djl.pytorch.jni.LibUtils;
 import deepimagej.DeepImageJ;
 import deepimagej.RunnerProgress;
 import ij.IJ;
@@ -52,13 +53,15 @@ public class ModelLoader implements Callable<Boolean>{
 	private boolean gpu;
 	private boolean cuda;
 	private boolean show;
+	private boolean isFiji;
 	
-	public ModelLoader(DeepImageJ dp, RunnerProgress rp, boolean gpu, boolean cuda, boolean show) {
+	public ModelLoader(DeepImageJ dp, RunnerProgress rp, boolean gpu, boolean cuda, boolean show, boolean isFiji) {
 		this.dp = dp;
 		this.rp = rp;
 		this.gpu = gpu;
 		this.cuda = cuda;
 		this.show = show;
+		this.isFiji = isFiji;
 	}
 
 	@Override
@@ -95,15 +98,16 @@ public class ModelLoader implements Callable<Boolean>{
 			ret = dp.loadTfModel(true);
 		} else if (dp.params.framework.equals("pytorch")) {
 			String ptWeightsPath = dp.getPath() + File.separatorChar + "pytorch_script.pt" ;
-			ret = dp.loadPtModel(ptWeightsPath);
+			ret = dp.loadPtModel(ptWeightsPath, isFiji);
 		}
 		if (ret == false && dp.params.framework.equals("tensorflow")) {
 			IJ.error("Error loading " + dp.getName() + 
 					"\nTry using another Tensorflow version.");
 			return false;
 		} else if (ret == false && dp.params.framework.equals("pytorch")) {
-			IJ.error("Error loading " + dp.getName() + 
-					"\nDeepImageJ loads models until Pytorch 1.6.");
+			IJ.error("Error loading Pytorch model: " + dp.getName() + 
+					"\nCheck that the Pytorch version corresponds to the pytorch-native-auto jar executable."
+					+ "\nIf the problem persits, please check the DeepImageJ Wiki.");
 			return false;
 		}
 		rp.allowStopping(true);
@@ -113,7 +117,7 @@ public class ModelLoader implements Callable<Boolean>{
 			return false;
 		
 		
-		if (gpu) {
+		if (gpu && dp.params.framework.equals("tensorflow")) {
 			ArrayList<String> finalSmi = SystemUsage.runNvidiaSmi();
 			String GPUInfo = SystemUsage.isUsingGPU(initialSmi, finalSmi);
 			if (GPUInfo.equals("noImageJProcess") && cuda) {
@@ -127,10 +131,19 @@ public class ModelLoader implements Callable<Boolean>{
 				if (nImageJInstances > nGPUIJInstances) {
 					rp.setGPU("???");
 				} else if (nImageJInstances <= nGPUIJInstances) {
-					rp.setGPU("GPU");
+					rp.setGPU("gpu");
 				}
 			} else {
-				rp.setGPU("GPU");
+				rp.setGPU("gpu");
+			}
+		}
+		
+		if (dp.params.framework.toLowerCase().equals("pytorch")) {
+			String lib = new File(LibUtils.getLibName()).getName();
+			if (!lib.toLowerCase().contains("cpu")) {
+				rp.setGPU("cpu");
+			} else {
+				rp.setGPU("gpu");
 			}
 		}
 		

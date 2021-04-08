@@ -75,23 +75,28 @@ public class Bce extends AbstractLoss {
 	
 		int nzr = reference.getStack().getSize();
 		int nzt = test.getStack().getSize();
-		
+
+		double avoidNanConstant = Math.pow(10, -100);
 		for (int z=1; z<=Math.max(nzr, nzt); z++) {
 			int ir = Math.min(z, nzr);
 			int it = Math.min(z, nzt);
 			ImageProcessor ipt = test.getStack().getProcessor(it);
 			ImageProcessor ipr = reference.getStack().getProcessor(ir);
-			int n=0;
 			double s, g, bce=0.0;
 			for (int x = 0; x < nxr; x++) {
 				for (int y = 0; y < nyr; y++) {
 					
-					s =  ipr.getPixelValue(x, y);
-					g = ipt.getPixelValue(x, y);
-					if (!Double.isNaN(g))
-						if (!Double.isNaN(s)) {
-							bce+=s*Math.log(g)+(1-s)*Math.log(1-g);
-						}
+					s = ipr.getPixelValue(x, y) + avoidNanConstant;
+					g = ipt.getPixelValue(x, y) + avoidNanConstant;
+					if (!Double.isNaN(g) && !Double.isNaN(s)) {
+						double firstTerm = 0;
+						double secondTerm = 0;
+						if (s != 0)
+							firstTerm = s*Math.log(g);
+						if (s != 1)
+							secondTerm = (1-s)*Math.log(1-g);
+						bce += firstTerm + secondTerm;
+					}
 				}
 			}
 			res.add(-bce/(nxr*nyr));

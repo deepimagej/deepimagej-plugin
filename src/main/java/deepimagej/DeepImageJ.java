@@ -174,8 +174,10 @@ public class DeepImageJ {
 	}
 
 
-	public boolean loadPtModel(String path) {
+	public boolean loadPtModel(String path, boolean isFiji) {
 		try {
+			if (!isFiji)
+				Thread.currentThread().setContextClassLoader(IJ.getClassLoader());
 			URL url = new File(new File(path).getParent()).toURI().toURL();
 			
 			String modelName = new File(path).getName();

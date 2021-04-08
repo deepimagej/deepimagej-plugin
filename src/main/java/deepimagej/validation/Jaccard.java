@@ -44,6 +44,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.Roi;
 import ij.process.ImageProcessor;
+import ij.process.ImageStatistics;
 
 public class Jaccard extends AbstractLoss {
 
@@ -77,9 +78,10 @@ public class Jaccard extends AbstractLoss {
 			int it = Math.min(z, nzt);
 			ImageProcessor ipt = test.getStack().getProcessor(it);
 			ImageProcessor ipr = reference.getStack().getProcessor(ir);
-			int difval = (int)ipt.getMax();
+			ImageStatistics aa = ipt.getStatistics();
+			int difval = (int)aa.max + 1;
 			int n=0;
-			double s, g, sum = 0.0, jaccard = 0.0, intersection=0.0, smooth=1.0,union=0.0,meanjacc=0.0;
+			double s, g, sum = 0.0, jaccard = 0.0, intersection=0.0, smooth=10^-100,meanjacc=0.0;
 			
 			for(int v=0; v < difval ; v++) {
 				for (int x = 0; x < nxr; x++) {
@@ -87,29 +89,32 @@ public class Jaccard extends AbstractLoss {
 						
 						s =  ipr.getPixelValue(x, y);
 						g = ipt.getPixelValue(x, y);
-						if( s== (v+1) && g== (v+1)) {
-							if (!Double.isNaN(g))
-								if (!Double.isNaN(s)) {
-									intersection += 1;
-									sum += 2;
-									
-								}
+						if (Double.isNaN(g) || Double.isNaN(s)) {
+							continue;
+								
 						}
-						else if(s== (v+1) || g== (v+1)){
-							if (!Double.isNaN(g))
-								if (!Double.isNaN(s)) {
-									sum += 1;
-								}
+						if( s == v && g == v) {
+							intersection += 1;
+							sum += 1;
+						}
+						else if(s == v || g == v){
+							sum += 1;
 						}
 						
 					}
 				}
-				union=sum-intersection;
-				jaccard=(intersection + smooth)/(union + smooth);
-				res.add(1-jaccard);
-				meanjacc+=1-jaccard;
+				if (sum == 0) {
+					jaccard = 0;
+				} else {
+					jaccard=(intersection + smooth)/(sum + smooth);
+					n ++;
+				}
+				res.add(jaccard);
+				meanjacc+=jaccard;
+				intersection = 0;
+				sum = 0;
 			}
-			meanjacc/=difval;
+			meanjacc/=n;
 			res.add(meanjacc);
 					
 		}
