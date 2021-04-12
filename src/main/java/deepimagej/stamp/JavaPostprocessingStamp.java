@@ -320,8 +320,10 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 			parent.getDeepPlugin().params.attachments = new ArrayList<String>();
 			for (String pre : parent.getDeepPlugin().params.preAttachments)
 				parent.getDeepPlugin().params.attachments.add(pre);
-			for (String post : parent.getDeepPlugin().params.postAttachments)
-				parent.getDeepPlugin().params.attachments.add(post);
+			for (String post : parent.getDeepPlugin().params.postAttachments) {
+				if (!parent.getDeepPlugin().params.attachments.contains(post))
+					parent.getDeepPlugin().params.attachments.add(post);
+			}
 			return true;
 		}
 		
@@ -361,7 +363,19 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 			String preName = dep.substring(dep.lastIndexOf(File.separator) + 1);
 			if (preName.contentEquals(postName) && !dep.contentEquals(tag) && !tag.endsWith(".jar")) {
 				IJ.error("A file called '" + postName  + "' was already added for pre-processing.\n"
-						+ "Cannot ad file with the same filename unless it is the exact same file (same path).");
+						+ "Cannot add file with the same filename unless it is the exact same file (same path).");
+				// Empty the text in the text field
+				depPath.setText("Drop file needed for post-processing");
+				return;
+			}
+		}
+		// Check that the name of the files introduced does not coincide 
+		// with the name of a file given during post-processing,
+		for (String dep : parent.getDeepPlugin().params.postAttachments) {
+			String pName = dep.substring(dep.lastIndexOf(File.separator) + 1);
+			if (pName.contentEquals(postName) && !dep.contentEquals(tag) && !tag.endsWith(".jar")) {
+				IJ.error("A file called '" + postName  + "' was already added for post-processing.\n"
+						+ "Cannot add two files with the same name.");
 				// Empty the text in the text field
 				depPath.setText("Drop file needed for post-processing");
 				return;

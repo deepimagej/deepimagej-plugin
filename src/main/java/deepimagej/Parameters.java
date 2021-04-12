@@ -263,6 +263,7 @@ public class Parameters {
 		// If the model is not valid or we are in the developer plugin,
 		// we cannot read the parameters from anywhere as there is no
 		// config file
+		path2Model = path;
 		File yamlFile = new File(path + File.separator + "model.yaml");
 		developer = isDeveloper;
 		if (developer || !yamlFile.isFile())
@@ -316,23 +317,7 @@ public class Parameters {
 		framework = (String) "" + obj.get("framework");
 		git_repo = (String) "" + obj.get("git_repo");
 		
-		ArrayList<String> attachmentsAux = null;
-		if (obj.get("attachments") instanceof ArrayList)
-			attachmentsAux = (ArrayList<String>) obj.get("attachments");
-		
-		attachments = new ArrayList<String>();
-		attachmentsNotIncluded = new ArrayList<String>();
-		String defaultFlag = "Include here any plugin that might be required for pre- or post-processing";
-		if (attachmentsAux != null) {
-			for (String str : attachmentsAux) {
-				if (new File(path2Model, str).isFile() && !str.contentEquals(""))
-					attachments.add(new File(path2Model, str).getAbsolutePath());
-				else if (!str.contentEquals(defaultFlag))
-					attachmentsNotIncluded.add(str);
-			}
-		}
-		
-		LinkedHashMap<String, LinkedHashMap<String, Object>> weights = (LinkedHashMap<String, LinkedHashMap<String, Object>>) obj.get("weights");
+		LinkedHashMap<String, Object> weights = (LinkedHashMap<String, Object>) obj.get("weights");
 		// Look for the valid weights tags
 		Set<String> weightFormats = weights.keySet();
 		boolean tf = false;
@@ -346,17 +331,33 @@ public class Parameters {
 		
 		if (tf && pt) {
 			framework = "tensorflow/pytorch";
-			ptSha256 = (String) "" + weights.get("pytorch_script").get("sha256");
-			tfSha256 = (String) "" + weights.get("tensorflow_saved_model_bundle").get("sha256");
+			ptSha256 = (String) "" + ((LinkedHashMap<String, Object>) weights.get("pytorch_script")).get("sha256");
+			tfSha256 = (String) "" + ((LinkedHashMap<String, Object>) weights.get("tensorflow_saved_model_bundle")).get("sha256");
 		} else if (tf) {
 			framework = "tensorflow";
-			tfSha256 = (String) "" + weights.get("tensorflow_saved_model_bundle").get("sha256");
+			tfSha256 = (String) "" + ((LinkedHashMap<String, Object>) weights.get("tensorflow_saved_model_bundle")).get("sha256");
 		} else if (pt) {
 			framework = "pytorch";
-			ptSha256 = (String) "" + weights.get("pytorch_script").get("sha256");
+			ptSha256 = (String) "" + ((LinkedHashMap<String, Object>) weights.get("pytorch_script")).get("sha256");
 		} else if (!tf && !pt) {
 			completeConfig = false;
 			return;
+		}
+		
+		ArrayList<String> attachmentsAux = null;
+		if (weights.get("attachments") instanceof ArrayList)
+			attachmentsAux = (ArrayList<String>) weights.get("attachments");
+		
+		attachments = new ArrayList<String>();
+		attachmentsNotIncluded = new ArrayList<String>();
+		String defaultFlag = "Include here any plugin that might be required for pre- or post-processing";
+		if (attachmentsAux != null) {
+			for (String str : attachmentsAux) {
+				if (new File(path2Model, str).isFile() && !str.contentEquals(""))
+					attachments.add(new File(path2Model, str).getAbsolutePath());
+				else if (!str.contentEquals(defaultFlag))
+					attachmentsNotIncluded.add(str);
+			}
 		}
 		
 		// Model metadata

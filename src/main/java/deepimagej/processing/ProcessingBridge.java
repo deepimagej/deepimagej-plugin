@@ -70,7 +70,7 @@ public class ProcessingBridge {
 			map = manageInputs(map, false, params, im);
 		} else if (params.firstPreprocessing != null && (params.firstPreprocessing.contains(".jar") || params.firstPreprocessing.contains(".class") || new File(params.firstPreprocessing).isDirectory())) {
 			map.put(params.inputList.get(inputImageInd).name, im);
-			map = runPreprocessingJava(map, params.firstPreprocessing, params.preAttachments, params);
+			map = runPreprocessingJava(map, params.firstPreprocessing, params.attachments, params);
 		}
 		
 
@@ -80,7 +80,7 @@ public class ProcessingBridge {
 		} else if (params.secondPreprocessing != null && (params.secondPreprocessing.contains(".jar") || params.secondPreprocessing.contains(".class") || new File(params.secondPreprocessing).isDirectory())) {
 			if (map.keySet().size() == 0)
 				map.put(params.inputList.get(inputImageInd).name, im);
-			map = runPreprocessingJava(map, params.secondPreprocessing, params.preAttachments, params);
+			map = runPreprocessingJava(map, params.secondPreprocessing, params.attachments, params);
 		} else if (params.secondPreprocessing == null && (params.firstPreprocessing == null || params.firstPreprocessing.contains(".txt") || params.firstPreprocessing.contains(".ijm"))) {
 			map = manageInputs(map, true, params);
 		} else if (params.secondPreprocessing == null && (params.firstPreprocessing.contains(".jar") || params.secondPreprocessing.contains(".class") || new File(params.firstPreprocessing).isDirectory())) {
@@ -207,14 +207,14 @@ public class ProcessingBridge {
 			runPostprocessingMacro(params.firstPostprocessing);
 			map = manageOutputs(map);
 		} else if (params.firstPostprocessing != null && (params.firstPostprocessing.contains(".jar") || params.firstPostprocessing.contains(".class") || new File(params.firstPostprocessing).isDirectory())) {
-			map = runPostprocessingJava(map, params.firstPostprocessing, params.postAttachments, params);
+			map = runPostprocessingJava(map, params.firstPostprocessing, params.attachments, params);
 		}
 		
 
 		if (params.secondPostprocessing != null && (params.secondPostprocessing.contains(".txt") || params.secondPostprocessing.contains(".ijm"))) {
 			runPostprocessingMacro(params.secondPostprocessing);
 		} else if (params.secondPostprocessing != null && (params.secondPostprocessing.contains(".jar") || params.secondPostprocessing.contains(".class") || new File(params.secondPostprocessing).isDirectory())) {
-			map = runPostprocessingJava(map, params.secondPostprocessing, params.postAttachments, params);
+			map = runPostprocessingJava(map, params.secondPostprocessing, params.attachments, params);
 		}
 		return map;
 	}

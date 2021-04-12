@@ -347,6 +347,19 @@ public class JavaPreprocessingStamp extends AbstractStamp implements ActionListe
 				return;
 			}
 		}
+		// Check that the name of the files introduced does not coincide 
+		// with the name of a file given during pre-processing
+		String preName = tag.substring(tag.lastIndexOf(File.separator) + 1);
+		for (String dep : parent.getDeepPlugin().params.preAttachments) {
+			String pName = dep.substring(dep.lastIndexOf(File.separator) + 1);
+			if (pName.contentEquals(preName) && !tag.endsWith(".jar")) {
+				IJ.error("A file called '" + preName  + "' was already added for pre-processing.\n"
+						+ "Cannot add two files with the same name.");
+				// Empty the text in the text field
+				depPath.setText("Drop file needed for pre-processing");
+				return;
+			}
+		}
 		
 		parent.getDeepPlugin().params.preAttachments.add(tag);
 
