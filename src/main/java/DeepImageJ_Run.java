@@ -122,7 +122,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		path = "C:\\Users\\Carlos(tfg)\\Pictures\\Fiji.app\\models" + File.separator;
 		path = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models" + File.separator;
-		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Videos\\Fiji.app\\models\\MRCNN\\exampleImage.tiff");
+		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\SkinLesions.bioimage.io.model\\0066.tif");
 		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\unet3d\\Substack (50-100).tif");
 		//ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
 		imp.show();
@@ -403,6 +403,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			else
 				IJ.error("Unable to load model");
 			e.printStackTrace();
+			rp.stop();
 		}
 		
 		
