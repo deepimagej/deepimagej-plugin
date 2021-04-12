@@ -62,14 +62,15 @@ public class ProcessingBridge {
 																					ClassNotFoundException, InstantiationException, IOException {
 		HashMap<String, Object> map = new HashMap<String, Object>();
 		params.javaPreprocessingClass = new ArrayList<String>();
+		int inputImageInd = DijTensor.getImageTensorInd(params.inputList);
 		// Assume that the image selected will result in the input image to the model
 		// Assumes 'im' will be the input to the model
 		if (params.firstPreprocessing != null && (params.firstPreprocessing.contains(".txt") || params.firstPreprocessing.contains(".ijm"))) {
 			im = runProcessingMacro(im, params.firstPreprocessing, params.developer);
 			map = manageInputs(map, false, params, im);
 		} else if (params.firstPreprocessing != null && (params.firstPreprocessing.contains(".jar") || params.firstPreprocessing.contains(".class") || new File(params.firstPreprocessing).isDirectory())) {
-			map.put(params.inputList.get(0).name, im);
-			map = runPreprocessingJava(map, params.firstPreprocessing, params.secondPreprocessing, params);
+			map.put(params.inputList.get(inputImageInd).name, im);
+			map = runPreprocessingJava(map, params.firstPreprocessing, params.preAttachments, params);
 		}
 		
 
@@ -78,8 +79,8 @@ public class ProcessingBridge {
 			map = manageInputs(map, true,  params, im);
 		} else if (params.secondPreprocessing != null && (params.secondPreprocessing.contains(".jar") || params.secondPreprocessing.contains(".class") || new File(params.secondPreprocessing).isDirectory())) {
 			if (map.keySet().size() == 0)
-				map.put(params.inputList.get(0).name, im);
-			map = runPreprocessingJava(map, params.secondPreprocessing, params.firstPreprocessing, params);
+				map.put(params.inputList.get(inputImageInd).name, im);
+			map = runPreprocessingJava(map, params.secondPreprocessing, params.preAttachments, params);
 		} else if (params.secondPreprocessing == null && (params.firstPreprocessing == null || params.firstPreprocessing.contains(".txt") || params.firstPreprocessing.contains(".ijm"))) {
 			map = manageInputs(map, true, params);
 		} else if (params.secondPreprocessing == null && (params.firstPreprocessing.contains(".jar") || params.secondPreprocessing.contains(".class") || new File(params.firstPreprocessing).isDirectory())) {
@@ -150,7 +151,7 @@ public class ProcessingBridge {
 	 * @throws SecurityException 
 	 * @throws NoSuchMethodException 
 	 */
-	private static HashMap<String, Object> runPreprocessingJava(HashMap<String, Object> map, String processingPath, String config, Parameters params) throws JavaProcessingError, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException, InstantiationException, IOException {
+	private static HashMap<String, Object> runPreprocessingJava(HashMap<String, Object> map, String processingPath, ArrayList<String> config, Parameters params) throws JavaProcessingError, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException, InstantiationException, IOException {
 		boolean preprocessing = true;
 		ExternalClassManager processingRunner = new ExternalClassManager (processingPath, preprocessing, params);
 		map = processingRunner.javaPreprocess(map, config);
@@ -206,14 +207,14 @@ public class ProcessingBridge {
 			runPostprocessingMacro(params.firstPostprocessing);
 			map = manageOutputs(map);
 		} else if (params.firstPostprocessing != null && (params.firstPostprocessing.contains(".jar") || params.firstPostprocessing.contains(".class") || new File(params.firstPostprocessing).isDirectory())) {
-			map = runPostprocessingJava(map, params.firstPostprocessing, params.secondPostprocessing, params);
+			map = runPostprocessingJava(map, params.firstPostprocessing, params.postAttachments, params);
 		}
 		
 
 		if (params.secondPostprocessing != null && (params.secondPostprocessing.contains(".txt") || params.secondPostprocessing.contains(".ijm"))) {
 			runPostprocessingMacro(params.secondPostprocessing);
 		} else if (params.secondPostprocessing != null && (params.secondPostprocessing.contains(".jar") || params.secondPostprocessing.contains(".class") || new File(params.secondPostprocessing).isDirectory())) {
-			map = runPostprocessingJava(map, params.secondPostprocessing, params.firstPostprocessing, params);
+			map = runPostprocessingJava(map, params.secondPostprocessing, params.postAttachments, params);
 		}
 		return map;
 	}
@@ -238,9 +239,12 @@ public class ProcessingBridge {
 	 * @throws SecurityException 
 	 * @throws NoSuchMethodException 
 	 */
-	private static HashMap<String, Object> runPostprocessingJava(HashMap<String, Object> map, String processingPath, String config, Parameters params) throws JavaProcessingError, NoSuchMethodException,
-																													SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-																													ClassNotFoundException, InstantiationException, IOException {
+	private static HashMap<String, Object> runPostprocessingJava(HashMap<String, Object> map, String processingPath,
+																 ArrayList<String> config, Parameters params) throws 
+																 JavaProcessingError, NoSuchMethodException,
+																 SecurityException, IllegalAccessException,
+																 IllegalArgumentException, InvocationTargetException,
+																 ClassNotFoundException, InstantiationException, IOException {
 		boolean preprocessing = false;
 		ExternalClassManager processingRunner = new ExternalClassManager (processingPath, preprocessing, params);
 		map = processingRunner.javaPostprocess(map, config);

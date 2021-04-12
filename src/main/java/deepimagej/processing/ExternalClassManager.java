@@ -180,9 +180,9 @@ public class ExternalClassManager {
 		processingClassLoader = new URLClassLoader(urls, processingClassLoader);
 	}
 
-	public HashMap<String, Object> javaPreprocess(HashMap<String, Object> map, String path2config) throws JavaProcessingError {
+	public HashMap<String, Object> javaPreprocess(HashMap<String, Object> map, ArrayList<String> config) throws JavaProcessingError {
 		try {
-			preProcessingClass.setConfigFile(path2config);
+			preProcessingClass.setConfigFiles(config);
 			map = preProcessingClass.deepimagejPreprocessing(map);
 			if (!preProcessingClass.error().contentEquals("")) {
 				IJ.log(preProcessingClass.error());
@@ -218,9 +218,9 @@ public class ExternalClassManager {
 		return map;
 	}
 
-	public HashMap<String, Object> javaPostprocess(HashMap<String, Object> map, String path2config) throws JavaProcessingError {
+	public HashMap<String, Object> javaPostprocess(HashMap<String, Object> map, ArrayList<String> config) throws JavaProcessingError {
 		try {
-			postProcessingClass.setConfigFile(path2config);
+			postProcessingClass.setConfigFiles(config);
 			map = postProcessingClass.deepimagejPostprocessing(map);
 			if (!postProcessingClass.error().contentEquals("")) {
 				IJ.log(postProcessingClass.error());

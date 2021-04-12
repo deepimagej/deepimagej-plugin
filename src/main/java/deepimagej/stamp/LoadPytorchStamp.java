@@ -232,7 +232,7 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 			parent.getDeepPlugin().setTorchModel(model);
 			pnLoad.append(" -> Loaded!!!</p>");
 			params.pytorchVersion = Engine.getInstance().getVersion();
-			String lib = getNativeLbraryFile();
+			String lib = new File(getNativeLbraryFile()).getName();
 			if (!lib.toLowerCase().contains("cpu")) {
 				pnLoad.append("p", "Model loaded on the <b>GPU</b>.\n");
 				parent.setGPUPt("GPU");

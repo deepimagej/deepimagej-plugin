@@ -276,14 +276,16 @@ public class JavaPreprocessingStamp extends AbstractStamp implements ActionListe
 	public boolean addJavaDependencies() {
 		boolean result = false;
 		
-		GenericDialog dlg = new GenericDialog("Java Build Path");
+		GenericDialog dlg = new GenericDialog("Java Build Path and external files");
 		dlg.addMessage("Add path to the Java .jar dependencies needed to run the pre-processing.");
-		dlg.addMessage("If there are no dependencies simply press 'OK'.");
+		dlg.addMessage("You can also add files required for the execution of the Java code, such as config files.");
+		dlg.addMessage("The formats allowed for Java dependencies are '.class' and '.jar'.");
+		dlg.addMessage("If there are no dependencies or files needed simply press 'OK'.");
 
 		Panel loadPath = new Panel();
 		loadPath.setLayout(new FlowLayout());
 		loadPath.add(depPath);
-		depPath.setText("Drop pre-processing dependecy .jar file");
+		depPath.setText("Drop file needed for pre-processing");
 		depPath.setFont(new Font("Arial", Font.BOLD, 11));
 		depPath.setForeground(Color.GRAY);
 		depPath.setPreferredSize(new Dimension(300, 50));
@@ -327,21 +329,21 @@ public class JavaPreprocessingStamp extends AbstractStamp implements ActionListe
 		// Get the author introduced
 		String tag = depPath.getText().trim();
 		if (tag.equals("")) {
-			IJ.error("Introduce the path to an existing .jar file.");
+			IJ.error("Introduce the path to an external file.");
 			// Empty the text in the text field
-			depPath.setText("Drop pre-processing dependecy .jar file");
+			depPath.setText("Drop file needed for pre-processing");
 			return;
-		} else if(!tag.endsWith(".jar") || !(new File(tag)).isFile()) {
-			IJ.error("The path introduced does not correspond to an existing .jar file.");
+		} else if(!(new File(tag)).isFile()) {
+			IJ.error("The path introduced does not correspond to an existing file.");
 			// Empty the text in the text field
-			depPath.setText("Drop pre-processing dependecy .jar file");
+			depPath.setText("Drop file needed for pre-processing");
 			return;
 		}
 		for (String dep : parent.getDeepPlugin().params.preAttachments) {
 			if (dep.contentEquals(tag)) {
-				IJ.error("Do not add the same dependency twice.");
+				IJ.error("Do not add the same file twice.");
 				// Empty the text in the text field
-				depPath.setText("Drop pre-processing dependecy .jar file");
+				depPath.setText("Drop file needed for pre-processing");
 				return;
 			}
 		}
@@ -357,7 +359,7 @@ public class JavaPreprocessingStamp extends AbstractStamp implements ActionListe
 		}
 		dependenciesList.setModel(dependenciesModel);
 		// Empty the text in the text field
-		depPath.setText("Drop pre-processing dependecy .jar file");
+		depPath.setText("Drop file needed for pre-processing");
 	}
 	
 	/**

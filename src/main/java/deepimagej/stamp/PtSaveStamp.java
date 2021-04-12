@@ -260,10 +260,11 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 				String title = TfSaveStamp.getTitleWithoutExtension(params.testImageBackup.getTitle().substring(4));
 				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + title + ".tif");
 				pane.append("p", title + ".tif" + ": saved");
-				if (params.biozoo) {
-					TfSaveStamp.saveNpyFile(params.testImageBackup, "XYCZB", params.saveDir + File.separator + title + ".npy");
+				boolean npySaved = TfSaveStamp.saveNpyFile(params.testImageBackup, "XYCZN", params.saveDir + File.separator + title + ".npy");
+				if (npySaved)
 					pane.append("p", title + ".npy" + ": saved");
-				}
+				else
+					pane.append("p", title + ".npy: not saved");
 				params.testImageBackup.setTitle("DUP_" + params.testImageBackup.getTitle());
 			} else {
 				throw new Exception();
@@ -271,42 +272,42 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		} 
 		catch(Exception ex) {
 			pane.append("p", "exampleImage.tif: not saved");
-			if (params.biozoo)
-				pane.append("p", "exampleImage.npy: not saved");
+			pane.append("p", "exampleImage.npy: not saved");
 		}
 
 		// Save output images and tables (tables as saved as csv)
 		for (HashMap<String, String> output : params.savedOutputs) {
 			String name = output.get("name");
-			String nameNoExtension= TfSaveStamp.getTitleWithoutExtension(name);
+			String nameNoExtension = TfSaveStamp.getTitleWithoutExtension(name);
 			try {
 				if (output.get("type").contains("image")) {
 					ImagePlus im = WindowManager.getImage(name);
 					IJ.saveAsTiff(im, params.saveDir + File.separator + nameNoExtension + ".tif");
+					im.setTitle(name);
 					pane.append("p", nameNoExtension + ".tif" + ": saved");
-					if (params.biozoo) {
-						// TODO put particular form of the tensor
-						TfSaveStamp.saveNpyFile(im, "XYCZ", params.saveDir + File.separator + nameNoExtension + ".npy");
+					boolean npySaved = TfSaveStamp.saveNpyFile(im, "XYCZB", params.saveDir + File.separator + nameNoExtension + ".npy");
+					if (npySaved)
 						pane.append("p", nameNoExtension + ".npy" + ": saved");
-					}
+					else
+						pane.append("p", nameNoExtension + ".npy: not saved");
 				} else if (output.get("type").contains("ResultsTable")){
 					Frame f = WindowManager.getFrame(name);
 			        if (f!=null && (f instanceof TextWindow)) {
 			        	ResultsTable rt = ((TextWindow)f).getResultsTable();
 						rt.save(params.saveDir + File.separator + nameNoExtension + ".csv");
 						pane.append("p", nameNoExtension + ".csv" + ": saved");
-						if (params.biozoo) {
-							TfSaveStamp.saveNpyFile(rt, params.saveDir + File.separator + nameNoExtension + ".npy", "RC");
+						boolean npySaved = TfSaveStamp.saveNpyFile(rt, params.saveDir + File.separator + nameNoExtension + ".npy", "RC");
+						if (npySaved)
 							pane.append("p", nameNoExtension + ".npy" + ": saved");
-						}
+						else
+							pane.append("p", nameNoExtension + ".npy: not saved");	
 					} else {
 						throw new Exception();					}
 				}
 			} 
 			catch(Exception ex) {
 				pane.append("p", nameNoExtension + ".tif:  not saved");
-				if (params.biozoo)
-					pane.append("p", nameNoExtension + ".npy:  not saved");
+				pane.append("p", nameNoExtension + ".npy:  not saved");
 			}
 		}
 		
@@ -324,16 +325,13 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			ex.printStackTrace();
 		}
 		
-		/*
-		 * TODO remove if the dependencies are not saved
-		// Finally save Java dependencies
-		boolean saveDeps = TfSaveStamp.saveJavaDependencies(params);
+		// Finally save external dependencies
+		boolean saveDeps = TfSaveStamp.saveExternalDependencies(params);
 		if (saveDeps && params.attachments.size() > 0) {
 			pane.append("p", "Java .jar dependencies: saved");
 		} else if (!saveDeps && params.attachments.size() > 0) {
 			pane.append("p", "Java .jar dependencies: not saved");
 		}
-		 */
 		
 		pane.append("p", "<b>Done!!</b>");
 

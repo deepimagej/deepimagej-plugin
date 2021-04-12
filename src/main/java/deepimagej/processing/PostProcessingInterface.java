@@ -38,6 +38,7 @@
 
 package deepimagej.processing;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 
@@ -62,7 +63,7 @@ public interface PostProcessingInterface {
 	 * a comment block and the parsed by the post-processing method
 	 * @param configFile: macro file which might contain parameters for the post-processing 
 	 */
-	public void setConfigFile(String file);
+	public void setConfigFiles(ArrayList<String> files);
 	
 	/**
 	 * Method that recovers an error message from the post-processing execution

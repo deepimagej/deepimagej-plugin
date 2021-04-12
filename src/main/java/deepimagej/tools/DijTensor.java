@@ -217,6 +217,17 @@ public class DijTensor {
 		return imageTensors;
 	}
 	
+	public static int getImageTensorInd(List<DijTensor> tensorList) {
+		List<DijTensor> imageTensors = new ArrayList<DijTensor>(); 
+		int i = 0;
+		for (DijTensor tensor : tensorList) {
+			if (tensor.tensorType.contains("image"))
+				return i;
+			i ++;
+		}
+		return -1;
+	}
+	
 	public static List<DijTensor> copyTensorList(List<DijTensor> inputList){
 		List<DijTensor> newTensors = new ArrayList<DijTensor>();
 		for (DijTensor tt : inputList)

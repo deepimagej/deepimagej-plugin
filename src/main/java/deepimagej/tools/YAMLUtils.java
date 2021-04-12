@@ -176,7 +176,7 @@ public class YAMLUtils {
 		data.put("git_repo", params.git_repo);
 		
 		// Create field containing the weights format and info
-		Map<String, Map<String, Object>> weights = new LinkedHashMap<>();
+		Map<String, Object> weights = new LinkedHashMap<>();
 		// Map for a specific format containing the info for the weigths of a given format
 		Map<String, Object> format_info = new LinkedHashMap<>();
 		// Authors of the model. Authors of the package if this model
@@ -224,6 +224,15 @@ public class YAMLUtils {
 		} else {
 			weights.put("tensorflow_saved_model_bundle", format_info);
 		}
+		// Add the preprocessing attachments to the weights, as they are part of the model
+		ArrayList<String> aux = new ArrayList<String>();
+		for (String str : params.attachments) {
+			aux.add(new File(str).getName());
+		}
+		// Add information asking the developer to add plugin requirements to the attachments list
+		aux.add("Include here any plugin that might be required for pre- or post-processing");
+		// List of Java files that need to be included to make the plugin run
+		weights.put("attachments", aux);
 		
 
 		
@@ -262,20 +271,15 @@ public class YAMLUtils {
 		
 				
 		// Put the example inputs and outputs
+		data.put("sample_inputs", sampleInputs);
+		data.put("sample_outputs", sampleOutputs);
 		data.put("test_inputs", inputExamples);
 		data.put("test_outputs", outputExamples);
 		
-		data.put("sample_inputs", sampleInputs);
-		data.put("sample_outputs", sampleOutputs);
 		
-		ArrayList<String> aux = new ArrayList<String>();
-		for (String str : params.attachments) {
-			aux.add(new File(str).getName());
-		}
-		// Add information asking the developer to add plugin requirements to the attachments list
-		aux.add("Include here any plugin that might be required for pre- or post-processing");
-		// List of Java files that need to be included to make the plugin run
-		data.put("attachments", aux);
+		// TODO what attachments should go here?
+		ArrayList<String> attachments = new ArrayList<String>();
+		data.put("attachments", attachments);
 		// Link to the folder containing the weights
 		data.put("weights", weights);
 		

@@ -273,14 +273,17 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 	 * Opens GUI to link Java dependencies
 	 */
 	public boolean addJavaDependencies() {
-		GenericDialog dlg = new GenericDialog("Java Build Path");
-		dlg.addMessage("Add path to the Java .jar dependencies needed to run the post-processing.");
-		dlg.addMessage("If there are no dependencies simply press 'OK'.");
+
+		GenericDialog dlg = new GenericDialog("Java Build Path and external files");
+		dlg.addMessage("Add path to the Java .jar dependencies needed to run the pre-processing.");
+		dlg.addMessage("You can also add files required for the execution of the Java code, such as config files.");
+		dlg.addMessage("The formats allowed for Java dependencies are '.class' and '.jar'.");
+		dlg.addMessage("If there are no dependencies or files needed simply press 'OK'.");
 
 		Panel loadPath = new Panel();
 		loadPath.setLayout(new FlowLayout());
 		loadPath.add(depPath, BorderLayout.CENTER);
-		depPath.setText("Drop pre-processing dependecy .jar file");
+		depPath.setText("Drop file needed for post-processing");
 		depPath.setFont(new Font("Arial", Font.BOLD, 11));
 		depPath.setForeground(Color.GRAY);
 		depPath.setPreferredSize(new Dimension(300, 50));
@@ -332,21 +335,35 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 		// Get the author introduced
 		String tag = depPath.getText().trim();
 		if (tag.equals("")) {
-			IJ.error("Introduce the path to an existing .jar file.");
+			IJ.error("Introduce the path to an external file.");
 			// Empty the text in the text field
-			depPath.setText("Drop post-processing dependecy .jar file");
+			depPath.setText("Drop file needed for post-processing");
 			return;
-		} else if(!tag.endsWith(".jar") || !(new File(tag)).isFile()) {
-			IJ.error("The path introduced does not correspond to an existing .jar file.");
+		} else if(!(new File(tag)).isFile()) {
+			IJ.error("The path introduced does not correspond to an existing file.");
 			// Empty the text in the text field
-			depPath.setText("Drop post-processing dependecy .jar file");
+			depPath.setText("Drop file needed for post-processing");
 			return;
 		}
 		for (String dep : parent.getDeepPlugin().params.postAttachments) {
 			if (dep.contentEquals(tag)) {
-				IJ.error("Do not add the same dependency twice.");
+				IJ.error("Do not add the same file twice.");
 				// Empty the text in the text field
-				depPath.setText("Drop post-processing dependecy .jar file");
+				depPath.setText("Drop file needed for post-processing");
+				return;
+			}
+		}
+		// Check that the name of the files introduced does not coincide 
+		// with the name of a file given during pre-processing, unless it
+		// is the same file
+		String postName = tag.substring(tag.lastIndexOf(File.separator) + 1);
+		for (String dep : parent.getDeepPlugin().params.preAttachments) {
+			String preName = dep.substring(dep.lastIndexOf(File.separator) + 1);
+			if (preName.contentEquals(postName) && !dep.contentEquals(tag) && !tag.endsWith(".jar")) {
+				IJ.error("A file called '" + postName  + "' was already added for pre-processing.\n"
+						+ "Cannot ad file with the same filename unless it is the exact same file (same path).");
+				// Empty the text in the text field
+				depPath.setText("Drop file needed for post-processing");
 				return;
 			}
 		}
@@ -361,8 +378,8 @@ public class JavaPostprocessingStamp extends AbstractStamp implements ActionList
 			dependenciesModel.addElement(name);
 		}
 		dependenciesList.setModel(dependenciesModel);
-		// Set the info text once the file is added
-		depPath.setText("Drop post-processing dependecy .jar file");
+		// Empty the text in the text field
+		depPath.setText("Drop file needed for post-processing");
 	}
 	
 	/**

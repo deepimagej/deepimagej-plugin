@@ -264,10 +264,11 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 				String title = getTitleWithoutExtension(params.testImageBackup.getTitle().substring(4));
 				IJ.saveAsTiff(params.testImageBackup, params.saveDir + File.separator + title + ".tif");
 				pane.append("p", title + ".tif" + ": saved");
-				if (params.biozoo) {
-					saveNpyFile(params.testImageBackup, "XYCZN", params.saveDir + File.separator + title + ".npy");
+				boolean npySaved = saveNpyFile(params.testImageBackup, "XYCZN", params.saveDir + File.separator + title + ".npy");
+				if (npySaved)
 					pane.append("p", title + ".npy" + ": saved");
-				}
+				else
+					pane.append("p", title + ".npy: not saved");
 				params.testImageBackup.setTitle("DUP_" + params.testImageBackup.getTitle());
 			} else {
 				throw new Exception();
@@ -275,8 +276,7 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		} 
 		catch(Exception ex) {
 			pane.append("p", "exampleImage.tif: not saved");
-			if (params.biozoo)
-				pane.append("p", "exampleImage.npy: not saved");
+			pane.append("p", "exampleImage.npy: not saved");
 		}
 
 		// Save output images and tables (tables as saved as csv)
@@ -287,29 +287,31 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 				if (output.get("type").contains("image")) {
 					ImagePlus im = WindowManager.getImage(name);
 					IJ.saveAsTiff(im, params.saveDir + File.separator + nameNoExtension + ".tif");
+					im.setTitle(name);
 					pane.append("p", nameNoExtension + ".tif" + ": saved");
-					if (params.biozoo) {
-						saveNpyFile(im, "XYCZB", params.saveDir + File.separator + nameNoExtension + ".npy");
+					boolean npySaved = saveNpyFile(im, "XYCZB", params.saveDir + File.separator + nameNoExtension + ".npy");
+					if (npySaved)
 						pane.append("p", nameNoExtension + ".npy" + ": saved");
-					}
+					else
+						pane.append("p", nameNoExtension + ".npy: not saved");
 				} else if (output.get("type").contains("ResultsTable")){
 					Frame f = WindowManager.getFrame(name);
 			        if (f!=null && (f instanceof TextWindow)) {
 			        	ResultsTable rt = ((TextWindow)f).getResultsTable();
 						rt.save(params.saveDir + File.separator + nameNoExtension + ".csv");
 						pane.append("p", nameNoExtension + ".csv" + ": saved");
-						if (params.biozoo) {
-							saveNpyFile(rt, params.saveDir + File.separator + nameNoExtension + ".npy", "RC");
+						boolean npySaved = saveNpyFile(rt, params.saveDir + File.separator + nameNoExtension + ".npy", "RC");
+						if (npySaved)
 							pane.append("p", nameNoExtension + ".npy" + ": saved");
-						}
+						else
+							pane.append("p", nameNoExtension + ".npy: not saved");	
 					} else {
 						throw new Exception();					}
 				}
 			} 
 			catch(Exception ex) {
 				pane.append("p", nameNoExtension + ".tif:  not saved");
-				if (params.biozoo)
-					pane.append("p", nameNoExtension + ".npy:  not saved");
+				pane.append("p", nameNoExtension + ".npy:  not saved");
 			}
 		}
 		
@@ -327,34 +329,30 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 			pane.append("p", "model.yaml: not saved");
 		}
 
-		/*
-		 * TODO remove if the dependencies are not saved
-		// Finally save Java dependencies
-		boolean saveDeps = saveJavaDependencies(params);
+		// Finally save external dependencies
+		boolean saveDeps = saveExternalDependencies(params);
 		if (saveDeps && params.attachments.size() > 0) {
-			pane.append("p", "Java .jar dependencies: saved");
+			pane.append("p", "External dependencies: saved");
 		} else if (!saveDeps && params.attachments.size() > 0) {
-			pane.append("p", "Java .jar dependencies: not saved");
+			pane.append("p", "External dependencies: not saved");
 		}
-		*/
 		
 		pane.append("p", "Done!!");
 
 	}
 	
 	/**
-	 * Save jar dependency files indicated by the developer and saved at params.attachments
+	 * Save jar dependency files indicated by the developer and saved at params.attachments.
+	 * Saves all types of files but '.jar' o '.class' files
 	 * @param params
 	 * @return true if saving was successful or false otherwise
 	 */
-	/*
-	 * TODO remove if the dependencies are not saved
-	public static boolean saveJavaDependencies(Parameters params) {
+	public static boolean saveExternalDependencies(Parameters params) {
 		boolean saved = true;
 		ArrayList<String> savedFiles = new ArrayList<String>();
 		String errMsg = "DeepImageJ unable to save:\n";
 		for (String dep : params.attachments) {
-			if (savedFiles.contains(new File(dep).getName())) 
+			if (savedFiles.contains(new File(dep).getName()) || (new File(dep).getName()).endsWith(".jar") || (new File(dep).getName()).endsWith(".class")) 
 				continue;
 			File destFile = new File(params.saveDir + File.separator + new File(dep).getName());
 			try {
@@ -371,7 +369,6 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		}
 		return saved;
 	}
-	*/
 	
 	/*
 	 * Gets the image title without the extension
@@ -383,50 +380,40 @@ public class TfSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		return title.substring(0, lastDot);
 	}
 	
-	public static void saveNpyFile(ImagePlus im, String form, String name) throws Exception {
+	public static boolean saveNpyFile(ImagePlus im, String form, String name) {
 		Path path = Paths.get(name);
+		String imTitle = name.substring(name.lastIndexOf(File.separator) + 1, name.lastIndexOf("."));
 		long[] imShapeLong = ImagePlus2Tensor.getTensorShape(im, form);
 		int[] imShape = new int[imShapeLong.length];
-		int numPixels = 1;
-		for (int i = 0; i < imShape.length; i ++) {
-			imShape[i] = (int) imShapeLong[i];
-			numPixels *= (int) imShapeLong[i];
-		}
 		// If the number of pixels is too big let the user know that they might prefer not saving
 		// the results in npy format
-		if (numPixels > 50000) {
-			String msg = "Do you want to save the image '" + im.getTitle() + "' in .npy format.\n"
-						+ "Saving it might take too long. Do you want to continue?";
-			boolean accept = IJ.showMessageWithCancel("Cancel .npy file save", msg);
-			if (!accept)
-				throw new Exception();
-		}
+		String msg = "Do you want to save the image '" + imTitle + "' in .npy format.\n"
+					+ "Saving it might take too long. Do you want to continue?";
+		boolean accept = IJ.showMessageWithCancel("Cancel .npy file save", msg);
+		if (!accept)
+			return false;
+		
 		float[] imArray = ImagePlus2Tensor.implus2IntArray(im, form);
 		NpyFile.write(path, imArray, imShape);
+		return true;
 	}
 	
-	public static void saveNpyFile(ResultsTable table, String name, String form) throws Exception {
+	public static boolean saveNpyFile(ResultsTable table, String name, String form) {
 		Path path = Paths.get(name);
 		int[] shape = Table2Tensor.getTableShape(form, table);
 		// Convert the array into long
 		long[] shapeLong = new long[shape.length];
-		int numPixels = 1;
-		for (int i = 0; i < shape.length; i ++) {
-			shapeLong[i] = (int) shape[i];
-			numPixels *= shape[i];
-		}
 		// If the number of pixels is too big let the user know that they might prefer not saving
 		// the results in npy format
-		if (numPixels > 50000) {
-			String msg = "Do you want to save the table '" + table.getTitle() + "' in .npy format.\n"
+		String msg = "Do you want to save the table '" + table.getTitle() + "' in .npy format.\n"
 						+ "Saving it might take too long. Do you want to continue?";
-			boolean accept = IJ.showMessageWithCancel("Cancel .npy file save", msg);
-			if (!accept)
-				throw new Exception();
-		}
+		boolean accept = IJ.showMessageWithCancel("Cancel .npy file save", msg);
+		if (!accept)
+			return false;
 		// Get the array
 		float[] flatRt = Table2Tensor.tableToFlatArray(table, form, shapeLong);
 		NpyFile.write(path, flatRt, shape);
+		return true;
 	}
 
 	public class LocalDropTarget extends DropTarget {

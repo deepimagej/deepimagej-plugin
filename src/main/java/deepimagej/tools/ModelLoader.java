@@ -42,9 +42,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
-import ai.djl.pytorch.jni.LibUtils;
 import deepimagej.DeepImageJ;
 import deepimagej.RunnerProgress;
+import deepimagej.stamp.LoadPytorchStamp;
 import ij.IJ;
 
 public class ModelLoader implements Callable<Boolean>{
@@ -139,8 +139,11 @@ public class ModelLoader implements Callable<Boolean>{
 		}
 		
 		if (dp.params.framework.toLowerCase().equals("pytorch")) {
-			String lib = new File(LibUtils.getLibName()).getName();
-			if (!lib.toLowerCase().contains("cpu")) {
+			String ptNativeFileName = LoadPytorchStamp.getNativeLbraryFile();
+			String lib = new File(ptNativeFileName).getName();
+			// Get the Pytorch version being used reading the fist part of the lib folder
+			dp.params.pytorchVersion = lib.substring(0, 5);
+			if (lib.toLowerCase().contains("cpu")) {
 				rp.setGPU("cpu");
 			} else {
 				rp.setGPU("gpu");
