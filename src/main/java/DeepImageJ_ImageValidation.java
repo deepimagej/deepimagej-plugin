@@ -106,10 +106,10 @@ public class DeepImageJ_ImageValidation implements ActionListener,PlugIn, ItemLi
 	
 	public static void main(String arg[]) {
 		new ImageJ();
-		ImagePlus imp = IJ.openImage("/Users/sara/Downloads/SkinLesions/0066_binary2.tif");
+		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\3D Objects\\source\\models\\mulux\\prueba.tif");
 		if (imp != null)
 			imp.show();
-		ImagePlus imp2 = IJ.openImage("/Users/sara/Downloads/SkinLesions/0066_binary.tif");
+		ImagePlus imp2 = IJ.openImage("C:\\Users\\Carlos(tfg)\\3D Objects\\source\\models\\mulux\\prueba.tif");
 		if (imp2 != null)
 			imp2.show();
 		new DeepImageJ_ImageValidation().run("");
@@ -368,7 +368,8 @@ public class DeepImageJ_ImageValidation implements ActionListener,PlugIn, ItemLi
 				if(function.getSegmented() == true) {
 					funcname_segmented.add(function.getName());
 					nloss=0;
-					
+					if (losses == null)
+						return;
 					for(Double loss : losses ) {
 						
 						results_segmented[nfunc_segmented][nloss]=String.format("%.0"+Integer.toString(decimals)+"f",loss);
@@ -407,24 +408,51 @@ public class DeepImageJ_ImageValidation implements ActionListener,PlugIn, ItemLi
 		//Create the table of results
 		for (int l = 0; l < Math.max(nzr, nzt) ; l++) {
 			if(segmented) {
-				for(int m = 0; m <= place_jacc; m++) {
+				// Firs add the global measure.
+				table.incrementCounter();
+				table.addValue("ref", img1.getTitle());
+				table.addValue("test", img2.getTitle());
+				table.addValue("N Ref", Integer.toString(stack1)+"(global)");
+				table.addValue("N Test", Integer.toString(stack2)+"(global)");
+				for (int i = 0; i < funcname_segmented.size(); i++) {
+					// The global value is saved at the end
+					if (results_segmented[i] != null)
+						table.addValue(funcname_segmented.get(i), results_segmented[i][results_segmented[i].length - 1]);
+					else
+						table.addValue(funcname_segmented.get(i), "ERROR");
+				}
+				for (int i = 0; i < funcname.size(); i++) {
+					table.addValue(funcname.get(i), results[i][l]);
+				}
+				for(int m = 0; m < place_jacc; m++) {
+					// Check which pixels exist on the image
+					boolean existsPixel = false;
+					boolean[] valueExists = new boolean[funcname_segmented.size()];
+					for (int i = 0; i < funcname_segmented.size(); i++) {
+						if (results_segmented[i] == null)
+							continue;
+						double val = Double.parseDouble(results_segmented[i][no_im_jacc+m]);
+						valueExists[i] = val != -1;
+						if (valueExists[i])
+							existsPixel = true;
+					}
+					// If the pixel does not exist on the image, do not represent its value
+					if (!existsPixel)
+						continue;
 					
 					table.incrementCounter();
 					table.addValue("ref", img1.getTitle());
 					table.addValue("test", img2.getTitle());
-					if(m==place_jacc) {
-						table.addValue("N Ref", Integer.toString(stack1)+"(average)");
-						table.addValue("N Test", Integer.toString(stack2)+"(average)");
-					}
-					else {
-						table.addValue("N Ref", Integer.toString(stack1)+"("+Integer.toString(m)+")");
-						table.addValue("N Test", Integer.toString(stack2)+"("+Integer.toString(m)+")");
-					}
+					table.addValue("N Ref", Integer.toString(stack1)+"("+Integer.toString(m)+")");
+					table.addValue("N Test", Integer.toString(stack2)+"("+Integer.toString(m)+")");
 					for (int i = 0; i < funcname_segmented.size(); i++) {
-						table.addValue(funcname_segmented.get(i), results_segmented[i][no_im_jacc+m]);
+						if (valueExists[i])
+							table.addValue(funcname_segmented.get(i), results_segmented[i][no_im_jacc+m]);
+						else
+							table.addValue(funcname_segmented.get(i), "NA");							
 					}
 					for (int i = 0; i < funcname.size(); i++) {
-						table.addValue(funcname.get(i), results[i][l]);
+						table.addValue(funcname.get(i), "NA");
 					}
 					
 				}

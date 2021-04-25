@@ -72,7 +72,6 @@ import deepimagej.tools.StartTensorflowService;
 import deepimagej.tools.SystemUsage;
 import ij.IJ;
 import ij.ImagePlus;
-import ij.Macro;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
@@ -82,13 +81,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import ai.djl.pytorch.jni.LibUtils;
-
-
 
 public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 	private GenericDialog 				dlg;
-	private TextArea					info		= new TextArea("Please wait until Tensorflow and Pytorch are loaded...", 13, 58, TextArea.SCROLLBARS_BOTH);
+	private TextArea					info		= new TextArea("Please wait until Tensorflow and Pytorch are loaded...", 14, 58, TextArea.SCROLLBARS_BOTH);
 	private Choice[]					choices		= new Choice[5];
 	private TextField[]	    			texts		= new TextField[2];
 	private Label[]						labels		= new Label[8];
@@ -122,8 +118,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		path = "C:\\Users\\Carlos(tfg)\\Pictures\\Fiji.app\\models" + File.separator;
 		path = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models" + File.separator;
-		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\SkinLesions.bioimage.io.model\\0066.tif");
-		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\unet3d\\Substack (50-100).tif");
+		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\Usiigaci_2.1.4\\usiigaci.tif");
+		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\MU-Lux_CTC_PhC-C2DL-PSC.bioimage.io.model\\exampleImage.tif");
 		//ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
 		imp.show();
 		WindowManager.setTempCurrentImage(imp);
@@ -250,6 +246,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		}
 		if ((index.equals("-1") || index.equals("0")) && loadedEngine) {
 			IJ.error("Select a valid model.");
+			run("");
 			return;
 		} else if ((choices[0].getSelectedIndex() == -1 ||choices[0].getSelectedIndex() == 0) && !loadedEngine) {
 			IJ.error("Please wait until the Deep Learning engines are loaded.");
@@ -265,8 +262,14 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		dp = dps.get(dirname);
 		
 		String format = (String) choices[1].getSelectedItem();
-		format = dlg.getNextChoice();
+		format = dlg.getNextChoice().toLowerCase();
 		dp.params.framework = format.contains("pytorch") ? "pytorch" : "tensorflow";
+		// Select the needed attachments for the version used
+		if (dp.params.framework.toLowerCase().contentEquals("pytorch")) {
+			dp.params.attachments = dp.params.ptAttachments;
+		} else if (dp.params.framework.toLowerCase().contentEquals("tensorflow")) {
+			dp.params.attachments = dp.params.tfAttachments;
+		}
 
 		processingFile[0] = (String) choices[2].getSelectedItem();
 		processingFile[0] = dlg.getNextChoice();
@@ -284,6 +287,14 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		dp.params.secondPostprocessing = null;
 		
 		if (!processingFile[0].equals("no preprocessing")) {
+			// Workaround for ImageJ Macros. 
+			// DeepImageJ always writes the pre and post-processing between brackets,
+			// however when runnning the plugin for a macro this does not happen when there is only
+			// one processing file. This workaround adds the brackets
+			if (isMacro && !processingFile[0].startsWith("["))
+				processingFile[0] = "[" + processingFile[0];
+			if (isMacro && !processingFile[0].endsWith("]"))
+				processingFile[0] = processingFile[0] + "]";
 			String[] preprocArray = processingFile[0].substring(processingFile[0].indexOf("[") + 1, processingFile[0].lastIndexOf("]")).split(",");
 			dp.params.firstPreprocessing = dp.getPath() + File.separator + preprocArray[0].trim();
 			if (preprocArray.length > 1) {
@@ -292,6 +303,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		}
 		
 		if (!processingFile[1].equals("no postprocessing")) {
+			// Workaround for ImageJ Macros. 
+			if (isMacro && !processingFile[1].startsWith("["))
+				processingFile[1] = "[" + processingFile[1];
+			if (isMacro && !processingFile[1].endsWith("]"))
+				processingFile[1] = processingFile[1] + "]";
 			String[] postprocArray = processingFile[1].substring(processingFile[1].indexOf("[") + 1, processingFile[1].lastIndexOf("]")).split(",");
 			dp.params.firstPostprocessing = dp.getPath() + File.separator + postprocArray[0].trim();
 			if (postprocArray.length > 1) {
@@ -326,36 +342,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		log.reset();
 
 		for (int i = 0; i < patch.length; i ++) {
-			int p = 0 ;
-			switch (tensorForm.split("")[i]) {
-			case "B":
-				p = 1;
-				break;
-			case "Y":
-				p = imp.getHeight();
-				break;
-			case "X":
-				p = imp.getWidth();
-				break;
-			case "Z":
-				p = imp.getNSlices();
-				break;
-			case "C":
-				p = imp.getNChannels();
-				break;
-		}
-			if (p * 3 < patch[i]) {
-				String errMsg = "Error: Tiles cannot be bigger than 3 times the image at any dimension\n";
-				errMsg += " - X = " + imp.getWidth() + ", maximum tile size at X = " + (imp.getWidth() * 3 - 1) + "\n";
-				errMsg += " - Y = " + imp.getHeight() + ", maximum tile size at Y = " + (imp.getHeight() * 3 - 1) + "\n";
-				if (tensorForm.contains("C"))
-					errMsg += " - C = " + imp.getNChannels() + ", maximum tile size at C = " + (imp.getNChannels() * 3 - 1) + "\n";
-				if (tensorForm.contains("Z"))
-					errMsg += " - Z = " + imp.getNSlices() + ", maximum tile size at Z = " + (imp.getNSlices() * 3 - 1) + "\n";
-				IJ.error(errMsg);
-				run("");
-				return;
-			} else if(haloSize[i] * 2 >= patch[i] && patch[i] != -1) {
+			if(haloSize[i] * 2 >= patch[i] && patch[i] != -1) {
 				String errMsg = "Error: Tiles cannot be smaller or equal than 2 times the halo at any dimension.\n"
 							  + "Please, either choose a bigger tile size or change the halo in the model.yaml.";
 				IJ.error(errMsg);
@@ -462,14 +449,14 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			if (dp.params.framework.equals("tensorflow/pytorch")) {
 				choices[1].removeAll();
 				choices[1].addItem("Select format");
-				choices[1].addItem("tensorflow_saved_model_bundle");
-				choices[1].addItem("pytorch_script");
+				choices[1].addItem("Tensorflow");
+				choices[1].addItem("Pytorch");
 			} else if (dp.params.framework.equals("pytorch")) {
 				choices[1].removeAll();
-				choices[1].addItem("pytorch_script");
+				choices[1].addItem("Pytorch");
 			} else if (dp.params.framework.equals("tensorflow")) {
 				choices[1].removeAll();
-				choices[1].addItem("tensorflow_saved_model_bundle");
+				choices[1].addItem("Tensorflow");
 			}
 
 			info.setCaretPosition(0);
@@ -516,8 +503,22 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 
 			info.setText("");
 			info.setCaretPosition(0);
-			info.append("\n");
+			// Specify the name of the model
 			info.append("SELECTED MODEL: " + dp.getName().toUpperCase());
+			info.append("\n");
+			// Specify the authors of the model
+			info.append("Authors: " + dp.params.author);
+			info.append("\n");
+			// Specify the references of the model
+			// Create array with al the references
+			String[] refs = new String[dp.params.cite.size()];
+			for (int i = 0; i < dp.params.cite.size(); i ++) {
+				if (dp.params.cite.get(i).get("text").equals("") && !dp.params.cite.get(i).get("doi").equals(""))
+					refs[i] = dp.params.cite.get(i).get("doi");
+				refs[i] = dp.params.cite.get(i).get("text");
+			}
+			info.append("References: " + Arrays.toString(refs));
+			
 			info.append("\n");
 			info.append("\n");
 			info.append("---- TILING SPECIFICATIONS ----\n");
