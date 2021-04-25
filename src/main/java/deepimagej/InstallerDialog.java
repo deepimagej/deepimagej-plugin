@@ -230,12 +230,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			if (name != null && !name.equals("")) {
 				Model model = zoo.models.get(name);
 				if (model != null) {
-					String s = "";
-					if (model.deepImageJ)
-						s = "&nbsp&nbsp <span style=\"color:#10FF10\">deepImageJ compatible</span>";
-					else
-						s = "&nbsp&nbsp <span style=\"color:#FF1010\">not compatible with deepImageJ</span>";
-					info.append("h1", model.name + s);
+					info.append("h1", model.name);
 					info.append("i", model.authors);
 					info.appendLink(model.doc, "Read documentation");
 					info.append("p", model.getCoverHTML());

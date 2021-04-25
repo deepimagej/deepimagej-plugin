@@ -66,10 +66,13 @@ public class DeepImageJ {
 	public String					dirname;
 	public Parameters				params;
 	private boolean					valid 			= false;
+	// Specifies if the yaml is present in the model folder
 	public boolean					presentYaml		= true;
 	private boolean					developer		= true;
 	private SavedModelBundle		tfModel			= null;
 	private ZooModel<NDList, NDList>torchModel		= null;
+	public String ptName = "pytorch_script.pt";
+	public String tfName = "tensorflow_saved_model_bundle.zip";
 	
 	public DeepImageJ(String pathModel, String dirname, boolean dev) {
 		String p = pathModel + File.separator + dirname + File.separator;
@@ -81,11 +84,11 @@ public class DeepImageJ {
 		if (!dev && !(new File(path, "model.yaml").isFile())) {
 			this.presentYaml = false;
 			this.params = new Parameters(valid, path, dev);
-			this.valid = check(p, false);
+			this.valid = check(p);
 		} else if (dev || new File(path, "model.yaml").isFile()) {
 			this.params = new Parameters(valid, path, dev);
 			this.params.path2Model = this.path;
-			this.valid = check(p, false);
+			this.valid = check(p);
 		}
 		if (this.valid && dev && this.params.framework.equals("tensorflow/pytorch")) {
 			askFrameworkGUI();
@@ -232,10 +235,19 @@ public class DeepImageJ {
 			return;
 		}
 		// If there is any external dependency, add it here
-		if (params.attachmentsNotIncluded.size() != 0) {
+		if (params.ptAttachmentsNotIncluded.size() != 0) {
 			info.append("----------- ATTENTION -----------\n");
-			info.append("Please make sure that the following plugins/jars are installed:\n");
-			for (String str : params.attachmentsNotIncluded)
+			info.append("To use the Pytorch format, please make sure that\n"
+					+ "the following plugins/jars are installed:\n");
+			for (String str : params.ptAttachmentsNotIncluded)
+				info.append(" - " + str + "\n");
+		}
+		// If there is any external dependency, add it here
+		if (params.tfAttachmentsNotIncluded.size() != 0) {
+			info.append("----------- ATTENTION -----------\n");
+			info.append("To use the Tensorflow format, please make sure that\n"
+					+ "the following plugins/jars are installed:\n");
+			for (String str : params.tfAttachmentsNotIncluded)
 				info.append(" - " + str + "\n");
 		}
 		info.append("----------- METADATA -----------\n");
@@ -243,12 +255,11 @@ public class DeepImageJ {
 		for (String auth : params.author)
 			info.append("  - " + auth + "\n");
 		info.append("References" + "\n");
-		// TODO robustness
 		for (HashMap<String, String> ref : params.cite) {
 			info.append("  - Article: " + ref.get("text") + "\n");
 			info.append("    Doi: " + ref.get("doi") + "\n");
 		}
-		info.append("Framework:" + params.framework + "\n");
+		info.append("Framework: " + params.framework + "\n");
 		
 		if (params.framework.contains("tensorflow")) {
 			info.append("Tag: " + params.tag + "\n");
@@ -277,8 +288,21 @@ public class DeepImageJ {
 		info.append("Runtime: " + params.runtime + "\n");
 		String modelSize = "-1";
 		
+		String ptModelName = "pytorch_script.pt";
+		String tfModelName = "tensorflow_saved_model_bundle.zip";
+		if (params.framework.toLowerCase().contains("pytorch")) {
+			String modelName = findNameFromSourceParam(this.params.ptSource, "pytorch");
+			if (new File(this.getPath() + File.separator + modelName).exists())
+				ptModelName = modelName;		
+		}
+		if (params.framework.toLowerCase().contains("tensorflow")) {
+			String modelName = findNameFromSourceParam(this.params.tfSource, "tensorflow");
+			if (new File(this.getPath() + File.separator + modelName).exists())
+				tfModelName = modelName;	
+		}
+		
 		if (params.framework.equals("pytorch")) {
-			modelSize = "" + new File(this.getPath() + File.separator + "pytorch_script.pt").length() / (1024 * 1024.0);
+			modelSize = "" + new File(this.getPath() + File.separator + ptModelName).length() / (1024 * 1024.0);
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 			info.append("Weights size: " + modelSize + " MB\n");
 		} else if (params.framework.equals("tensorflow") && new File(this.getPath(), "variables").exists()) {
@@ -286,11 +310,11 @@ public class DeepImageJ {
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 			info.append("Weights size: " + modelSize + " MB\n");
 		} else if (params.framework.equals("tensorflow")) {
-			modelSize = "" + new File(this.getPath() + File.separator + "tensorflow_saved_model_bundle.zip").length() / (1024 * 1024.0);
+			modelSize = "" + new File(this.getPath() + File.separator + tfModelName).length() / (1024 * 1024.0);
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 2);
 			info.append("Zipped model size: " + modelSize + " MB\n");
 		} else if (params.framework.equals("tensorflow/pytorch") && new File(this.getPath(), "variables").exists()) {
-			modelSize = "" + new File(this.getPath() + File.separator + "pytorch_script.pt").length() / (1024 * 1024.0);
+			modelSize = "" + new File(this.getPath() + File.separator + ptModelName).length() / (1024 * 1024.0);
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 			info.append("Pytorch weights size: " + modelSize + " MB\n");
 
@@ -298,18 +322,36 @@ public class DeepImageJ {
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 			info.append("Tensorflow weights size: " + modelSize + " MB\n");
 		} else if (params.framework.equals("tensorflow/pytorch")) {
-			modelSize = "" + new File(this.getPath() + File.separator + "pytorch_script.pt").length() / (1024 * 1024.0);
+			modelSize = "" + new File(this.getPath() + File.separator + ptModelName).length() / (1024 * 1024.0);
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 			info.append("Pytorch weights size: " + modelSize + " MB\n");
 
-			modelSize = "" + new File(this.getPath() + File.separator + "tensorflow_saved_model_bundle.zip").length() / (1024 * 1024.0);
+			modelSize = "" + new File(this.getPath() + File.separator + tfModelName).length() / (1024 * 1024.0);
 			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
 			info.append("Zipped Tensorflow model size: " + modelSize + " MB\n");
 		}
 		
 	}
+	
+	/**
+	 * Removes the ./ in the case it exists
+	 * @param sourceName: name of the file writen in the yaml
+	 * @return name without ./ if it had it
+	 */
+	public static String findNameFromSourceParam(String sourceName, String framework) {
+		String modelName = sourceName;
+		//If the yaml does not specify a source model, set to default
+		if (modelName == null && framework.toLowerCase().contentEquals("pytorch")) {
+			modelName = "pytorch_script.pt";
+		} else if (modelName == null && framework.toLowerCase().contentEquals("tensorflow")) {
+			modelName = "tensorflow_saved_model_bundle.zip";
+		} else if (modelName.indexOf("/") != -1 && modelName.indexOf("/") < 2) {
+			modelName = modelName.substring(modelName.indexOf("/") + 1);
+		}
+		return modelName;
+	}
 
-	public  boolean check(String path, boolean recurrence) {
+	public  boolean check(String path) {
 		File dir = new File(path);
 		if (!dir.exists()) {
 			return false;
@@ -337,7 +379,7 @@ public class DeepImageJ {
 		if (validTf && validPt)
 			this.params.framework = "tensorflow/pytorch";
 		
-		if (!validTf && !validPt && !recurrence) {
+		if (!validTf && !validPt) {
 			// Find zipped biozoo model
 			try {
 				validTf = findZippedBiozooModel(dir);
@@ -354,20 +396,44 @@ public class DeepImageJ {
 	 * of the folder provided
 	 */
 	public boolean findZippedBiozooModel(File modelFolder) throws IOException {
+		String modelName = this.params.tfSource;
+		if (modelName == null) {
+			modelName = "tensorflow_saved_model_bundle.zip";
+		} else if (modelName.indexOf("/") != -1 && modelName.indexOf("/") < 2)
+			modelName = modelName.substring(modelName.indexOf("/") + 1);
+		String auxModelName = "tensorflow_saved_model_bundle.zip";
+		boolean auxPresent = false;
 		for (String file : modelFolder.list()) {
 			// If we find the model and the checksum (sha256) is the same as specified in the yaml file, load the model
-			if (file.equals("tensorflow_saved_model_bundle.zip") && !this.presentYaml) {
+			if (file.equals(modelName) && !this.presentYaml) {
+				tfName = modelName;
 				return true;
-			}else if (file.equals("tensorflow_saved_model_bundle.zip") && FileTools.createSHA256(modelFolder.getPath() + File.separator + file).equals(params.tfSha256)) {
+			} else if (file.equals(modelName) && FileTools.createSHA256(modelFolder.getPath() + File.separator + file).equals(params.tfSha256)) {
+				tfName = modelName;
 				return true;
-			} else if (file.equals("tensorflow_saved_model_bundle.zip")) {
+			} else if (file.equals(modelName)) {
 				IJ.log("Zipped Bioimage Model Zoo model at:");
 				IJ.log(modelFolder.getAbsolutePath() + File.separator + file);
 				IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
 				IJ.log("\n");
 				params.incorrectSha256 = true;
+				tfName = modelName;
 				return true;
-			}
+			} else if (file.equals(auxModelName)) {
+				auxPresent =  true;
+			}				
+		}
+		if (auxPresent && !this.presentYaml) {
+			return true;
+		} else if (auxPresent && FileTools.createSHA256(modelFolder.getPath() + File.separator + auxModelName).equals(params.tfSha256)) {
+			return true;
+		} else if (auxPresent) {
+			IJ.log("Zipped Bioimage Model Zoo model at:");
+			IJ.log(modelFolder.getAbsolutePath() + File.separator + auxModelName);
+			IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
+			IJ.log("\n");
+			params.incorrectSha256 = true;
+			return true;
 		}
 		return false;
 	}
@@ -377,23 +443,53 @@ public class DeepImageJ {
 	 * of the folder provided and corresponds to the model defined in the model.yaml
 	 */
 	public boolean findPytorchModel(File modelFolder) {
+		String modelName = this.params.ptSource;
+		//If the yaml does not specify a source model, set to default
+		if (modelName == null) {
+			modelName = "pytorch_script.pt";
+		} else if (modelName.indexOf("/") != -1 && modelName.indexOf("/") < 2) {
+			modelName = modelName.substring(modelName.indexOf("/") + 1);
+		}
+		String auxModelName = "pytorch_script.pt";
+		boolean auxPresent = false;
 		try {
 			for (String file : modelFolder.list()) {
-				if (!this.developer && file.contains("pytorch_script.pt") && !this.presentYaml) {
+				if (!this.developer && file.contains(modelName) && !this.presentYaml) {
+					ptName = modelName;
 					return true;
-				} else if (!this.developer && file.contains("pytorch_script.pt") && FileTools.createSHA256(modelFolder.getPath() + File.separator + file).equals(params.ptSha256)) {
+				} else if (!this.developer && file.contains(modelName) && FileTools.createSHA256(modelFolder.getPath() + File.separator + file).equals(params.ptSha256)) {
+					ptName = modelName;
 					return true;
 				} else if (this.developer && file.contains(".pt")) {
+					ptName = file;
 					return true;
-				} else if (!this.developer && file.contains("pytorch_script.pt")) {
+				} else if (!this.developer && file.contains(modelName)) {
 					IJ.log("Pytorch model at:");
 					IJ.log(modelFolder.getAbsolutePath() + File.separator + file);
 					IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
 					IJ.log("\n");
 					params.incorrectSha256 = true;
+					ptName = modelName;
 					return true;
+				} else if (!this.developer && file.contains(auxModelName)) {
+					auxPresent = true;
 				}
 			}
+			// If the model was not specified in the source or the source name was not found,
+			// try with the default name
+			if (!this.developer && auxPresent && !this.presentYaml) {
+				return true;
+			} else if (!this.developer && auxPresent && FileTools.createSHA256(modelFolder.getPath() + File.separator + auxModelName).equals(params.ptSha256)) {
+				return true;
+			} else if (!this.developer && auxPresent) {
+				IJ.log("Zipped Bioimage Model Zoo model at:");
+				IJ.log(modelFolder.getAbsolutePath() + File.separator + auxModelName);
+				IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
+				IJ.log("\n");
+				params.incorrectSha256 = true;
+				return true;
+			}
+
 		} catch (IOException e) {
 			// If we were not able to gnerate a checksum (sha256) return false
 			return false;

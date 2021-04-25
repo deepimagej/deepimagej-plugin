@@ -69,7 +69,7 @@ public class ModelLoader implements Callable<Boolean>{
 		if (dp.params.framework.contains("tensorflow") && !(new File(dp.getPath() + File.separator + "variables").exists())) {
 			rp.setUnzipping(true);
 			rp.setVisible(this.show);
-			String fileName = dp.getPath() + File.separator + "tensorflow_saved_model_bundle.zip";
+			String fileName = dp.getPath() + File.separator + dp.tfName;
 			try {
 				FileTools.unzipFolder(new File(fileName), dp.getPath());
 			} catch (IOException e) {
@@ -97,7 +97,7 @@ public class ModelLoader implements Callable<Boolean>{
 		if (dp.params.framework.equals("tensorflow")) {
 			ret = dp.loadTfModel(true);
 		} else if (dp.params.framework.equals("pytorch")) {
-			String ptWeightsPath = dp.getPath() + File.separatorChar + "pytorch_script.pt" ;
+			String ptWeightsPath = dp.getPath() + File.separatorChar + dp.ptName;
 			ret = dp.loadPtModel(ptWeightsPath, isFiji);
 		}
 		if (ret == false && dp.params.framework.equals("tensorflow")) {

@@ -186,7 +186,11 @@ public class YAMLUtils {
 		format_info.put("parent", null);
 		
 		// TODO allow uploading models to github, zenodo or drive
-		format_info.put("source", null);
+		if (params.framework.equals("pytorch")) {
+			format_info.put("source", "./pytorch_script.pt");
+		} else if (params.framework.equals("tensorflow")) {
+			format_info.put("source", "./tensorflow_saved_model_bundle.zip");
+		}
 		// For Tensorflow, if upload to biozoo is selected, calculate checksum
 		// For Pytorch, always calculate checksum
 		if (params.framework.equals("pytorch")) {
@@ -196,14 +200,34 @@ public class YAMLUtils {
 		} else if (params.framework.equals("tensorflow") && !params.biozoo) {
 			format_info.put("sha256", null);
 		}
+		// Add the preprocessing attachments to the weights, as they are part of the model
+		ArrayList<String> aux = new ArrayList<String>();
+		for (String str : params.attachments) {
+			aux.add(new File(str).getName());
+		}
+		// Add information asking the developer to add plugin requirements to the attachments list
+		aux.add("Include here any plugin that might be required for pre- or post-processing");
+		// Map for the attachments used by the model. They can be
+		// either files or uris. For the moment DIJ only supports files
+		Map<String, Object> modelAtachments = new LinkedHashMap<>();
+		// List of Java files that need to be included to make the plugin run
+		modelAtachments.put("files", aux);
+		format_info.put("attachments", modelAtachments);
+		
+		if (params.framework.equals("pytorch")) {
+			weights.put("pytorch_script", format_info);
+		} else {
+			weights.put("tensorflow_saved_model_bundle", format_info);
+		}
+		
 		// Path to the test inputs
 		ArrayList<String> inputExamples = new ArrayList<String>();
 		ArrayList<String> sampleInputs = new ArrayList<String>();
 		// TODO generalize for several input images
 		if (params.testImageBackup != null) {
 			String title =  params.testImageBackup.getTitle().substring(4);
-			inputExamples.add("./" + TfSaveStamp.getTitleWithoutExtension(title) + ".tif");
-			sampleInputs.add("./" + TfSaveStamp.getTitleWithoutExtension(title) + ".npy");
+			sampleInputs.add("./" + TfSaveStamp.getTitleWithoutExtension(title) + ".tif");
+			inputExamples.add("./" + TfSaveStamp.getTitleWithoutExtension(title) + ".npy");
 		} else {
 			inputExamples.add(null);
 			sampleInputs.add(null);
@@ -213,28 +237,11 @@ public class YAMLUtils {
 		ArrayList<String> sampleOutputs = new ArrayList<String>();
 		for (HashMap<String, String> out : params.savedOutputs) {
 			if (out.get("type").contains("image"))
-				outputExamples.add("./" + TfSaveStamp.getTitleWithoutExtension(out.get("name")) + ".tif");
+				sampleOutputs.add("./" + TfSaveStamp.getTitleWithoutExtension(out.get("name")) + ".tif");
 			else if (out.get("type").contains("ResultsTable"))
-				outputExamples.add("./" + TfSaveStamp.getTitleWithoutExtension(out.get("name")) + ".csv");
-			sampleOutputs.add("./" + TfSaveStamp.getTitleWithoutExtension(out.get("name")) + ".npy");
+				sampleOutputs.add("./" + TfSaveStamp.getTitleWithoutExtension(out.get("name")) + ".csv");
+			outputExamples.add("./" + TfSaveStamp.getTitleWithoutExtension(out.get("name")) + ".npy");
 		}
-		
-		if (params.framework.equals("pytorch")) {
-			weights.put("pytorch_script", format_info);
-		} else {
-			weights.put("tensorflow_saved_model_bundle", format_info);
-		}
-		// Add the preprocessing attachments to the weights, as they are part of the model
-		ArrayList<String> aux = new ArrayList<String>();
-		for (String str : params.attachments) {
-			aux.add(new File(str).getName());
-		}
-		// Add information asking the developer to add plugin requirements to the attachments list
-		aux.add("Include here any plugin that might be required for pre- or post-processing");
-		// List of Java files that need to be included to make the plugin run
-		weights.put("attachments", aux);
-		
-
 		
 		// Info relevant to DeepImageJ, see: https://github.com/bioimage-io/configuration/issues/23
 		Map<String, Object> config = new LinkedHashMap<>();
@@ -271,10 +278,10 @@ public class YAMLUtils {
 		
 				
 		// Put the example inputs and outputs
-		data.put("sample_inputs", sampleInputs);
-		data.put("sample_outputs", sampleOutputs);
 		data.put("test_inputs", inputExamples);
 		data.put("test_outputs", outputExamples);
+		data.put("sample_inputs", sampleInputs);
+		data.put("sample_outputs", sampleOutputs);
 		
 		
 		// TODO what attachments should go here?

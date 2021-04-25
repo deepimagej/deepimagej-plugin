@@ -133,6 +133,7 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 						+ "Please remove it to avoid conflicts.";
 			IJ.error(error);
 			rp.allowStopping(true);
+			removeProcessedImageAndShowOriginal(dev, im, correctTitle);
 			return inputsMap;
 		} catch (JavaProcessingError e) {
 			e.printStackTrace();
@@ -145,6 +146,7 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 						+ "Please remove it to avoid conflicts.";
 			IJ.error(error);
 			rp.allowStopping(true);
+			removeProcessedImageAndShowOriginal(dev, im, correctTitle);
 			return inputsMap;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -156,16 +158,11 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 						+ "Please remove it to avoid conflicts.";
 			IJ.error(error);
 			rp.allowStopping(true);
+			removeProcessedImageAndShowOriginal(dev, im, correctTitle);
 			return inputsMap;
 		}
 		
-		if (!dev) {
-			im.setTitle(correctTitle);
-			if (batch == false)
-				im.show();
-			WindowManager.setTempCurrentImage(null);
-		}
-		
+		showOriginalImage(dev, im, correctTitle);		
 
 		rp.allowStopping(true);
 		// Check if the user has tried to stop the execution while loading the model
@@ -177,6 +174,42 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 			throw new Exception();
 		
 		return inputsMap;
+	}
+	
+	/**
+	 * When an error occurs, the image processed is left many times in the ImageJ workspace.
+	 * This method checks if the image is in the workspace and not showing, and if it is,
+	 * in DIJ Runit removes it and shows the original not processed image. In Build Bundled model
+	 * it show it again
+	 * @param dev: whether we are on Build bundled model or not
+	 * @param im: the duplicate of theoriginal image
+	 * @param correctTitle: the title of the original image
+	 */
+	public void removeProcessedImageAndShowOriginal(boolean dev, ImagePlus im,  String correctTitle) {
+		if (!inp.getWindow().isShowing() && !dev) {
+			inp.changes = false;
+			inp.close();
+			showOriginalImage(dev, im, correctTitle);
+		} else if (!inp.getWindow().isShowing() && dev) {
+			inp.getWindow().setVisible(true);
+		}
+	}
+	
+	/**
+	 * In DIJ Run, show the original image (without the pre-processing changes,
+	 * after the pre-processing is executed
+	 * @param dev: whether we are on Build bundled model or not
+	 * @param im: the duplicate of theoriginal image
+	 * @param correctTitle: the title of the original image
+	 */
+	public void showOriginalImage(boolean dev, ImagePlus im,  String correctTitle) {
+		if (!dev) {
+			im.setTitle(correctTitle);
+			if (batch == false)
+				im.show();
+			WindowManager.setTempCurrentImage(null);
+		}
+		
 	}
 	
 	/*

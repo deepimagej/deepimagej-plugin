@@ -213,14 +213,12 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 		}
 		
 		int px = patchSize[0]; int py = patchSize[1]; int pc = patchSize[2]; int pz = patchSize[3]; 
-
-		if (3 * nx < px || 3 * ny <py || 3 * nz < pz) {
-			IJ.error("Error patch size is too large.\n"
-					+ "Image Size: X = " + nx + ", Y = " + ny + ", Z = " + nz
-					+ "\n Patch Size: X = " + px + ", Y = " + py + ", Z = " + pz);
-			error = "Patch size is too big";
+		
+		if (!ArrayOperations.isImageSizeAcceptable(new int[] {nx, ny, nc, nz}, patchSize, params.inputList.get(inputImageInd).form)) {
+			rp.stop();
 			return null;
 		}
+		
 		if (log.getLevel() >= 1)
 			log.print("patch size " + "X: " +  px + ", Y: " +  py + ", Z: " +  pz + ", C: " +  pc);
 		

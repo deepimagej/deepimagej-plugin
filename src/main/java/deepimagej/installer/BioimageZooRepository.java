@@ -84,7 +84,7 @@ public class BioimageZooRepository {
 				for (Object resource : resources2) {
 					JsonObject jm2 = (JsonObject) resource;
 					Model model2 = parseModel(jm2);
-					if (model2 != null) {
+					if (model2 != null && model2.deepImageJ) {
 						models.put(model2.getFacename(), model2);
 					}
 				}

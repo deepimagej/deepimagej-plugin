@@ -236,6 +236,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		
 		bnNextOutput.addActionListener(this);
 		bnPrevOutput.addActionListener(this);
+		outputCounter = 0;
 		
 	}
 	
@@ -685,14 +686,16 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		Parameters params = parent.getDeepPlugin().params;
-		if (e.getSource() == bnNextOutput) {
+		
+		if (e.getSource() == bnNextOutput && outputCounter < (params.outputList.size() - 1)) {
 			if (saveOutputData(params)) {
 				outputCounter ++;
 			}
-		} else if (e.getSource() == bnPrevOutput) {
+		} else if (e.getSource() == bnPrevOutput && outputCounter > 0) {
 			outputCounter --;
 		}
 		updateInterface(params);
+		
 	}
 
 }

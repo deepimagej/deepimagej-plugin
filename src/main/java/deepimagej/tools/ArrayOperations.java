@@ -261,12 +261,12 @@ public class ArrayOperations {
 				// of the already displayed tables
 				boolean alreadyDisplayed = false;
 				for (String displayedIm : framesList) {
-					if (!displayedIm.contains(title)) 
+					if (!displayedIm.contentEquals(title)) 
 						continue;
 					ImagePlus displayedImP = WindowManager.getImage(title);
 			        if (displayedImP != null) 
 			        	alreadyDisplayed = displayedImP.equals(((ImagePlus) f));
-					if (alreadyDisplayed && displayedImP.getWindow() == null) {
+					if (alreadyDisplayed && displayedImP.getWindow() == null && !displayedImP.getWindow().isClosed()) {
 						ImageWindow ww = new ImageWindow(displayedImP);
 						ww.setVisible(true);
 						break;	
@@ -278,13 +278,14 @@ public class ArrayOperations {
 					continue;
 				String newTitle = title;
 				int c = 1;
-				// While we find a table that is called thesame
+				// While we find a table that is called the same
 				while (frameList.contains(newTitle)) {
 					newTitle = title + "-" + c;
 					c ++;
 				}
 				((ImagePlus) f).setTitle(newTitle);
-				if (((ImagePlus) f).getWindow() != null) {
+
+				if (((ImagePlus) f).getWindow() != null && !((ImagePlus) f).getWindow().isClosed()) {
 					((ImagePlus) f).getWindow().setVisible(true);
 				}
 			}
@@ -385,6 +386,32 @@ public class ArrayOperations {
 			}
 		}
 		return padding;
+	}
+	
+	/**
+	 * Check if the image fulfils the conditions to be processed by the patch proposed.
+	 * This conditions is that the image cannot be 3 times smaller than the patch size (this is
+	 * done to avoid mirroring more than 1 time per side the image).
+	 * be smaller
+	 * @param imageDims
+	 * @param patchDims
+	 * @return
+	 */
+	public static boolean isImageSizeAcceptable(int[] imageDims, int[] patchDims, String tensorForm) {
+		for (int i = 0; i < patchDims.length; i ++) {
+			if (imageDims[i] * 3 < patchDims[i] - 1) {
+				String errMsg = "Error: Due to mirroring, tiles cannot be bigger than 3 times the image at any dimension\n";
+				errMsg += " - X = " + imageDims[0] + ", maximum tile size at X = " + (imageDims[0] * 3 - 1) + "\n";
+				errMsg += " - Y = " + imageDims[1] + ", maximum tile size at Y = " + (imageDims[1] * 3 - 1) + "\n";
+				if (tensorForm.contains("C"))
+					errMsg += " - C = " + imageDims[2] + ", maximum tile size at C = " + (imageDims[2] * 3 - 1) + "\n";
+				if (tensorForm.contains("Z"))
+					errMsg += " - Z = " + imageDims[3] + ", maximum tile size at Z = " + (imageDims[3] * 3 - 1) + "\n";
+				IJ.error(errMsg);
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	/*

@@ -115,10 +115,31 @@ public class Parameters {
 	/*
 	 * List of dependencies needed for the Java pre- and post-processing.
 	 * This variable is the union of preAttachments and postAttachments
+	 * For a Tensorflow model
+	 */
+	public ArrayList<String> tfAttachments = new ArrayList<String>();
+	/*
+	 * List of dependencies needed for the Java pre- and post-processing.
+	 * This variable is the union of preAttachments and postAttachments.
+	 * For a Pytorch model
+	 */
+	public ArrayList<String> ptAttachments = new ArrayList<String>();
+	/*
+	 * List of dependencies needed for the Java pre- and post-processing.
+	 * This variable is the union of preAttachments and postAttachments
 	 * that are not included in the model folder. This variable will only be
 	 * used by the DIJ Run
+	 * For Tensorflow
 	 */
-	public ArrayList<String> attachmentsNotIncluded = new ArrayList<String>();
+	public ArrayList<String> tfAttachmentsNotIncluded = new ArrayList<String>();
+	/*
+	 * List of dependencies needed for the Java pre- and post-processing.
+	 * This variable is the union of preAttachments and postAttachments
+	 * that are not included in the model folder. This variable will only be
+	 * used by the DIJ Run
+	 * For Pytorch
+	 */
+	public ArrayList<String> ptAttachmentsNotIncluded = new ArrayList<String>();
 	/*
 	 * Whether the network has a pyramidal pooling structure or not.
 	 * If it has it, the way to define the model changes. By default
@@ -190,7 +211,8 @@ public class Parameters {
 	public String		license					= null;
 	public String		language				= "java";
 	public String		framework				= "";
-	public String		source					= null;
+	public String		tfSource				= null;
+	public String		ptSource				= null;
 	public String		description				= null;
 	public String		git_repo				= null;
 
@@ -299,12 +321,13 @@ public class Parameters {
 		}
 
 		// Citation
-		if (!(cite instanceof List))
-				cite = null;
-		else
-			cite = (List<HashMap<String, String>>) obj.get("cite");
-		
-		if (cite == null) {
+		Object citation = obj.get("cite");
+		if (citation instanceof List) {
+			cite = (List<HashMap<String, String>>) citation;
+		} else if (citation instanceof HashMap<?, ?>) {
+			cite = new ArrayList<HashMap<String, String>>();
+			cite.add((HashMap<String, String>) citation);
+		} else {
 			cite = new ArrayList<HashMap<String, String>>();
 			HashMap<String, String> c = new HashMap<String, String>();
 			c.put("text", "");
@@ -323,10 +346,57 @@ public class Parameters {
 		boolean tf = false;
 		boolean pt = false;
 		for (String format : weightFormats) {
-			if (format.equals("tensorflow_saved_model_bundle"))
+			if (format.equals("tensorflow_saved_model_bundle")) {
 				tf = true;
-			else if (format.equals("pytorch_script"))
+				HashMap<String, Object> tfMap = ((HashMap<String, Object>) weights.get("tensorflow_saved_model_bundle"));
+				// Look for the name of the model. The model can be called differently sometimes
+				tfSource = (String) tfMap.get("source");
+				
+				// Retrieve the Tensorflow attachments
+				ArrayList<String> attachmentsAux = null;
+				if (tfMap.get("attachments") instanceof HashMap<?, ?>) {
+					HashMap<String, Object> attachmentsMap = (HashMap<String, Object>) tfMap.get("attachments");
+					if (attachmentsMap.get("files") instanceof ArrayList)
+						attachmentsAux = (ArrayList<String>) attachmentsMap.get("files");
+				}
+				
+				tfAttachments = new ArrayList<String>();
+				tfAttachmentsNotIncluded = new ArrayList<String>();
+				String defaultFlag = "Include here any plugin that might be required for pre- or post-processing";
+				if (attachmentsAux != null) {
+					for (String str : attachmentsAux) {
+						if (new File(path2Model, str).isFile() && !str.contentEquals(""))
+							tfAttachments.add(new File(path2Model, str).getAbsolutePath());
+						else if (!str.contentEquals(defaultFlag))
+							tfAttachmentsNotIncluded.add(str);
+					}
+				}
+			} else if (format.equals("pytorch_script")) {
+				HashMap<String, Object> ptMap = ((HashMap<String, Object>) weights.get("pytorch_script"));
+				// Look for the name of the model. The model can be called differently sometimes
+				ptSource = (String) ptMap.get("source");
 				pt = true;
+				
+				// Retrieve the Pytorch attachments
+				ArrayList<String> attachmentsAux = null;
+				if (ptMap.get("attachments") instanceof HashMap<?, ?>) {
+					HashMap<String, Object> attachmentsMap = (HashMap<String, Object>) ptMap.get("attachments");
+					if (attachmentsMap.get("files") instanceof ArrayList)
+						attachmentsAux = (ArrayList<String>) attachmentsMap.get("files");
+				}
+				
+				ptAttachments = new ArrayList<String>();
+				ptAttachmentsNotIncluded = new ArrayList<String>();
+				String defaultFlag = "Include here any plugin that might be required for pre- or post-processing";
+				if (attachmentsAux != null) {
+					for (String str : attachmentsAux) {
+						if (new File(path2Model, str).isFile() && !str.contentEquals(""))
+							ptAttachments.add(new File(path2Model, str).getAbsolutePath());
+						else if (!str.contentEquals(defaultFlag))
+							ptAttachmentsNotIncluded.add(str);
+					}
+				}
+			}
 		}
 		
 		if (tf && pt) {
@@ -342,22 +412,6 @@ public class Parameters {
 		} else if (!tf && !pt) {
 			completeConfig = false;
 			return;
-		}
-		
-		ArrayList<String> attachmentsAux = null;
-		if (weights.get("attachments") instanceof ArrayList)
-			attachmentsAux = (ArrayList<String>) weights.get("attachments");
-		
-		attachments = new ArrayList<String>();
-		attachmentsNotIncluded = new ArrayList<String>();
-		String defaultFlag = "Include here any plugin that might be required for pre- or post-processing";
-		if (attachmentsAux != null) {
-			for (String str : attachmentsAux) {
-				if (new File(path2Model, str).isFile() && !str.contentEquals(""))
-					attachments.add(new File(path2Model, str).getAbsolutePath());
-				else if (!str.contentEquals(defaultFlag))
-					attachmentsNotIncluded.add(str);
-			}
 		}
 		
 		// Model metadata
@@ -575,15 +629,15 @@ public class Parameters {
 					String spec = "" + processing.get("spec");
 					if (spec != null && processing.containsKey("kwargs")) {
 						commands[processingCount] = "" + processing.get("kwargs");
-					} else if (spec != null && !processing.containsKey("kwargs") && spec.contains(".jar")) {
+					} else if (spec != null && !spec.contentEquals("null") && !processing.containsKey("kwargs") && spec.contains(".jar")) {
 						int extensionPosition = spec.indexOf(".jar");
 						if (extensionPosition != -1)
 							commands[processingCount] = spec.substring(0, extensionPosition + 4);
-					} else if (spec != null && !processing.containsKey("kwargs") && spec.contains(".class")) {
+					} else if (spec != null && !spec.contentEquals("null") && !processing.containsKey("kwargs") && spec.contains(".class")) {
 						int extensionPosition = spec.indexOf(".class");
 						if (extensionPosition != -1)
 							commands[processingCount] = spec.substring(0, extensionPosition + 6);
-					} else if (spec == null) {
+					} else if (spec == null || spec.contentEquals("null")) {
 						commands = null;
 					}
 					
@@ -600,15 +654,15 @@ public class Parameters {
 					String spec = "" + processing.get("spec");
 					if (spec != null && processing.containsKey("kwargs")) {
 						commands[processingCount] = "" + processing.get("kwargs");
-					} else if (spec != null && !processing.containsKey("kwargs") && spec.contains(".jar")) {
+					} else if (spec != null && !spec.contentEquals("null") && !processing.containsKey("kwargs") && spec.contains(".jar")) {
 						int extensionPosition = spec.indexOf(".jar");
 						if (extensionPosition != -1)
 							commands[processingCount] = spec.substring(0, extensionPosition + 4);
-					} else if (spec != null && !processing.containsKey("kwargs") && spec.contains(".class")) {
+					} else if (spec != null && !spec.contentEquals("null") && !processing.containsKey("kwargs") && spec.contains(".class")) {
 						int extensionPosition = spec.indexOf(".class");
 						if (extensionPosition != -1)
 							commands[processingCount] = spec.substring(0, extensionPosition + 6);
-					} else if (spec == null) {
+					} else if (spec == null || spec.contentEquals("null")) {
 						commands = null;
 					}
 					
