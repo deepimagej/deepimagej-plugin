@@ -198,7 +198,7 @@ public class Parameters {
 	public String		name					= "n.a.";
 	public List<String>	author					= new ArrayList<String>();
 	public String		timestamp				= "";
-	public String		format_version			= "0.3.0";
+	public String		format_version			= "0.3.1";
 	/*
 	 * Citation: contains the reference articles and the corresponding dois used
 	 * to create the model
@@ -536,6 +536,8 @@ public class Parameters {
 				outTensor.form = (String) out.get("axes");
 				outTensor.form = outTensor.form == null ? null : outTensor.form.toUpperCase();
 				outTensor.tensorType = outTensor.form == null ? "list" : "image";
+				if (outTensor.form != null && outTensor.form.toUpperCase().contains("I"))
+					outTensor.form = outTensor.form.toUpperCase().replace("I", "R");
 				if (outTensor.form == null || outTensor.form.contains("R") || (outTensor.form.length() <= 2 && (outTensor.form.contains("B") || outTensor.form.contains("C"))))
 					outTensor.tensorType = "list";
 				// TODO List auxDataRange = (List) out.get("data_range");

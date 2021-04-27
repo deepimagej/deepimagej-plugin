@@ -250,7 +250,7 @@ public class DeepImageJ {
 			for (String str : params.tfAttachmentsNotIncluded)
 				info.append(" - " + str + "\n");
 		}
-		info.append("----------- METADATA -----------\n");
+		info.append("---------- MODEL INFO ----------\n");
 		info.append("Authors" + "\n");
 		for (String auth : params.author)
 			info.append("  - " + auth + "\n");

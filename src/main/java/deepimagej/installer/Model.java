@@ -68,7 +68,7 @@ public class Model {
 	}
 	
 	public String getFacename() {
-		return name + (deepImageJ ? " [DeepImageJ compatible]" : "");
+		return name;
 	}
 	
 
