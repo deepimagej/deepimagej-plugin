@@ -436,6 +436,8 @@ public class YAMLUtils {
 			outputTensorMap.put("shape", Arrays.toString(out.sizeOutputPyramid));
 			
 		}else if (out.tensorType.contains("list")) {
+			if (out.form.toLowerCase().contains("r"))
+				out.form = out.form.toLowerCase().replace("r", "i");
 			outputTensorMap.put("axes", out.form.toLowerCase());
 			outputTensorMap.put("shape", Arrays.toString(out.tensor_shape));
 			outputTensorMap.put("data_type", "float32");
