@@ -521,7 +521,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 				refs[i] = dp.params.cite.get(i).get("text");
 			}
 			String refInfo = "N.A.";
-			if (refs.length > 0)
+			if (refs != null && !Arrays.toString(refs).contentEquals("[]") && refs.length > 0)
 				refInfo = Arrays.toString(refs);
 			info.append("References: " + refInfo);
 			

@@ -58,7 +58,6 @@ import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.measure.ResultsTable;
 import ij.plugin.PlugIn;
-import ij.process.ImageStatistics;
 import deepimagej.validation.AbstractLoss;
 import deepimagej.validation.Bce;
 import deepimagej.validation.CategoricalHinge;
@@ -131,7 +130,7 @@ public class DeepImageJ_ImageValidation implements ActionListener,PlugIn, ItemLi
 		functions.add(new SSIM());
 		functions.add(new RegressSNR());
 		functions.add(new LAP());
-		functions.add(new Composed());
+		// TODO decide what to do with function composition functions.add(new Composed());
 		functions.add(new KLD());
 		functions.add(new MAPE());
 		functions.add(new MSLE());
@@ -259,6 +258,18 @@ public class DeepImageJ_ImageValidation implements ActionListener,PlugIn, ItemLi
 		info.setText(title2);
 		ImagePlus img1 = WindowManager.getImage(wList[index1]);
 		ImagePlus img2 = WindowManager.getImage(wList[index2]);
+		
+		// TODO in the future allow more than 2d images
+		if (img1.getNChannels() > 1 || img1.getNFrames() > 1 || img1.getNSlices() > 1) {
+			IJ.error("DeepImageJ Validate only supports 2D images with 1 channel, 1 slice and 1 time frame\n"
+					+ "Those conditions are not fulfilled by: " + img1.getTitle());
+			return;
+		}
+		if (img2.getNChannels() > 1 || img2.getNFrames() > 1 || img2.getNSlices() > 1) {
+			IJ.error("DeepImageJ Validate only supports 2D images with 1 channel, 1 slice and 1 time frame\n"
+					+ "Those conditions are not fulfilled by: " + img2.getTitle());
+			return;
+		}
 		
 
 		
