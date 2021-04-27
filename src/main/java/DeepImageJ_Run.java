@@ -504,10 +504,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			info.setText("");
 			info.setCaretPosition(0);
 			// Specify the name of the model
-			info.append("SELECTED MODEL: " + dp.getName().toUpperCase());
+			info.append("Name: " + dp.getName().toUpperCase());
 			info.append("\n");
 			// Specify the authors of the model
-			info.append("Authors: " + dp.params.author);
+			String authInfo = "N.A";
+			if (dp.params.author.size() > 0)
+				authInfo = "" + dp.params.author;
+			info.append("Authors: " + authInfo);
 			info.append("\n");
 			// Specify the references of the model
 			// Create array with al the references
@@ -517,7 +520,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 					refs[i] = dp.params.cite.get(i).get("doi");
 				refs[i] = dp.params.cite.get(i).get("text");
 			}
-			info.append("References: " + Arrays.toString(refs));
+			String refInfo = "N.A.";
+			if (refs.length > 0)
+				refInfo = Arrays.toString(refs);
+			info.append("References: " + refInfo);
 			
 			info.append("\n");
 			info.append("\n");
@@ -773,15 +779,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 			loadInfo += "No Tensorflow library found.\n";
 			loadInfo += "Please install a new Tensorflow version.\n";
 		} else if (loadInfo.equals("ImageJ")) {
-			loadInfo = "Using default TensorFlow version from JAR: TF ";
+			loadInfo = "Currently using TensorFlow  ";
 			loadInfo += DeepLearningModel.getTFVersion(false);
 			if (!loadInfo.contains("GPU"))
 				loadInfo += "_CPU";
 			loadInfo += ".\n";
-			loadInfo += "To change the TF version download the corresponding\n"
-					  + "libtensorflow and libtensorflow_jni jars and place\n"
-					  + "them in the plugins folder.";
-			loadInfo += "For more info check DeepImageJ Wiki.\n";
+			loadInfo += "To change the version, consult the DeepImageJ Wiki.\n";
 		} else {
 			loadInfo += ".\n";
 			loadInfo += "To change the TF version go to Edit>Options>Tensorflow.\n";
@@ -796,7 +799,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		info.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- Looking for installed CUDA distributions");
 		getCUDAInfo(loadInfo, ptVersion, cudaVersion);
 		
-		loadInfo += "Showing models found at --> " + DeepImageJ.cleanPathStr(path) + "\n";
+		loadInfo += "Models' path: " + DeepImageJ.cleanPathStr(path) + "\n";
 		loadInfo += "<Please select a model>\n";
 		info.setText(loadInfo);
 		loadedEngine = true;
