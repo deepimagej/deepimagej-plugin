@@ -170,6 +170,8 @@ public class Table2Tensor {
 			IJ.log("WARNING: DJL Pytorch versions <=1.6.0 do not allow definition of the batch size.");
 			IJ.log("WARNING: Output tensor " + name + " dimension organization has changed: " + oldForm + " --> " + form);
 		}
+		// REtrieve again the batch index
+		batchIndex = form.indexOf("B");
 		// TODO add possibility of batch>1
 		if (batchIndex != -1 && shape[batchIndex] > 1)
 			throw new BatchSizeBiggerThanOne(shape, form, name);
