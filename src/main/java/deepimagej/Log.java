@@ -8,11 +8,11 @@
  * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
- * E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage. 
+ * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. MuÃ±oz-Barrutia, D. Sage. 
  * Submitted 2019.
  *
  * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
- * Biomedical Imaging Group, Ecole polytechnique fédérale de Lausanne (EPFL), Switzerland
+ * Biomedical Imaging Group, Ecole polytechnique fÃ©dÃ©rale de Lausanne (EPFL), Switzerland
  *
  * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
  *
