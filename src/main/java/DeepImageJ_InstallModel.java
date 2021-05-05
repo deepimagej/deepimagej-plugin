@@ -4,8 +4,8 @@
  * https://deepimagej.github.io/deepimagej/
  *
  * Conditions of use: You are free to use this software for research or educational purposes. 
- * In addition, we strongly encourage you to include adequate citations and acknowledgments 
- * whenever you present or publish results that are based on it.
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
  * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
@@ -23,33 +23,37 @@
  * 
  * This file is part of DeepImageJ.
  * 
- * DeepImageJ is an open source software (OSS): you can redistribute it and/or modify it under 
- * the terms of the BSD 2-Clause License.
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
  * 
  * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
  * 
- * You should have received a copy of the BSD 2-Clause License along with DeepImageJ. 
- * If not, see <https://opensource.org/licenses/bsd-license.php>.
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
-import java.io.File;
 
-import javax.swing.JDialog;
-
-import deepimagej.ExploreDialog;
-import ij.IJ;
+import deepimagej.InstallerDialog;
+import deepimagej.installer.BioimageZooRepository;
 import ij.plugin.PlugIn;
 
-public class DeepImageJ_Explore extends JDialog implements PlugIn {
+public class DeepImageJ_InstallModel implements PlugIn {
 
-	public static void main(String arg[]) {
-		new ExploreDialog("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models" + File.separator);
+	public static void main(String[] arg) {
+		new DeepImageJ_InstallModel().run("");
 	}
 
 	@Override
-	public void run(String arg) {
-		new ExploreDialog(IJ.getDirectory("imagej") + File.separator + "models" + File.separator);
+	public void run(String arg0) {
+
+		BioimageZooRepository zoo = new BioimageZooRepository();
+			
+		new InstallerDialog(zoo);
+		
+
 	}
 
 }

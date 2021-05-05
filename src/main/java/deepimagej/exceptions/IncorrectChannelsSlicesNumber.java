@@ -4,8 +4,8 @@
  * https://deepimagej.github.io/deepimagej/
  *
  * Conditions of use: You are free to use this software for research or educational purposes. 
- * In addition, we strongly encourage you to include adequate citations and acknowledgments 
- * whenever you present or publish results that are based on it.
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
  * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
@@ -23,29 +23,39 @@
  * 
  * This file is part of DeepImageJ.
  * 
- * DeepImageJ is an open source software (OSS): you can redistribute it and/or modify it under 
- * the terms of the BSD 2-Clause License.
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
  * 
  * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
  * 
- * You should have received a copy of the BSD 2-Clause License along with DeepImageJ. 
- * If not, see <https://opensource.org/licenses/bsd-license.php>.
- */package deepimagej.exceptions;
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
 
-public class IncorrectChannelsNumber extends Exception {
+package deepimagej.exceptions;
+
+public class IncorrectChannelsSlicesNumber extends Exception {
 	int needed_channels;
 	int provided_channels;
+	String channelsOrSlices;
 	
-	public IncorrectChannelsNumber(int x, int y) {
+	public IncorrectChannelsSlicesNumber(int x, int y, String target) {
 		needed_channels = x;
 		provided_channels = y;
+		channelsOrSlices = target;
 	}
 	
 	public String toString() {
-		return "Image with " + provided_channels + 
-				"channels provided instead of the required "
+		return "Image with " + provided_channels + " " + channelsOrSlices +
+				" provided instead of the required "
 				+ provided_channels;
+	}
+	
+	public String getExceptionType() {
+		return this.channelsOrSlices;
 	}
 
 }

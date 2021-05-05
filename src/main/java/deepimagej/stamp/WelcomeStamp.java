@@ -4,8 +4,8 @@
  * https://deepimagej.github.io/deepimagej/
  *
  * Conditions of use: You are free to use this software for research or educational purposes. 
- * In addition, we strongly encourage you to include adequate citations and acknowledgments 
- * whenever you present or publish results that are based on it.
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
  * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
@@ -23,14 +23,16 @@
  * 
  * This file is part of DeepImageJ.
  * 
- * DeepImageJ is an open source software (OSS): you can redistribute it and/or modify it under 
- * the terms of the BSD 2-Clause License.
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
  * 
  * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
  * 
- * You should have received a copy of the BSD 2-Clause License along with DeepImageJ. 
- * If not, see <https://opensource.org/licenses/bsd-license.php>.
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package deepimagej.stamp;
@@ -50,6 +52,7 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Vector;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -63,6 +66,7 @@ import deepimagej.Constants;
 import deepimagej.DeepImageJ;
 import deepimagej.components.HTMLPane;
 import ij.IJ;
+import ij.gui.GenericDialog;
 
 public class WelcomeStamp extends AbstractStamp implements ActionListener {
 
@@ -79,21 +83,24 @@ public class WelcomeStamp extends AbstractStamp implements ActionListener {
 		pane.setBorder(BorderFactory.createEtchedBorder());
 		pane.append("h2", "Building Bundled Model");
 		pane.append("p",
-				"This wizard allows to create a bundled model for DeepImageJ in 8 steps. "
-						+ "The first step will consist to load the pretrained TensorFlow model. "
+				"This wizard allows to create a bundled model for DeepImageJ in 10 steps. "
+						+ "The first step will consist to load the pretrained TensorFlow or Pytorch (see documentation) model. "
 						+ "At the end, the <i>DeepImageJ Bundled Model</i> is saved in a directory." 
-						+ "Then, it can be easily used by the plugin 'DeepImageJ Run' or by the plugin 'DeepImageJ Explore'");
+						+ "Then, it can be easily used by the plugin 'DeepImageJ Run'");
 
 		pane.append("p", "Before to start the building, the following material is required: <ul>");
 		pane.append("li",
 				"<p>A pretrained TensorFlow model version 1.15 or lower. " + "This pretrained model has to be stored in a TensorFlow SavedModel file (save_model.pb and variables)</p>");
+		pane.append("li",
+				"<p>A pretrained Pytorch Torchscipt model version 1.6.0 or lower. " + "This pretrained model has to be stored in a folder. The path to the folder is what needsto be provided.</p>");
 		pane.append("li", "<p>General information of the pretrained model</p>");
 		pane.append("li", "<p>Knowledge of tensor organization and the tiling strategy</p>");
-		pane.append("li", "<p>Macro of preprocessing and postprocessing</p>");
+		pane.append("li", "<p>Macro or java file of preprocessing and postprocessing</p>");
 		pane.append("li", "<p>A test image</p>");
 		pane.append("</ul>");
 		pane.append("p", "More information: deepimagej.github.io/deepimagej");
-		pane.append("p", "Reference: E. G&oacute;mez de Mariscal et al. DeepImageJ: J: A user-friendly plugin to run\n" + 
+		pane.append("p", "Reference: E. G&oacute;mez de Mariscal and C. Garc&iacute;a-L&oacute;pez-de-Haro et al. DeepImageJ:"
+				+ " A user-friendly plugin to run\n" + 
 				"deep learning models in ImageJ. Submitted 2019.");
 		pane.append("<hr>");
 		pane.append("p",
@@ -131,16 +138,18 @@ public class WelcomeStamp extends AbstractStamp implements ActionListener {
 			return false;
 		}
 			
+		// TODO for the moment only allow folder models
 		if (!file.isDirectory()) {
-			IJ.error("This directory " + filename + " is not a directory folder");	
+			IJ.error("This file " + filename + " does not correspond to a Pytorch or Tensorflow model.");	
 			return false;
 		}
-		
+
 		File pb = new File(filename + File.separator + "saved_model.pb");
-		if (!pb.exists()) {
-			IJ.error("This directory " + filename + " is not a protobuf model (no saved_model.pb)");	
+		if (!pb.exists() && !DeepImageJ.isTherePytorch(file)) {
+			IJ.error("This directory " + filename + " is not a protobuf model (no saved_model.pb)"
+					+ "\nmodel (no saved_model.pb) neither a Pytorch model");	
 			return false;
-		}
+		} 
 		return true;
 	}
 

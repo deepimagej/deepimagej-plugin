@@ -4,8 +4,8 @@
  * https://deepimagej.github.io/deepimagej/
  *
  * Conditions of use: You are free to use this software for research or educational purposes. 
- * In addition, we strongly encourage you to include adequate citations and acknowledgments 
- * whenever you present or publish results that are based on it.
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
  * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
@@ -23,20 +23,28 @@
  * 
  * This file is part of DeepImageJ.
  * 
- * DeepImageJ is an open source software (OSS): you can redistribute it and/or modify it under 
- * the terms of the BSD 2-Clause License.
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
  * 
  * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
  * 
- * You should have received a copy of the BSD 2-Clause License along with DeepImageJ. 
- * If not, see <https://opensource.org/licenses/bsd-license.php>.
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
  */package deepimagej.components;
 
+import java.awt.Desktop;
 import java.awt.Dimension;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 
 import javax.swing.JEditorPane;
 import javax.swing.JScrollPane;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 
@@ -85,6 +93,31 @@ public class HTMLPane extends JEditorPane {
 		create();
 	}
 
+	/* TODO
+	// Allows wrap of the text
+	@Override
+	public boolean getScrollableTracksViewportWidth() {
+		return getUI().getPreferredSize(this).width <= getParent().getSize().width;
+	}
+	*/
+
+	public void enableHyperLink() {
+		addHyperlinkListener(new HyperlinkListener() {
+			public void hyperlinkUpdate(HyperlinkEvent e) {
+				if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+					if (Desktop.isDesktopSupported()) {
+						try {
+							Desktop.getDesktop().browse(e.getURL().toURI());
+						} catch (IOException | URISyntaxException e1) {
+							e1.printStackTrace();
+						}
+					}
+				}
+			}
+		});
+
+	}
+
 	@Override
 	public String getText() {
 		Document doc = this.getDocument();
@@ -126,8 +159,33 @@ public class HTMLPane extends JEditorPane {
 		setCaretPosition(0);
 	}
 
+	public void appendLink(String link, String content) {
+		try {
+			URL url = new URL(link);
+			if (url != null)
+				html += "<p><a href=\"" + link + "\">" + content + "</a></p>";
+
+		} catch (IOException e) {
+			html += "<p>" + content + ": " + link + "</p>";
+		}
+		setText(header + html + footer);
+		if (dim != null) {
+			setPreferredSize(dim);
+		}
+		setCaretPosition(0);
+	}
+
 	public void append(String tag, String content) {
 		html += "<" + tag + ">" + content + "</" + tag + ">";
+		setText(header + html + footer);
+		if (dim != null) {
+			setPreferredSize(dim);
+		}
+		setCaretPosition(0);
+	}
+	
+	public void append(String tag1, String tag2, String content) {
+		html += "<" + tag1 + ">" + "<" + tag2 + ">"+ content + "</" + tag2 + ">" + "</" + tag1 + ">";
 		setText(header + html + footer);
 		if (dim != null) {
 			setPreferredSize(dim);

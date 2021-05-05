@@ -4,8 +4,8 @@
  * https://deepimagej.github.io/deepimagej/
  *
  * Conditions of use: You are free to use this software for research or educational purposes. 
- * In addition, we strongly encourage you to include adequate citations and acknowledgments 
- * whenever you present or publish results that are based on it.
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
  * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
@@ -23,14 +23,16 @@
  * 
  * This file is part of DeepImageJ.
  * 
- * DeepImageJ is an open source software (OSS): you can redistribute it and/or modify it under 
- * the terms of the BSD 2-Clause License.
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
  * 
  * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
  * 
- * You should have received a copy of the BSD 2-Clause License along with DeepImageJ. 
- * If not, see <https://opensource.org/licenses/bsd-license.php>.
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package deepimagej.tools;
@@ -44,24 +46,37 @@ public class CompactMirroring {
 	
 	public static ImagePlus mirrorXY(ImagePlus imp, 
 							   int paddingXLeft, int paddingXRight,
-							   int paddingYTop, int paddingYBottom) {
+							   int paddingYTop, int paddingYBottom,
+							   int paddingZFront, int paddingZBack) {
 		int nx = imp.getWidth();
 		int ny = imp.getHeight();
 		int nc = imp.getNChannels();
 		int nz = imp.getNSlices();
 		int nt = imp.getNFrames();
 		ImagePlus out = IJ.createImage("Mirror", "32-bits", nx + paddingXLeft + paddingXRight,
-										ny + paddingYTop + paddingYBottom, nc, nz, nt);
-		for(int c=1; c<=nc; c++)
-			for(int z=1; z<=nz; z++)
-				for(int t=1; t<=nt; t++) {
-					imp.setPositionWithoutUpdate(c, z, t);
-					out.setPositionWithoutUpdate(c, z, t);
+										ny + paddingYTop + paddingYBottom, nc, nz + paddingZFront + paddingZBack, nt);
+		for(int c=0; c<nc; c++) {
+			for(int z=0; z<nz; z++) {
+				for(int t=0; t<nt; t++) {
+					imp.setPositionWithoutUpdate(c + 1, z + 1, t + 1);
+					out.setPositionWithoutUpdate(c + 1, z + paddingZFront + 1, t + 1);
 					ImageProcessor ip = imp.getProcessor();
 					ImageProcessor op = mirrorXY(ip, paddingXLeft, paddingXRight,
 							   					 paddingYTop, paddingYBottom);
 					out.setProcessor(op);
+					if (z < paddingZFront) {
+						out.setPositionWithoutUpdate(c + 1, z + 1, t + 1);
+						out.setProcessor(mirrorXY(ip, paddingXLeft, paddingXRight,
+			   					 paddingYTop, paddingYBottom));
+					} else if (z >= nz - paddingZBack) {
+						int sliceZBack = 2 * nz - z;
+						out.setPositionWithoutUpdate(c + 1, sliceZBack + 1, t + 1);
+						out.setProcessor(mirrorXY(ip, paddingXLeft, paddingXRight,
+			   					 paddingYTop, paddingYBottom));
+					}
 				}
+			}
+		}
 		return out;
 	}
 	

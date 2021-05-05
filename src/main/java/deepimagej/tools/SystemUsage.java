@@ -4,8 +4,8 @@
  * https://deepimagej.github.io/deepimagej/
  *
  * Conditions of use: You are free to use this software for research or educational purposes. 
- * In addition, we strongly encourage you to include adequate citations and acknowledgments 
- * whenever you present or publish results that are based on it.
+ * In addition, we expect you to include adequate citations and acknowledgments whenever you 
+ * present or publish results that are based on it.
  * 
  * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
  * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
@@ -23,24 +23,36 @@
  * 
  * This file is part of DeepImageJ.
  * 
- * DeepImageJ is an open source software (OSS): you can redistribute it and/or modify it under 
- * the terms of the BSD 2-Clause License.
+ * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
+ * the GNU General Public License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
  * 
  * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * See the GNU General Public License for more details.
  * 
- * You should have received a copy of the BSD 2-Clause License along with DeepImageJ. 
- * If not, see <https://opensource.org/licenses/bsd-license.php>.
+ * You should have received a copy of the GNU General Public License along with DeepImageJ. 
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package deepimagej.tools;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
+import java.util.ArrayList;
+import java.util.Arrays;
+
+import ij.IJ;
 
 public class SystemUsage {
+	
+	private static String checkFiji = null;
+	private static boolean fiji = false;
 
 	public static String getMemoryMB() {
 		MemoryMXBean mem = ManagementFactory.getMemoryMXBean();
@@ -125,5 +137,491 @@ public class SystemUsage {
 			return root.getTotalSpace();
 		return 0;
 	}
+	
+	/*
+	 * Compare nvidia-smi outputs before and after loading the model
+	 * to check if the model has been loaded into the GPU
+	 */
+	public static String isUsingGPU(ArrayList<String> firstSmi, ArrayList<String> secondSmi) {
+		String result = "noImageJProcess";
+		if (firstSmi == null || secondSmi == null)
+			return result;
+		Object[] firstSmiArr = firstSmi.toArray();
+		// If they are not the same, look for information that is not on the first smi
+		// and where the process name contains "java"
+		for (String info : secondSmi) {
+			// TODO check if what happens when Imagej is called from Pyton, do we need to look for a python tag?
+			if (Arrays.toString(firstSmiArr).contains(info) && info.toUpperCase().contains("IMAGEJ")) {
+				// Use '¡RepeatedImageJGPU!' as marker for this option
+				result += info + "¡RepeatedImageJGPU!";
+			} else {
+				return info;
+			}
+		}
+		return result;
+	}
+	
+	public static int numberOfImageJInstances() {
+		String os = System.getProperty("os.name").toLowerCase();
+		if (os.contains("win"))
+			return numberOfImageJInstancesWin();
+		else if (os.contains("lin") || os.contains("unix"))
+			return numberOfImageJInstancesLinux();
+		else if (os.contains("ios"))
+			return 1;
+		else 
+			return 1;
+	}
+	
+	/*
+	 * Get the number of ImageJ instances open. The value will be used to deduce
+	 * if the instance of interest is using a GPU or not. 
+	 */
+	public static int numberOfImageJInstancesLinux() {
+		Process proc;
+		int nIJInstances = 0;
+		try {
+			String line;
+			proc = Runtime.getRuntime().exec("ps");
 
+		    BufferedReader input =
+		            new BufferedReader(new InputStreamReader(proc.getInputStream()));
+		    while ((line = input.readLine()) != null) {
+		        if (line.toUpperCase().contains("IMAGEJ"))
+		        	nIJInstances += 1;
+		    }
+		    input.close();
+		} catch (Exception err) {
+		    err.printStackTrace();
+		}
+		return nIJInstances;
+	}
+	
+	/*
+	 * Get the number of ImageJ instances open. The value will be used to deduce
+	 * if the instance of interest is using a GPU or not. 
+	 */
+	public static int numberOfImageJInstancesWin() {
+		Process proc;
+		int nIJInstances = 0;
+		try {
+			String line;
+			proc = Runtime.getRuntime().exec(System.getenv("windir") +"\\system32\\"+"tasklist.exe");
+
+		    BufferedReader input =
+		            new BufferedReader(new InputStreamReader(proc.getInputStream()));
+		    while ((line = input.readLine()) != null) {
+		        if (line.toUpperCase().contains("IMAGEJ"))
+		        	nIJInstances += 1;
+		    }
+		    input.close();
+		} catch (Exception err) {
+		    err.printStackTrace();
+		}
+		return nIJInstances;
+	}
+	
+	/*
+	 * Run commands in the terminal and retrieve the output in the terminal
+	 * GPUs cannot run on ios operating systems
+	 */
+	public static ArrayList<String> runNvidiaSmi() {
+		String os = System.getProperty("os.name").toLowerCase();
+		if (os.contains("win"))
+			return runNvidiaSmiWin();
+		else if (os.contains("lin"))
+			return runNvidiaSmiLinux();
+		else if (os.contains("ios"))
+			return null;
+		else 
+			return null;
+	}
+	
+	/*
+	 * Run commands in the terminal and retrieve the output in the terminal
+	 */
+	public static ArrayList<String> runNvidiaSmiWin() {
+		return runNvidiaSmiWin("nvidia-smi", true);
+	}
+	
+	/*
+	 * Run commands in the terminal and retrieve the output in the terminal
+	 */
+	public static ArrayList<String> runNvidiaSmiLinux() {
+
+        Process proc;
+		try {
+			proc = Runtime.getRuntime().exec("nvidia-smi");
+
+	        // Read the output
+	        BufferedReader reader =  
+	              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+	        ArrayList<String> result = new ArrayList<String>();
+	        // Relevant information comes after the following header
+	        String infoHeader = "|  GPU       PID   Type   Process name                             Usage      |";
+	        boolean startCapturing = false;
+        	String aux = reader.readLine();
+	        while(aux != null) {
+	        	if (startCapturing && aux != null)
+		            result.add(aux);
+	        	if (aux != null && aux.equals(infoHeader))
+	        		startCapturing = true;
+	        	aux = reader.readLine();
+	        }
+
+	        proc.waitFor(); 
+	        return result;
+		} catch (IOException | InterruptedException e) {
+			return null;
+		}  
+	}
+	
+	/*
+	 * Run commands in the terminal and retrieve the output in the terminal
+	 */
+	public static ArrayList<String> runNvidiaSmiWin(String command, boolean firstCall) {
+
+        Process proc;
+		try {
+			proc = Runtime.getRuntime().exec(command);
+
+	        // Read the output
+	        BufferedReader reader =  
+	              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+	        ArrayList<String> result = new ArrayList<String>();
+	        // Relevant information comes after the following header
+	        String infoHeader = "|  GPU       PID   Type   Process name                             Usage      |";
+	        boolean startCapturing = false;
+        	String aux = reader.readLine();
+	        while(aux != null) {
+	        	if (startCapturing && aux != null)
+		            result.add(aux);
+	        	if (aux != null && aux.equals(infoHeader))
+	        		startCapturing = true;
+	        	aux = reader.readLine();
+	        }
+
+	        proc.waitFor(); 
+	        return result;
+		} catch (IOException | InterruptedException e) {
+			// Not able to run terminal command. Look for the nvidia-smi.exe
+			// in another location. If it is not found, we cannot know 
+			// if we are using GPU or not
+			if (firstCall) {
+				String nvidiaSmi = findNvidiaSmiWin();
+				if (nvidiaSmi != null)
+					return runNvidiaSmiWin(nvidiaSmi, false);
+			} else {
+				return null;
+			}
+		}  
+		return null;
+	}
+	
+	/*
+	 * Look for nvidia-smi in its default location:
+	 *  - C:\Windows\System32\DriverStore\FileRepository\nv*\nvidia-smi.exe
+	 * Older installs might have it at:
+	 *  - C:\Program Files\NVIDIA Corporation\NVSMI
+	 */
+	private static String findNvidiaSmiWin() {
+		// Look in the default directory
+		File grandfatherDir = new File("C:\\Windows\\System32\\DriverStore\\FileRepository");
+		if (!grandfatherDir.exists())
+			return null;
+		for (File f : grandfatherDir.listFiles()) {
+			if (f.getName().indexOf("nv") == 0 && findNvidiaSmiExeWin(f))
+				return f.getAbsolutePath() + File.separator + "nvidia-smi.exe";
+		}
+		// Look inside the default directory in old versions
+		grandfatherDir = new File("C:\\Program Files\\NVIDIA Corporation\\NVSMI");
+		if (!grandfatherDir.exists())
+			return null;
+		for (File f : grandfatherDir.listFiles()) {
+			if (f.getName().equals("nvidia-smi.exe"))
+				return f.getAbsolutePath();
+		}
+		return null;
+	}
+	
+	/*
+	 * Look for the nvidia-smi executable in a given folder
+	 */
+	private static boolean findNvidiaSmiExeWin(File f) {
+		for (File ff : f.listFiles()) {
+			if (ff.getName().equals("nvidia-smi.exe"))
+				return true;
+		}
+		return false;
+	}
+
+	/*
+	 * Find enviromental variables corresponding to CUDA files.
+	 * If they are present and correspond to the needed CUDA vesion
+	 * for the installed TF or Pytorch version, it is possible that
+	 * we are using a GPU
+	 */
+	public static String getCUDAEnvVariables() {
+		String os = System.getProperty("os.name").toLowerCase();
+		if (os.contains("win"))
+			return getCUDAEnvVariablesWin();
+		else if (os.contains("linux") || os.contains("unix"))
+			return getCUDAEnvVariablesLinux();
+		else if (os.contains("mac"))
+			return "nocuda";
+		else 
+			return "nocuda";
+	}
+
+	/*
+	 * Find enviromental variables corresponding to CUDA files.
+	 * If they are present and correspond to the needed CUDA vesion
+	 * for the installed TF or Pytorch version, it is possible that
+	 * we are using a GPU
+	 */
+	public static String getCUDAEnvVariablesLinux() {
+		ArrayList<String> nvccFiles = findNVCCFile();
+		String nvccFilesString = nvccFiles.toString();
+		ArrayList<String> cudaVersionFiles = findCudaVersionFile();
+		String foundCudaVersions = "";
+		for (String str : nvccFiles) {
+			String version = findNVCCVersion(str);
+			if (version != null && str.toLowerCase().contains("cuda"))
+				foundCudaVersions += version + "---";
+		}
+		for (String str : cudaVersionFiles) {
+			// First find if the parent directory does not correspond
+			// to a directory already evaluated
+			String parentDir = new File(str).getParent();
+			if (!nvccFilesString.contains(parentDir + ",")) {
+				String version = findVersionFromFile(str);
+				// Add version if it was not found already
+				if (version != null && str.toLowerCase().contains("cuda") && !foundCudaVersions.toString().contains(version))
+					foundCudaVersions += version + "---";
+			}
+		}
+		if (foundCudaVersions.equals(""))
+			return "nCuda";
+		else
+			return foundCudaVersions;
+	}
+	
+	/*
+	 * In Linux, runs nvcc command to find CUDA version
+	 */
+	public static String findVersionFromFile(String command) {
+		Process proc;
+        String result = null;
+		try {
+			proc = Runtime.getRuntime().exec("cat " + command);
+			/* 
+			 * Output should look like this for CUDA 9.0
+			  	CUDA Version 9.0.176
+
+			 */
+
+	        // Read the output
+	        BufferedReader reader =  
+	              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+	        // Version information comes after the following header
+	        String aux = reader.readLine();
+	        while(aux != null) {
+	        	if (aux != null && aux.toLowerCase().contains("cuda")) {
+	        		aux = aux.split(" ")[2];
+	        		result = aux.substring(0, aux.lastIndexOf("."));
+	        	}
+	        	aux = reader.readLine();
+	        }
+
+	        proc.waitFor(); 
+		} catch( Exception ex) {
+			
+		}
+		return result;
+	}
+	
+	/*
+	 * In Linux, runs nvcc command to find CUDA version
+	 */
+	public static String findNVCCVersion(String command) {
+		Process proc;
+        String result = null;
+		try {
+			proc = Runtime.getRuntime().exec(command + " --version");
+			/* 
+			 * Output should look like this for CUDA 9.0
+			 * 	nvcc: NVIDIA (R) Cuda compiler driver
+				Copyright (c) 2005-2017 NVIDIA Corporation
+				Built on Fri_Sep__1_21:08:03_CDT_2017
+				Cuda compilation tools, release 9.0, V9.0.176
+
+			 */
+
+	        // Read the output
+	        BufferedReader reader =  
+	              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+	        // Version information comes after the following header
+	        String infoHeader = "Cuda compilation tools, release ";
+	        String aux = reader.readLine();
+	        while(aux != null) {
+	        	if (aux != null && aux.contains(infoHeader)) {
+	        		result = aux.substring(aux.indexOf("V") + 1, aux.lastIndexOf("."));
+	        	}
+	        	aux = reader.readLine();
+	        }
+
+	        proc.waitFor(); 
+		} catch( Exception ex) {
+			
+		}
+		return result;
+	}
+	
+	/*
+	 * In Linux, find the file location of nvcc to check which CUDA versions
+	 * are installed in the system
+	 */
+	public static ArrayList<String> findNVCCFile() {
+		Process proc;
+        ArrayList<String> installedVersions = new ArrayList<String>();
+		try {
+			proc = Runtime.getRuntime().exec("locate nvcc");
+
+	        // Read the output
+	        BufferedReader reader =  
+	              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+	        // Version information comes after the following header
+	        String aux = reader.readLine();
+	        while(aux != null) {
+	        	if (aux != null && aux.endsWith(File.separator + "nvcc"))
+	        		installedVersions.add(aux);
+	        	aux = reader.readLine();
+	        }
+
+	        proc.waitFor(); 
+		} catch( Exception ex) {
+			
+		}
+		return installedVersions;
+	}
+	
+	/*
+	 * In Linux, find the file location of version.txt containing the CUDA version to check which CUDA versions
+	 * are installed in the system
+	 */
+	public static ArrayList<String> findCudaVersionFile() {
+		Process proc;
+        ArrayList<String> installedVersions = new ArrayList<String>();
+		try {
+			proc = Runtime.getRuntime().exec("locate version.txt");
+
+	        // Read the output
+	        BufferedReader reader =  
+	              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+	        // Version information comes after the following header
+	        String aux = reader.readLine();
+	        while(aux != null) {
+	        	if (aux != null && aux.toLowerCase().contains("cuda"))
+	        		installedVersions.add(aux);
+	        	aux = reader.readLine();
+	        }
+
+	        proc.waitFor(); 
+		} catch( Exception ex) {
+			
+		}
+		// Now look in the default directory where CUDA is installed
+		// The default directory is '/usr/local'
+		try {
+			String[] defaultDirs = new String[]{"/usr/local"};
+			for (String command : defaultDirs) {
+				proc = Runtime.getRuntime().exec("ls " + command);
+				
+				String previouslyFound = installedVersions.toString();
+		        // Read the output
+		        BufferedReader reader =  
+		              new BufferedReader(new InputStreamReader(proc.getInputStream()));
+		        // Version information comes after the following header
+		        String aux = reader.readLine();
+		        while(aux != null) {
+		        	String wholeStr = command + File.separator + aux + File.separator + "version.txt";
+		        	if (aux != null && aux.toLowerCase().contains("cuda") && !previouslyFound.contains(wholeStr) && new File(wholeStr).exists()) {
+		        		installedVersions.add(wholeStr);
+		        	}
+		        	aux = reader.readLine();
+		        }
+	
+		        proc.waitFor(); 
+			}
+		} catch( Exception ex) {
+			
+		}
+		
+		return installedVersions;
+	}
+
+	/*
+	 * Find enviromental variables corresponding to CUDA files.
+	 * If they are present and correspond to the needed CUDA vesion
+	 * for the installed TF or Pytorch version, it is possible that
+	 * we are using a GPU
+	 */
+	public static String getCUDAEnvVariablesWin() {
+		// Look for environment variable containing the path to CUDA
+		String cudaPath = System.getenv("CUDA_PATH");
+		if (cudaPath == null || !(new File(cudaPath).exists()))
+			return "nocuda";
+		String cudaVersion = new File(cudaPath).getName();
+		String vars = System.getenv("path");
+		String[] arrVars = vars.split(";");
+		// Look for the other needed environment variables in the path
+		// - CUDA_PATH + /bin
+		// - CUDA_PATH + /libnvvp
+		boolean bin = false;
+		boolean libnvvp = false;
+		for (String i : arrVars) {
+			if (i.equals(cudaPath + File.separator + "bin"))
+				bin = true;
+			else if (i.equals(cudaPath + File.separator + "libnvvp"))
+				libnvvp = true;
+		}
+		
+		if (bin && libnvvp) {
+			// If all the needed variables are set, return the CUDA version
+			// In all possible cases return first the CUDA version found followed by ";"
+			return cudaVersion;
+		} else if (!bin && libnvvp) {
+			// If bin is missing return 'bin'
+			return cudaVersion + ";" + cudaPath + File.separator + "bin";
+		} else if (bin && !libnvvp) {
+			// If libnvvp is missing return 'libnvvp'
+			return cudaVersion + ";" + cudaPath + File.separator + "libnvvp";
+		} else {
+			// If bin and libnvvp is missing return 'libnvvp' and 'bin' 
+			// separated by ';'
+			return cudaVersion + ";" + cudaPath + File.separator + "libnvvp" + ";" + cudaPath + File.separator + "bin";
+		}
+	}
+	
+	/*
+	 * Check whether the plugin is running on an IJ1 or Fiji/IJ2 distribution
+	 */
+	public static boolean checkFiji() {
+		if (checkFiji != null) {
+			return fiji;
+		}
+		try {
+			// Try loading the service 'net.imagej.ImageJService'. This service should
+			// always load in IJ2/Fiji but not in IJ1
+			ClassLoader cl = IJ.getClassLoader();
+			Class<?> dijClass = cl.loadClass("net.imagej.ImageJService");
+			fiji = true;
+			checkFiji = "done";
+			return fiji;
+		} catch (Exception ex) {
+			fiji = false;
+			checkFiji = "done";
+			return fiji;
+		}
+	}
 }
