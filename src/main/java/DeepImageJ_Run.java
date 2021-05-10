@@ -601,8 +601,8 @@ public String[] createAndShowDialog() {
 			info.setText("");
 			info.setCaretPosition(0);
 			// Specify the name of the model
-			info.append("Name: " + dp.getName().toUpperCase());
-			info.append("\n");
+			info.append("Name: " + dp.getName().toUpperCase() + "\n");
+			info.append("Location: " + new File(dirname).getName() + "\n");
 			// Specify the authors of the model
 			String authInfo = "N.A";
 			if (dp.params.author.size() > 0)
@@ -766,7 +766,9 @@ public String[] createAndShowDialog() {
 
 			String[] finalFrames = WindowManager.getNonImageTitles();
 			String[] finalImages = WindowManager.getImageTitles();
-			ArrayOperations.displayMissingOutputs(finalImages, finalFrames, output);
+			// If the plugin is running in headless mode, nothing can be displayed
+			if (!headless)
+				ArrayOperations.displayMissingOutputs(finalImages, finalFrames, output);
 
 			// Remove possible hidden images from IJ workspace
 			ArrayOperations.removeProcessedInputsFromMemory(inputsMap);

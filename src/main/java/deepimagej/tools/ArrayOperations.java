@@ -279,7 +279,11 @@ public class ArrayOperations {
 					ImagePlus displayedImP = WindowManager.getImage(title);
 			        if (displayedImP != null) 
 			        	alreadyDisplayed = displayedImP.equals(((ImagePlus) f));
-					if (alreadyDisplayed && displayedImP.getWindow() == null && !displayedImP.getWindow().isClosed()) {
+					if (alreadyDisplayed && displayedImP.getWindow() != null && !displayedImP.getWindow().isClosed()) {
+						ImageWindow ww = new ImageWindow(displayedImP);
+						ww.setVisible(true);
+						break;	
+					} else if (alreadyDisplayed && displayedImP.getWindow() == null) {
 						ImageWindow ww = new ImageWindow(displayedImP);
 						ww.setVisible(true);
 						break;	
