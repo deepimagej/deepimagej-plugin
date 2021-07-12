@@ -2,38 +2,46 @@
  * DeepImageJ
  * 
  * https://deepimagej.github.io/deepimagej/
- *
- * Conditions of use: You are free to use this software for research or educational purposes. 
- * In addition, we expect you to include adequate citations and acknowledgments whenever you 
- * present or publish results that are based on it.
  * 
- * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
- * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
- * Submitted 2019.
- *
+ * Reference: DeepImageJ: A user-friendly environment to run deep learning models in ImageJ
+ * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, W. Ouyang, L. Donati, M. Unser, E. Lundberg, A. Munoz-Barrutia, D. Sage. 
+ * Submitted 2021.
  * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
  * Biomedical Imaging Group, Ecole polytechnique federale de Lausanne (EPFL), Switzerland
- *
- * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
+ * Science for Life Laboratory, School of Engineering Sciences in Chemistry, Biotechnology and Health, KTH - Royal Institute of Technology, Sweden
+ * 
+ * Authors: Carlos Garcia-Lopez-de-Haro and Estibaliz Gomez-de-Mariscal
  *
  */
 
 /*
- * Copyright 2019. Universidad Carlos III, Madrid, Spain and EPFL, Lausanne, Switzerland.
- * 
- * This file is part of DeepImageJ.
- * 
- * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
- * the GNU General Public License as published by the Free Software Foundation, either 
- * version 3 of the License, or (at your option) any later version.
- * 
- * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
- * See the GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License along with DeepImageJ. 
- * If not, see <http://www.gnu.org/licenses/>.
+ * BSD 2-Clause License
+ *
+ * Copyright (c) 2019-2021, DeepImageJ
+ * All rights reserved.
+ *	
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *	  this list of conditions and the following disclaimer in the documentation
+ *	  and/or other materials provided with the distribution.
+ *	
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package deepimagej.tools;
 
 import java.io.IOException;
@@ -74,11 +82,13 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 	@Override
 	public HashMap<String, Object> call() throws Exception  {
 		
-		// Set tag of rp to 'preprocessing' so it shows the correct information
-		rp.setInfoTag("preprocessing");
-		// Show the progress window if it is not showing
-		if (!rp.isVisible())
-			rp.setVisible(this.show);
+		if (rp != null) {
+			// Set tag of rp to 'preprocessing' so it shows the correct information
+			rp.setInfoTag("preprocessing");
+			// Show the progress window if it is not showing
+			if (!rp.isVisible())
+				rp.setVisible(this.show);
+		}
 		
 		// Auxiliary variables for DIJ_Run
 		ImagePlus im = null;
@@ -92,7 +102,7 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 			// Check if an image is RGB Color (1channel). If it is the case transform it into RGB Stack (3channels).
 			makeComposite();
 			
-			if (rp.isStopped()) {
+			if (rp != null && rp.isStopped()) {
 				return null;
 			}
 			
@@ -107,7 +117,7 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 			
 			WindowManager.setTempCurrentImage(inp);
 			
-			if (rp.isStopped()) {
+			if (rp != null && rp.isStopped()) {
 				return null;
 			}
 		}
@@ -119,8 +129,8 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 			makeComposite();
 		}
 		
-		
-		rp.allowStopping(false);
+		if (rp != null)
+			rp.allowStopping(false);
 		try {
 			inputsMap = ProcessingBridge.runPreprocessing(inp, dp.params);
 		}catch(MacrosError ex) {
@@ -132,7 +142,8 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 				error += "\nThe command 'run(\"RGB Stack\");' has been found in macro preporcessing.\n"
 						+ "Please remove it to avoid conflicts.";
 			IJ.error(error);
-			rp.allowStopping(true);
+			if (rp != null)
+				rp.allowStopping(true);
 			removeProcessedImageAndShowOriginal(dev, im, correctTitle);
 			return inputsMap;
 		} catch (JavaProcessingError e) {
@@ -145,7 +156,8 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 				error += "\nThe command 'run(\"RGB Stack\");' has been found in the macro preporcessing.\n"
 						+ "Please remove it to avoid conflicts.";
 			IJ.error(error);
-			rp.allowStopping(true);
+			if (rp != null)
+				rp.allowStopping(true);
 			removeProcessedImageAndShowOriginal(dev, im, correctTitle);
 			return inputsMap;
 		} catch (Exception e) {
@@ -157,17 +169,19 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 				error += "\nThe command 'run(\"RGB Stack\");' has been found in the macro preporcessing.\n"
 						+ "Please remove it to avoid conflicts.";
 			IJ.error(error);
-			rp.allowStopping(true);
+			if (rp != null)
+				rp.allowStopping(true);
 			removeProcessedImageAndShowOriginal(dev, im, correctTitle);
 			return inputsMap;
 		}
 		
 		showOriginalImage(dev, im, correctTitle);		
 
-		rp.allowStopping(true);
+		if (rp != null)
+			rp.allowStopping(true);
 		// Check if the user has tried to stop the execution while loading the model
 		// If they have return false and stop
-		if(rp.isStopped())
+		if(rp != null && rp.isStopped())
 			return null;
 		
 		if (inputsMap.keySet().size() == 0)

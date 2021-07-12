@@ -2,37 +2,44 @@
  * DeepImageJ
  * 
  * https://deepimagej.github.io/deepimagej/
- *
- * Conditions of use: You are free to use this software for research or educational purposes. 
- * In addition, we expect you to include adequate citations and acknowledgments whenever you 
- * present or publish results that are based on it.
  * 
- * Reference: DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ
- * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, L. Donati, M. Unser, A. Munoz-Barrutia, D. Sage. 
- * Submitted 2019.
- *
+ * Reference: DeepImageJ: A user-friendly environment to run deep learning models in ImageJ
+ * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, W. Ouyang, L. Donati, M. Unser, E. Lundberg, A. Munoz-Barrutia, D. Sage. 
+ * Submitted 2021.
  * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
  * Biomedical Imaging Group, Ecole polytechnique federale de Lausanne (EPFL), Switzerland
- *
- * Corresponding authors: mamunozb@ing.uc3m.es, daniel.sage@epfl.ch
+ * Science for Life Laboratory, School of Engineering Sciences in Chemistry, Biotechnology and Health, KTH - Royal Institute of Technology, Sweden
+ * 
+ * Authors: Carlos Garcia-Lopez-de-Haro and Estibaliz Gomez-de-Mariscal
  *
  */
 
 /*
- * Copyright 2019. Universidad Carlos III, Madrid, Spain and EPFL, Lausanne, Switzerland.
- * 
- * This file is part of DeepImageJ.
- * 
- * DeepImageJ is free software: you can redistribute it and/or modify it under the terms of 
- * the GNU General Public License as published by the Free Software Foundation, either 
- * version 3 of the License, or (at your option) any later version.
- * 
- * DeepImageJ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
- * See the GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License along with DeepImageJ. 
- * If not, see <http://www.gnu.org/licenses/>.
+ * BSD 2-Clause License
+ *
+ * Copyright (c) 2019-2021, DeepImageJ
+ * All rights reserved.
+ *	
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *	  this list of conditions and the following disclaimer in the documentation
+ *	  and/or other materials provided with the distribution.
+ *	
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 package deepimagej.tools;
@@ -58,8 +65,11 @@ import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+
+import ij.IJ;
 
 public class FileTools {
 
@@ -226,46 +236,59 @@ public class FileTools {
     /*
      * Unzip zip file 'source' into a file in the path 'outPath'
      */
-    public static void unzipFolder(File source, String outPath) throws IOException, InterruptedException {
- 	    try (ZipInputStream zis = new ZipInputStream(new FileInputStream(source))) {
+    public static boolean unzipFolder(File source, String outPath) throws IOException, InterruptedException {
+ 	    
+    	FileInputStream fis = new FileInputStream(source);
+    	ZipInputStream zis = new ZipInputStream(fis);
 
- 	        ZipEntry entry = zis.getNextEntry();
+        ZipEntry entry = zis.getNextEntry();
 
- 	        while (entry != null) {
+        while (entry != null) {
 
- 	            File file = new File(outPath, entry.getName());
- 	            
+            File file = new File(outPath, entry.getName());
+            
 
- 	            // Check if entry is directory (if the entry name ends with '\' or '/'
- 	            if (entry.isDirectory()) {
- 	                file.mkdirs();
- 	            } else {
- 	                File parent = file.getParentFile();
+            // Check if entry is directory (if the entry name ends with '\' or '/'
+            if (entry.isDirectory()) {
+                file.mkdirs();
+            } else {
+                File parent = file.getParentFile();
 
- 	                if (!parent.exists()) {
- 	                    parent.mkdirs();
- 	                }
+                if (!parent.exists()) {
+                    parent.mkdirs();
+                }
 
- 	                try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(file))) {
+                try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(file))) {
 
- 	                    int bufferSize = Math.toIntExact(entry.getSize());
- 	                    byte[] buffer = new byte[bufferSize > 0 ? bufferSize : 4096];
- 	                    int location;
- 	                    
- 	                    while ((location = zis.read(buffer)) != -1 && !Thread.interrupted()) {
- 	                        bos.write(buffer, 0, location);
- 	                    }
- 	                    
- 	                    // If the exit of the while loo has been due to a
- 	                    // thread interruption, throw exception
- 	     	           if ((location = zis.read(buffer)) != -1) {
- 	     	        	    throw new InterruptedException();
- 	     	        	}
- 	                }
- 	            }
- 	            entry = zis.getNextEntry();
- 	        }
- 	    }
+                    int bufferSize = Math.toIntExact(entry.getSize());
+                    byte[] buffer = new byte[bufferSize > 0 ? bufferSize : 4096];
+                    int location;
+                    
+                    while ((location = zis.read(buffer)) != -1 && !Thread.interrupted()) {
+                        bos.write(buffer, 0, location);
+                    }
+                    
+                    // If the exit of the while loo has been due to a
+                    // thread interruption, throw exception
+     	           if ((location = zis.read(buffer)) != -1) {
+     	        	    throw new InterruptedException();
+     	        	}
+     	           bos.close();
+                } catch (ZipException e) {
+    				e.printStackTrace();
+    				IJ.error("Error unzipping: " + source.getName() + "\n"
+    						+ "It seems that the zipped file was corrupted\n"
+    						+ " while zipping and cannot be unzipped correctly.");
+    		 	    zis.close();
+    		 	    fis.close();
+    				return false;
+    			}
+            }
+            entry = zis.getNextEntry();
+        }
+ 	    zis.close();
+ 	    fis.close();
+ 	    return true;
  	}
     
     /**
