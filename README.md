@@ -9,7 +9,7 @@
 
 ### The ImageJ plugin to run deep-learning models
 
-DeepImageJ is a user-friendly plugin that enables the use of a variety of pre-trained deep learning models in ImageJ. The plugin bridges the gap between deep learning and standard life-science applications. DeepImageJ runs image-to-image operations on a standard CPU-based computer and does not require any deep learning expertise.
+DeepImageJ is a user-friendly plugin that enables the use of a variety of pre-trained deep learning models in ImageJ. The plugin bridges the gap between deep learning and standard life-science applications. DeepImageJ runs image-to-image operations on a standard CPU-based computer or on a GPU, and does not require any deep learning expertise.
 
 Start using it with the guidelines in the [Wiki](https://github.com/deepimagej/deepimagej-plugin/wiki).
 
@@ -22,5 +22,15 @@ As a matter of academic integrity, we strongly encourage users to include adequa
 
 ## References
 * If you used one of the material provided within DeepImageJ such as trained models or Python notebooks, cite their authors' work. 
-* E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage, "DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ" BioRxiv, 2019.
-https://www.biorxiv.org/content/10.1101/799270v2
+* [E. Gómez-de-Mariscal, C. García-López-de-Haro, W. Ouyang, L. Donati, E. Lundberg, M. Unser, A. Muñoz-Barrutia, D. Sage, "DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ" BioRxiv, 2019.](https://www.biorxiv.org/content/10.1101/799270v3)
+
+```bibtex
+@article{gomez2021deepimagej,
+  title={DeepImageJ: A user-friendly environment to run deep learning models in ImageJ},
+  author={G{\'o}mez-de-Mariscal, Estibaliz and Garc{\'\i}a-L{\'o}pez-de-Haro, Carlos and Ouyang, Wei and Donati, Laur{\`e}ne and Lundberg, Emma and Unser, Michael and Mu{\~n}oz-Barrutia, Arrate and Sage, Daniel},
+  journal={bioRxiv},
+  pages={799270},
+  year={2021},
+  publisher={Cold Spring Harbor Laboratory}
+}
+```
