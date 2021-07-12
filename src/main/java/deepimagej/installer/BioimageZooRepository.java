@@ -66,8 +66,8 @@ public class BioimageZooRepository {
 
 	public String url = "https://bioimage.io/";
 	public String location = "https://raw.githubusercontent.com/bioimage-io/bioimage-io-models/gh-pages/manifest.bioimage.io.json";
-	public String title = "Bioimage Zoo";
-	public String name = "Bioimage Zoo";
+	public String title = "BioImage Model Zoo";
+	public String name = "BioImage Model Zoo";
 
 	public HashMap<String, Model> models = new HashMap<String, Model>();
 	public ArrayList<String> logs = new ArrayList<String>();

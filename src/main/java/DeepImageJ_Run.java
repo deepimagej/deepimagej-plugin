@@ -696,6 +696,7 @@ public String[] createAndShowDialog() {
 				log.print("start preprocessing");
 			if (headless)
 				System.out.println("[DEBUG] Pre-processing the images");
+			System.out.println("[DEBUG] Image name: " + inp.getTitle());
 			DijRunnerPreprocessing preprocess = new DijRunnerPreprocessing(dp, rp, inp, batch, log.getLevel() >= 1);
 			Future<HashMap<String, Object>> f0 = service.submit(preprocess);
 			HashMap<String, Object> inputsMap = f0.get();

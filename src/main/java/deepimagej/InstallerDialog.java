@@ -188,7 +188,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		pn3f.add(new JLabel(), BorderLayout.CENTER);
 
 		
-		tab.addTab("Bioimage Zoo", repo);
+		tab.addTab("BioImage Model Zoo", repo);
 		tab.addTab("Private Model", pn3f);
 		
 		JPanel main = new JPanel(new BorderLayout());
