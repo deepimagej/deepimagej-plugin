@@ -1,10 +1,6 @@
 /*
  * DeepImageJ
- * 
- * https://deepimagej.github.io/deepimagej/
- * 
- * Reference: DeepImageJ: A user-friendly environment to run deep learning models in ImageJ
- * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, W. Ouyang, L. Donati, M. Unser, E. Lundberg, A. Munoz-Barrutia, D. Sage. 
+, C. Garcia-Lopez-de-Haro, W. Ouyang, L. Donati, M. Unser, E. Lundberg, A. Munoz-Barrutia, D. Sage. 
  * Submitted 2021.
  * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
  * Biomedical Imaging Group, Ecole polytechnique federale de Lausanne (EPFL), Switzerland

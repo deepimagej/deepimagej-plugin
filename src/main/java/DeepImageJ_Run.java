@@ -135,7 +135,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		path = "C:\\Users\\Carlos(tfg)\\Pictures\\Fiji.app\\models" + File.separator;
 		path = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\Usiigaci_2.1.4\\usiigaci.tif");
-		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\MU-Lux_CTC_PhC-C2DL-PSC.bioimage.io.model\\exampleImage.tif");
+		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\sample_input.tif");
 		//ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
 		imp.show();
 		WindowManager.setTempCurrentImage(imp);
@@ -160,19 +160,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable {
 		if (WindowManager.getCurrentImage() == null) {
 			IJ.error("There should be an image open.");
 			return;
-		}
-		
-		// TODO remove
-		String[] images = WindowManager.getImageTitles();
-		String nImages = IJ.getImage().getTitle();
-		String aaa = Macro.getOptions();
-		String content = imp.getTitle() + "\n" + Arrays.toString(images) + "\n" + nImages + "\n" + aaa;
-		String path = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\start.txt";
-		try {
-			Files.write( Paths.get(path), content.getBytes());
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
 		}
 		
 		String[] args = null;
@@ -604,9 +591,16 @@ public String[] createAndShowDialog() {
 			info.append("Name: " + dp.getName().toUpperCase() + "\n");
 			info.append("Location: " + new File(dirname).getName() + "\n");
 			// Specify the authors of the model
-			String authInfo = "N.A";
-			if (dp.params.author.size() > 0)
-				authInfo = "" + dp.params.author;
+			String authInfo = "[";
+			for (HashMap<String, String> authorMap : dp.params.author) {
+				if (!authorMap.get("name").equals(""))
+					authInfo += authorMap.get("name") + ", ";
+				else
+					authInfo += "N/A." + ", ";
+			}
+			// REplace the last ", " by a "]"
+			authInfo = authInfo.substring(0, authInfo.lastIndexOf(", ")) + "]";
+			
 			info.append("Authors: " + authInfo);
 			info.append("\n");
 			// Specify the references of the model
@@ -617,7 +611,7 @@ public String[] createAndShowDialog() {
 					refs[i] = dp.params.cite.get(i).get("doi");
 				refs[i] = dp.params.cite.get(i).get("text");
 			}
-			String refInfo = "N.A.";
+			String refInfo = "N/A.";
 			if (refs != null && !Arrays.toString(refs).contentEquals("[]") && refs.length > 0)
 				refInfo = Arrays.toString(refs);
 			info.append("References: " + refInfo);
