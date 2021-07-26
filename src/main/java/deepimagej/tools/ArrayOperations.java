@@ -279,8 +279,8 @@ public class ArrayOperations {
 					ImagePlus displayedImP = WindowManager.getImage(title);
 			        if (displayedImP != null) 
 			        	alreadyDisplayed = displayedImP.equals(((ImagePlus) f));
-					if (alreadyDisplayed && displayedImP.getWindow() != null && !displayedImP.getWindow().isClosed()) {
-						ImageWindow ww = new ImageWindow(displayedImP);
+					if (alreadyDisplayed && displayedImP.getWindow() != null && !displayedImP.getWindow().isVisible() && !displayedImP.getWindow().isClosed()) {
+						ImageWindow ww = displayedImP.getWindow();
 						ww.setVisible(true);
 						break;	
 					} else if (alreadyDisplayed && displayedImP.getWindow() == null) {
@@ -395,8 +395,8 @@ public class ArrayOperations {
 				if (out.tensorType.contains("image") && !Arrays.equals(out.scale, new float[out.scale.length])) {
 					for (int i = 0; i < targetForm.length; i ++) {
 						int ind = Index.indexOf(out.form.split(""), targetForm[i]);
-						if (ind != -1 && !targetForm[i].equals("b") && (out.offset[ind] + out.halo[ind]) > padding[i])  {
-							padding[i] = out.offset[ind] + out.halo[ind];
+						if (ind != -1 && !targetForm[i].toLowerCase().equals("b")  && !targetForm[i].toLowerCase().equals("c") && (out.offset[ind] + out.halo[ind]) > padding[i])  {
+							padding[i] = -1 * out.offset[ind] + out.halo[ind];
 						}
 					}
 				}
