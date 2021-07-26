@@ -50,7 +50,7 @@ import ij.IJ;
 /**
  * This class is used to retrieve the commands executed by anIJ Macro
  * or Pyimagej script and provide them to the plugin in a readable way
- * @author Carlos García @carlosuc3m
+ * @author Carlos Garcia @carlosuc3m
  *
  */
 public class HeadlessProcessing {
