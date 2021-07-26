@@ -99,7 +99,7 @@ public class WelcomeStamp extends AbstractStamp implements ActionListener {
 		pane.append("li",
 				"<p>A pretrained TensorFlow model version 1.15 or lower. " + "This pretrained model has to be stored in a TensorFlow SavedModel file (save_model.pb and variables)</p>");
 		pane.append("li",
-				"<p>A pretrained Pytorch Torchscipt model version 1.6.0 or lower. " + "This pretrained model has to be stored in a folder. The path to the folder is what needsto be provided.</p>");
+				"<p>A pretrained Pytorch Torchscipt model version 1.7.0 or lower. " + "This pretrained model has to be stored in a folder. The path to the folder is what needsto be provided.</p>");
 		pane.append("li", "<p>General information of the pretrained model</p>");
 		pane.append("li", "<p>Knowledge of tensor organization and the tiling strategy</p>");
 		pane.append("li", "<p>Macro or java file of preprocessing and postprocessing</p>");

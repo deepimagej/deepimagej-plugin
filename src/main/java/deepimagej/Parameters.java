@@ -45,6 +45,10 @@
 package deepimagej;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -203,9 +207,9 @@ public class Parameters {
 	 *  Parameters providing ModelInformation
 	 */
 	public String		name					= "n.a.";
-	public List<String>	author					= new ArrayList<String>();
+	public List<HashMap<String, String>>	author					= new ArrayList<HashMap<String, String>>();
 	public String		timestamp				= "";
-	public String		format_version			= "0.3.1";
+	public String		format_version			= "0.3.2";
 	/*
 	 * Citation: contains the reference articles and the corresponding dois used
 	 * to create the model
@@ -294,10 +298,20 @@ public class Parameters {
 		// config file
 		path2Model = path;
 		File yamlFile = new File(path + File.separator + "model.yaml");
+
 		developer = isDeveloper;
 		if (developer || !yamlFile.isFile())
 			return;
-		Map<String, Object> obj =  YAMLUtils.readConfig(yamlFile.getAbsolutePath());
+		Map<String, Object> obj = new HashMap<String, Object>();
+		try {
+			obj =  YAMLUtils.readConfig(yamlFile.getAbsolutePath());
+		} catch (Exception ex) {
+			fieldsMissing = new ArrayList<String>();
+			fieldsMissing.add("Unable to read the yaml file");
+			fieldsMissing.add("Check the file encoding, it should be UTF-8");
+			completeConfig = false;
+			return;
+		}
 		// Find out if there is any missing field in the yaml
 		fieldsMissing = checkYaml(obj);
 		// Until every parameter is checkef complete config is false
@@ -312,20 +326,43 @@ public class Parameters {
 			completeConfig = false;
 			return;
 		}
-		if (obj.get("authors") instanceof List) {
-			author = (List<String>) obj.get("authors");
+		
+		// Adapt to versions 0.3.2, 0.3.1 and 0.3.0 of the yaml file
+		// 0.3.2 provides a list of dictionaries
+		if (obj.get("authors") instanceof List &&  ((List<Object>) obj.get("authors")).get(0) instanceof HashMap) {
+			author = (List<HashMap<String, String>>) obj.get("authors");
+		// 0.3.0 and 0.3.1 provide a list of Strings
+		} else if (obj.get("authors") instanceof List &&  ((List<Object>) obj.get("authors")).get(0) instanceof String) {
+			List<String> auxList = (List<String>) obj.get("authors");
+			author = new ArrayList<HashMap<String, String>>();
+			for (String element : auxList) {
+				HashMap<String, String> auxMap = new HashMap<String, String>();
+				auxMap.put("name", element);
+				auxMap.put("affiliation", null);
+				auxMap.put("orcid", null);
+				author.add(auxMap);
+			}
+			
+		// Python Dij packager provides a String
 		} else if (obj.get("authors") instanceof String) {
 			String aux = "" + obj.get("authors");
-			author = new ArrayList<String>();
-			author.add(aux);
+			HashMap<String, String> auxMap = new HashMap<String, String>();
+			auxMap.put("name", aux);
+			auxMap.put("affiliation", "");
+			auxMap.put("orcid", "");
+			author = new ArrayList<HashMap<String, String>>();
+			author.add(auxMap);
+		// If nothing is recognised
 		} else {
-			
+			HashMap<String, String> auxMap = new HashMap<String, String>();
+			auxMap.put("name", "n/a");
+			auxMap.put("affiliation", "");
+			auxMap.put("orcid", "");
+			author = new ArrayList<HashMap<String, String>>();
+			author.add(auxMap);
 		}
+		
 		timestamp = "" +  obj.get("timestamp");
-		if (author == null) {
-			author = new ArrayList<String>();
-			author.add("n/a");
-		}
 
 		// Citation
 		Object citation = obj.get("cite");
