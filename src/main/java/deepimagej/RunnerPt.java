@@ -493,8 +493,8 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 							float scaleX = outSize[0] / nx; float scaleY = outSize[1] / ny; float scaleZ = outSize[3] / nz;
 							ArrayOperations.imagePlusReconstructor(outputImages[imCounter], impatch[imCounter], (int) (xImageStartPatch * scaleX),
 									(int) (xImageEndPatch * scaleX), (int) (yImageStartPatch * scaleY), (int) (yImageEndPatch * scaleY),
-									(int) (zImageStartPatch * scaleZ), (int) (zImageEndPatch * scaleZ),(int)(leftoverPixelsX * scaleX) - allOffsets[imCounter][0],
-									(int)(leftoverPixelsY * scaleY) - allOffsets[imCounter][1], (int)(leftoverPixelsZ * scaleZ) - allOffsets[imCounter][3]);
+									(int) (zImageStartPatch * scaleZ), (int) (zImageEndPatch * scaleZ),(int)(leftoverPixelsX * scaleX) + allOffsets[imCounter][0],
+									(int)(leftoverPixelsY * scaleY) + allOffsets[imCounter][1], (int)(leftoverPixelsZ * scaleZ) + allOffsets[imCounter][3]);
 							if (outputImages[imCounter] != null)
 								outputImages[imCounter].getProcessor().resetMinAndMax();
 							if (rp != null && rp.isStopped()) {
@@ -544,8 +544,8 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 								if (idx == -1 && outPatchDims[dd] == scale[idx]) {
 									thSizeStr += scale[idx] + ",";
 									continue;
-								} else if (idx != -1 && outPatchDims[dd] == (int)(refSize[dd] * scale[idx]) - offset[idx]) {
-									thSizeStr += ((int)(refSize[dd] * scale[idx]) - offset[idx]) + ",";
+								} else if (idx != -1 && outPatchDims[dd] == (int)(refSize[dd] * scale[idx]) + 2 * offset[idx]) {
+									thSizeStr += ((int)(refSize[dd] * scale[idx]) + 2 * offset[idx]) + ",";
 									continue;
 								}
 								for (dd ++; dd < ijForm.length;) {
@@ -553,7 +553,7 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 									if (idx == -1) {
 										thSizeStr += scale[idx] + ",";
 									} else if (idx != -1) {
-										thSizeStr += ((int)(refSize[dd] * scale[idx]) - offset[idx]) + ",";
+										thSizeStr += ((int)(refSize[dd] * scale[idx]) + 2 * offset[idx]) + ",";
 									}
 								}
 								thSizeStr = thSizeStr.substring(0, thSizeStr.length() - 1) + "]";
@@ -681,7 +681,10 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 			int indOut = Index.indexOf(outTensor.form.split(""), standarForm[i]);
 			int indInp = Index.indexOf(refTensor.form.split(""), standarForm[i]);
 			if (indOut != -1 && indInp != -1) {
-				outSize[i] = inpSize[i] * outTensor.scale[indOut];
+				if (standarForm[i].toLowerCase().equals("c"))
+					outSize[i] = inpSize[i] * outTensor.scale[indOut] + 2*outTensor.offset[indOut];
+				else
+					outSize[i] = inpSize[i] * outTensor.scale[indOut];
 			} else if (indOut != -1 && indInp == -1) {
 				outSize[i] = patchSize[i];
 			} else {
@@ -702,8 +705,8 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 				continue;
 			for (int i = 0; i < form.length; i ++) {
 				int ind = Index.indexOf(out.form.split(""), form[i]);
-				if (out.tensorType.contains("image") && ind != -1 && form[i].equals("B") == false) {
-					double totalPad = Math.ceil((double)out.offset[ind] / (double)out.scale[ind]) + Math.ceil((double)out.halo[ind] / (double)out.scale[ind]);
+				if (out.tensorType.contains("image") && ind != -1 && !form[i].equals("B") && !form[i].equals("C")) {
+					double totalPad = Math.ceil(-1 * (double)out.offset[ind] / (double)out.scale[ind]) + Math.ceil((double)out.halo[ind] / (double)out.scale[ind]);
 					if ((int) totalPad > padding[i]) {
 						padding[i] = (int) totalPad;
 					}
@@ -743,7 +746,7 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 		String[] form = "XYCZ".split("");
 		int c1 = 0;
 		for (DijTensor out: outputs) {
-			if (!out.tensorType.equals("tensorType"))
+			if (!out.tensorType.toLowerCase().equals("image"))
 				continue;
 			int c2 = 0;
 			for (int i = 0; i < offsets[0].length; i ++) {

@@ -593,7 +593,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, MouseLis
 				//  Check that the input to the model is not automatically calculated by
 				// the plugin. If it is, we cannot make sure anything.
 				if (params.allowPatching || inpTensor.step[ind] == 0)
-					outSize = ((int) (Math.round(((double)tileSize[ind]) * scale[i])) - 2 * offset[i]);
+					outSize = ((int) (Math.round(((double)tileSize[ind]) * scale[i])) + 2 * offset[i]);
 				if ((params.allowPatching || inpTensor.step[ind] == 0) && outShape[i] != -1 && outSize != outShape[i]) {
 					// Check that with the given parameters, the input size gives the 
 					// output size specified by the model

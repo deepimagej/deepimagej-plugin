@@ -91,14 +91,13 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 	public JTextField	txtDocumentation	= new JTextField("", 24);
 	public JTextField	txtGitRepo	= new JTextField("", 24);
 	public JTextField	txtLicense			= new JTextField("", 24);
-	// TODO remove public JTextField	txtSource			= new JTextField("", 24);
 	public JTextArea	txtDescription		= new JTextArea("", 3, 24);
 	
-	public JList<String>authList			= new JList<String>();
-	public JList<String>tagList			= new JList<String>();
-	public JList<HashMap<String, String>>citationList	= new JList<HashMap<String, String>>();
+	public JList<HashMap<String, String>> authList		= new JList<HashMap<String, String>>();
+	public JList<String> tagList						= new JList<String>();
+	public JList<HashMap<String, String>> citationList	= new JList<HashMap<String, String>>();
 	
-	private DefaultListModel<String> 	authModel;
+	private DefaultListModel<HashMap<String, String>> 	authModel;
 	private DefaultListModel<String> 	tagModel;
 	private DefaultListModel<HashMap<String, String>> 	citationModel;
 
@@ -111,9 +110,14 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 	public JButton		citationAddBtn	= new JButton("Add");
 	public JButton		citationRmvBtn	= new JButton("Remove");
 	
-	public ArrayList<String> introducedAuth = new ArrayList<String>();
+	public ArrayList<HashMap<String, String>> introducedAuth = new ArrayList<HashMap<String, String>>();
 	public ArrayList<String> introducedTag = new ArrayList<String>();
 	public ArrayList<HashMap<String, String>> introducedCitation = new ArrayList<HashMap<String, String>>();
+	
+	// Key words for a class method to know whether to build
+	// a citation panel or an authorship panel
+	private String authTag = "auth";
+	private String citeTag = "cite";
 	
 	// Parameter to keep track of the model being used
 	public String		model			= ""; 
@@ -155,21 +159,24 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 	    infoC.fill = GridBagConstraints.BOTH;
 	    infoC.insets = new Insets(10, 0, 10, 10); 
 
-		// First field
+		// MOdel name field
 		pn.add(new JLabel("Full name"), labelC);
 		pn.add(txtName, infoC);
 		
-		// Next field
-		JFrame authorsFr = createAddRemoveFrame(txtAuth, authAddBtn, "auth", authRmvBtn);
-		
+		// Authorship field
 		labelC.gridy = 1;
-		labelC.ipadx = 50;
-		labelC.ipady = 50;
+		labelC.ipadx = 0;
+		labelC.ipady = 0;
 		infoC.gridy = 1;
-		pn.add(new JLabel("<html>Author of the bundled model</html>"), labelC);
+	    infoC.insets = new Insets(0, 0, 0, 0);
+		infoC.ipady = 50; 
+		infoC.ipadx = 50; 
+		JFrame authorsFr = createAddRemoveCitation(authAddBtn, authRmvBtn, authTag);
+		pn.add(new JLabel("Authors of the bundled model"), labelC);
+		authorsFr.getContentPane().setSize(8, 20);
 		pn.add((JComponent) authorsFr.getContentPane(), infoC);
 		
-		// Next field
+		// Citation field
 		labelC.gridy = 2;
 		labelC.ipadx = 0;
 		labelC.ipady = 0;
@@ -177,12 +184,12 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 	    infoC.insets = new Insets(0, 0, 0, 0);
 		infoC.ipady = 50; 
 		infoC.ipadx = 50; 
-		JFrame citationsFr = createAddRemoveCitation(citationAddBtn, citationRmvBtn);
+		JFrame citationsFr = createAddRemoveCitation(citationAddBtn, citationRmvBtn, citeTag);
 		pn.add(new JLabel("Citations"), labelC);
 		citationsFr.getContentPane().setSize(8, 20);
 		pn.add((JComponent) citationsFr.getContentPane(), infoC);
 		
-		// Next field
+		// MOdel description field
 		labelC.gridy = 4;
 		labelC.gridheight = 3;
 		labelC.ipadx = 50;
@@ -204,7 +211,7 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 
 		pn.add(txtScroller, infoC);
 		
-		// Next field
+		// Docs field
 		labelC.gridy = 7;
 		labelC.gridheight = 1;
 		labelC.ipadx = 0;
@@ -218,7 +225,7 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		pn.add(new JLabel("Link to documentation"), labelC);
 		pn.add(txtDocumentation, infoC);
 		
-		// Next field
+		// GIT repo link field
 		labelC.gridy = 8;
 		labelC.gridheight = 1;
 		labelC.ipadx = 0;
@@ -238,13 +245,7 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		pn.add(new JLabel("Type of license"), labelC);
 		pn.add(txtLicense, infoC);
 		
-		// Next field
-		// TODO remove labelC.gridy = 9;
-		// TODO remove infoC.gridy = 9;
-		// TODO remove pn.add(new JLabel("Link to model source"), labelC);
-		// TODO remove pn.add(txtSource, infoC);
-		
-		// Next field
+		// TAgs field
 		JFrame tagsFr = createAddRemoveFrame(txtTag, tagAddBtn, "tag", tagRmvBtn);
 
 		labelC.gridy = 10;
@@ -290,9 +291,8 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 			txtName.setText(file.getName());
 			model = parent.getDeepPlugin().params.path2Model;
 
-			introducedAuth = new ArrayList<String>();
-			authModel = new DefaultListModel<String>();
-			authModel.addElement("");
+			introducedAuth = new ArrayList<HashMap<String, String>>();
+			authModel = new DefaultListModel<HashMap<String, String>>();
 			authList.setModel(authModel);
 
 			introducedCitation = new ArrayList<HashMap<String, String>>();
@@ -312,7 +312,6 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 			txtDocumentation.setText("");
 			txtGitRepo.setText("");
 			txtLicense.setText("");
-			// TODO remove txtSource.setText("");
 			txtDescription.setText("");
 		}
 	}
@@ -330,8 +329,6 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		params.documentation = txtDocumentation.getText().trim();
 		params.git_repo = txtGitRepo.getText().trim();
 		params.license = txtLicense.getText().trim();
-		// TODO check if we need to cover here
-		// TODO remove params.source = txtSource.getText().trim();
 		params.description = txtDescription.getText().trim();
 		
 		params.name = params.name.equals("") ? null : coverForbiddenSymbols(params.name);
@@ -343,7 +340,6 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		params.documentation = params.documentation.equals("") ? null : params.documentation;
 		params.git_repo = params.git_repo.equals("") ? null : params.git_repo;
 		params.license = params.license.equals("") ? null : coverForbiddenSymbols(params.license);
-		// TODO remove params.source = params.source.equals("") ? null : params.source;
 		params.description = params.description.equals("") ? null : coverForbiddenSymbols(params.description);
 		params.infoTags = introducedTag;
 		
@@ -358,7 +354,7 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 									"¡", "¿", "%", "@", "Ñ", "ñ"};
 		for (String forbidenChar : forbidenCharacters) {
 			if (txt.contains(forbidenChar)) {
-				txt = "\"" + txt +  "\"";
+				txt = "\'" + txt +  "\'";
 				break;
 			}
 		}
@@ -366,41 +362,60 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 	}
 	
 	public void addAuthor() {
-		// Get the author introduced
-		String authName = coverForbiddenSymbols(txtAuth.getText().trim());
-		if (authName.equals("")) {
-			IJ.error("Introduce a name");
+		GenericDialog dlg = new GenericDialog("Add author information");
+		dlg.addStringField("Name", "", 70);
+		dlg.addStringField("Affiliation", "", 70);
+		dlg.addStringField("Orcid", "", 70);
+		dlg.showDialog();
+		if (dlg.wasCanceled()) {
 			return;
 		}
-		introducedAuth.add(authName);
+		Vector<TextField> strField = dlg.getStringFields();
+		TextField nameField = (TextField) strField.get(0);
+		TextField affField = (TextField) strField.get(1);
+		TextField orcidField = (TextField) strField.get(2);
+		HashMap<String, String> specs = new HashMap<String, String>();
+		specs.put("name", coverForbiddenSymbols(nameField.getText().trim()));
+		if (specs.get("name").contentEquals(""))
+			specs.put("name", "n/a");
+		specs.put("affiliation", coverForbiddenSymbols(affField.getText().trim()));
+		if (specs.get("affiliation").contentEquals(""))
+			specs.put("affiliation", null);
+		specs.put("orcid", coverForbiddenSymbols(orcidField.getText().trim()));
+		if (specs.get("orcid").contentEquals(""))
+			specs.put("orcid", null);
 
-		authModel = new DefaultListModel<String>();
+		introducedAuth.add(specs);
+
+		authModel = new DefaultListModel<HashMap<String, String>>();
 		
 		// Add the elements to the list
 
-		for (String name : introducedAuth){
+		for (HashMap<String, String> name : introducedAuth){
 			authModel.addElement(name);
 		}
 		authList.setModel(authModel);
-		txtAuth.setText("");
+		authList.setCellRenderer(new MyListCellRenderer(authTag));
 	}
+	
 	public void removeAuthor() {
 		// Get the author selected
-		int authInd = authList.getSelectedIndex();
-		if (authInd == -1) {
-			IJ.error("No author selected");
+		int citation = authList.getSelectedIndex();
+		if (citation == -1) {
+			IJ.error("No citation selected");
 			return;
 		}
-		introducedAuth.remove(authInd);
+		introducedAuth.remove(citation);
 
-		authModel = new DefaultListModel<String>();
+		authModel = new DefaultListModel<HashMap<String, String>>();
 		
 		// Add the elements to the list
 
-		for (String name : introducedAuth){
+		for (HashMap<String, String> name : introducedAuth){
 			authModel.addElement(name);
 		}
 		authList.setModel(authModel);
+		authList.setCellRenderer(new MyListCellRenderer(authTag));
 	}
 	
 	public void addCite() {
@@ -442,11 +457,10 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		// Add the elements to the list
 
 		for (HashMap<String, String> name : introducedCitation){
-			String composedElement = "- " + name.get("text") + "\n" + " " + name.get("doi");
 			citationModel.addElement(name);
 		}
 		citationList.setModel(citationModel);
-		citationList.setCellRenderer(new MyListCellRenderer());
+		citationList.setCellRenderer(new MyListCellRenderer(citeTag));
 	}
 	
 	public void removeCite() {
@@ -463,11 +477,10 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 		// Add the elements to the list
 
 		for (HashMap<String, String> name : introducedCitation){
-			String composedElement = "- " + name.get("text") + "\n" + " " + name.get("doi");
 			citationModel.addElement(name);
 		}
 		citationList.setModel(citationModel);
-		citationList.setCellRenderer(new MyListCellRenderer());
+		citationList.setCellRenderer(new MyListCellRenderer(citeTag));
 	}
 	
 	public void addTag() {
@@ -551,9 +564,9 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 	    c.gridx = 0;
 	    c.gridy = 1;
 	    if (option.contains("auth")) {
-			authModel = new DefaultListModel<String>();
-			authModel.addElement("");
-			authList = new JList<String>(authModel);
+			//authModel = new DefaultListModel<String>();
+			//authModel.addElement("");
+			//authList = new JList<String>(authModel);
 			authList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 			authList.setLayoutOrientation(JList.VERTICAL);
 			authList.setVisibleRowCount(2);
@@ -590,7 +603,7 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 	/*
 	 * Method that creates the Gui component that allows adding and removing citations
 	 */
-	public JFrame createAddRemoveCitation(JButton add, JButton rmv) {
+	public JFrame createAddRemoveCitation(JButton add, JButton rmv, String option) {
 		// Create the panel to add authors
 		JFrame authorsFr = new JFrame();
 		authorsFr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); 
@@ -610,15 +623,28 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 	    c.gridx = 0;
 	    c.gridy = 0;
 	    c.gridheight =2; 
-	    citationModel = new DefaultListModel<HashMap<String, String>>();
-		citationList = new JList<HashMap<String, String>>(citationModel);
-		citationList.setCellRenderer(new MyListCellRenderer());
-		citationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		citationList.setLayoutOrientation(JList.VERTICAL);
-		citationList.setVisibleRowCount(4);
-		JScrollPane listScroller = new JScrollPane(citationList);
-		listScroller.setPreferredSize(new Dimension(Constants.width, panel.getPreferredSize().height));
-	    authorsPn.add(listScroller, c);
+
+	    if (option.contains(authTag)) {
+	    	authModel = new DefaultListModel<HashMap<String, String>>();
+	    	authList = new JList<HashMap<String, String>>(authModel);
+	    	authList.setCellRenderer(new MyListCellRenderer(authTag));
+	    	authList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+	    	authList.setLayoutOrientation(JList.VERTICAL);
+	    	authList.setVisibleRowCount(4);
+			JScrollPane listScroller = new JScrollPane(authList);
+			listScroller.setPreferredSize(new Dimension(Constants.width, panel.getPreferredSize().height));
+		    authorsPn.add(listScroller, c);
+	    } else if(option.contains(citeTag)) {
+	    	citationModel = new DefaultListModel<HashMap<String, String>>();
+			citationList = new JList<HashMap<String, String>>(citationModel);
+			citationList.setCellRenderer(new MyListCellRenderer(citeTag));
+			citationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			citationList.setLayoutOrientation(JList.VERTICAL);
+			citationList.setVisibleRowCount(4);
+			JScrollPane listScroller = new JScrollPane(citationList);
+			listScroller.setPreferredSize(new Dimension(Constants.width, panel.getPreferredSize().height));
+		    authorsPn.add(listScroller, c);
+	    }
 
 	    c.ipady = 0; 
 	    c.ipadx = 0; 
@@ -669,6 +695,12 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
 	}
 
     private class MyListCellRenderer extends DefaultListCellRenderer {
+    	
+    	private String tag;
+    	
+    	public MyListCellRenderer(String tag) {
+    		this.tag = tag;
+    	}
 
         @Override
         public Component getListCellRendererComponent(
@@ -676,11 +708,21 @@ public class InformationStamp extends AbstractStamp implements ActionListener {
                 boolean isSelected, boolean cellHasFocus) {
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             HashMap<String, String> label = (HashMap<String, String>) value;
-            String text = label.get("text");
-            String doi = label.get("doi");
-            if (label.keySet().size() > 0) {
-	            String labelText = "<html>- " + text + "<br/>" + "  " + doi;
-	            setText(labelText);
+            if (tag.toLowerCase().contentEquals(citeTag)) {
+	            String text = label.get("text");
+	            String doi = label.get("doi");
+	            if (label.keySet().size() > 0) {
+		            String labelText = "<html>- " + text + "<br/>" + "  " + doi;
+		            setText(labelText);
+	            }
+            } else if (tag.toLowerCase().contentEquals(authTag)) {
+	            String name = label.get("name");
+	            String aff = label.get("affiliation");
+	            String orcid = label.get("orcid");
+	            if (label.keySet().size() > 0) {
+		            String labelText = "<html>- " + name + "<br/>" + "  " + aff + "<br/>" + "  " + orcid;
+		            setText(labelText);
+	            }
             }
             return this;
         }

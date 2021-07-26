@@ -260,8 +260,14 @@ public class DeepImageJ {
 		}
 		info.append("---------- MODEL INFO ----------\n");
 		info.append("Authors" + "\n");
-		for (String auth : params.author)
-			info.append("  - " + auth + "\n");
+		for (HashMap<String, String> auth : params.author) {
+			String name = auth.get("name") == null ? "n/a" : auth.get("name");
+			String aff = auth.get("affiliation") == null ? "n/a" : auth.get("affiliation");
+			String orcid = auth.get("orcid") == null ? "n/a" : auth.get("orcid");
+			info.append("  - Name: " + name + "\n");
+			info.append("    Affiliation: " + aff + "\n");
+			info.append("    Orcid: " + orcid + "\n");
+		}
 		info.append("References" + "\n");
 		for (HashMap<String, String> ref : params.cite) {
 			info.append("  - Article: " + ref.get("text") + "\n");

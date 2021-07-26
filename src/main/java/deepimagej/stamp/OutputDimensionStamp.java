@@ -123,17 +123,35 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 	public void buildPanel() {
 		
 		HTMLPane info = new HTMLPane(Constants.width, 150);
-		info.append("h2", "Output size constraints");
-		info.append("p", "output size = input size * scale + offset");
-		info.append("p", "valid output size = input size * scale + offset - 2*halo");
-		info.append("p", "<b>Scaling factor</b>: the factor by which the output image "
+		info.append("h2", "Model output size constraints");
+		info.append("p", "model output size = model input size * scale + 2 * offset");
+		info.append("p", "valid model output size -> model input size * scale + 2 * offset - 2*halo > 0");
+		info.append("<ul>");
+		info.append("li", "<p><b>Scaling factor</b>: the factor by which the output image "
 				+ "dimensions are rescaled. E.g. in superresolution, if the output size "
-				+ "is twice the size of the input, the scaling factor should be [2,2]. See the equation.");
-		info.append("p", "<b>Offset factor</b>: Difference between the input and output size. Note that "
-				+ "this is different from a scaling factor. See the equation.");
-		info.append("p", "<b>Halo facto</b>: Size of the receptive field of one pixel in the "
+				+ "is twice the size of the input, the scaling factor should be [2,2]. See the equation."
+				+ "Scaling factor can only be positive integers for axes XYZ. In the channels axis"
+				+ "the scaling factor can also be 0</p>");
+		info.append("li", "<p><b>Offset factor</b>: Difference between the input and output size. Note that "
+				+ "this is different from a scaling factor. See the equation. For axes XYZ the "
+				+ "offset does not affect the size of the final reconstructed image, it will be the"
+				+ "as the orginal one, only applying the corresponding scaling. However, the offset"
+				+ "of the C axis will does affect the size of the reconstructed image.</p>");
+		info.append("li", "<p><b>Halo facto</b>: Size of the receptive field of one pixel in the "
 				+ "network used to avoid artifacts along the borders of the image. If the "
-				+ "convolutions inside the network do not use padding, set this value to 0.");
+				+ "convolutions inside the network do not use padding, set this value to 0."
+				+ "Halo cannot be a negative integer.</p>");
+		info.append("</ul>");
+		info.append("h2", "Final reconstructed image size");
+		info.append("p", "The constraints defined above apply differently for"
+				+ " the raw output of the model and for the final reconstructed image"
+				+ "depending on the axis. For the final reconstructed image the following apply:");
+		info.append("<ul>");
+		info.append("li", "<p>Final reconstructed image (X) = input image (X) * scaling factor (X)</p>");
+		info.append("li", "<p>Final reconstructed image (Y) = input image (Y) * scaling factor (Y)</p>");
+		info.append("li", "<p>Final reconstructed image (Z) = input image (Z) * scaling factor (Z)</p>");
+		info.append("li", "<p>Final reconstructed image (C) = input image (C) * scaling factor (C) + 2 * offset factor (X)</p>");
+		info.append("</ul>");
 
 		firstRow.place(0, 0, firstLabel);
 		firstRow.place(0, 1, new JLabel("aux")); firstRow.place(1, 1, new JTextField("aux"));
@@ -417,9 +435,33 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 					haloValue = Integer.valueOf(secondRowList.get(textFieldInd).getText());
 					params.outputList.get(outputCounter).halo[i] = haloValue;
 					// If the value for offset is "-" because there is no dimension in the reference image,
-					// save it as -1
-					offsetValue = Integer.parseInt(thirdRowList.get(textFieldInd).isEditable() ? thirdRowList.get(textFieldInd).getText() : "-1");
+					// save it as 0 because offset can be negative
+					offsetValue = Integer.parseInt(thirdRowList.get(textFieldInd).isEditable() ? thirdRowList.get(textFieldInd).getText() : "0");
+					// TODO if the offset is positive for X and Y dimensions, open an error saying that this is not supported yet
+					// TODO decide how to robustly manage offsets
+					String currentDim = params.outputList.get(outputCounter).form.split("")[i].toLowerCase();
+					if (offsetValue > 0 && !currentDim.toLowerCase().equals("c")) {
+						IJ.error("Positive offset values are not\n"
+								+ "supported yet for dimensions X and Y.");
+						return false;
+					}
+					// Do not allow 0 scaling factors in the XYZ dimensions
 					params.outputList.get(outputCounter).offset[i] = offsetValue;
+					if (scaleValue == 0 && !currentDim.toLowerCase().equals("c")) {
+						IJ.error("A 0 scaling factor is not allowed for X, Y or Z dimensions");
+						return false;
+					}
+					// Do not allow negative scaling values
+					if (scaleValue < 0) {
+						IJ.error("Scaling factors can only be positive integers.");
+						return false;
+					}
+					// Do not allow negative halo values
+					if (haloValue < 0) {
+						IJ.error("Halo factors can only be positive.");
+						return false;
+					}
+					
 					textFieldInd++;
 				}
 			} catch( NumberFormatException ex) {
@@ -667,18 +709,42 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 	public static void writeInfoText(String definition) {
 		HTMLPane info = new HTMLPane(Constants.width, 150);
 		if (definition.contains("image")) {
-			info.append("h", "<b>Output size constraints</b><ul>");
-			info.append("li", "<p>output size = input size * scale + offset</p>");
-			info.append("li", "<p>valid output size = input size * scale + offset - 2*halo</p>");
-			info.append("</ul>");
-			info.append("p", "<b>Scaling factor</b>: the factor by which the output image "
+			info.append("h2", "Model output size constraints");
+			info.append("p", "model output size = model input size * scale + 2 * offset");
+			info.append("p", "valid model output size -> model input size * scale + 2 * offset - 2*halo > 0");
+			info.append("<ul>");
+			info.append("li", "<p><b>Scaling factor</b>: the factor by which the output image "
 					+ "dimensions are rescaled. E.g. in superresolution, if the output size "
-					+ "is twice the size of the input, the scaling factor should be [2,2]. See the equation.");
-			info.append("p", "<b>Offset factor</b>: Difference between the input and output size. Note that "
-					+ "this is different from a scaling factor. See the equation.");
-			info.append("p", "<b>Halo facto</b>: Size of the receptive field of one pixel in the "
+					+ "is twice the size of the input, the scaling factor should be [2,2]. See the equation."
+					+ "Scaling factor can only be positive integers for axes XYZ. In the channels axis"
+					+ "the scaling factor can also be 0</p>");
+			info.append("li", "<p><b>Offset factor</b>: Difference between the input and output size. Note that "
+					+ "this is different from a scaling factor. See the equation. For axes XYZ the "
+					+ "offset does not affect the size of the final reconstructed image, it will be the"
+					+ "as the orginal one, only applying the corresponding scaling. However, the offset"
+					+ "of the C axis will does affect the size of the reconstructed image.</p>");
+			info.append("li", "<p><b>Halo facto</b>: Size of the receptive field of one pixel in the "
 					+ "network used to avoid artifacts along the borders of the image. If the "
-					+ "convolutions inside the network do not use padding, set this value to 0.");
+					+ "convolutions inside the network do not use padding, set this value to 0."
+					+ "Halo cannot be a negative integer.</p>");
+			info.append("</ul>");
+			info.append("h2", "Final reconstructed image size");
+			info.append("p", "The constraints defined above apply differently for"
+					+ " the raw output of the model and for the final reconstructed image"
+					+ "depending on the axis. For the final reconstructed image the following apply:");
+			info.append("<ul>");
+			info.append("li", "<p>Final reconstructed image (X) = input image (X) * scaling factor (X)</p>");
+			info.append("li", "<p>Final reconstructed image (Y) = input image (Y) * scaling factor (Y)</p>");
+			info.append("li", "<p>Final reconstructed image (Z) = input image (Z) * scaling factor (Z)</p>");
+			info.append("li", "<p>Final reconstructed image (C) = input image (C) * scaling factor (C) + 2 * offset factor (C)</p>");
+			info.append("</ul>");
+			info.append("p", "However, note that if patching is not allowed and the input size is fixed:");
+			info.append("<ul>");
+			info.append("li", "<p>Final reconstructed image (X) = input image (X) * scaling factor (X) + 2 * offset factor (X)</p>");
+			info.append("li", "<p>Final reconstructed image (Y) = input image (Y) * scaling factor (Y) + 2 * offset factor (Y)</p>");
+			info.append("li", "<p>Final reconstructed image (Z) = input image (Z) * scaling factor (Z) + 2 * offset factor (Z)</p>");
+			info.append("li", "<p>Final reconstructed image (C) = input image (C) * scaling factor (C) + 2 * offset factor (C)</p>");
+			info.append("</ul>");
 		} else if (definition.contains("pyramidalImage")) {
 			info.append("h", "<b>Output size constraints</b>");
 			info.append("p", "<b>Output size</b>: Fixed output size of the model");
