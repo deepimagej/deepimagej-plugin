@@ -22,7 +22,8 @@ As a matter of academic integrity, we strongly encourage users to include adequa
 
 ## References
 * If you used one of the material provided within DeepImageJ such as trained models or Python notebooks, cite their authors' work. 
-* [E. Gómez-de-Mariscal, C. García-López-de-Haro, W. Ouyang, L. Donati, E. Lundberg, M. Unser, A. Muñoz-Barrutia, D. Sage, "DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ" BioRxiv, 2019.](https://www.biorxiv.org/content/10.1101/799270v3)
+* [E. Gómez-de-Mariscal, C. García-López-de-Haro, L. Donati, M. Unser, A. Muñoz-Barrutia, D. Sage. 
+*DeepImageJ: A user-friendly plugin to run deep learning models in ImageJ*, Nat Methods 18, 1192–1195 (2021).](https://doi.org/10.1038/s41592-021-01262-9)
 
 ```bibtex
 @article{gomez2021deepimagej,
