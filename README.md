@@ -26,12 +26,15 @@ As a matter of academic integrity, we strongly encourage users to include adequa
 *DeepImageJ: A user-friendly environment to run deep learning models in ImageJ*, Nat Methods 18, 1192–1195 (2021).](https://doi.org/10.1038/s41592-021-01262-9)
 
 ```bibtex
-@article{gomez2021deepimagej,
+@article{Gómez-de-Mariscal2021,
   title={DeepImageJ: A user-friendly environment to run deep learning models in ImageJ},
-  author={G{\'o}mez-de-Mariscal, Estibaliz and Garc{\'\i}a-L{\'o}pez-de-Haro, Carlos and Ouyang, Wei and Donati, Laur{\`e}ne and Lundberg, Emma and Unser, Michael and Mu{\~n}oz-Barrutia, Arrate and Sage, Daniel},
-  journal={bioRxiv},
-  pages={799270},
+  author={G{\'o}mez-de-Mariscal, Estibaliz and Garc{\'i}a-L{\'o}pez-de-Haro, Carlos and Ouyang, Wei and Donati, Laur{\`e}ne and     Lundberg, Emma and Unser, Michael and Mu{\~{n}}oz-Barrutia, Arrate and Sage, Daniel},
+  journal={Nature Methods},
   year={2021},
-  publisher={Cold Spring Harbor Laboratory}
+  volume={18},
+  number={10},
+  pages={1192-1195},
+  URL = {https://doi.org/10.1038/s41592-021-01262-9},
+  doi = {10.1038/s41592-021-01262-9}
 }
 ```
