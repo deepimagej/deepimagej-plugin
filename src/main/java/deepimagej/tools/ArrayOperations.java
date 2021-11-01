@@ -211,10 +211,16 @@ public class ArrayOperations {
 				if (im instanceof ImagePlus && !dev) {
 					ImagePlus imp = ((ImagePlus) im);
 					imp.changes = false;
-					if (WindowManager.getImage(imp.getTitle()) != null)
+					// Close all images except start image.
+					// To avoid closing the start image in the case that the one 
+					// we want to delete and the start one are called the same,
+					// check that the one we want to delete does not have a window.
+					ImageWindow ww1 = WindowManager.getImage(imp.getTitle()).getWindow();
+					if (WindowManager.getImage(imp.getTitle()) != null && !ww1.isShowing()) {
 						WindowManager.getImage(imp.getTitle()).close();
-					else
+					} else {
 						imp.close();
+					}
 				} else if (im instanceof ImagePlus && dev && ((ImagePlus) im).getWindow() == null) {
 					// For developer only close images that are not showing (i.e, that are not shown in a window)
 					((ImagePlus) im).changes = false;

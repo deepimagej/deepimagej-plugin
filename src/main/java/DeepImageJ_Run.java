@@ -490,57 +490,57 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 						dp.params.secondPostprocessing = dp.getPath() + File.separator + postprocArray[1].trim();
 					}
 				}
-				
-				String tensorForm = dp.params.inputList.get(0).form;
-				int[] tensorMin = dp.params.inputList.get(0).minimum_size;
-				int[] min = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
-				int[] tensorStep = dp.params.inputList.get(0).step;
-				int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep); 
-				String[] dims = DijTensor.getWorkingDims(tensorForm);
 
-				int[] haloSize = ArrayOperations.findTotalPadding(dp.params.inputList.get(0), dp.params.outputList, dp.params.pyramidalNetwork);
-				
-				patch = ArrayOperations.getPatchSize(dims, dp.params.inputList.get(0).form, patchString, patchEditable);
-				if (patch == null) {
-					IJ.error("Please, introduce the patch size as integers separated by commas.\n"
-							+ "For the axes order 'Y,X,C' with:\n"
-							+ "Y=256, X=256 and C=1, we need to introduce:\n"
-							+ "'256,256,1'\n"
-							+ "Note: the key 'auto' can only be used by the plugin.");
-					// Relaunch the plugin
-					closeAndReopenPlugin(imp);
-					return;
-				}
-
-				for (int i = 0; i < patch.length; i ++) {
-					if(haloSize[i] * 2 >= patch[i] && patch[i] != -1) {
-						String errMsg = "Error: Tiles cannot be smaller or equal than 2 times the halo at any dimension.\n"
-									  + "Please, either choose a bigger tile size or change the halo in the model.yaml.";
-						IJ.error(errMsg);
+				// TODO generalise for several image inputs
+				for (DijTensor inp: dp.params.inputList) {
+					String tensorForm = inp.form;
+					int[] tensorMin = inp.minimum_size;
+					int[] min = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
+					int[] tensorStep = inp.step;
+					int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep); 
+					String[] dims = DijTensor.getWorkingDims(tensorForm);
+	
+					int[] haloSize = ArrayOperations.findTotalPadding(inp, dp.params.outputList, dp.params.pyramidalNetwork);
+					
+					patch = ArrayOperations.getPatchSize(dims, inp.form, patchString, patchEditable);
+					if (patch == null) {
+						IJ.error("Please, introduce the patch size as integers separated by commas.\n"
+								+ "For the axes order 'Y,X,C' with:\n"
+								+ "Y=256, X=256 and C=1, we need to introduce:\n"
+								+ "'256,256,1'\n"
+								+ "Note: the key 'auto' can only be used by the plugin.");
 						// Relaunch the plugin
 						closeAndReopenPlugin(imp);
 						return;
 					}
-				}
-				for (DijTensor inp: dp.params.inputList) {
-					for (int i = 0; i < min.length; i ++) {
+	
+					for (int i = 0; i < patch.length; i ++) {
+						if(haloSize[i] * 2 >= patch[i] && patch[i] != -1) {
+							String errMsg = "Error: Tiles cannot be smaller or equal than 2 times the halo at any dimension.\n"
+										  + "Please, either choose a bigger tile size or change the halo in the model.yaml.";
+							IJ.error(errMsg);
+							// Relaunch the plugin
+							closeAndReopenPlugin(imp);
+							return;
+						}
+					}
+					for (int i = 0; i < inp.minimum_size.length; i ++) {
 						if (inp.step[i] != 0 && (patch[i] - inp.minimum_size[i]) % inp.step[i] != 0 && patch[i] != -1 && dp.params.allowPatching) {
 							int approxTileSize = ((patch[i] - inp.minimum_size[i]) / inp.step[i]) * inp.step[i] + inp.minimum_size[i];
-							IJ.error("Tile size at dim: " + dims[i] + " should be product of:\n  " + min[i] +
-									" + " + step[i] + "*N, where N can be any positive integer.\n"
+							IJ.error("Tile size at dim: " + tensorForm.split("")[i] + " should be product of:\n  " + inp.minimum_size[i] +
+									" + " + step[i] + "*N, where N can be any integer >= 0.\n"
 										+ "The immediately smaller valid tile size is " + approxTileSize);
 							// Relaunch the plugin
 							closeAndReopenPlugin(imp);
 							return;
 						} else if (inp.step[i] == 0 && patch[i] != inp.minimum_size[i]) {
-							IJ.error("Patch size at dim: " + dims[i] + " should be " + min[i]);
+							IJ.error("Patch size at dim: " + tensorForm.split("")[i] + " should be " + inp.minimum_size[i]);
 							// Relaunch the plugin
 							closeAndReopenPlugin(imp);
 							return;
 						}
 					}
 				}
-				// TODO generalise for several image inputs
 				dp.params.inputList.get(0).recommended_patch = patch;
 
 				ExecutorService service = Executors.newFixedThreadPool(1);
