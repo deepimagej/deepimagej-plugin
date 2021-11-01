@@ -516,12 +516,9 @@ public class TestStamp extends AbstractStamp implements ActionListener, MouseLis
 		int[] min = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
 		int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep); 
 		int[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
-		// Auxiliary variable that is only needed to run the method. Its value will 
-		// not be used
-		int[] dimValue = new int[min.length]; 
 		String[] dim = DijTensor.getWorkingDims(tensorForm);
 
-		String optimalPatch = ArrayOperations.optimalPatch(imp, dimValue, haloVals, dim, step, min, parent.getDeepPlugin().params.allowPatching);
+		String optimalPatch = ArrayOperations.optimalPatch(imp, haloVals, dim, step, min, parent.getDeepPlugin().params.allowPatching);
 		
 		sizeTxt.setText(optimalPatch);
 		int auxFixed = 0;

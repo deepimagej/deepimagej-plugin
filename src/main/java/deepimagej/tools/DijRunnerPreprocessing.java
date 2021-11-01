@@ -219,7 +219,7 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 	public void showOriginalImage(boolean dev, ImagePlus im,  String correctTitle) {
 		if (!dev) {
 			im.setTitle(correctTitle);
-			if (batch == false)
+			if (!batch)
 				im.show();
 			WindowManager.setTempCurrentImage(null);
 		}

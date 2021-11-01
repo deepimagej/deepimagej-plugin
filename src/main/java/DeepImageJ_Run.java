@@ -43,6 +43,7 @@
  */
 
 import java.awt.BorderLayout;
+import java.awt.Button;
 import java.awt.Choice;
 import java.awt.Color;
 import java.awt.Component;
@@ -52,6 +53,7 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Label;
 import java.awt.TextArea;
 import java.awt.TextField;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -138,7 +140,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	// Whether the plugin can work only on test mode or it can fully function
 	private boolean						testModeOnly = false;
 	// Whether the plugin is running on test mode
-	private boolean						testMode = false;
+	public boolean						testMode = false;
 	
 	
 	static public void main(String args[]) {
@@ -303,6 +305,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		// Set the 'ok' button and the model choice
 		// combo box disabled until Tf and Pt are loaded
 		choices[0].setEnabled(loadedEngine);
+		// Set testMode to false as the user wants to execute the model
+		// on their particular image by pressing "OK"
+		testMode = false;
 		
 		dlg.showDialog();
 		
@@ -319,9 +324,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			}
 			return null;
 		}
-		// Set testMode to false as the user wants to execute the model
-		// on their particular image by pressing "OK"
-		testMode = false;
 		String[] args = retrieveDialogParamas();
 		return args;		
 	}
@@ -390,21 +392,40 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 				} else if (args == null) {
 					return;
 				}
+				// Get the arguments for the model execution
+				String dirname = args[0]; String format = args[1]; processingFile[0] = args[2];
+				processingFile[1] = args[3]; String patchString = args[5]; String debugMode = args[6];
+								
+				dp = dps.get(dirname);
 				
 				// If the plugin is running in test mode, get the test image
 				// that has just been displayed
 				if (testMode && !isMacro && WindowManager.getCurrentImage() != null) {
+					// Set batch mode to false
+					batch = false;
 					imp = WindowManager.getCurrentImage();
+					// Get basic specifications for the input from the yaml
+					String tensorForm = dp.params.inputList.get(0).form;
+					// Minimum size if it is not fixed, 0s if it is
+					int[] tensorMin = dp.params.inputList.get(0).minimum_size;
+					// Step if the size is not fixed, 0s if it is
+					int[] tensorStep = dp.params.inputList.get(0).step;
+					int[] haloSize = ArrayOperations.findTotalPadding(dp.params.inputList.get(0), dp.params.outputList, dp.params.pyramidalNetwork);
+					// Get the minimum tile size given by the yaml without batch
+					int[] min = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
+					// Get the step given by the yaml without batch
+					int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep);
+					// Get the halo given by the yaml without batch 
+					int[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
+					// Get the axes given by the yaml without batch
+					String[] dim = DijTensor.getWorkingDims(tensorForm);
+					patchString = ArrayOperations.optimalPatch(haloVals, dim, step, min, dp.params.allowPatching);
 				} else if (testMode && !isMacro) {
 					// If no image has been displayed there is an error
 					IJ.error("No test image has been found in the model folder");
 					run("");
 					return;
 				}
-				
-				String dirname = args[0]; String format = args[1]; processingFile[0] = args[2];
-				processingFile[1] = args[3]; String patchString = args[5]; String debugMode = args[6];
-				
 				// Check if the patxh size is editable or not
 				boolean patchEditable = false;
 				if (!headless && !isMacro && texts[1].isEditable())
@@ -418,12 +439,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 					log.setLevel(0);
 				}
 				
-				dp = dps.get(dirname);
-				
 				if (log.getLevel() >= 1)
 					log.print("Load model: " + dp.getName() + "(" + dirname + ")");
 				
-				dp.params.framework = format.contains("pytorch") ? "pytorch" : "tensorflow";
+				dp.params.framework = format.toLowerCase().contains("pytorch") ? "pytorch" : "tensorflow";
 				// Select the needed attachments for the version used
 				if (dp.params.framework.toLowerCase().contentEquals("pytorch")) {
 					dp.params.attachments = dp.params.ptAttachments;
@@ -481,7 +500,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 
 				int[] haloSize = ArrayOperations.findTotalPadding(dp.params.inputList.get(0), dp.params.outputList, dp.params.pyramidalNetwork);
 				
-				patch = ArrayOperations.getPatchSize(dims, dp.params.inputList.get(0).form, patchString, patchEditable);
 				patch = ArrayOperations.getPatchSize(dims, dp.params.inputList.get(0).form, patchString, patchEditable);
 				if (patch == null) {
 					IJ.error("Please, introduce the patch size as integers separated by commas.\n"
@@ -613,170 +631,248 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		if (e.getSource() == choices[0]) {
 			info.setText("");
 			int ind = choices[0].getSelectedIndex();
-
 			String fullname = Integer.toString(ind);
 			String dirname = fullnames.get(fullname);
-
 			DeepImageJ dp = dps.get(dirname);
-			if (dp == null) {
-				// Do not allow testing of an incorrect model
-				testBtn.setEnabled(false);
-				setGUIOriginalParameters();
+			// check that the dp of the selected model 
+			// is valid
+			boolean goodDp = isGoodDp(dp, ind);
+			if (!goodDp)
 				return;
-			} else if (ignoreModelsIndexList.contains(ind)) {
-				// Do not allow testing of an incorrect model
-				testBtn.setEnabled(false);
-				setUnavailableModelText(dp.params.fieldsMissing);
-				return;
-			} else if (incorrectSha256IndexList.contains(ind)) {
-				// Do not allow testing of an incorrect model
-				testBtn.setEnabled(false);
-				setIncorrectSha256Text();
-				return;
-			} else if (missingYamlList.contains(ind)) {
-				// Do not allow testing of an incorrect model
-				testBtn.setEnabled(false);
-				setMissingYamlText();
-				return;
-			}
-			if (dp.params.framework.equals("tensorflow/pytorch")) {
-				choices[1].removeAll();
-				choices[1].addItem("Select format");
-				choices[1].addItem("Tensorflow");
-				choices[1].addItem("Pytorch");
-			} else if (dp.params.framework.equals("pytorch")) {
-				choices[1].removeAll();
-				choices[1].addItem("Pytorch");
-			} else if (dp.params.framework.equals("tensorflow")) {
-				choices[1].removeAll();
-				choices[1].addItem("Tensorflow");
-			}
+			// Set the DL engine
+			setDLEngine(dp);
+			// Set pre- and post-processing files as options
+			setProcessingFiles(dp);
+			// Load the model information in the textbox
+			info.setText("Loading model info. Please wait...\n");
 			
-			// Enable testing when a correct model is selected
-			testBtn.setEnabled(true);
-
-			info.setCaretPosition(0);
-			info.append("Loading model info. Please wait...\n");
-			
-			choices[2].removeAll();
-			choices[3].removeAll();
-			Set<String> preKeys = dp.params.pre.keySet();
-			Set<String> postKeys = dp.params.post.keySet();
-			for (String p : preKeys) {
-				if (dp.params.pre.get(p) != null)
-					choices[2].addItem(Arrays.toString(dp.params.pre.get(p)));
-			}
-			if (choices[2].getItemCount() == 0)
-				choices[2].addItem("no preprocessing");
-			
-			for (String p : postKeys) {
-				if (dp.params.post.get(p) != null)
-					choices[3].addItem(Arrays.toString(dp.params.post.get(p)));
-			}
-			choices[3].addItem("no postprocessing");
-				
-			// Get basic information about the input from the yaml
+			// TODO generalise for several inputs
+			// Get example test input size from the yaml in the case there is no image open.
+			// The string is written as "64 x 64 x 3 x 1", with the axes XYCZ
+			String testSize = dp.params.inputList.get(0).inputTestSize;
+			// Get basic specifications for the input from the yaml
 			String tensorForm = dp.params.inputList.get(0).form;
-			// Patch size if the input size is fixed, all 0s if it is not
-			int[] tensorPatch = dp.params.inputList.get(0).recommended_patch;
 			// Minimum size if it is not fixed, 0s if it is
 			int[] tensorMin = dp.params.inputList.get(0).minimum_size;
 			// Step if the size is not fixed, 0s if it is
 			int[] tensorStep = dp.params.inputList.get(0).step;
 			int[] haloSize = ArrayOperations.findTotalPadding(dp.params.inputList.get(0), dp.params.outputList, dp.params.pyramidalNetwork);
-			int[] dimValue = DijTensor.getWorkingDimValues(tensorForm, tensorPatch); 
+			// Get the minimum tile size given by the yaml without batch
 			int[] min = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
-			int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep); 
+			// Get the step given by the yaml without batch
+			int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep);
+			// Get the halo given by the yaml without batch 
 			int[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
+			// Get the axes given by the yaml without batch
 			String[] dim = DijTensor.getWorkingDims(tensorForm);
-			
-			HashMap<String, String> letterDefinition = new HashMap<String, String>();
-			letterDefinition.put("X", "width");
-			letterDefinition.put("Y", "height");
-			letterDefinition.put("C", "channels");
-			letterDefinition.put("Z", "depth");
-
-
+			String optimalPatch = ArrayOperations.optimalPatch(haloVals, dim, step, min, testSize, dp.params.allowPatching);
+			// Update the info shown in the GUI
 			info.setText("");
 			info.setCaretPosition(0);
-			// Specify the name of the model
+			// Specify the name and location of the model
 			info.append("Name: " + dp.getName().toUpperCase() + "\n");
 			info.append("Location: " + new File(dirname).getName() + "\n");
-			// Specify the authors of the model
-			String authInfo = "[";
-			for (HashMap<String, String> authorMap : dp.params.author) {
-				if (!authorMap.get("name").equals(""))
-					authInfo += authorMap.get("name") + ", ";
-				else
-					authInfo += "N/A." + ", ";
-			}
-			// REplace the last ", " by a "]"
-			authInfo = authInfo.substring(0, authInfo.lastIndexOf(", ")) + "]";
-			
-			info.append("Authors: " + authInfo);
-			info.append("\n");
-			// Specify the references of the model
-			// Create array with al the references
-			String[] refs = new String[dp.params.cite.size()];
-			for (int i = 0; i < dp.params.cite.size(); i ++) {
-				if (dp.params.cite.get(i).get("text").equals("") && !dp.params.cite.get(i).get("doi").equals(""))
-					refs[i] = dp.params.cite.get(i).get("doi");
-				refs[i] = dp.params.cite.get(i).get("text");
-			}
-			String refInfo = "N/A.";
-			if (refs != null && !Arrays.toString(refs).contentEquals("[]") && refs.length > 0)
-				refInfo = Arrays.toString(refs);
-			info.append("References: " + refInfo);
-			
-			info.append("\n");
-			info.append("\n");
-			info.append("---- TILING SPECIFICATIONS ----\n");
-			String infoString = "";
-			for (String dd : dim)
-				infoString += dd + ": " + letterDefinition.get(dd) + ", ";
-			infoString = infoString.substring(0, infoString.length() - 2);
-			info.append(infoString + "\n");
-			info.append("  - minimum_size: ");
-			String minString = "";
-			for (int i = 0; i < dim.length; i ++)
-				minString += dim[i] + "=" + min[i] + ", ";
-			minString = minString.substring(0, minString.length() - 2);
-			info.append(minString + "\n");
-			info.append("  - step: ");
-			String stepString = "";
-			for (int i = 0; i < dim.length; i ++)
-				stepString += dim[i] + "=" + step[i] + ", ";
-			stepString = stepString.substring(0, stepString.length() - 2);
-			info.append(stepString + "\n");
-			info.append("\n");
-			info.append("Each dimension is calculated as:\n");
-			info.append("  - tile_size = minimum_size + step * n, where n is any positive integer\n");
-			String optimalPatch = ArrayOperations.optimalPatch(dimValue, haloVals, dim, step, min, dp.params.allowPatching);
-			info.append("\n");
-			info.append("Default tile_size for this model: " + optimalPatch + "\n");
-			info.append("\n");
-			info.setEditable(false);
-
-			dp.writeParameters(info);
-			info.setCaretPosition(0);
-			
-			String axesAux = "";
-			for (String dd : dim) {axesAux += dd + ",";}
-			texts[0].setText(axesAux.substring(0, axesAux.length() - 1));
-			texts[0].setEditable(false);
-			
-			texts[1].setText(optimalPatch);
-			int auxFixed = 0;
-			for (int ss : step)
-				auxFixed += ss;
-
-			texts[1].setEditable(true);
-			if (!dp.params.allowPatching || dp.params.pyramidalNetwork || auxFixed == 0) {
-				texts[1].setEditable(false);
-			}
+			// Write the author and reference info
+			setAuthInfo(dp);
+			// Leave a couple of lines between chunks of information
+			info.append("\n\n");
+			// Write information about the tiling strategy and parameters
+			setTilingInfo(dim, min, step, optimalPatch);
+			// Write rest of the parameters specified in the yaml file (test images, test runtime, memory...)
+			setTestParameters(dp);
+			// Set the axes of the model in the GUI's textbox
+			setModelAxes(dim);
+			// Set the model optimal tile dimensions for the open image. If there
+			// is no open image, the testing tile size will be displayed
+			setTileSize(dp, step, optimalPatch);
+			// Enable testing when a correct model is selected
+			testBtn.setEnabled(true);
+			// If the model is in testMOdeOnly, block the 'OK' button. This button allows running models in open images
 			dlg.getButtons()[0].setEnabled(!testModeOnly);
 		}
+	}
+	
+	/**
+	 * Set the model optimal tile dimensions for the open image. If there
+	 * is no open image, the testing tile size will be displayed.
+	 * @param step: step between allowed tile sizes per axis. If it is zero 
+	 * 				for all axes, the tile size will not be able to be modified
+	 * @param optimalPatch: previously calculated tile size
+	 */
+	public void setTileSize(DeepImageJ dp, int[] step, String optimalPatch) {
+		texts[1].setText(optimalPatch);
+		int auxFixed = 0;
+		for (int ss : step)
+			auxFixed += ss;
+
+		texts[1].setEditable(true);
+		if (!dp.params.allowPatching || dp.params.pyramidalNetwork || auxFixed == 0) {
+			texts[1].setEditable(false);
+		}
+	}
+	
+	/**
+	 * Set in the GUI the axes used by this model
+	 * @param dim: array containing the axes used by the model
+	 */
+	public void setModelAxes(String[] dim) {
+		String axesAux = "";
+		for (String dd : dim) {axesAux += dd + ",";}
+		texts[0].setText(axesAux.substring(0, axesAux.length() - 1));
+		texts[0].setEditable(false);
+	}
+	
+	/**
+	 * Set the parameters specified in the yaml file (test images, test runtime, memory...)
+	 * @param dp:model params
+	 */
+	public void setTestParameters(DeepImageJ dp) {
+		dp.writeParameters(info);
+	}
+	
+	/**
+	 * Set in the GUI the information about the tiling. This information
+	 * will help the user select their own tiling strategy
+	 * @param dim: axes of the model
+	 * @param min: minimum size per axis
+	 * @param step: step per axis
+	 * @param optimalPatch: calculated optimal patch for the image open
+	 */
+	public void setTilingInfo(String[] dim, int[] min, int[] step, String optimalPatch) {
+		HashMap<String, String> letterDefinition = new HashMap<String, String>();
+		letterDefinition.put("X", "width");
+		letterDefinition.put("Y", "height");
+		letterDefinition.put("C", "channels");
+		letterDefinition.put("Z", "depth");
+		info.append("---- TILING SPECIFICATIONS ----\n");
+		String infoString = "";
+		for (String dd : dim)
+			infoString += dd + ": " + letterDefinition.get(dd) + ", ";
+		infoString = infoString.substring(0, infoString.length() - 2);
+		info.append(infoString + "\n");
+		info.append("  - minimum_size: ");
+		String minString = "";
+		for (int i = 0; i < dim.length; i ++)
+			minString += dim[i] + "=" + min[i] + ", ";
+		minString = minString.substring(0, minString.length() - 2);
+		info.append(minString + "\n");
+		info.append("  - step: ");
+		String stepString = "";
+		for (int i = 0; i < dim.length; i ++)
+			stepString += dim[i] + "=" + step[i] + ", ";
+		stepString = stepString.substring(0, stepString.length() - 2);
+		info.append(stepString + "\n");
+		info.append("\n");
+		info.append("Each dimension is calculated as:\n");
+		info.append("  - tile_size = minimum_size + step * n, where n is any positive integer\n");
+		info.append("\n");
+		info.append("Default tile_size for this model: " + optimalPatch + "\n");
+		info.append("\n");
+		info.setEditable(false);
+	}
+	
+	/**
+	 * Set in the information textbox the data about authors and references.
+	 * @param dp: model parameters
+	 */
+	public void setAuthInfo(DeepImageJ dp) {
+		// Specify the authors of the model
+		String authInfo = "[";
+		for (HashMap<String, String> authorMap : dp.params.author) {
+			if (!authorMap.get("name").equals(""))
+				authInfo += authorMap.get("name") + ", ";
+			else
+				authInfo += "N/A." + ", ";
+		}
+		// REplace the last ", " by a "]"
+		authInfo = authInfo.substring(0, authInfo.lastIndexOf(", ")) + "]";
 		
+		info.append("Authors: " + authInfo);
+		info.append("\n");
+		// Specify the references of the model
+		// Create array with al the references
+		String[] refs = new String[dp.params.cite.size()];
+		for (int i = 0; i < dp.params.cite.size(); i ++) {
+			if (dp.params.cite.get(i).get("text").equals("") && !dp.params.cite.get(i).get("doi").equals(""))
+				refs[i] = dp.params.cite.get(i).get("doi");
+			refs[i] = dp.params.cite.get(i).get("text");
+		}
+		String refInfo = "N/A.";
+		if (refs != null && !Arrays.toString(refs).contentEquals("[]") && refs.length > 0)
+			refInfo = Arrays.toString(refs);
+		info.append("References: " + refInfo);
+	}
+	
+	/**
+	 * Set the pre- and post-processing files as options in the GUI
+	 * @param dp: model parameters
+	 */
+	public void setProcessingFiles(DeepImageJ dp) {
+		choices[2].removeAll();
+		choices[3].removeAll();
+		Set<String> preKeys = dp.params.pre.keySet();
+		Set<String> postKeys = dp.params.post.keySet();
+		for (String p : preKeys) {
+			if (dp.params.pre.get(p) != null)
+				choices[2].addItem(Arrays.toString(dp.params.pre.get(p)));
+		}
+		if (choices[2].getItemCount() == 0)
+			choices[2].addItem("no preprocessing");
+		
+		for (String p : postKeys) {
+			if (dp.params.post.get(p) != null)
+				choices[3].addItem(Arrays.toString(dp.params.post.get(p)));
+		}
+		choices[3].addItem("no postprocessing");
+	}
+	
+	/**
+	 * Set the Deep Learning engine of the model in the GUI
+	 */
+	public void setDLEngine(DeepImageJ dp) {		
+		if (dp.params.framework.toLowerCase().equals("tensorflow/pytorch")) {
+			choices[1].removeAll();
+			choices[1].addItem("Select format");
+			choices[1].addItem("Tensorflow");
+			choices[1].addItem("Pytorch");
+		} else if (dp.params.framework.toLowerCase().equals("pytorch")) {
+			choices[1].removeAll();
+			choices[1].addItem("Pytorch");
+		} else if (dp.params.framework.toLowerCase().equals("tensorflow")) {
+			choices[1].removeAll();
+			choices[1].addItem("Tensorflow");
+		}
+	}
+	
+	/**
+	 * Method that checks if the model selected has complete information
+	 * @param dp: parameters of the model selected
+	 * @param ind: index of the model in teh list of models
+	 * @return true if the model is fine, false if it is not
+	 */
+	public boolean isGoodDp(DeepImageJ dp, int ind) {
+		if (dp == null) {
+			// Do not allow testing of an incorrect model
+			testBtn.setEnabled(false);
+			setGUIOriginalParameters();
+			return false;
+		} else if (ignoreModelsIndexList.contains(ind)) {
+			// Do not allow testing of an incorrect model
+			testBtn.setEnabled(false);
+			setUnavailableModelText(dp.params.fieldsMissing);
+			return false;
+		} else if (incorrectSha256IndexList.contains(ind)) {
+			// Do not allow testing of an incorrect model
+			testBtn.setEnabled(false);
+			setIncorrectSha256Text();
+			return false;
+		} else if (missingYamlList.contains(ind)) {
+			// Do not allow testing of an incorrect model
+			testBtn.setEnabled(false);
+			setMissingYamlText();
+			return false;
+		}
+		return true;
 	}
 
 	@Override
@@ -917,10 +1013,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		// Free memory allocated by the plugin 
 		if (!headless && !isMacro && !testMode)
 			dlg.dispose();
-		if (dp.params.framework.equals("tensorflow")) {
+		if (dp != null && dp.params.framework.equals("tensorflow") && dp.getTfModel() != null) {
 			dp.getTfModel().session().close();
 			dp.getTfModel().close();
-		} else if (dp.params.framework.equals("pytorch")) {
+		} else if (dp != null && dp.params.framework.equals("pytorch") && dp.getTorchModel() != null) {
 			dp.getTorchModel().close();
 		}
 		this.dp = null;
@@ -1123,31 +1219,18 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 
 	@Override
 	/**
-	 * Method used to run the needed parallel processes. This processes can be either
+	 * Method used to run the needed parallel processes. This processes is
 	 * loading the models and the Deep Learning engines (Tensorflow and Pytorch)
-	 * when the plugin is started and running a test inference. The first task is done
-	 * in parallel so some information can be displayed to the user while he waits.
-	 * The test run has to be done in parallel because it cannot be done inside the
-	 * actionPerformed(AvtionEvent e) method. Only one run() method that is called from
-	 * Thread.start an be present in the class, so as a workaround, both tasks will
-	 * be done from the same method.
+	 * when the plugin is started. This task is done in parallel
+	 * so some information can be displayed to the user while he waits.
 	 */
 	public void run() {
-		// When the parameter testMode is true, this method will be
-		// used to run a test on an image. When it is false, it will load
-		// the models and the engines. It will always be false except when
-		// a test is being run
-		if (testMode) {
-			runTest();
-			// Set testMode to false
-			testMode = false;
-		} else {
-			loadModels();
-			loadTfAndPytorch();
-		}
+		loadModels();
+		loadTfAndPytorch();
 	}
-	
-	public void runTest() {
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
 		int ind = choices[0].getSelectedIndex();
 		String fullname = Integer.toString(ind);
 		String dirname = fullnames.get(fullname);
@@ -1159,18 +1242,14 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			imp = IJ.openImage(imageName);
 			imp.show();
 		}
-		String[] args = retrieveDialogParamas();
-		arrangeParametersAndRunModel(imp, args);
-	}
-
-	@Override
-	public void actionPerformed(ActionEvent e) {
+		// Simulate clicking on the button "ok" of the GUI to run the model
+		Button okay = dlg.getButtons()[0];
+		// Create the event of clicking ok
+		ActionEvent ee = new ActionEvent(okay, ActionEvent.ACTION_PERFORMED, okay.getActionCommand());
+		// Button okay only has one action listener
+		// PErform the click action
+		okay.getActionListeners()[0].actionPerformed(ee);
 		testMode = true;
-		// Execute the test in another thread. It cannot be done
-		// inside this method and I do not know why. SOmething similar
-		// happens in deepimagej.stamp.TestStamp.java (CArlos' comment)
-		Thread thread = new Thread(this);
-		thread.start();
 	}
 
 }

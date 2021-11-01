@@ -506,8 +506,7 @@ public class Parameters {
 				Object objectShape = inp.get("shape");
 				if (objectShape instanceof List<?>) {
 					List<Object> shape = (List<Object>) objectShape;
-					inpTensor.recommended_patch = castListToIntArray(shape);
-					inpTensor.tensor_shape = inpTensor.recommended_patch;
+					inpTensor.tensor_shape = castListToIntArray(shape);
 					inpTensor.minimum_size = castListToIntArray(shape);
 					inpTensor.step = new int[shape.size()];
 					fixedInput = true;
@@ -517,7 +516,6 @@ public class Parameters {
 					inpTensor.minimum_size = castListToIntArray(auxMinimumSize);
 					List auxStepSize = (List) shape.get("step");
 					inpTensor.step = castListToIntArray(auxStepSize);
-					inpTensor.recommended_patch = new int[auxStepSize.size()];
 					inpTensor.tensor_shape = new int[auxStepSize.size()];
 					// Recreate the tensor shape of the model with the information
 					// of the YAML
@@ -533,7 +531,7 @@ public class Parameters {
 
 				// Check that the output definition fields are complete
 				if (inpTensor.form == null || inpTensor.dataType == null || inpTensor.minimum_size == null
-						|| inpTensor.tensor_shape == null || inpTensor.step == null || inpTensor.recommended_patch == null) {
+						|| inpTensor.tensor_shape == null || inpTensor.step == null) {
 					completeConfig = false;
 					return;
 				}

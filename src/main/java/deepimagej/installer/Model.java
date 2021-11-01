@@ -51,6 +51,7 @@ import java.util.ArrayList;
 
 public class Model {
 
+	public String id;
 	public String name;
 	public String desc;
 	public String doc;
@@ -61,9 +62,10 @@ public class Model {
 	public String authors;
 	public boolean deepImageJ;
 	
-	public Model(String name, String root_url, String desc, String authors, String doc, String source,
+	public Model(String name, String id, String root_url, String desc, String authors, String doc, String source,
 				ArrayList<String> covers, String downloadUrl) {
 		this.name = name;
+		this.id = id;
 		this.root_url = root_url;
 		this.downloadUrl = downloadUrl;
 		this.desc = desc;
