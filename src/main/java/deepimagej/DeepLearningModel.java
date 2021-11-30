@@ -53,7 +53,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.tensorflow.SavedModelBundle;
-import org.tensorflow.TensorFlow;
 import org.tensorflow.TensorFlowException;
 import org.tensorflow.framework.MetaGraphDef;
 import org.tensorflow.framework.SignatureDef;

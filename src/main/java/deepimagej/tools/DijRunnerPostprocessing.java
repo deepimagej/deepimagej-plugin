@@ -69,7 +69,7 @@ public class DijRunnerPostprocessing implements Callable<HashMap<String, Object>
 
 	@Override
 	public HashMap<String, Object> call() {
-
+		System.out.println("[DEBUG] Start post-processing ");
 		// Set tag of rp to 'preprocessing' so it shows the correct information
 		if (rp != null)
 			rp.setInfoTag("postprocessing");
@@ -111,7 +111,8 @@ public class DijRunnerPostprocessing implements Callable<HashMap<String, Object>
 		// If they have return false and stop
 		if (rp!= null && rp.isStopped())
 			return null;
-		
+
+		System.out.println("[DEBUG] End post-processing ");
 		return fin;
 	}
 

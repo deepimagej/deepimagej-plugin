@@ -73,18 +73,22 @@ public class ProcessingBridge {
 		// Assume that the image selected will result in the input image to the model
 		// Assumes 'im' will be the input to the model
 		if (params.firstPreprocessing != null && (params.firstPreprocessing.contains(".txt") || params.firstPreprocessing.contains(".ijm"))) {
+			System.out.println("[DEBUG] Run Macro pre-processing");
 			im = runProcessingMacro(im, params.firstPreprocessing, params.developer);
 			map = manageInputs(map, false, params, im);
 		} else if (params.firstPreprocessing != null && (params.firstPreprocessing.contains(".jar") || params.firstPreprocessing.contains(".class") || new File(params.firstPreprocessing).isDirectory())) {
+			System.out.println("[DEBUG] Run Java pre-processing");
 			map.put(params.inputList.get(inputImageInd).name, im);
 			map = runPreprocessingJava(map, params.firstPreprocessing, params.attachments, params);
 		}
 		
 
 		if (params.secondPreprocessing != null && (params.secondPreprocessing.contains(".txt") || params.secondPreprocessing.contains(".ijm"))) {
+			System.out.println("[DEBUG] Run Macro pre-processing");
 			im = runProcessingMacro(im, params.secondPreprocessing, params.developer);
 			map = manageInputs(map, true,  params, im);
 		} else if (params.secondPreprocessing != null && (params.secondPreprocessing.contains(".jar") || params.secondPreprocessing.contains(".class") || new File(params.secondPreprocessing).isDirectory())) {
+			System.out.println("[DEBUG] Run Java pre-processing");
 			if (map.keySet().size() == 0)
 				map.put(params.inputList.get(inputImageInd).name, im);
 			map = runPreprocessingJava(map, params.secondPreprocessing, params.attachments, params);
@@ -211,16 +215,20 @@ public class ProcessingBridge {
 		params.javaPostprocessingClass = new ArrayList<String>();
 		
 		if (params.firstPostprocessing != null && (params.firstPostprocessing.contains(".txt") || params.firstPostprocessing.contains(".ijm"))) {
+			System.out.println("[DEBUG] Run Macro post-processing");
 			runPostprocessingMacro(params.firstPostprocessing);
 			map = manageOutputs(map);
 		} else if (params.firstPostprocessing != null && (params.firstPostprocessing.contains(".jar") || params.firstPostprocessing.contains(".class") || new File(params.firstPostprocessing).isDirectory())) {
+			System.out.println("[DEBUG] Run Java post-processing");
 			map = runPostprocessingJava(map, params.firstPostprocessing, params.attachments, params);
 		}
 		
 
 		if (params.secondPostprocessing != null && (params.secondPostprocessing.contains(".txt") || params.secondPostprocessing.contains(".ijm"))) {
+			System.out.println("[DEBUG] Run Macro post-processing");
 			runPostprocessingMacro(params.secondPostprocessing);
 		} else if (params.secondPostprocessing != null && (params.secondPostprocessing.contains(".jar") || params.secondPostprocessing.contains(".class") || new File(params.secondPostprocessing).isDirectory())) {
+			System.out.println("[DEBUG] Run Java post-processing");
 			map = runPostprocessingJava(map, params.secondPostprocessing, params.attachments, params);
 		}
 		return map;

@@ -197,20 +197,35 @@ public class ArrayOperations {
 	 * ImageJ workspace
 	 */
 	public static void removeProcessedInputsFromMemory(HashMap<String, Object> inputsMap) {
-		removeProcessedInputsFromMemory(inputsMap, false);
+		removeProcessedInputsFromMemory(inputsMap, null, false);
 	}
 	
 	/*
 	 * REmove the inputs images that result after preprocessing from the memory of
 	 * ImageJ workspace
 	 */
-	public static void removeProcessedInputsFromMemory(HashMap<String, Object> inputsMap, boolean dev) {
+	public static void removeProcessedInputsFromMemory(HashMap<String, Object> inputsMap, String inputImTitle, boolean batch) {
+		System.out.println("[DEBUG] Close all the inputs except the input image");
+		// Only non-developers provide the name of the input image
+		boolean dev = (inputImTitle == null);
+		// Parameter to delete the input image if it already exists on the hashmap.
+		// Only for batch processing
+		boolean alreadyExists = false;
 		if (inputsMap != null) {
 			for (String kk : inputsMap.keySet()) {
 				Object im = inputsMap.get(kk);
 				if (im instanceof ImagePlus && !dev) {
 					ImagePlus imp = ((ImagePlus) im);
 					imp.changes = false;
+					// If in batch mode, directly close the images except the input image
+					if (batch && (!imp.getTitle().contentEquals(inputImTitle) || alreadyExists)) {
+						System.out.println("[DEBUG] Closing " + imp.getTitle().contentEquals(inputImTitle));
+						imp.close();
+						continue;
+					} else if (batch && imp.getTitle().contentEquals(inputImTitle)) {
+						alreadyExists = true;
+						continue;
+					}
 					// Close all images except start image.
 					// To avoid closing the start image in the case that the one 
 					// we want to delete and the start one are called the same,

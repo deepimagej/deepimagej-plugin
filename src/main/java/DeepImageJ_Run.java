@@ -53,15 +53,11 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Label;
 import java.awt.TextArea;
 import java.awt.TextField;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -88,7 +84,6 @@ import deepimagej.tools.ModelLoader;
 import deepimagej.tools.StartTensorflowService;
 import deepimagej.tools.SystemUsage;
 import ij.IJ;
-import ij.ImageJ;
 import ij.ImagePlus;
 import ij.Macro;
 import ij.WindowManager;
@@ -185,7 +180,19 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		
 		// If the plugin is runnning from a macro, the test mode is not allowed,
 		// thus an image is required to be open
-		if (isMacro && WindowManager.getCurrentImage() != null) {
+		if (headless && WindowManager.getCurrentImage() != null) {
+			// Set the batch processing tag to false
+			batch = true;
+			// Set the image that will be used by the plugin
+			imp = WindowManager.getCurrentImage();
+			System.out.println("[DEBUG] Processing image: " + imp.getTitle());
+		} else if (headless && WindowManager.getTempCurrentImage() != null) {
+			// Set the batch processing tag to false
+			batch = true;
+			// Set the image that will be used by the plugin
+			imp = WindowManager.getTempCurrentImage();
+			System.out.println("[DEBUG] Processing image: " + imp.getTitle());
+		} else if (isMacro && WindowManager.getCurrentImage() != null) {
 			// Set the batch processing tag to false
 			batch = false;
 			// Set the image that will be used by the plugin
@@ -199,6 +206,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			// If there is no image open in Macro mode, stop running the plugin
 			// because test mode is not available
 			IJ.error("There should be an image open.");
+			return;
+		} else if (headless) {
+			// If there is no image open in headless mode, stop running the plugin
+			// because test mode is not available
+			System.out.println("[DEBUG] No image was provided");
+			System.out.println("[DEBUG] End execution");
 			return;
 		}
 		
@@ -223,7 +236,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			// If this was done in another thread, the plugin would try to execute the
 			// models before everything was ready
 			loadModels();
-			loadTfAndPytorch();
+			String engine = args[1];
+			// In macro or headless mode, only the needed engines are loaded
+			boolean loadTf = engine.toLowerCase().contentEquals("tensorflow");
+			boolean loadPt = engine.toLowerCase().contentEquals("pytorch");
+			loadTfAndPytorch(loadTf, loadPt);
 			// Get the index of the model selected in the list of models
 			String index = Integer.toString(Index.indexOf(items, args[0]));
 			// Select the model name using its index in the list
@@ -494,8 +511,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 				// TODO generalise for several image inputs
 				for (DijTensor inp: dp.params.inputList) {
 					String tensorForm = inp.form;
-					int[] tensorMin = inp.minimum_size;
-					int[] min = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
 					int[] tensorStep = inp.step;
 					int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep); 
 					String[] dims = DijTensor.getWorkingDims(tensorForm);
@@ -896,9 +911,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		try {
 			if (log.getLevel() >= 1)
 				log.print("start preprocessing");
-			if (headless)
-				System.out.println("[DEBUG] Pre-processing the images");
-			System.out.println("[DEBUG] Image name: " + inp.getTitle());
+			// Name of the image to be processed
+			String imTitle = inp.getTitle();
+			System.out.println("[DEBUG] Image name: " + imTitle);
 			DijRunnerPreprocessing preprocess = new DijRunnerPreprocessing(dp, rp, inp, batch, log.getLevel() >= 1);
 			Future<HashMap<String, Object>> f0 = service.submit(preprocess);
 			HashMap<String, Object> inputsMap = f0.get();
@@ -916,8 +931,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 				log.print("end preprocessing");
 			runStage ++;
 
-			if (headless)
-				System.out.println("[DEBUG] Running inference on the tensors");
+			System.out.println("[DEBUG] Running inference on the tensors");
 			if (log.getLevel() >= 1)
 				log.print("start runner");
 			HashMap<String, Object> output = null;
@@ -950,9 +964,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 				return;
 			}
 			runStage ++;
-			
-			if (headless)
-				System.out.println("[DEBUG] Post-processing the outputs");
 
 			Future<HashMap<String, Object>> f2 = service.submit(new DijRunnerPostprocessing(dp, rp, output));
 			output = f2.get();
@@ -974,7 +985,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 				ArrayOperations.displayMissingOutputs(finalImages, finalFrames, output);
 
 			// Remove possible hidden images from IJ workspace
-			ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
+			ArrayOperations.removeProcessedInputsFromMemory(inputsMap, imTitle, batch);
+			// Print which images are left at the end of the model execution
+			String[] remainingImages = WindowManager.getImageTitles();
+			System.out.println("[DEBUG] Open images at the end of the execution:");
+			for (String jj : remainingImages)
+				System.out.println(" - " + jj);
+			
 			
 		} catch (IllegalStateException ex) {
 			IJ.error("Error during the aplication of the model.\n"
@@ -1004,6 +1021,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			rp.stop();
 			rp.dispose();
 	    }
+	    System.out.println("[DEBUG] End execution");
 	}
 	
 	/*
@@ -1072,10 +1090,27 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	
 	/*
 	 * Loading Tensorflow with the ImageJ-Tensorflow Manager and Pytorch with
-	 * the DJL takes some time. Normally the GUI would not sho until everything is loaded.
-	 *  In order to show the DeepImageJ Run GUI fast, Tf and Pt are loaded in a separate thread.
+	 * the DJL takes some time. Normally the GUI would not show until everything is loaded.
+	 * In order to show the DeepImageJ Run GUI fast, Tf and Pt are loaded in a separate thread.
+	 * In headless mode only loads the engine needed to avoid wasting time. In the case
+	 * no input is provided, loads both engines
+	 * 
 	 */
 	public void loadTfAndPytorch() {
+		loadTfAndPytorch(true, true);
+	}
+	
+	/*
+	 * Loading Tensorflow with the ImageJ-Tensorflow Manager and Pytorch with
+	 * the DJL takes some time. Normally the GUI would not sho until everything is loaded.
+	 *  In order to show the DeepImageJ Run GUI fast, Tf and Pt are loaded in a separate thread.
+	 *  
+	 * @param tf
+	 * 	load Tensorflow library or not
+	 * @param pt
+	 * 	load Pytorch library or not
+	 */
+	public void loadTfAndPytorch(boolean tf, boolean pt) {
 		loadInfo = "ImageJ";
 		boolean isFiji = SystemUsage.checkFiji();
 		// FOrmat for the date
@@ -1085,10 +1120,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			info.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- LOADING TENSORFLOW JAVA (might take some time)\n");
 		}
 		// First load Tensorflow
-		if (isFiji) {
+		if (isFiji && (!headless || tf)) {
 			loadInfo = StartTensorflowService.loadTfLibrary();
-		} else {
-			// In order to Pytorch to work we have to set
+		} else if (!headless || pt) {
+			// In order to get Pytorch to work we have to set
 			// the IJ ClassLoader as the ContextClassLoader
 			Thread.currentThread().setContextClassLoader(IJ.getClassLoader());
 		}
@@ -1099,7 +1134,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		if (loadInfo.equals("")) {
 			loadInfo += "No Tensorflow library found.\n";
 			loadInfo += "Please install a new Tensorflow version.\n";
-		} else if (loadInfo.equals("ImageJ")) {
+		} else if (loadInfo.equals("ImageJ") && (!headless || tf)) {
 			loadInfo = "Currently using TensorFlow  ";
 			loadInfo += DeepLearningModel.getTFVersion(false);
 			if (!loadInfo.contains("GPU"))
@@ -1113,7 +1148,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		// Then find Pytorch the Pytorch version
 		if (!headless && !isMacro)
 			info.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- LOADING DJL PYTORCH\n");
-		String ptVersion = DeepLearningModel.getPytorchVersion();
+		String ptVersion = null;
+		if (!headless || pt)
+			ptVersion = DeepLearningModel.getPytorchVersion();
 		loadInfo += "\n";
 		loadInfo += "Currently using Pytorch " + ptVersion + ".\n";
 		loadInfo += "Supported by Deep Java Library " + ptVersion + ".\n";

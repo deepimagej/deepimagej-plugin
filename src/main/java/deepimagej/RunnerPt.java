@@ -312,6 +312,7 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 				for (int z = 0; z < npz; z++) {
 					// TODO reduce this mega big loop to something more modular
 					currentPatch++;
+					System.out.println("[DEBUG] (Pytorch) Patch " + currentPatch + "/" + totalPatch);
 					if (log.getLevel() >= 1)
 						log.print("currentPatch " + currentPatch);
 					if (rp != null && rp.isStopped()) {
