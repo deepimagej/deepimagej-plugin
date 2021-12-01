@@ -226,12 +226,22 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			// Names of the variables needed to run DIJ
 			String[] varNames = new String[] {"model", "format", "preprocessing", "postprocessing",
 												"axes", "tile", "logging"};
+			// For Headless mode, especially Pytorch, add the possibility of including
+			// the path to the models directory. See DeepImageJ wiki for more
+			if (headless)
+				varNames = new String[] {"model", "format", "preprocessing", "postprocessing",
+						"axes", "tile", "logging", "models_dir"};
 			try {
 				args = HeadlessProcessing.retrieveArguments(macroArg, varNames);
 			} catch (MacrosError e) {
 				IJ.error(e.toString());
 				return;
 			}
+			// If the variable 'models_dir' is in the Macro call, change the 
+			// 'path' to the models to it. This variable should only appear
+			// in Macro calls in Headless mode. When calling from PyImageJ more specifically
+			if (args.length == 7)
+				path = args[6];
 			// If it is a macro, load models, tf and pt directly in the same thread.
 			// If this was done in another thread, the plugin would try to execute the
 			// models before everything was ready
@@ -407,6 +417,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 					IJ.error("Incorrect Macro call");
 					return;
 				} else if (args == null) {
+					return;
+				} else if ((headless || isMacro) && dps.keySet().size() == 0) {
+					// If no models have been found, do nothing and stop execution
 					return;
 				}
 				// Get the arguments for the model execution

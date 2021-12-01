@@ -55,6 +55,8 @@ import ij.IJ;
  */
 public class HeadlessProcessing {
 	
+	private static String headlessModelsDirExtraVar = "models_dir";
+	
 	/**
 	 * This method retrieves an array of Strings corresponding to the
 	 * variable values defined in the macro
@@ -64,22 +66,27 @@ public class HeadlessProcessing {
 	 * @throws MacrosError: error showing which variable is missing
 	 */
 	public static String[] retrieveArguments(String macroArg, String[] varNames) throws MacrosError {
-		// First check that all the variables are present
-		checkVariables(macroArg, varNames);
+		// Decide what to do with the optional, only used for headless,
+		// Macro parameter 'models_dir'
+		String[] varNamesAux = adaptVars2HeadlessOptionalParam(varNames, macroArg);
+		macroArg = adaptArgs2HeadlessOptionalParam(varNames, macroArg);
+		// Now check that all the needed variables are present
+		checkVariables(macroArg, varNamesAux);
 		// Create an array that will contain the macro variables' values
-		String[] varValues = new String[varNames.length];
+		String[] varValues = new String[varNamesAux.length];
+		
 		// Parse the values from the macro String. It will have the form
 		// of: "varName1= varValue1 varName2= varValue2..."
 		for (int i = 0; i < varValues.length - 1; i ++) {
 			// Index where the variable of interest starts
-			int varInd = macroArg.indexOf(varNames[i]);
+			int varInd = macroArg.indexOf(varNamesAux[i]);
 			if (varInd == -1) {
-				IJ.error("Invalid Macro call: missing argument '" + varNames[i] + "'.");
+				IJ.error("Invalid Macro call: missing argument '" + varNamesAux[i] + "'.");
 				return null;
 			}
 			// Index where the following variable to the variable of interest starts	
-			int nextVarInd = macroArg.indexOf(varNames[i + 1]);
-			varValues[i] = macroArg.substring(varInd + varNames[i].length() + 1, nextVarInd).trim();
+			int nextVarInd = macroArg.indexOf(varNamesAux[i + 1]);
+			varValues[i] = macroArg.substring(varInd + varNamesAux[i].length() + 1, nextVarInd).trim();
 			// The macro recorder adds "[" and "]" when there is a black space in the command.
 			// Delete it if it has been added
 			int index = varValues[i].indexOf(' ');
@@ -88,7 +95,7 @@ public class HeadlessProcessing {
 			}
 		}
 		// Get the value of the last variable
-		varValues[varNames.length - 1] = macroArg.substring(macroArg.lastIndexOf("=") + 1).trim();
+		varValues[varNamesAux.length - 1] = macroArg.substring(macroArg.lastIndexOf("=") + 1).trim();
 		return varValues;
 	}
 	
@@ -103,5 +110,78 @@ public class HeadlessProcessing {
 			if (!macroArg.contains(vv))
 				throw new MacrosError(vv);
 		}
+	}
+	
+	/**
+	 * Read the variables and Macro arguments provided and arranges the variables
+	 * so there are no conflicts with respect to the optional MAcro parameter 'models_dir'.
+	 * If the 'models_dir' variable is  within the variables, but it is not in the Macro
+	 * argument, remove it from the variables.
+	 * 
+	 * In order to use DeepImageJ using PyImageJ is preferable to provide the optional
+	 * parameter 'models_dir' in the Macro argument as it avoids possible errors not 
+	 * finding the models directory. This happens because with PyImageJ can launch 
+	 * ImageJ/Fiji from any directory making it impossible to he plugin to find
+	 * from which directory it has been launched. This optional parameter helps avoiding 
+	 * this error providing the path to the models directory. HOwever, this parameter is
+	 * optional, so some errors from bad practices can appear. This method tries to 
+	 * avoid those errors
+	 * @param varNames
+	 * 	variable names expected
+	 * @param macroArg
+	 * 	argument provided in the macro
+	 * @return the variables String adapted
+	 */
+	public static String[] adaptVars2HeadlessOptionalParam(String[] varNames, String macroArg) {
+		// If the Macro argument does not contain the models_dir 
+		// variable, remove it from the variables array to avoid errors
+		boolean headlessVarInVars = varNames[varNames.length - 1].contentEquals(headlessModelsDirExtraVar);
+		int modelsDirInd = macroArg.lastIndexOf(" " + headlessVarInVars + "=");
+		String[] varNamesAux = null;
+		if (headlessVarInVars && modelsDirInd == -1) {
+			// If the models_dir variable is present in the variables but not
+			// in the Macro argument, remove it from the variables
+			varNamesAux = new String[varNames.length - 1];
+			System.arraycopy(varNames, 0, varNamesAux, 0, varNamesAux.length);
+		} else {
+			// if not copy the variables into the auxiliary array
+			varNamesAux = new String[varNames.length];
+			System.arraycopy(varNames, 0, varNamesAux, 0, varNamesAux.length);
+		}
+		return varNamesAux;
+	}
+	
+	/**
+	 * Read the variables and Macro arguments provided and arranges the Macro args so 
+	 * there are no conflicts with respect to the optional Macro parameter 'models_dir'.
+	 * If the 'models_dir' variable is not within the variables, but it is in the Macro
+	 * argument, remove it from the MAcro argument.
+	 * 
+	 * In order to use DeepImageJ using PyImageJ is preferable to provide the optional
+	 * parameter 'models_dir' in the Macro argument as it avoids possible errors not 
+	 * finding the models directory. This happens because with PyImageJ can launch 
+	 * ImageJ/Fiji from any directory making it impossible to he plugin to find
+	 * from which directory it has been launched. This optional parameter helps avoiding 
+	 * this error providing the path to the models directory. HOwever, this parameter is
+	 * optional, so some errors from bad practices can appear. This method tries to 
+	 * avoid those errors
+	 * @param varNames
+	 * 	variable names expected
+	 * @param macroArg
+	 * 	argument provided in the macro
+	 * @return the Macro argument adapted
+	 */
+	public static String adaptArgs2HeadlessOptionalParam(String[] varNames, String macroArg) {
+		// If the Macro argument does not contain the models_dir 
+		// variable, remove it from the variables array to avoid errors
+		boolean headlessVarInVars = varNames[varNames.length - 1].contentEquals(headlessModelsDirExtraVar);
+		int modelsDirInd = macroArg.lastIndexOf(" " + headlessVarInVars + "=");
+		// If the Macro argument contains the models_dir variable
+		// but the variable is not in the variables array, remove it
+		// from the Macro argument to avoid errors
+		if (!headlessVarInVars && modelsDirInd != -1) {
+			macroArg = macroArg.substring(0, modelsDirInd);
+		}
+		return macroArg;
 	}
 }

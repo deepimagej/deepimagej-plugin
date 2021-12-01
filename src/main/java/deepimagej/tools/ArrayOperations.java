@@ -203,6 +203,12 @@ public class ArrayOperations {
 	/*
 	 * REmove the inputs images that result after preprocessing from the memory of
 	 * ImageJ workspace
+	 * @param inputsMap
+	 * 	all the inputs produced after pre-processing
+	 * @param inputImTitle
+	 * 	the name of the input image (so it is not downloaded)
+	 * @param batch
+	 * 	whether the model is running in batch mode or not
 	 */
 	public static void removeProcessedInputsFromMemory(HashMap<String, Object> inputsMap, String inputImTitle, boolean batch) {
 		System.out.println("[DEBUG] Close all the inputs except the input image");

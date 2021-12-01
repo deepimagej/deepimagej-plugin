@@ -146,6 +146,9 @@ public class DeepImageJ {
 		File models = new File(pathModels);
 		File[] dirs = models.listFiles();
 		if (dirs == null) {
+			String err = "No models found at: " + System.lineSeparator() + " - " + pathModels;
+			System.out.println("[DEBUG] " + err);
+			IJ.log(err);
 			return list;
 		}
 
