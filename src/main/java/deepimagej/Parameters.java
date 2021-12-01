@@ -209,7 +209,7 @@ public class Parameters {
 	public String		name					= "n.a.";
 	public List<HashMap<String, String>>	author					= new ArrayList<HashMap<String, String>>();
 	public String		timestamp				= "";
-	public String		format_version			= "0.3.2";
+	public String		format_version			= "0.4.0";
 	/*
 	 * Citation: contains the reference articles and the corresponding dois used
 	 * to create the model
@@ -604,7 +604,13 @@ public class Parameters {
 						outTensor.sizeOutputPyramid = outTensor.recommended_patch;
 				} else if (objectShape instanceof HashMap<?,?>) {
 					Map<String, Object> shape = (Map<String, Object>) objectShape;
-					outTensor.referenceImage = (String) shape.get("reference_input");
+					// Keep backwars compatibility for yaml files < 0.4.0
+					//'reference_tensor' is used for >= 0.4.0
+					if ((String) shape.get("reference_input") != null) {
+						outTensor.referenceImage = (String) shape.get("reference_input");
+					} else if ((String) shape.get("reference_tensor") != null) {
+						outTensor.referenceImage = (String) shape.get("reference_tensor");
+					}
 					List auxScale = (List) shape.get("scale");
 					outTensor.scale = castListToFloatArray(auxScale);
 					List auxOffset = (List) shape.get("offset");

@@ -431,7 +431,7 @@ public class YAMLUtils {
 			outputTensorMap.put("data_range", Arrays.toString(out.dataRange));
 			outputTensorMap.put("halo",  Arrays.toString(out.halo));
 			Map<String, Object> shape = new LinkedHashMap<>();
-			shape.put("reference_input", out.referenceImage);
+			shape.put("reference_tensor", out.referenceImage);
 			shape.put("scale", Arrays.toString(out.scale));
 			shape.put("offset", Arrays.toString(out.offset));
 			outputTensorMap.put("shape", shape);
