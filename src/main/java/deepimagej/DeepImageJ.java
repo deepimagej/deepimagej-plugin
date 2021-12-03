@@ -88,11 +88,11 @@ public class DeepImageJ {
 		this.path = cleanPathStr(p);
 		this.dirname = dirname;
 		this.developer = dev;
-		if (!dev && !(new File(path, "model.yaml").isFile())) {
+		if (!dev && !(new File(path, "model.yaml").isFile() || new File(path, "rdf.yaml").isFile())) {
 			this.presentYaml = false;
 			this.params = new Parameters(valid, path, dev);
 			this.valid = check(p);
-		} else if (dev || new File(path, "model.yaml").isFile()) {
+		} else if (dev || new File(path, "model.yaml").isFile() || new File(path, "rdf.yaml").isFile()) {
 			this.params = new Parameters(valid, path, dev);
 			this.params.path2Model = this.path;
 			this.valid = check(p);
@@ -431,7 +431,7 @@ public class DeepImageJ {
 			} else if (file.equals(modelName)) {
 				IJ.log("Zipped Bioimage Model Zoo model at:");
 				IJ.log(modelFolder.getAbsolutePath() + File.separator + file);
-				IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
+				IJ.log("does not coincide with the one specified in the rdf.yaml (incorrect sha256).");
 				IJ.log("\n");
 				params.incorrectSha256 = true;
 				tfName = modelName;
@@ -447,7 +447,7 @@ public class DeepImageJ {
 		} else if (auxPresent) {
 			IJ.log("Zipped Bioimage Model Zoo model at:");
 			IJ.log(modelFolder.getAbsolutePath() + File.separator + auxModelName);
-			IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
+			IJ.log("does not coincide with the one specified in the rdf.yaml (incorrect sha256).");
 			IJ.log("\n");
 			params.incorrectSha256 = true;
 			return true;
@@ -457,7 +457,7 @@ public class DeepImageJ {
 	
 	/*
 	 * Method returns true if a torchscript model is found inside
-	 * of the folder provided and corresponds to the model defined in the model.yaml
+	 * of the folder provided and corresponds to the model defined in the rd.yaml
 	 */
 	public boolean findPytorchModel(File modelFolder) {
 		String modelName = this.params.ptSource;
@@ -483,7 +483,7 @@ public class DeepImageJ {
 				} else if (!this.developer && file.contains(modelName)) {
 					IJ.log("Pytorch model at:");
 					IJ.log(modelFolder.getAbsolutePath() + File.separator + file);
-					IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
+					IJ.log("does not coincide with the one specified in the rdf.yaml (incorrect sha256).");
 					IJ.log("\n");
 					params.incorrectSha256 = true;
 					ptName = modelName;
@@ -501,7 +501,7 @@ public class DeepImageJ {
 			} else if (!this.developer && auxPresent) {
 				IJ.log("Zipped Bioimage Model Zoo model at:");
 				IJ.log(modelFolder.getAbsolutePath() + File.separator + auxModelName);
-				IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
+				IJ.log("does not coincide with the one specified in the rdf.yaml (incorrect sha256).");
 				IJ.log("\n");
 				params.incorrectSha256 = true;
 				return true;

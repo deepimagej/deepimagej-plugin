@@ -45,20 +45,17 @@
 package deepimagej.tools;
 
 import org.scijava.Context;
+import org.scijava.service.SciJavaService;
 
 import ij.IJ;
+import net.imagej.ImageJService;
 import net.imagej.tensorflow.TensorFlowService;
 
 public class StartTensorflowService {
 	
 	private static TensorFlowService tfService;
-    private static Context ctx;
+	private static boolean newContext = false;
 
-	static {
-		ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
-		if (ctx == null) ctx = new Context(TensorFlowService.class);
-		tfService = ctx.service(TensorFlowService.class);
-	}
 
 	/*
 	 * Try to load tf using IMageJ-Tensorflow manager. If it fails
@@ -66,6 +63,12 @@ public class StartTensorflowService {
 	 * from the jars library using libtensorflow.jar and libtensorflow_jni.jar
 	 */
 	public static String loadTfLibrary() {
+		Context ctx = (Context) IJ.runPlugIn("org.scijava.Context", "");
+		if (ctx == null) {
+			ctx = new Context(ImageJService.class, SciJavaService.class);
+			newContext = true;
+		}
+		tfService = ctx.service(TensorFlowService.class);
 		if (!tfService.getStatus().isLoaded()) {
 			tfService.initialize();
 			tfService.loadLibrary();
@@ -81,5 +84,10 @@ public class StartTensorflowService {
 	
 	public static TensorFlowService getTfService() {
 		return tfService;
+	}
+	
+	public static void closeTfService() {
+		tfService.dispose();
+		System.out.println("[DEBUG] Close Tensorflow services");
 	}
 }

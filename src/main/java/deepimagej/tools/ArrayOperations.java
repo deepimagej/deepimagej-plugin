@@ -461,7 +461,9 @@ public class ArrayOperations {
 		String[] tile = tileYaml.toLowerCase().split("x");
 		String auxAxes = Arrays.toString(axes);
 		String axesTestFormat = "";
-		if (tile.length == 4) {
+		if (tile.length == 5) {
+			axesTestFormat = "xyczt";
+		} else if (tile.length == 4) {
 			axesTestFormat = "xycz";
 		} else if (!auxAxes.toLowerCase().contains("c") && auxAxes.toLowerCase().contains("z") && tile.length == 3) {
 			axesTestFormat = "xyz";

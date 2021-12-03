@@ -183,7 +183,7 @@ public class Parameters {
 	
 	/*
 	 *  Boolean informing if the model file sh256 corresponds to the
-	 *  one saved specified in the model.yaml
+	 *  one saved specified in the rdf.yaml
 	 */
 	public boolean incorrectSha256 = false;
 	
@@ -203,6 +203,12 @@ public class Parameters {
 	 */
 	public String pytorchVersion = "";
 		
+	/*
+	 * SAmple inputs used to create the model.
+	 * They can be used to test the model
+	 */
+	public String[] sampleInputs = null;
+	
 	/*
 	 *  Parameters providing ModelInformation
 	 */
@@ -297,14 +303,20 @@ public class Parameters {
 		// we cannot read the parameters from anywhere as there is no
 		// config file
 		path2Model = path;
+		// Workaround to adapt to Bioimage.io specs 0.4.0.
+		// The file 'model.yaml' should be deprecated
 		File yamlFile = new File(path + File.separator + "model.yaml");
+		File rdfFile = new File(path + File.separator + "rdf.yaml");
 
 		developer = isDeveloper;
-		if (developer || !yamlFile.isFile())
+		if (developer || !(yamlFile.isFile() || rdfFile.isFile()))
 			return;
 		Map<String, Object> obj = new HashMap<String, Object>();
 		try {
-			obj =  YAMLUtils.readConfig(yamlFile.getAbsolutePath());
+			if (rdfFile.isFile())
+				obj =  YAMLUtils.readConfig(rdfFile.getAbsolutePath());
+			else
+				obj =  YAMLUtils.readConfig(yamlFile.getAbsolutePath());
 		} catch (Exception ex) {
 			fieldsMissing = new ArrayList<String>();
 			fieldsMissing.add("Unable to read the yaml file");
@@ -582,10 +594,9 @@ public class Parameters {
 					outTensor.form = outTensor.form.toUpperCase().replace("I", "R");
 				if (outTensor.form == null || outTensor.form.contains("R") || (outTensor.form.length() <= 2 && (outTensor.form.contains("B") || outTensor.form.contains("C"))))
 					outTensor.tensorType = "list";
-				// TODO List auxDataRange = (List) out.get("data_range");
-				// TODO outTensor.dataRange = castListToDoubleArray(auxDataRange);
 				outTensor.dataType = (String) "" + out.get("data_type");
-				if (outTensor.tensorType.contains("image") && !pyramidalNetwork) {
+				// Halo is an optional field
+				if (outTensor.tensorType.contains("image") && !pyramidalNetwork && out.get("halo") != null) {
 					List auxHalo = (List) out.get("halo");
 					outTensor.halo = castListToIntArray(auxHalo);
 				} else if (outTensor.tensorType.contains("image")) {
@@ -722,6 +733,9 @@ public class Parameters {
 			}
 		}
 		
+		// Get the inputs used to create the model
+		if (obj.get("sample_inputs") != null && obj.get("sample_inputs") instanceof List)
+			sampleInputs = castListToStringArray((List)obj.get("sample_inputs"));
 		
 		name = name != null ? (String) name : "n/a";
 		documentation = documentation != null ? documentation : "n/a";
@@ -729,8 +743,8 @@ public class Parameters {
 		license = license != null ? license : "n/a";
 		memoryPeak = memoryPeak != null ? memoryPeak : "n/a";
 		runtime = runtime != null ?  runtime : "n/a";
-		tag = tag != null ? tag : "serve";
-		graph = graph != null ? graph : "serving_default";
+		tag = (tag != null && !tag.contentEquals("")) ? tag : "serve";
+		graph = (graph != null && !graph.contentEquals("")) ? graph : "serving_default";
 		completeConfig = true;
 		
 		

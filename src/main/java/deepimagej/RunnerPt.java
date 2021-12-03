@@ -680,7 +680,9 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 		String[] standarForm = "XYCZ".split("");
 		for (int i = 0; i < outSize.length; i ++) {
 			int indOut = Index.indexOf(outTensor.form.split(""), standarForm[i]);
-			int indInp = Index.indexOf(refTensor.form.split(""), standarForm[i]);
+			int indInp = -1;
+			if (refTensor != null)
+				indInp = Index.indexOf(refTensor.form.split(""), standarForm[i]);
 			if (indOut != -1 && indInp != -1) {
 				if (standarForm[i].toLowerCase().equals("c"))
 					outSize[i] = inpSize[i] * outTensor.scale[indOut] + 2*outTensor.offset[indOut];

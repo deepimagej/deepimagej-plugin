@@ -136,6 +136,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	private boolean						testModeOnly = false;
 	// Whether the plugin is running on test mode
 	public boolean						testMode = false;
+	// Number of open images, used to check whether an image
+	// has been open or not for the testing
+	private int nOpenImages = 0;
 	
 	
 	static public void main(String args[]) {
@@ -160,6 +163,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		headless = GraphicsEnvironment.isHeadless();
 
 		isMacro = IJ.isMacro();
+		
+		nOpenImages = WindowManager.getImageTitles().length;
 
 		ImagePlus imp = null;
 		
@@ -264,6 +269,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		
 		// Free memory allocated by the plugin 
 		freeIJMemory(dlg, imp);
+	    System.out.println("[DEBUG] End execution");
 	}
 	
 	public String[] createAndShowDialog() {
@@ -430,7 +436,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 				
 				// If the plugin is running in test mode, get the test image
 				// that has just been displayed
-				if (testMode && !isMacro && WindowManager.getCurrentImage() != null) {
+				int currentImagesOpen = WindowManager.getImageTitles().length;
+				// Check if there has been an image opened, checking the number
+				// of images open now vs at the begining
+				boolean imageHasBeenOpened = currentImagesOpen > nOpenImages;
+				if (testMode && !isMacro && WindowManager.getCurrentImage() != null && imageHasBeenOpened) {
 					// Set batch mode to false
 					batch = false;
 					imp = WindowManager.getCurrentImage();
@@ -452,7 +462,19 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 					patchString = ArrayOperations.optimalPatch(haloVals, dim, step, min, dp.params.allowPatching);
 				} else if (testMode && !isMacro) {
 					// If no image has been displayed there is an error
-					IJ.error("No test image has been found in the model folder");
+					String err = "No test image has been found in the model folder.\n"
+							+ "There should be an image called: ";
+					// REtieve the images names
+					String imageName = dp.params.inputList.get(0).exampleInput;
+					err +=  imageName;
+					// Path to the test image specified in the rdf.yaml in 
+					// the >sample_inputs
+					String imageName2 = null;
+					if (dp.params.sampleInputs != null && dp.params.sampleInputs.length != 0) {
+						imageName2 =  dp.params.sampleInputs[0];
+						err += " or " + imageName2;
+					}
+					IJ.error(err);
 					run("");
 					return;
 				}
@@ -545,7 +567,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 					for (int i = 0; i < patch.length; i ++) {
 						if(haloSize[i] * 2 >= patch[i] && patch[i] != -1) {
 							String errMsg = "Error: Tiles cannot be smaller or equal than 2 times the halo at any dimension.\n"
-										  + "Please, either choose a bigger tile size or change the halo in the model.yaml.";
+										  + "Please, either choose a bigger tile size or change the halo in the rdf.yaml.";
 							IJ.error(errMsg);
 							// Relaunch the plugin
 							closeAndReopenPlugin(imp);
@@ -912,8 +934,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			setGUIOriginalParameters();
 			info.append("\n");
 			info.setText("It seems that either the inputs or outputs of the\n"
-					+ "model (" + modelName + ") are not well defined in the model.yaml.\n"
-					+ "Please correct the model.yaml or select another model.");
+					+ "model (" + modelName + ") are not well defined in the rdf.yaml.\n"
+					+ "Please correct the rdf.yaml or select another model.");
 			dlg.getButtons()[0].setEnabled(false);
 		}
 	}
@@ -1034,7 +1056,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			rp.stop();
 			rp.dispose();
 	    }
-	    System.out.println("[DEBUG] End execution");
 	}
 	
 	/*
@@ -1042,8 +1063,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	 */
 	public void freeIJMemory(GenericDialog dlg, ImagePlus imp) {
 		// Free memory allocated by the plugin 
+		// If it is not headless, there is no GUI, no need to close it
 		if (!headless && !isMacro && !testMode)
 			dlg.dispose();
+		// Close the IJ2 services to free all the resources used
+		if (SystemUsage.checkFiji())
+			StartTensorflowService.closeTfService();
 		if (dp != null && dp.params.framework.equals("tensorflow") && dp.getTfModel() != null) {
 			dp.getTfModel().session().close();
 			dp.getTfModel().close();
@@ -1231,11 +1256,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	}
 
 	/*
-	 * For a model whose model.yaml file does not contain the necessary information,
+	 * For a model whose rdf.yaml file does not contain the necessary information,
 	 * indicate which fields have missing information or are incorrect
 	 */
 	private void setUnavailableModelText(ArrayList<String> fieldsMissing) {
-		info.setText("\nThe selected model contains error in the model.yaml.\n");
+		info.setText("\nThe selected model contains error in the rdf.yaml.\n");
 		info.append("The errors are in the following fields:\n");
 		for (String err : fieldsMissing)
 			info.append(" - " + err + "\n");
@@ -1244,12 +1269,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	}
 
 	/*
-	 * For a model whose model.yaml file does not contain the necessary information,
+	 * For a model whose rdf.yaml file does not contain the necessary information,
 	 * indicate which fields have missing information or are incorrect
 	 */
 	private void setIncorrectSha256Text() {
 		info.setText("\nThe selected model's Sha256 checksum does not agree\n"
-				+ "with the one in the model.yaml file.\n");
+				+ "with the one in the rdf.yaml file.\n");
 		info.append("The model file might have been modified after creation.\n");
 		info.append("Run at your own risk.\n");
 		dlg.getButtons()[0].setEnabled(false);
@@ -1260,8 +1285,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	 * Indicate that a model folder is missing the yaml file
 	 */
 	private void setMissingYamlText() {
-		info.setText("\nThe selected model folder does not contain a model.yaml file.\n");
-		info.append("The model.yaml file contains all the info necessary to run a model.\n");
+		info.setText("\nThe selected model folder does not contain a rdf.yaml file.\n");
+		info.append("The rdf.yaml file contains all the info necessary to run a model.\n");
 		info.append("Please select another model.\n");
 		dlg.getButtons()[0].setEnabled(false);
 		info.setCaretPosition(0);
@@ -1285,11 +1310,21 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		String fullname = Integer.toString(ind);
 		String dirname = fullnames.get(fullname);
 		DeepImageJ dp = dps.get(dirname);
-		
+		// Path to the test image specified in the rdf.yaml in 
+		// the >config>deepimagej>test_information part
 		String imageName = dp.getPath() + dp.params.inputList.get(0).exampleInput;
+		// Path to the test image specified in the rdf.yaml in 
+		// the >sample_inputs
+		String imageName2 = null;
+		if (dp.params.sampleInputs != null && dp.params.sampleInputs.length != 0)
+			imageName2 = dp.getPath() + dp.params.sampleInputs[0];
 		ImagePlus imp = null;
+		// Try opening the test image. First try one and if does not open, try the other
 		if (new File(imageName).isFile()) {
 			imp = IJ.openImage(imageName);
+			imp.show();
+		} else if (!(new File(imageName).isFile()) && imageName2 != null && new File(imageName2).isFile()) {
+			imp = IJ.openImage(imageName2);
 			imp.show();
 		}
 		// Simulate clicking on the button "ok" of the GUI to run the model

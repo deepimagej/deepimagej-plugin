@@ -388,10 +388,10 @@ public class YAMLUtils {
 		Yaml yaml = new Yaml(options);
 		FileWriter writer = null;
 		try {
-			writer = new FileWriter(new File(params.saveDir, "model.yaml"));
+			writer = new FileWriter(new File(params.saveDir, "rdf.yaml"));
 			yaml.dump(data, writer);
 			writer.close();
-			removeQuotes(new File(params.saveDir, "model.yaml"));
+			removeQuotes(new File(params.saveDir, "rdf.yaml"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
