@@ -1158,9 +1158,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			info.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- LOADING TENSORFLOW JAVA (might take some time)\n");
 		}
 		// First load Tensorflow
-		if (isFiji && (!headless || tf)) {
+		if (isFiji && (!(headless || isMacro) || tf)) {
 			loadInfo = StartTensorflowService.loadTfLibrary();
-		} else if (!headless || pt) {
+		} else if (!(headless || isMacro) || pt) {
 			// In order to get Pytorch to work we have to set
 			// the IJ ClassLoader as the ContextClassLoader
 			Thread.currentThread().setContextClassLoader(IJ.getClassLoader());
@@ -1187,7 +1187,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		if (!headless && !isMacro)
 			info.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- LOADING DJL PYTORCH\n");
 		String ptVersion = null;
-		if (!headless || pt)
+		if (!(headless || isMacro) || pt)
 			ptVersion = DeepLearningModel.getPytorchVersion();
 		loadInfo += "\n";
 		loadInfo += "Currently using Pytorch " + ptVersion + ".\n";
