@@ -55,7 +55,7 @@ import ij.IJ;
  */
 public class HeadlessProcessing {
 	
-	private static String headlessModelsDirExtraVar = "models_dir";
+	private static String headlessModelsDirExtraVar = "model_dir";
 	
 	/**
 	 * This method retrieves an array of Strings corresponding to the
@@ -67,7 +67,7 @@ public class HeadlessProcessing {
 	 */
 	public static String[] retrieveArguments(String macroArg, String[] varNames) throws MacrosError {
 		// Decide what to do with the optional, only used for headless,
-		// Macro parameter 'models_dir'
+		// Macro parameter 'model_dir'
 		String[] varNamesAux = adaptVars2HeadlessOptionalParam(varNames, macroArg);
 		macroArg = adaptArgs2HeadlessOptionalParam(varNames, macroArg);
 		// Now check that all the needed variables are present
@@ -114,12 +114,12 @@ public class HeadlessProcessing {
 	
 	/**
 	 * Read the variables and Macro arguments provided and arranges the variables
-	 * so there are no conflicts with respect to the optional MAcro parameter 'models_dir'.
-	 * If the 'models_dir' variable is  within the variables, but it is not in the Macro
+	 * so there are no conflicts with respect to the optional MAcro parameter 'model_dir'.
+	 * If the 'model_dir' variable is  within the variables, but it is not in the Macro
 	 * argument, remove it from the variables.
 	 * 
 	 * In order to use DeepImageJ using PyImageJ is preferable to provide the optional
-	 * parameter 'models_dir' in the Macro argument as it avoids possible errors not 
+	 * parameter 'model_dir' in the Macro argument as it avoids possible errors not 
 	 * finding the models directory. This happens because with PyImageJ can launch 
 	 * ImageJ/Fiji from any directory making it impossible to he plugin to find
 	 * from which directory it has been launched. This optional parameter helps avoiding 
@@ -133,13 +133,13 @@ public class HeadlessProcessing {
 	 * @return the variables String adapted
 	 */
 	public static String[] adaptVars2HeadlessOptionalParam(String[] varNames, String macroArg) {
-		// If the Macro argument does not contain the models_dir 
+		// If the Macro argument does not contain the model_dir 
 		// variable, remove it from the variables array to avoid errors
 		boolean headlessVarInVars = varNames[varNames.length - 1].contentEquals(headlessModelsDirExtraVar);
 		int modelsDirInd = macroArg.lastIndexOf(" " + headlessVarInVars + "=");
 		String[] varNamesAux = null;
 		if (headlessVarInVars && modelsDirInd == -1) {
-			// If the models_dir variable is present in the variables but not
+			// If the model_dir variable is present in the variables but not
 			// in the Macro argument, remove it from the variables
 			varNamesAux = new String[varNames.length - 1];
 			System.arraycopy(varNames, 0, varNamesAux, 0, varNamesAux.length);
@@ -153,12 +153,12 @@ public class HeadlessProcessing {
 	
 	/**
 	 * Read the variables and Macro arguments provided and arranges the Macro args so 
-	 * there are no conflicts with respect to the optional Macro parameter 'models_dir'.
-	 * If the 'models_dir' variable is not within the variables, but it is in the Macro
+	 * there are no conflicts with respect to the optional Macro parameter 'model_dir'.
+	 * If the 'model_dir' variable is not within the variables, but it is in the Macro
 	 * argument, remove it from the MAcro argument.
 	 * 
 	 * In order to use DeepImageJ using PyImageJ is preferable to provide the optional
-	 * parameter 'models_dir' in the Macro argument as it avoids possible errors not 
+	 * parameter 'model_dir' in the Macro argument as it avoids possible errors not 
 	 * finding the models directory. This happens because with PyImageJ can launch 
 	 * ImageJ/Fiji from any directory making it impossible to he plugin to find
 	 * from which directory it has been launched. This optional parameter helps avoiding 
@@ -172,11 +172,11 @@ public class HeadlessProcessing {
 	 * @return the Macro argument adapted
 	 */
 	public static String adaptArgs2HeadlessOptionalParam(String[] varNames, String macroArg) {
-		// If the Macro argument does not contain the models_dir 
+		// If the Macro argument does not contain the model_dir 
 		// variable, remove it from the variables array to avoid errors
 		boolean headlessVarInVars = varNames[varNames.length - 1].contentEquals(headlessModelsDirExtraVar);
 		int modelsDirInd = macroArg.lastIndexOf(" " + headlessVarInVars + "=");
-		// If the Macro argument contains the models_dir variable
+		// If the Macro argument contains the model_dir variable
 		// but the variable is not in the variables array, remove it
 		// from the Macro argument to avoid errors
 		if (!headlessVarInVars && modelsDirInd != -1) {

@@ -229,20 +229,17 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			// Macro argument
 			String macroArg = Macro.getOptions();
 			// Names of the variables needed to run DIJ
+			// Especially Pytorch, add the possibility of including
+			// the path to the model directory. See DeepImageJ wiki for more
 			String[] varNames = new String[] {"model", "format", "preprocessing", "postprocessing",
-												"axes", "tile", "logging"};
-			// For Headless mode, especially Pytorch, add the possibility of including
-			// the path to the models directory. See DeepImageJ wiki for more
-			if (headless)
-				varNames = new String[] {"model", "format", "preprocessing", "postprocessing",
-						"axes", "tile", "logging", "models_dir"};
+												"axes", "tile", "logging", "model_dir"};
 			try {
 				args = HeadlessProcessing.retrieveArguments(macroArg, varNames);
 			} catch (MacrosError e) {
 				IJ.error(e.toString());
 				return;
 			}
-			// If the variable 'models_dir' is in the Macro call, change the 
+			// If the variable 'model_dir' is in the Macro call, change the 
 			// 'path' to the models to it. This variable should only appear
 			// in Macro calls in Headless mode. When calling from PyImageJ more specifically
 			if (args.length == 8)
@@ -1080,10 +1077,19 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		imp = null;
 	}
 	
-	/*
+	/**
 	 * Load all the models present in the models folder of IJ/Fiji
 	 */
 	public void loadModels() {
+		loadModels(null);
+	}
+	
+	/**
+	 * Load all the models present in the models folder of IJ/Fiji
+	 * @param modelDir
+	 * 	directory where the wanted model is located
+	 */
+	public void loadModels(String modelDir) {
 		// FOrmat for the date
 		Date now = new Date(); 
 		if (!headless && !isMacro) {
@@ -1095,7 +1101,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		ignoreModelsIndexList = new ArrayList<Integer>();
 		incorrectSha256IndexList = new ArrayList<Integer>();
 		missingYamlList = new ArrayList<Integer>();
-		dps = DeepImageJ.list(path, false, info);
+		dps = DeepImageJ.list(path, false, info, modelDir);
 		int k = 1;
 		items = new String[dps.size() + 1];
 		items[0] = "<Select a model from this list>";

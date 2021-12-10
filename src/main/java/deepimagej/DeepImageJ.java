@@ -141,6 +141,25 @@ public class DeepImageJ {
 		return this.valid;
 	}
 	
+	static public HashMap<String, DeepImageJ> list(String pathModels, boolean isDeveloper, TextArea textField, String modelDir) {
+		if (modelDir == null)
+			return list(pathModels, isDeveloper, textField);
+		if (!(new File(modelDir).isDirectory())) {
+			String err = "The following directory does not contain a model:" 
+					+ System.lineSeparator() + " - " + modelDir;
+			System.out.println("[DEBUG] " + err);
+			IJ.log(err);
+			return list(pathModels, isDeveloper, textField);
+		}
+		HashMap<String, DeepImageJ> list = new HashMap<String, DeepImageJ>();
+		String name = new File(modelDir).getName();
+		DeepImageJ dp = new DeepImageJ(new File(modelDir).getParent() + File.separator, name, isDeveloper);
+		if (dp.valid && dp.params != null) {
+			list.put(dp.dirname, dp);
+		}
+		return list;
+	}
+	
 	static public HashMap<String, DeepImageJ> list(String pathModels, boolean isDeveloper, TextArea textField) {
 		HashMap<String, DeepImageJ> list = new HashMap<String, DeepImageJ>();
 		File models = new File(pathModels);
