@@ -245,8 +245,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			// If the variable 'models_dir' is in the Macro call, change the 
 			// 'path' to the models to it. This variable should only appear
 			// in Macro calls in Headless mode. When calling from PyImageJ more specifically
-			if (args.length == 7)
-				path = args[6];
+			if (args.length == 8)
+				path = args[7];
 			// If it is a macro, load models, tf and pt directly in the same thread.
 			// If this was done in another thread, the plugin would try to execute the
 			// models before everything was ready
@@ -897,7 +897,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	/**
 	 * Method that checks if the model selected has complete information
 	 * @param dp: parameters of the model selected
-	 * @param ind: index of the model in teh list of models
+	 * @param ind: index of the model in the list of models
 	 * @return true if the model is fine, false if it is not
 	 */
 	public boolean isGoodDp(DeepImageJ dp, int ind) {
