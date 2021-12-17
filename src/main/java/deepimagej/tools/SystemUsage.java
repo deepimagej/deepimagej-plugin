@@ -408,7 +408,7 @@ public class SystemUsage {
 			}
 		}
 		if (foundCudaVersions.equals(""))
-			return "nCuda";
+			return "nocuda";
 		else
 			return foundCudaVersions;
 	}

@@ -54,6 +54,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.ImageWindow;
+import ij.macro.Interpreter;
 import ij.measure.ResultsTable;
 import ij.process.ImageProcessor;
 import ij.text.TextWindow;
@@ -196,20 +197,51 @@ public class ArrayOperations {
 	 * ImageJ workspace
 	 */
 	public static void removeProcessedInputsFromMemory(HashMap<String, Object> inputsMap) {
-		removeProcessedInputsFromMemory(inputsMap, false);
+		removeProcessedInputsFromMemory(inputsMap, null, false);
 	}
 	
 	/*
 	 * REmove the inputs images that result after preprocessing from the memory of
 	 * ImageJ workspace
+	 * @param inputsMap
+	 * 	all the inputs produced after pre-processing
+	 * @param inputImTitle
+	 * 	the name of the input image (so it is not downloaded)
+	 * @param batch
+	 * 	whether the model is running in batch mode or not
 	 */
-	public static void removeProcessedInputsFromMemory(HashMap<String, Object> inputsMap, boolean dev) {
+	public static void removeProcessedInputsFromMemory(HashMap<String, Object> inputsMap, String inputImTitle, boolean batch) {
+		System.out.println("[DEBUG] Close all the inputs except the input image");
+		// Only non-developers provide the name of the input image
+		boolean dev = (inputImTitle == null);
+		// Parameter to delete the input image if it already exists on the hashmap.
+		// Only for batch processing
+		boolean alreadyExists = false;
 		if (inputsMap != null) {
 			for (String kk : inputsMap.keySet()) {
 				Object im = inputsMap.get(kk);
 				if (im instanceof ImagePlus && !dev) {
-					((ImagePlus) im).changes = false;
-					((ImagePlus) im).close();
+					ImagePlus imp = ((ImagePlus) im);
+					imp.changes = false;
+					// If in batch mode, directly close the images except the input image
+					if (batch && (!imp.getTitle().contentEquals(inputImTitle) || alreadyExists)) {
+						System.out.println("[DEBUG] Closing " + imp.getTitle().contentEquals(inputImTitle));
+						imp.close();
+						continue;
+					} else if (batch && imp.getTitle().contentEquals(inputImTitle)) {
+						alreadyExists = true;
+						continue;
+					}
+					// Close all images except start image.
+					// To avoid closing the start image in the case that the one 
+					// we want to delete and the start one are called the same,
+					// check that the one we want to delete does not have a window.
+					ImageWindow ww1 = WindowManager.getImage(imp.getTitle()).getWindow();
+					if (WindowManager.getImage(imp.getTitle()) != null && !ww1.isShowing()) {
+						WindowManager.getImage(imp.getTitle()).close();
+					} else {
+						imp.close();
+					}
 				} else if (im instanceof ImagePlus && dev && ((ImagePlus) im).getWindow() == null) {
 					// For developer only close images that are not showing (i.e, that are not shown in a window)
 					((ImagePlus) im).changes = false;
@@ -317,31 +349,65 @@ public class ArrayOperations {
 	 * Regard that it might be too memory consuming for some 
 	 * computers/images.
 	 */
-	public static String optimalPatch(int[] patchSizeArr, int[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, boolean allowPatch) {
+	public static String optimalPatch(int[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, boolean allowPatch) {
 
 		ImagePlus imp = WindowManager.getCurrentImage();
-		return optimalPatch(imp, patchSizeArr, haloArr, dimCharArr, stepArr, minArr, allowPatch);
+		return optimalPatch(imp, haloArr, dimCharArr, stepArr, minArr, null, allowPatch);
 			
 	}
 
-		/*
-		 * This method looks for the optimal patch size regarding the
-		 * minimum size, step, halo and image size. The optimal patch
-		 * is regarded as the smallest possible patch that allows 
-		 * processing the image as a whole in only one run.
-		 * Regard that it might be too memory consuming for some 
-		 * computers/images.
-		 */
-		public static String optimalPatch(ImagePlus imp, int[] patchSizeArr, int[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, boolean allowPatch) {
+	/*
+	 * This method looks for the optimal patch size regarding the
+	 * minimum size, step, halo and image size. The optimal patch
+	 * is regarded as the smallest possible patch that allows 
+	 * processing the image as a whole in only one run.
+	 * Regard that it might be too memory consuming for some 
+	 * computers/images.
+	 */
+	public static String optimalPatch(ImagePlus imp, int[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, boolean allowPatch) {
+
+		return optimalPatch(imp, haloArr, dimCharArr, stepArr, minArr, null, allowPatch);
+			
+	}
+
+	/*
+	 * This method looks for the optimal patch size regarding the
+	 * minimum size, step, halo and image size. The optimal patch
+	 * is regarded as the smallest possible patch that allows 
+	 * processing the image as a whole in only one run.
+	 * Regard that it might be too memory consuming for some 
+	 * computers/images.
+	 */
+	public static String optimalPatch(int[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, String testSize, boolean allowPatch) {
+
+		ImagePlus imp = WindowManager.getCurrentImage();
+		return optimalPatch(imp, haloArr, dimCharArr, stepArr, minArr, testSize, allowPatch);
+			
+	}
+
+	/*
+	 * This method looks for the optimal patch size regarding the
+	 * minimum size, step, halo and image size. The optimal patch
+	 * is regarded as the smallest possible patch that allows 
+	 * processing the image as a whole in only one run.
+	 * Regard that it might be too memory consuming for some 
+	 * computers/images.
+	 */
+	public static String optimalPatch(ImagePlus imp, int[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, String testSize, boolean allowPatch) {
 			
 		String patch = "";
-		for (int ii = 0; ii < patchSizeArr.length; ii ++) {
+		for (int ii = 0; ii < haloArr.length; ii ++) {
 			String dimChar = dimCharArr[ii];
 			int halo = haloArr[ii];
 			int min = minArr[ii];
-			int patchSize = patchSizeArr[ii];
 			int step = stepArr[ii];
-			if (imp == null ) {
+			// If there is no image, return the test tile size specified in the yaml if there is any
+			if (imp == null && testSize != null && !testSize.contentEquals("")) {
+				return getTestTileSize(testSize, dimCharArr);
+			} else if (imp == null && step != 0 && (dimChar.contentEquals("X") || dimChar.contentEquals("Y"))) {
+				patch += "auto,";
+				continue;
+			} else if (imp == null && step == 0) {
 				patch += min + ",";
 				continue;
 			}
@@ -376,12 +442,43 @@ public class ArrayOperations {
 				patch += "auto,";
 			} else if (step == 0){
 				patch += min + ",";
-			} else if (patchSize != 0){
-				patch += patchSize + ",";
 			}
 		}
 		patch = patch.substring(0, patch.length() - 1);
 		return patch;
+	}		
+	
+		/**
+		 * Find the tile size used during testing and reformats it following
+		 * the axes order
+		 * @param tileYaml: raw String coming form the yaml file at: conig->
+		 * 					deepimagej->test_information->inputs->size
+		 * @param axes: the axes of the model
+		 * @return tile size in a the format used by DIJ Run
+		 */
+	public static String getTestTileSize(String tileYaml, String[] axes) {
+		String tileString = "";
+		String[] tile = tileYaml.toLowerCase().split("x");
+		String auxAxes = Arrays.toString(axes);
+		String axesTestFormat = "";
+		if (tile.length == 5) {
+			axesTestFormat = "xyczt";
+		} else if (tile.length == 4) {
+			axesTestFormat = "xycz";
+		} else if (!auxAxes.toLowerCase().contains("c") && auxAxes.toLowerCase().contains("z") && tile.length == 3) {
+			axesTestFormat = "xyz";
+		} else if (!auxAxes.toLowerCase().contains("z") && auxAxes.toLowerCase().contains("c") && tile.length == 3) {
+			axesTestFormat = "xyc";
+		} else if (!auxAxes.toLowerCase().contains("z") && !auxAxes.toLowerCase().contains("c") && tile.length == 3) {
+			axesTestFormat = "xyc";
+		} else if (!auxAxes.toLowerCase().contains("z") && !auxAxes.toLowerCase().contains("c") && tile.length == 2) {
+			axesTestFormat = "xy";
+		}
+		for (int i = 0; i < axes.length; i ++)
+			tileString += tile[axesTestFormat.indexOf(axes[i].toLowerCase())].trim() + ",";
+		// Remove last comma
+		tileString = tileString.substring(0, tileString.length() - 1);
+		return tileString;
 	}
 	
 	public static int[] findTotalPadding(DijTensor input, List<DijTensor> outputs, boolean pyramidal) {

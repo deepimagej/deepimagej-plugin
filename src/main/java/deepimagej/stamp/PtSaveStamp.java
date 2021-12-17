@@ -321,14 +321,14 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		// Save yaml
 		try {
 			YAMLUtils.writeYaml(dp);
-			pane.append("p", "model.yaml: saved");
+			pane.append("p", "rdf.yaml: saved");
 		} 
 		catch(IOException ex) {
-			pane.append("p", "model.yaml: not saved");
+			pane.append("p", "rdf.yaml: not saved");
 			IJ.error("Model file was locked or does not exist anymore.");
 		}
 		catch(Exception ex) {
-			pane.append("p", "model.yaml: not saved");
+			pane.append("p", "rdf.yaml: not saved");
 			ex.printStackTrace();
 		}
 		

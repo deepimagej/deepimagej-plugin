@@ -81,7 +81,7 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 
 	@Override
 	public HashMap<String, Object> call() throws Exception  {
-		
+		System.out.println("[DEBUG] Start pre-processing");
 		if (rp != null) {
 			// Set tag of rp to 'preprocessing' so it shows the correct information
 			rp.setInfoTag("preprocessing");
@@ -89,7 +89,7 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 			if (!rp.isVisible())
 				rp.setVisible(this.show);
 		}
-		
+
 		// Auxiliary variables for DIJ_Run
 		ImagePlus im = null;
 		String correctTitle = "";
@@ -106,7 +106,8 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 				return null;
 			}
 			
-	
+			// Create copy of input image to have it after the original image
+			// has been modified
 			im = inp.duplicate();
 			correctTitle = inp.getTitle();
 			im.setTitle("tmp_" + correctTitle);
@@ -114,14 +115,12 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 				ImageWindow windToClose = inp.getWindow();
 				windToClose.dispose();
 			}
-			
 			WindowManager.setTempCurrentImage(inp);
-			
 			if (rp != null && rp.isStopped()) {
 				return null;
 			}
 		}
-
+		
 		HashMap<String, Object> inputsMap = null;
 		if (inp == null) {
 			inp = dp.params.testImage;
@@ -142,6 +141,7 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 				error += "\nThe command 'run(\"RGB Stack\");' has been found in macro preporcessing.\n"
 						+ "Please remove it to avoid conflicts.";
 			IJ.error(error);
+			System.out.println("[DEBUG] " + error);
 			if (rp != null)
 				rp.allowStopping(true);
 			removeProcessedImageAndShowOriginal(dev, im, correctTitle);
@@ -156,6 +156,7 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 				error += "\nThe command 'run(\"RGB Stack\");' has been found in the macro preporcessing.\n"
 						+ "Please remove it to avoid conflicts.";
 			IJ.error(error);
+			System.out.println("[DEBUG] " + error);
 			if (rp != null)
 				rp.allowStopping(true);
 			removeProcessedImageAndShowOriginal(dev, im, correctTitle);
@@ -169,6 +170,7 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 				error += "\nThe command 'run(\"RGB Stack\");' has been found in the macro preporcessing.\n"
 						+ "Please remove it to avoid conflicts.";
 			IJ.error(error);
+			System.out.println("[DEBUG] " + error);
 			if (rp != null)
 				rp.allowStopping(true);
 			removeProcessedImageAndShowOriginal(dev, im, correctTitle);
@@ -186,7 +188,8 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 		
 		if (inputsMap.keySet().size() == 0)
 			throw new Exception();
-		
+
+		System.out.println("[DEBUG] End pre-processing");
 		return inputsMap;
 	}
 	
@@ -219,7 +222,7 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 	public void showOriginalImage(boolean dev, ImagePlus im,  String correctTitle) {
 		if (!dev) {
 			im.setTitle(correctTitle);
-			if (batch == false)
+			if (!batch)
 				im.show();
 			WindowManager.setTempCurrentImage(null);
 		}
@@ -245,6 +248,7 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 			windToClose.setImage(inp);
 			windToClose.setVisible(true);
 		} else if (batch &&  inp.getType() == 4){
+			System.out.println("[DEBUG] Pre-processing: transform the RGB Color image into RGB Stack");
 			ImagePlus aux = ij.plugin.CompositeConverter.makeComposite(inp);
 			// If aux is not null, it means that aux contains a RGB Stack image
 			if (aux != null) {

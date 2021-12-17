@@ -88,11 +88,11 @@ public class DeepImageJ {
 		this.path = cleanPathStr(p);
 		this.dirname = dirname;
 		this.developer = dev;
-		if (!dev && !(new File(path, "model.yaml").isFile())) {
+		if (!dev && !(new File(path, "model.yaml").isFile() || new File(path, "rdf.yaml").isFile())) {
 			this.presentYaml = false;
 			this.params = new Parameters(valid, path, dev);
 			this.valid = check(p);
-		} else if (dev || new File(path, "model.yaml").isFile()) {
+		} else if (dev || new File(path, "model.yaml").isFile() || new File(path, "rdf.yaml").isFile()) {
 			this.params = new Parameters(valid, path, dev);
 			this.params.path2Model = this.path;
 			this.valid = check(p);
@@ -141,11 +141,33 @@ public class DeepImageJ {
 		return this.valid;
 	}
 	
+	static public HashMap<String, DeepImageJ> list(String pathModels, boolean isDeveloper, TextArea textField, String modelDir) {
+		if (modelDir == null)
+			return list(pathModels, isDeveloper, textField);
+		if (!(new File(modelDir).isDirectory())) {
+			String err = "The following directory does not contain a model:" 
+					+ System.lineSeparator() + " - " + modelDir;
+			System.out.println("[DEBUG] " + err);
+			IJ.log(err);
+			return list(pathModels, isDeveloper, textField);
+		}
+		HashMap<String, DeepImageJ> list = new HashMap<String, DeepImageJ>();
+		String name = new File(modelDir).getName();
+		DeepImageJ dp = new DeepImageJ(new File(modelDir).getParent() + File.separator, name, isDeveloper);
+		if (dp.valid && dp.params != null) {
+			list.put(dp.dirname, dp);
+		}
+		return list;
+	}
+	
 	static public HashMap<String, DeepImageJ> list(String pathModels, boolean isDeveloper, TextArea textField) {
 		HashMap<String, DeepImageJ> list = new HashMap<String, DeepImageJ>();
 		File models = new File(pathModels);
 		File[] dirs = models.listFiles();
 		if (dirs == null) {
+			String err = "No models found at: " + System.lineSeparator() + " - " + pathModels;
+			System.out.println("[DEBUG] " + err);
+			IJ.log(err);
 			return list;
 		}
 
@@ -428,7 +450,7 @@ public class DeepImageJ {
 			} else if (file.equals(modelName)) {
 				IJ.log("Zipped Bioimage Model Zoo model at:");
 				IJ.log(modelFolder.getAbsolutePath() + File.separator + file);
-				IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
+				IJ.log("does not coincide with the one specified in the rdf.yaml (incorrect sha256).");
 				IJ.log("\n");
 				params.incorrectSha256 = true;
 				tfName = modelName;
@@ -444,7 +466,7 @@ public class DeepImageJ {
 		} else if (auxPresent) {
 			IJ.log("Zipped Bioimage Model Zoo model at:");
 			IJ.log(modelFolder.getAbsolutePath() + File.separator + auxModelName);
-			IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
+			IJ.log("does not coincide with the one specified in the rdf.yaml (incorrect sha256).");
 			IJ.log("\n");
 			params.incorrectSha256 = true;
 			return true;
@@ -454,7 +476,7 @@ public class DeepImageJ {
 	
 	/*
 	 * Method returns true if a torchscript model is found inside
-	 * of the folder provided and corresponds to the model defined in the model.yaml
+	 * of the folder provided and corresponds to the model defined in the rd.yaml
 	 */
 	public boolean findPytorchModel(File modelFolder) {
 		String modelName = this.params.ptSource;
@@ -480,7 +502,7 @@ public class DeepImageJ {
 				} else if (!this.developer && file.contains(modelName)) {
 					IJ.log("Pytorch model at:");
 					IJ.log(modelFolder.getAbsolutePath() + File.separator + file);
-					IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
+					IJ.log("does not coincide with the one specified in the rdf.yaml (incorrect sha256).");
 					IJ.log("\n");
 					params.incorrectSha256 = true;
 					ptName = modelName;
@@ -498,7 +520,7 @@ public class DeepImageJ {
 			} else if (!this.developer && auxPresent) {
 				IJ.log("Zipped Bioimage Model Zoo model at:");
 				IJ.log(modelFolder.getAbsolutePath() + File.separator + auxModelName);
-				IJ.log("does not coincide with the one specified in the model.yaml (incorrect sha256).");
+				IJ.log("does not coincide with the one specified in the rdf.yaml (incorrect sha256).");
 				IJ.log("\n");
 				params.incorrectSha256 = true;
 				return true;

@@ -367,20 +367,20 @@ public class TestStamp extends AbstractStamp implements ActionListener, MouseLis
 				pnTest.append("p", "Test run was stoped during preprocessing.");
 				IJ.error("Test run was stoped during preprocessing.");
 				// Remove possible hidden images from IJ workspace
-				ArrayOperations.removeProcessedInputsFromMemory(inputsMap, true);
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 				return;
 			} else if (inputsMap == null && preprocess.error.contentEquals("")) {
 			    RunnerProgress.stopRunnerProgress(service, rp);
 				pnTest.append("p", "Error during preprocessing.");
 				pnTest.append("p", "The preprocessing did not return anything.");
 				// Remove possible hidden images from IJ workspace
-				ArrayOperations.removeProcessedInputsFromMemory(inputsMap, true);
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 				return;
 			} else if (!preprocess.error.contentEquals("")) {
 			    RunnerProgress.stopRunnerProgress(service, rp);
 				pnTest.append("p", preprocess.error);
 				// Remove possible hidden images from IJ workspace
-				ArrayOperations.removeProcessedInputsFromMemory(inputsMap, true);
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 				return;
 			}
 			
@@ -410,14 +410,14 @@ public class TestStamp extends AbstractStamp implements ActionListener, MouseLis
 				pnTest.append("p", runnerError);
 				IJ.error("The execution of the model failed.");
 				// Remove possible hidden images from IJ workspace
-				ArrayOperations.removeProcessedInputsFromMemory(inputsMap, true);
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 				return;
 			} else if (rp.isStopped()) {
 			    RunnerProgress.stopRunnerProgress(service, rp);
 				pnTest.append("p", "Model execution of the test run stopped");
 				IJ.error("Model execution of the test run stopped.");
 				// Remove possible hidden images from IJ workspace
-				ArrayOperations.removeProcessedInputsFromMemory(inputsMap, true);
+				ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 				return;
 			}
 			
@@ -440,7 +440,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, MouseLis
 			String[] finalImages = WindowManager.getImageTitles();
 			ArrayOperations.displayMissingOutputs(finalImages, finalFrames, output);
 			// Remove possible hidden images from IJ workspace
-			ArrayOperations.removeProcessedInputsFromMemory(inputsMap, true);
+			ArrayOperations.removeProcessedInputsFromMemory(inputsMap);
 			
 			parent.endsTest();
 			bnTest.setEnabled(true);
@@ -516,12 +516,9 @@ public class TestStamp extends AbstractStamp implements ActionListener, MouseLis
 		int[] min = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
 		int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep); 
 		int[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
-		// Auxiliary variable that is only needed to run the method. Its value will 
-		// not be used
-		int[] dimValue = new int[min.length]; 
 		String[] dim = DijTensor.getWorkingDims(tensorForm);
 
-		String optimalPatch = ArrayOperations.optimalPatch(imp, dimValue, haloVals, dim, step, min, parent.getDeepPlugin().params.allowPatching);
+		String optimalPatch = ArrayOperations.optimalPatch(imp, haloVals, dim, step, min, parent.getDeepPlugin().params.allowPatching);
 		
 		sizeTxt.setText(optimalPatch);
 		int auxFixed = 0;

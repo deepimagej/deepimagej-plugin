@@ -65,7 +65,7 @@ public class BioimageZooRepository {
 
 
 	public String url = "https://bioimage.io/";
-	public String location = "https://raw.githubusercontent.com/bioimage-io/bioimage-io-models/gh-pages/manifest.bioimage.io.json";
+	public String location = "https://raw.githubusercontent.com/deepimagej/models/gh-pages/manifest.bioimage.io.json";
 	public String title = "BioImage Model Zoo";
 	public String name = "BioImage Model Zoo";
 
@@ -118,6 +118,7 @@ public class BioimageZooRepository {
 		if (id.equalsIgnoreCase("n.a."))
 			return null;
 		String root_url = getString(json, "root_url", "n.a");
+		String name = getString(json, "name", "n.a");
 		String desc = getString(json, "description", "n.a");
 		String doc = getString(json, "documentation", "n.a");
 		String source = getString(json, "source", "n.a");
@@ -127,7 +128,7 @@ public class BioimageZooRepository {
 
 		String authors = getCSV(json, "authors");
 
-		Model model = new Model(id, root_url, desc, authors, doc, source, covers, download);
+		Model model = new Model(name, id, root_url, desc, authors, doc, source, covers, download);
 		for (String tag : tags)
 			if (tag.toLowerCase().equals("deepimagej")) {
 				model.deepImageJ = true;
