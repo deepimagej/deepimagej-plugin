@@ -384,7 +384,7 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 					}
 					
 					// TODO mirar en profundidad. Que pasa cuando el mirror no es igual de grande que le patch
-					// Observé que se compensaba erroneamente
+					// Observe que se compensaba erroneamente
 					ImagePlus patch = ArrayOperations.extractPatch(mirrorImage, patchSize, xMirrorStartPatch, yMirrorStartPatch,
 																	zMirrorStartPatch, overlapX, overlapY, overlapZ);
 					if (log.getLevel() >= 1)
