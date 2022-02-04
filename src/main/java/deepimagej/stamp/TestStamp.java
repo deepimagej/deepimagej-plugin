@@ -512,10 +512,10 @@ public class TestStamp extends AbstractStamp implements ActionListener, MouseLis
 		int[] tensorMin = tensor.minimum_size;
 		// Step if the size is not fixed, 0s if it is
 		int[] tensorStep = tensor.step;
-		int[] haloSize = ArrayOperations.findTotalPadding(tensor, parent.getDeepPlugin().params.outputList, parent.getDeepPlugin().params.pyramidalNetwork);
+		float[] haloSize = ArrayOperations.findTotalPadding(tensor, parent.getDeepPlugin().params.outputList, parent.getDeepPlugin().params.pyramidalNetwork);
 		int[] min = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
 		int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep); 
-		int[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
+		float[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
 		String[] dim = DijTensor.getWorkingDims(tensorForm);
 
 		String optimalPatch = ArrayOperations.optimalPatch(imp, haloVals, dim, step, min, parent.getDeepPlugin().params.allowPatching);
@@ -579,7 +579,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, MouseLis
 			String[] outForm = outTensor.form.split("");
 			int[] outShape = outTensor.tensor_shape;
 			int[] halo = outTensor.halo;
-			int[] offset = outTensor.offset;
+			float[] offset = outTensor.offset;
 			float[] scale = outTensor.scale;
 			for ( int i = 0; i < outForm.length; i ++) {
 				// Find which dimension corresponds to the current output dimension
@@ -590,7 +590,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, MouseLis
 				//  Check that the input to the model is not automatically calculated by
 				// the plugin. If it is, we cannot make sure anything.
 				if (params.allowPatching || inpTensor.step[ind] == 0)
-					outSize = ((int) (Math.round(((double)tileSize[ind]) * scale[i])) + 2 * offset[i]);
+					outSize = (int) (Math.round(tileSize[ind] * scale[i]) + 2 * offset[i]);
 				if ((params.allowPatching || inpTensor.step[ind] == 0) && outShape[i] != -1 && outSize != outShape[i]) {
 					// Check that with the given parameters, the input size gives the 
 					// output size specified by the model

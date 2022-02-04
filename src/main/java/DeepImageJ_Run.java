@@ -447,13 +447,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 					int[] tensorMin = dp.params.inputList.get(0).minimum_size;
 					// Step if the size is not fixed, 0s if it is
 					int[] tensorStep = dp.params.inputList.get(0).step;
-					int[] haloSize = ArrayOperations.findTotalPadding(dp.params.inputList.get(0), dp.params.outputList, dp.params.pyramidalNetwork);
+					float[] haloSize = ArrayOperations.findTotalPadding(dp.params.inputList.get(0), dp.params.outputList, dp.params.pyramidalNetwork);
 					// Get the minimum tile size given by the yaml without batch
 					int[] min = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
 					// Get the step given by the yaml without batch
 					int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep);
 					// Get the halo given by the yaml without batch 
-					int[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
+					float[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
 					// Get the axes given by the yaml without batch
 					String[] dim = DijTensor.getWorkingDims(tensorForm);
 					patchString = ArrayOperations.optimalPatch(haloVals, dim, step, min, dp.params.allowPatching);
@@ -547,7 +547,17 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 					int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep); 
 					String[] dims = DijTensor.getWorkingDims(tensorForm);
 	
-					int[] haloSize = ArrayOperations.findTotalPadding(inp, dp.params.outputList, dp.params.pyramidalNetwork);
+					float[] haloSize = ArrayOperations.findTotalPadding(inp, dp.params.outputList, dp.params.pyramidalNetwork);
+					// haloSize is null if any of the offset definitions of the outputs is not a multiple of 0.5
+					if (haloSize == null) {
+						IJ.error("The rdf.yaml of this model contains an error at 'outputs>shape>offset'.\n"
+							   + "The output offsets defined in the rdf.yaml should be multiples of 0.5.\n"
+							   + " If not, the outputs defined will not have a round number of pixels, which\n"
+							   + "is impossible.");
+						// Relaunch the plugin
+						closeAndReopenPlugin(imp);
+						return;
+					}
 					
 					patch = ArrayOperations.getPatchSize(dims, inp.form, patchString, patchEditable);
 					if (patch == null) {
@@ -703,13 +713,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			int[] tensorMin = dp.params.inputList.get(0).minimum_size;
 			// Step if the size is not fixed, 0s if it is
 			int[] tensorStep = dp.params.inputList.get(0).step;
-			int[] haloSize = ArrayOperations.findTotalPadding(dp.params.inputList.get(0), dp.params.outputList, dp.params.pyramidalNetwork);
+			float[] haloSize = ArrayOperations.findTotalPadding(dp.params.inputList.get(0), dp.params.outputList, dp.params.pyramidalNetwork);
 			// Get the minimum tile size given by the yaml without batch
 			int[] min = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
 			// Get the step given by the yaml without batch
 			int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep);
 			// Get the halo given by the yaml without batch 
-			int[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
+			float[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
 			// Get the axes given by the yaml without batch
 			String[] dim = DijTensor.getWorkingDims(tensorForm);
 			String optimalPatch = ArrayOperations.optimalPatch(haloVals, dim, step, min, testSize, dp.params.allowPatching);

@@ -375,7 +375,7 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		DijTensor tensor = params.outputList.get(outputCounter);
 		tensor.scale = new float[tensor.tensor_shape.length];
 		tensor.halo = new int[tensor.tensor_shape.length];
-		tensor.offset = new int[tensor.tensor_shape.length];
+		tensor.offset = new float[tensor.tensor_shape.length];
 		// Set the scale equal to 1 for every dimension
 		for (int i = 0; i < tensor.scale.length; i ++)
 			tensor.scale[i] = 1;
@@ -416,13 +416,13 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 		
 		params.outputList.get(outputCounter).scale = new float[params.outputList.get(outputCounter).tensor_shape.length];
 		params.outputList.get(outputCounter).halo = new int[params.outputList.get(outputCounter).tensor_shape.length];
-		params.outputList.get(outputCounter).offset = new int[params.outputList.get(outputCounter).tensor_shape.length];
+		params.outputList.get(outputCounter).offset = new float[params.outputList.get(outputCounter).tensor_shape.length];
 		int batchInd = DijTensor.getBatchInd(params.outputList.get(outputCounter).form);
 		
 		int textFieldInd = 0;
 		for (int i = 0; i < params.outputList.get(outputCounter).scale.length; i++) {
 			try {
-				float scaleValue =  1; int haloValue = 0; int offsetValue = 0;
+				float scaleValue =  1; int haloValue = 0; float offsetValue = 0;
 				if (i == batchInd) {
 					params.outputList.get(outputCounter).scale[i] = 1;
 					params.outputList.get(outputCounter).halo[i] = 0;
@@ -436,13 +436,16 @@ public class OutputDimensionStamp extends AbstractStamp implements ActionListene
 					params.outputList.get(outputCounter).halo[i] = haloValue;
 					// If the value for offset is "-" because there is no dimension in the reference image,
 					// save it as 0 because offset can be negative
-					offsetValue = Integer.parseInt(thirdRowList.get(textFieldInd).isEditable() ? thirdRowList.get(textFieldInd).getText() : "0");
+					offsetValue = Float.parseFloat(thirdRowList.get(textFieldInd).isEditable() ? thirdRowList.get(textFieldInd).getText() : "0");
 					// TODO if the offset is positive for X and Y dimensions, open an error saying that this is not supported yet
 					// TODO decide how to robustly manage offsets
 					String currentDim = params.outputList.get(outputCounter).form.split("")[i].toLowerCase();
 					if (offsetValue > 0 && !currentDim.toLowerCase().equals("c")) {
 						IJ.error("Positive offset values are not\n"
 								+ "supported yet for dimensions X and Y.");
+						return false;
+					} else if (offsetValue % 0.5 != 0) {
+						IJ.error("The offset should be a multiple of 0.5.");
 						return false;
 					}
 					// Do not allow 0 scaling factors in the XYZ dimensions

@@ -610,7 +610,7 @@ public class Parameters {
 					List<Object> shape = (ArrayList<Object>) objectShape;
 					outTensor.recommended_patch = castListToIntArray(shape);
 					outTensor.scale = new float[shape.size()];
-					outTensor.offset = new int[shape.size()];
+					outTensor.offset = new float[shape.size()];
 					if (pyramidalNetwork)
 						outTensor.sizeOutputPyramid = outTensor.recommended_patch;
 				} else if (objectShape instanceof HashMap<?,?>) {
@@ -625,7 +625,7 @@ public class Parameters {
 					List auxScale = (List) shape.get("scale");
 					outTensor.scale = castListToFloatArray(auxScale);
 					List auxOffset = (List) shape.get("offset");
-					outTensor.offset = castListToIntArray(auxOffset);
+					outTensor.offset = castListToFloatArray(auxOffset);
 				} else {
 					
 				}
