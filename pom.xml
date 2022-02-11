@@ -174,17 +174,17 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 		    <groupId>ai.djl</groupId>
 		    <artifactId>api</artifactId>
-		    <version>0.13.0</version>
+		    <version>0.15.0</version>
 		</dependency>
 		<dependency>
 		    <groupId>ai.djl.pytorch</groupId>
 		    <artifactId>pytorch-native-auto</artifactId>
-		    <version>1.9.0</version>
+		    <version>1.9.1</version>
 		</dependency>
 	    <dependency>
 	        <groupId>ai.djl.pytorch</groupId>
 	        <artifactId>pytorch-engine</artifactId>
-		    <version>0.13.0</version>
+		    <version>0.15.0</version>
 	    </dependency>
 	    <dependency>
 		    <groupId>org.slf4j</groupId>
