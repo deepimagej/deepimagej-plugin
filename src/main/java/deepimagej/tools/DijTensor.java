@@ -69,8 +69,8 @@ public class DijTensor {
 	public int[]		recommended_patch;
 	// Data range
 	public double[]		dataRange = new double[2];
-	// Size of the step between convolutions
-	public int[]		offset;
+	// Size of the step between convolutions.It should be a multiple of 0.5
+	public float[]		offset;
 	public float[] 		scale;
 	// For an image output tensor. Reference that we take to make the output image
 	public String 		referenceImage		= "";
@@ -181,6 +181,22 @@ public class DijTensor {
 			}
 		}
 		return wantedTensor;
+	}
+	
+	public static float[] getWorkingDimValues(String form, float[] values) {
+		String[] splitForm = form.split("");
+		int batchInd = Index.indexOf(splitForm, "B");
+		if (batchInd != -1) {
+			int c = 0;
+			float[] newValues = new float[values.length - 1];
+			for (int i = 0; i < values.length; i ++) {
+				if (batchInd != i) {
+					newValues[c++] = values[i];
+				}
+			}
+			values = newValues;
+		}
+		return values;
 	}
 	
 	public static int[] getWorkingDimValues(String form, int[] values) {

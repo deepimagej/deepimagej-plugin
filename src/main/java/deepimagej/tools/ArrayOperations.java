@@ -349,7 +349,7 @@ public class ArrayOperations {
 	 * Regard that it might be too memory consuming for some 
 	 * computers/images.
 	 */
-	public static String optimalPatch(int[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, boolean allowPatch) {
+	public static String optimalPatch(float[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, boolean allowPatch) {
 
 		ImagePlus imp = WindowManager.getCurrentImage();
 		return optimalPatch(imp, haloArr, dimCharArr, stepArr, minArr, null, allowPatch);
@@ -364,7 +364,7 @@ public class ArrayOperations {
 	 * Regard that it might be too memory consuming for some 
 	 * computers/images.
 	 */
-	public static String optimalPatch(ImagePlus imp, int[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, boolean allowPatch) {
+	public static String optimalPatch(ImagePlus imp, float[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, boolean allowPatch) {
 
 		return optimalPatch(imp, haloArr, dimCharArr, stepArr, minArr, null, allowPatch);
 			
@@ -378,7 +378,7 @@ public class ArrayOperations {
 	 * Regard that it might be too memory consuming for some 
 	 * computers/images.
 	 */
-	public static String optimalPatch(int[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, String testSize, boolean allowPatch) {
+	public static String optimalPatch(float[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, String testSize, boolean allowPatch) {
 
 		ImagePlus imp = WindowManager.getCurrentImage();
 		return optimalPatch(imp, haloArr, dimCharArr, stepArr, minArr, testSize, allowPatch);
@@ -393,12 +393,12 @@ public class ArrayOperations {
 	 * Regard that it might be too memory consuming for some 
 	 * computers/images.
 	 */
-	public static String optimalPatch(ImagePlus imp, int[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, String testSize, boolean allowPatch) {
+	public static String optimalPatch(ImagePlus imp, float[] haloArr, String[] dimCharArr, int[] stepArr, int[] minArr, String testSize, boolean allowPatch) {
 			
 		String patch = "";
 		for (int ii = 0; ii < haloArr.length; ii ++) {
 			String dimChar = dimCharArr[ii];
-			int halo = haloArr[ii];
+			float halo = haloArr[ii];
 			int min = minArr[ii];
 			int step = stepArr[ii];
 			// If there is no image, return the test tile size specified in the yaml if there is any
@@ -481,12 +481,12 @@ public class ArrayOperations {
 		return tileString;
 	}
 	
-	public static int[] findTotalPadding(DijTensor input, List<DijTensor> outputs, boolean pyramidal) {
+	public static float[] findTotalPadding(DijTensor input, List<DijTensor> outputs, boolean pyramidal) {
 		// Create an object of int[] that contains the output dimensions
 		// of each patch.
 		// This dimensions are always in the form of the input
 		String[] targetForm = input.form.split("");
-		int[] padding = new int[targetForm.length];
+		float[] padding = new float[targetForm.length];
 		if (!pyramidal) {
 			for (DijTensor out: outputs) {
 				if (out.tensorType.contains("image") && !Arrays.equals(out.scale, new float[out.scale.length])) {
@@ -495,6 +495,9 @@ public class ArrayOperations {
 						if (ind != -1 && !targetForm[i].toLowerCase().equals("b")  && !targetForm[i].toLowerCase().equals("c") && (out.offset[ind] + out.halo[ind]) > padding[i])  {
 							padding[i] = -1 * out.offset[ind] + out.halo[ind];
 						}
+						// Only allow offsets that can be divided by 0.5
+						if (out.offset[ind] % 0.5 != 0)
+							return null;
 					}
 				}
 			}

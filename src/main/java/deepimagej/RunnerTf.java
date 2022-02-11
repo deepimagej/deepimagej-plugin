@@ -511,7 +511,7 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 						IJ.log("Error applying the model");
 						return null;
 					}
-					int[][] allOffsets = findOutputOffset(params.outputList);
+					float[][] allOffsets = findOutputOffset(params.outputList);
 					int imCounter = 0;
 					for (int counter = 0; counter < params.outputList.size(); counter++) {
 						if (params.outputList.get(counter).tensorType.contains("image") && !params.pyramidalNetwork && params.allowPatching) {
@@ -525,8 +525,8 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 							float scaleX = outSize[0] / nx; float scaleY = outSize[1] / ny; float scaleZ = outSize[3] / nz;
 							ArrayOperations.imagePlusReconstructor(outputImages[imCounter], impatch[imCounter], (int) (xImageStartPatch * scaleX),
 									(int) (xImageEndPatch * scaleX), (int) (yImageStartPatch * scaleY), (int) (yImageEndPatch * scaleY),
-									(int) (zImageStartPatch * scaleZ), (int) (zImageEndPatch * scaleZ),(int)(leftoverPixelsX * scaleX) + allOffsets[imCounter][0],
-									(int)(leftoverPixelsY * scaleY) + allOffsets[imCounter][1], (int)(leftoverPixelsZ * scaleZ) + allOffsets[imCounter][3]);
+									(int) (zImageStartPatch * scaleZ), (int) (zImageEndPatch * scaleZ),(int)(leftoverPixelsX * scaleX + Math.ceil(allOffsets[imCounter][0])),
+									(int)(leftoverPixelsY * scaleY + Math.ceil(allOffsets[imCounter][1])), (int)(leftoverPixelsZ * scaleZ + Math.ceil(allOffsets[imCounter][3])));
 							if (outputImages[imCounter] != null)
 								outputImages[imCounter].getProcessor().resetMinAndMax();
 							if (rp != null && rp.isStopped()) {
@@ -565,7 +565,7 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 							String[] ijForm = "XYCZB".split("");
 							String dijForm = params.outputList.get(counter).form;
 							float[] scale = params.outputList.get(counter).scale;
-							int[] offset = params.outputList.get(counter).offset;
+							float[] offset = params.outputList.get(counter).offset;
 							// TODO adapt for more inputs
 							// We take the mirrored image as the reference, because that is what ends
 							// up going into the model
@@ -736,11 +736,11 @@ public class RunnerTf implements Callable<HashMap<String, Object>> {
 	}
 	
 	// TODO clean up method (line 559) Make it stable for pyramidal
-	public static int[][] findOutputOffset(List<DijTensor> outputs) {
+	public static float[][] findOutputOffset(List<DijTensor> outputs) {
 		// Create an object of int[] that contains the output dimensions
 		// of each patch.
 		// This dimensions are always of the form [x, y, c, d]
-		int[][] offsets = new int[outputs.size()][4];
+		float[][] offsets = new float[outputs.size()][4];
 		String[] form = "XYCZ".split("");
 		int c1 = 0;
 		for (DijTensor out: outputs) {
