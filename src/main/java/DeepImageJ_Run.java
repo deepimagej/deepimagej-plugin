@@ -144,14 +144,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	static public void main(String args[]) {
 		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
 		path = "C:\\Users\\Carlos(tfg)\\Pictures\\Fiji.app\\models" + File.separator;
-		path = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models" + File.separator;
+		path = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\Usiigaci_2.1.4\\usiigaci.tif");
-		ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\sample_input.tif");
+		ImagePlus imp = null;//IJ.openImage("C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models\\model\\sample_input_0.tif");
 		//ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
-		imp.show();
-		WindowManager.setTempCurrentImage(imp);
 		if (imp != null)
-			imp.show();
+			imp.show();		WindowManager.setTempCurrentImage(imp);
 		new DeepImageJ_Run().run("");
 	}
 
@@ -1335,13 +1333,32 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		if (dp.params.sampleInputs != null && dp.params.sampleInputs.length != 0)
 			imageName2 = dp.getPath() + dp.params.sampleInputs[0];
 		ImagePlus imp = null;
+		// Do not try to read npy files
+		boolean notNpy = !(imageName.endsWith(".npy") || imageName.endsWith(".npx") || imageName.endsWith(".np"));
+		// Flag to know whether there is a test image already open or not
+		boolean openTest = false;
 		// Try opening the test image. First try one and if does not open, try the other
-		if (new File(imageName).isFile()) {
+		if (new File(imageName).isFile() && notNpy) {
+			try {
 			imp = IJ.openImage(imageName);
 			imp.show();
-		} else if (!(new File(imageName).isFile()) && imageName2 != null && new File(imageName2).isFile()) {
-			imp = IJ.openImage(imageName2);
-			imp.show();
+			openTest = true;
+			} catch (Exception ex) {
+				// Do nothing
+			}
+		}
+		notNpy = !(imageName2.endsWith(".npy") || imageName2.endsWith(".npx") || imageName2.endsWith(".np"));
+		if (!openTest && notNpy && imageName2 != null && new File(imageName2).isFile()) {
+			try{
+				imp = IJ.openImage(imageName2);
+				imp.show();
+			} catch (Exception ex){
+				// Do nothing
+			}
+		}
+		if (imp == null) {
+			IJ.error("No test image found defined in the yaml file.");
+			return;
 		}
 		// Simulate clicking on the button "ok" of the GUI to run the model
 		Button okay = dlg.getButtons()[0];
