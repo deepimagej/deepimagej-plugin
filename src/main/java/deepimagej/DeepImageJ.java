@@ -79,6 +79,7 @@ public class DeepImageJ {
 	private SavedModelBundle		tfModel			= null;
 	private ZooModel<NDList, NDList>torchModel		= null;
 	public String ptName = "pytorch_script.pt";
+	public String ptName2 = "weights-torchscript.pt";
 	public String tfName = "tensorflow_saved_model_bundle.zip";
 	
 	public DeepImageJ(String pathModel, String dirname, boolean dev) {
@@ -324,7 +325,7 @@ public class DeepImageJ {
 		info.append("Runtime: " + params.runtime + "\n");
 		String modelSize = "-1";
 		
-		String ptModelName = "pytorch_script.pt";
+		String ptModelName = "weights-torchscript.pt";
 		String tfModelName = "tensorflow_saved_model_bundle.zip";
 		if (params.framework.toLowerCase().contains("pytorch")) {
 			String modelName = findNameFromSourceParam(this.params.ptSource, "pytorch");
@@ -378,7 +379,7 @@ public class DeepImageJ {
 		String modelName = sourceName;
 		//If the yaml does not specify a source model, set to default
 		if (modelName == null && framework.toLowerCase().contentEquals("pytorch")) {
-			modelName = "pytorch_script.pt";
+			modelName = "weights-torchscript.pt";
 		} else if (modelName == null && framework.toLowerCase().contentEquals("tensorflow")) {
 			modelName = "tensorflow_saved_model_bundle.zip";
 		} else if (modelName.indexOf("/") != -1 && modelName.indexOf("/") < 2) {
@@ -482,11 +483,12 @@ public class DeepImageJ {
 		String modelName = this.params.ptSource;
 		//If the yaml does not specify a source model, set to default
 		if (modelName == null) {
-			modelName = "pytorch_script.pt";
+			modelName = "weights-torchscript.pt";
 		} else if (modelName.indexOf("/") != -1 && modelName.indexOf("/") < 2) {
 			modelName = modelName.substring(modelName.indexOf("/") + 1);
 		}
 		String auxModelName = "pytorch_script.pt";
+		String auxModelName2 = "weights-torchscript.pt";
 		boolean auxPresent = false;
 		try {
 			for (String file : modelFolder.list()) {
@@ -507,7 +509,7 @@ public class DeepImageJ {
 					params.incorrectSha256 = true;
 					ptName = modelName;
 					return true;
-				} else if (!this.developer && file.contains(auxModelName)) {
+				} else if (!this.developer && (file.contains(auxModelName) || file.contains(auxModelName2))) {
 					auxPresent = true;
 				}
 			}
