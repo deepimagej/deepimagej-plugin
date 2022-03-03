@@ -215,7 +215,7 @@ public class Parameters {
 	public String		name					= "n.a.";
 	public List<HashMap<String, String>>	author					= new ArrayList<HashMap<String, String>>();
 	public String		timestamp				= "";
-	public String		format_version			= "0.4.0";
+	public String		format_version			= "0.4.3";
 	/*
 	 * Citation: contains the reference articles and the corresponding dois used
 	 * to create the model
@@ -427,8 +427,10 @@ public class Parameters {
 							tfAttachmentsNotIncluded.add(str);
 					}
 				}
-			} else if (format.equals("pytorch_script")) {
+			} else if (format.equals("pytorch_script") || format.equals("torchscript")) {
 				HashMap<String, Object> ptMap = ((HashMap<String, Object>) weights.get("pytorch_script"));
+				if (ptMap == null)
+					ptMap = ((HashMap<String, Object>) weights.get("torchscript"));
 				// Look for the name of the model. The model can be called differently sometimes
 				ptSource = (String) ptMap.get("source");
 				pt = true;
@@ -457,14 +459,26 @@ public class Parameters {
 		
 		if (tf && pt) {
 			framework = "tensorflow/pytorch";
-			ptSha256 = (String) "" + ((LinkedHashMap<String, Object>) weights.get("pytorch_script")).get("sha256");
+			// Keep backwards compatibility with previous yaml versions that used other tags
+			Object aux =  ((LinkedHashMap<String, Object>) weights.get("pytorch_script"));
+			if (aux != null)
+				aux =  ((LinkedHashMap<String, Object>) weights.get("pytorch_script")).get("sha256");
+			else
+				aux =  ((LinkedHashMap<String, Object>) weights.get("torchscript")).get("sha256");
+			ptSha256 = "" + (String) aux;
 			tfSha256 = (String) "" + ((LinkedHashMap<String, Object>) weights.get("tensorflow_saved_model_bundle")).get("sha256");
 		} else if (tf) {
 			framework = "tensorflow";
 			tfSha256 = (String) "" + ((LinkedHashMap<String, Object>) weights.get("tensorflow_saved_model_bundle")).get("sha256");
 		} else if (pt) {
 			framework = "pytorch";
-			ptSha256 = (String) "" + ((LinkedHashMap<String, Object>) weights.get("pytorch_script")).get("sha256");
+			// Keep backwards compatibility with previous yaml versions that used other tags
+			Object aux =  ((LinkedHashMap<String, Object>) weights.get("pytorch_script"));
+			if (aux != null)
+				aux =  ((LinkedHashMap<String, Object>) weights.get("pytorch_script")).get("sha256");
+			else
+				aux =  ((LinkedHashMap<String, Object>) weights.get("torchscript")).get("sha256");
+			ptSha256 = "" + (String) aux;
 		} else if (!tf && !pt) {
 			completeConfig = false;
 			return;
@@ -791,7 +805,7 @@ public class Parameters {
 		keywords.put("deepimagej", new String[] {"pyramidal_model", "allow_tiling", "prediction"});
 		keywords.put("weightFormat", new String[] {"source", "sha256", "test_inputs",
 				"test_outputs", "sample_inputs", "sample_outputs"});
-		keywords.put("weights", new String[] {"pytorch_script", "tensorflow_saved_model_bundle"});
+		keywords.put("weights", new String[] {"pytorch_script", "tensorflow_saved_model_bundle", "torchscript"});
 		keywords.put("config", new String[] {"deepimagej"});
 		Set<String> yamlFields = null;
 		HashMap<String, Object> dict = null;

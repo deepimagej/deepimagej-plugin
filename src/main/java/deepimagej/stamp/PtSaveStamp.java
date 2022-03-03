@@ -195,7 +195,7 @@ public class PtSaveStamp extends AbstractStamp implements ActionListener, Runnab
 		// Save the model architecture
 		try {
 			File torchfile = new File(params.selectedModelPath);
-			FileTools.copyFile(torchfile, new File(dir + File.separator + "pytorch_script" + ".pt"));
+			FileTools.copyFile(torchfile, new File(dir + File.separator + "weights-torchscript" + ".pt"));
 			pane.append("p", "Torchscript model (.pt or .pth): saved");
 		} catch (IOException e) {
 			e.printStackTrace();
