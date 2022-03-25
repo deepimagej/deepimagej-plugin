@@ -434,7 +434,6 @@ public class Parameters {
 				// Look for the name of the model. The model can be called differently sometimes
 				ptSource = (String) ptMap.get("source");
 				pt = true;
-				
 				// Retrieve the Pytorch attachments
 				ArrayList<String> attachmentsAux = null;
 				if (ptMap.get("attachments") instanceof HashMap<?, ?>) {
@@ -487,13 +486,37 @@ public class Parameters {
 		// Model metadata
 		Map<String, Object> config = (Map<String, Object>) obj.get("config");
 		Map<String, Object> deepimagej = (Map<String, Object>) config.get("deepimagej");
-		pyramidalNetwork = (boolean) deepimagej.get("pyramidal_model");
-		allowPatching = (boolean) deepimagej.get("allow_tiling");
-		// Model keys
-		if (deepimagej.keySet().contains("model_keys") && deepimagej.get("model_keys") != null) {
-			Map<String, Object> model_keys = (Map<String, Object>) deepimagej.get("model_keys");
-			tag = (String) "" + model_keys.get("tensorflow_model_tag");
-			graph = (String) "" + model_keys.get("tensorflow_siganture_def");
+		List<LinkedHashMap<String, Object>> input_information = null;
+		List<LinkedHashMap<String, Object>> output_information = null;
+		if (deepimagej != null) {
+			pyramidalNetwork = (boolean) deepimagej.get("pyramidal_model");
+			allowPatching = (boolean) deepimagej.get("allow_tiling");
+			// Model keys
+			if (deepimagej.keySet().contains("model_keys") && deepimagej.get("model_keys") != null) {
+				Map<String, Object> model_keys = (Map<String, Object>) deepimagej.get("model_keys");
+				tag = (String) "" + model_keys.get("tensorflow_model_tag");
+				graph = (String) "" + model_keys.get("tensorflow_siganture_def");
+			}
+			Map<String, Object> test_information = (Map<String, Object>) deepimagej.get("test_information");
+
+			input_information = new ArrayList <LinkedHashMap<String, Object>>();
+			if (test_information.get("inputs") instanceof LinkedHashMap) {
+				LinkedHashMap<String, Object> aux = (LinkedHashMap<String, Object>) test_information.get("inputs");
+				input_information.add(aux);
+			} else if (test_information.get("inputs") instanceof List){
+				input_information = (List<LinkedHashMap<String, Object>>) test_information.get("inputs");
+			}
+			// Output test information
+			output_information = new ArrayList <LinkedHashMap<String, Object>>();
+			if (test_information.get("outputs") instanceof LinkedHashMap) {
+				LinkedHashMap<String, Object> aux = (LinkedHashMap<String, Object>) test_information.get("outputs");
+				output_information.add(aux);
+			} else if (test_information.get("outputs") instanceof List){
+				output_information = (List<LinkedHashMap<String, Object>>) test_information.get("outputs");
+			}
+			// Info about runtime and memory
+			memoryPeak = (String) test_information.get("memory_peak") + "";
+			runtime = (String) "" + test_information.get("runtime");
 		}		
 		
 		
@@ -507,15 +530,6 @@ public class Parameters {
 		}
 		inputList = new ArrayList<DijTensor>();
 		
-		Map<String, Object> test_information = (Map<String, Object>) deepimagej.get("test_information");
-
-		List<LinkedHashMap<String, Object>> input_information = new ArrayList <LinkedHashMap<String, Object>>();
-		if (test_information.get("inputs") instanceof LinkedHashMap) {
-			LinkedHashMap<String, Object> aux = (LinkedHashMap<String, Object>) test_information.get("inputs");
-			input_information.add(aux);
-		} else if (test_information.get("inputs") instanceof List){
-			input_information = (List<LinkedHashMap<String, Object>>) test_information.get("inputs");
-		}
 		
 		int tensorCounter = 0;
 		try {
@@ -527,7 +541,6 @@ public class Parameters {
 				inpTensor.tensorType = "image";
 				//TODO List<Object> auxDataRange = (ArrayList<Object>) inp.get("data_range");
 				//TODO inpTensor.dataRange = castListToDoubleArray(auxDataRange);
-				
 				// Find by trial and error if the shape of the input is fixed or not
 				Object objectShape = inp.get("shape");
 				if (objectShape instanceof List<?>) {
@@ -563,21 +576,23 @@ public class Parameters {
 				}
 				
 				// Now find the test information of this tensor
-				LinkedHashMap<String, Object> info = input_information.get(tensorCounter ++);
-				try {
-					inpTensor.exampleInput = (String) "" + info.get("name");
-					inpTensor.inputTestSize =  (String) "" + info.get("size");
-					Map<String, Object>  pixel_size =  (Map<String, Object>) info.get("pixel_size");
-					inpTensor.inputPixelSizeX = (String) "" + pixel_size.get("x");
-					inpTensor.inputPixelSizeY = (String) "" + pixel_size.get("y");
-					inpTensor.inputPixelSizeZ = (String) "" + pixel_size.get("z");
-				} catch (Exception ex) {
-					inpTensor.exampleInput = (String) "";
-					inpTensor.inputTestSize =  (String) "";
-					Map<String, Object>  pixel_size =  (Map<String, Object>) info.get("pixel_size");
-					inpTensor.inputPixelSizeX = (String) "";
-					inpTensor.inputPixelSizeY = (String) "";
-					inpTensor.inputPixelSizeZ = (String) "";
+				if (input_information != null) {
+					LinkedHashMap<String, Object> info = input_information.get(tensorCounter ++);
+					try {
+						inpTensor.exampleInput = (String) "" + info.get("name");
+						inpTensor.inputTestSize =  (String) "" + info.get("size");
+						Map<String, Object>  pixel_size =  (Map<String, Object>) info.get("pixel_size");
+						inpTensor.inputPixelSizeX = (String) "" + pixel_size.get("x");
+						inpTensor.inputPixelSizeY = (String) "" + pixel_size.get("y");
+						inpTensor.inputPixelSizeZ = (String) "" + pixel_size.get("z");
+					} catch (Exception ex) {
+						inpTensor.exampleInput = (String) "";
+						inpTensor.inputTestSize =  (String) "";
+						Map<String, Object>  pixel_size =  (Map<String, Object>) info.get("pixel_size");
+						inpTensor.inputPixelSizeX = (String) "";
+						inpTensor.inputPixelSizeY = (String) "";
+						inpTensor.inputPixelSizeZ = (String) "";
+					}
 				}
 				
 				inputList.add(inpTensor);
@@ -660,35 +675,27 @@ public class Parameters {
 			completeConfig = false;
 			return;
 		}
-		// Output test information
-		List<LinkedHashMap<String, Object>> output_information = new ArrayList <LinkedHashMap<String, Object>>();
-		if (test_information.get("outputs") instanceof LinkedHashMap) {
-			LinkedHashMap<String, Object> aux = (LinkedHashMap<String, Object>) test_information.get("outputs");
-			output_information.add(aux);
-		} else if (test_information.get("outputs") instanceof List){
-			output_information = (List<LinkedHashMap<String, Object>>) test_information.get("outputs");
-		}
 		
 		savedOutputs = new ArrayList<HashMap<String, String>>();
-		for (LinkedHashMap<String, Object> out : output_information) {
-			HashMap<String, String> info = new LinkedHashMap<String, String>();
-			String outName =  (String) "" + out.get("name");
-			info.put("name", outName);
-			String size =  (String) "" + out.get("size");
-			info.put("size", size);
-			String type = (String) "" + out.get("type");
-			info.put("type", type);
-
-			savedOutputs.add(info);
+		if (output_information != null) {
+			for (LinkedHashMap<String, Object> out : output_information) {
+				HashMap<String, String> info = new LinkedHashMap<String, String>();
+				String outName =  (String) "" + out.get("name");
+				info.put("name", outName);
+				String size =  (String) "" + out.get("size");
+				info.put("size", size);
+				String type = (String) "" + out.get("type");
+				info.put("type", type);
+	
+				savedOutputs.add(info);
+			}
 		}
-		
-		// Info about runtime and memory
-		memoryPeak = (String) test_information.get("memory_peak") + "";
-		runtime = (String) "" + test_information.get("runtime");
 
 		
 		// Get all the preprocessings available in the Yaml
-		Map<String, Object> prediction = (Map<String, Object>) deepimagej.get("prediction");
+		Map<String, Object> prediction = null;
+		if (deepimagej != null)
+			prediction = (Map<String, Object>) deepimagej.get("prediction");
 		if (prediction == null)
 			prediction = new HashMap<String, Object>();
 		pre = new HashMap<String, String[]>();

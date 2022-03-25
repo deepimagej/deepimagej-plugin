@@ -100,7 +100,7 @@ public class DeepImageJ {
 				this.valid = check(p);
 			} catch (Exception ex) {
 				IJ.log("Unable to read the rdf.yaml specifications file in following fodler.\n"
-					+ "Please review that the compulsory fields are not missing."
+					+ "Please review that the compulsory fields are not missing.\n"
 					+ " -" + path);
 			}
 		}
