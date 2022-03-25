@@ -592,6 +592,8 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 		for (DijTensor tensor : params.outputList) {
 			if (tensor.tensorType.contains("image")) {
 				ImagePlus im = outputImages[imageCount];
+				im.setPosition(1, 1, 1);
+				im.getProcessor().resetMinAndMax();
 				// Add the image to the output map
 				outputMap.put(tensor.name, im);
 			} else if (tensor.tensorType.contains("list")) {

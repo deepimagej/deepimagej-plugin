@@ -194,14 +194,14 @@ public class YAMLUtils {
 		
 		// TODO allow uploading models to github, zenodo or drive
 		if (params.framework.equals("pytorch")) {
-			format_info.put("source", "./pytorch_script.pt");
+			format_info.put("source", "./weights-torchscript.pt");
 		} else if (params.framework.equals("tensorflow")) {
 			format_info.put("source", "./tensorflow_saved_model_bundle.zip");
 		}
 		// For Tensorflow, if upload to biozoo is selected, calculate checksum
 		// For Pytorch, always calculate checksum
 		if (params.framework.equals("pytorch")) {
-			format_info.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + "pytorch_script.pt"));
+			format_info.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + "weights-torchscript.pt"));
 		} else if (params.framework.equals("tensorflow") && params.biozoo) {
 			format_info.put("sha256", FileTools.createSHA256(params.saveDir + File.separator + "tensorflow_saved_model_bundle.zip"));
 		} else if (params.framework.equals("tensorflow") && !params.biozoo) {
@@ -222,7 +222,7 @@ public class YAMLUtils {
 		format_info.put("attachments", modelAtachments);
 		
 		if (params.framework.equals("pytorch")) {
-			weights.put("pytorch_script", format_info);
+			weights.put("torchscript", format_info);
 		} else {
 			weights.put("tensorflow_saved_model_bundle", format_info);
 		}
