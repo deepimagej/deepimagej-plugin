@@ -1033,6 +1033,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			for (String jj : remainingImages)
 				System.out.println(" - " + jj);
 			
+			String finalMsg = "Execution of model '" + dp.params.name + "' completed.";
+			System.out.println("[DEBUG] " + finalMsg);
+			if (log.getLevel() == 2) {
+				log.print(finalMsg);
+			}
 			
 		} catch (IllegalStateException ex) {
 			IJ.error("Error during the aplication of the model.\n"
