@@ -740,6 +740,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			// Set the model optimal tile dimensions for the open image. If there
 			// is no open image, the testing tile size will be displayed
 			setTileSize(dp, step, optimalPatch);
+			info.setCaretPosition(0);
 			// Enable testing when a correct model is selected
 			testBtn.setEnabled(true);
 			// If the model is in testMOdeOnly, block the 'OK' button. This button allows running models in open images
@@ -1032,6 +1033,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			for (String jj : remainingImages)
 				System.out.println(" - " + jj);
 			
+			String finalMsg = "Execution of model '" + dp.params.name + "' completed.";
+			System.out.println("[DEBUG] " + finalMsg);
+			if (log.getLevel() == 2) {
+				log.print(finalMsg);
+			}
 			
 		} catch (IllegalStateException ex) {
 			IJ.error("Error during the aplication of the model.\n"

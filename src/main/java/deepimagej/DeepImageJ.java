@@ -94,9 +94,15 @@ public class DeepImageJ {
 			this.params = new Parameters(valid, path, dev);
 			this.valid = check(p);
 		} else if (dev || new File(path, "model.yaml").isFile() || new File(path, "rdf.yaml").isFile()) {
-			this.params = new Parameters(valid, path, dev);
-			this.params.path2Model = this.path;
-			this.valid = check(p);
+			try {
+				this.params = new Parameters(valid, path, dev);
+				this.params.path2Model = this.path;
+				this.valid = check(p);
+			} catch (Exception ex) {
+				IJ.log("Unable to read the rdf.yaml specifications file in following fodler.\n"
+					+ "Please review that the compulsory fields are not missing.\n"
+					+ " -" + path);
+			}
 		}
 		if (this.valid && dev && this.params.framework.equals("tensorflow/pytorch")) {
 			askFrameworkGUI();
