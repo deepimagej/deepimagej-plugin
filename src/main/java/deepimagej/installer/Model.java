@@ -149,7 +149,7 @@ public class Model {
 
 	public String getCoverHTML() {
 		if (covers.size() >= 1)
-			return "<img src=\"" + rdf_source + "/" + covers.get(0) +"\" >";
+			return "<img src=\"" + covers.get(0) +"\" >";
 		else
 			return "no cover";
 	}
