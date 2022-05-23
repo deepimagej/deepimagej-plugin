@@ -78,6 +78,7 @@ import javax.swing.JTextField;
 
 import deepimagej.components.HTMLPane;
 import deepimagej.components.TitleHTMLPane;
+import deepimagej.installer.Author;
 import deepimagej.installer.BioimageZooRepository;
 import deepimagej.installer.Model;
 import deepimagej.tools.FileTools;
@@ -118,14 +119,14 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	public InstallerDialog(BioimageZooRepository zoo) {
 		super(new JFrame(), "DeepImageJ Model Installer");
 
-		
+		zoo.listAllModels();
 		this.zoo = zoo;
 		Font font = cmb.getFont();
 		cmb.setFont(new Font(font.getFamily(), Font.BOLD, font.getSize()+2));
 		cmb.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 5));
 		cmb.addItem("<html>&laquo Select a compatible model &raquo</html>");
 		for(String name : zoo.models.keySet()) {
-			cmb.addItem(zoo.models.get(name).getFacename());
+			cmb.addItem(zoo.models.get(name).name);
 		}
 
 		pack();
@@ -238,10 +239,11 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 				Model model = zoo.models.get(name);
 				if (model != null) {
 					info.append("h1", model.name);
-					info.append("i", model.authors);
+					for (Author aa : model.authors)
+						info.append("i", aa.getName());
 					info.appendLink(model.doc, "Read documentation");
 					info.append("p", model.getCoverHTML());
-					info.append("p", "small", model.desc);
+					info.append("p", "small", model.description);
 					chk.setEnabled(model.deepImageJ);	
 				}
 			}
@@ -379,6 +381,10 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			model = zoo.models.get(name);
 			if (model != null) {
 				downloadURL = model.downloadUrl;
+				if (downloadURL == null) {
+					IJ.error("No download url specified in the rdf.yaml file.\n"
+							+ "Cannot download the model");
+				}
 				int nameStart = model.downloadUrl.lastIndexOf("/") + 1;
 				fileName = model.downloadUrl.substring(nameStart);
 				// Add timestamp to the model name. 

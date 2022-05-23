@@ -44,64 +44,129 @@
 
 package deepimagej.installer;
 
-import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.yaml.snakeyaml.Yaml;
 
 public class Model {
 
 	public String id;
 	public String name;
-	public String desc;
+	public String description;
 	public String doc;
-	public String source;
-	public String root_url;
 	public String downloadUrl;
-	public ArrayList<String> covers;
-	public String authors;
-	public boolean deepImageJ;
+	public List<String> covers;
+	public List<Author> authors;
+	public boolean deepImageJ = true;
+	public Map<String, Object> allModelInfo;
+	public String rdf_source;
 	
-	public Model(String name, String id, String root_url, String desc, String authors, String doc, String source,
-				ArrayList<String> covers, String downloadUrl) {
-		this.name = name;
-		this.id = id;
-		this.root_url = root_url;
-		this.downloadUrl = downloadUrl;
-		this.desc = desc;
-		this.authors = authors;
-		this.doc = doc;
-		this.source = source;
-		this.covers = covers;
+	private Model(Map<String, Object> map) throws Exception {
+		allModelInfo = map;
+		setName();
+		setAuthors();
+		setCovers();
+		setDescription();
+		setDownloadUrl();
+		setId();
+		setRdfSource();
 
 	}
 	
-	public String getFacename() {
-		return name;
+	private void setName() {
+		if (allModelInfo.get("name") instanceof String)
+			name = (String) allModelInfo.get("name");
+		else
+			throw new IllegalArgumentException("Rdf.yaml does not contain the compulsory field 'name'.");
+	}
+	
+	private void setId() {
+		if (allModelInfo.get("id") instanceof String)
+			id = (String) allModelInfo.get("id");
+		else
+			id = "unknown";
+	}
+	
+	// TODO implement a downloader that gets all the links
+	private void setDownloadUrl() throws Exception {
+		if (allModelInfo.get("download_url") instanceof String)
+			downloadUrl = (String) allModelInfo.get("download_url");
+		else
+			throw new Exception();
+	}
+	
+	private void setDescription() {
+		if (allModelInfo.get("description") instanceof String)
+			description = (String) allModelInfo.get("description");
+		else
+			description = "";
+	}
+	
+	private void setCovers() {
+		covers = new ArrayList<String>();
+		if (allModelInfo.get("covers") instanceof String) {
+			covers.add((String) allModelInfo.get("covers"));
+		} else if (allModelInfo.get("covers") instanceof List<?>) {
+			covers = (List<String>) allModelInfo.get("covers");
+		}
+	}
+	
+	private void setAuthors() {
+		authors = new ArrayList<Author>();
+		if (!(allModelInfo.get("authors") instanceof List<?>))
+			return;
+		List<Object> authElements = (List<Object>) allModelInfo.get("authors");
+        for (Object elem : authElements)
+        {
+            if (!(elem instanceof Map<?, ?>))
+            	continue;
+            @SuppressWarnings("unchecked")
+            Map<String, String> dict = (Map<String, String>) elem;
+            authors.add(Author.build(dict));
+        }
+	}
+	
+	public static Model build(String yamlString) {
+		Map<String, Object> map = loadFromString(yamlString);
+		Model mm = null;
+		try {
+			mm = new Model(map);
+		} catch (Exception ex) {
+		}
+		return mm;
+	}
+	
+	private void setRdfSource() {
+		if (allModelInfo.get("rdf_source") instanceof String)
+			rdf_source = (String) allModelInfo.get("rdf_source");
+		else
+			rdf_source = null;
 	}
 	
 
 	public String getCoverHTML() {
 		if (covers.size() >= 1)
-			return "<img src=\"" + root_url + "/" + covers.get(0) +"\" >";
+			return "<img src=\"" + rdf_source + "/" + covers.get(0) +"\" >";
 		else
 			return "no cover";
 	}
 
-	/*
-	public void setCover(String cover) {
-		try {
-			URL url = new URL(root_url);
-			File file = new File(url.getPath( ));
-			String parentPath = file.getParent( );
-			URL parentUrl = new URL( url.getProtocol( ), url.getHost( ), url.getPort( ), parentPath );
-			image = parentUrl.toString() ;
-			
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		}
-	}
-	*/
+    /**
+     * Reads the provided yaml String and loads it into a map of string keys and object values.
+     * 
+     * @param yamlString
+     *        The String yaml file.
+     * @return The map loaded with the yaml elements.
+     */
+    public static Map<String, Object> loadFromString(String yamlString)
+    {
+    	Yaml yaml = new Yaml();
+    	HashMap<String,Object> yamlElements = yaml.load(yamlString);
+        return yamlElements;
+    }
 	
 	
 }
