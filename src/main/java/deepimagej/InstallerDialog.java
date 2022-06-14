@@ -61,7 +61,9 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
@@ -116,7 +118,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	boolean stopped = true;
 	
 	// URL used to download the model
-	private String downloadURL;
+	private List<String> downloadURLs;
 	
 	
 	public InstallerDialog(BioimageZooRepository zoo) {
@@ -279,6 +281,25 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	/*
 	 * Get file size of the online model
 	 */
+	public long getFileSize() {
+		long totSize = 0;
+		HttpURLConnection conn = null;
+		for (String str : this.downloadURLs) {
+			try {
+				URL url = new URL(str);
+				conn = (HttpURLConnection) url.openConnection();
+				conn.setRequestMethod("HEAD");
+				totSize += conn.getContentLengthLong();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		return totSize;
+	}
+	
+	/*
+	 * Get file size of the online model
+	 */
 	public long getFileSize(URL url) {
 	HttpURLConnection conn = null;
 		try {
@@ -306,7 +327,6 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			chk.setSelected(false);
 			return;
 		}
-		downloadURL = name;
 		// First check that "Fiji.App\models" exist or create it if not
 		modelsDir = IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
 		// TODO modelsDir = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models";
@@ -346,7 +366,8 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			// Check if the String introduced can be converted into an URL. If
 			// itt can, set the downloadURL to that string
 			URL url = new URL(name);
-			downloadURL = name;
+			downloadURLs= new ArrayList<String>();
+			downloadURLs.add(name);
 		} catch (MalformedURLException e) {
 			IJ.error("String introduced does not correspond to a valid URL.");
 			chk.setSelected(false);
@@ -388,13 +409,12 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 				new File(modelsDir).mkdir();
 			model = zoo.models.get(name);
 			if (model != null) {
-				downloadURL = model.downloadUrl;
-				if (downloadURL == null) {
+				downloadURLs = model.downloadLinks;
+				if (downloadURLs == null) {
 					IJ.error("No download url specified in the rdf.yaml file.\n"
 							+ "Cannot download the model");
 				}
-				int nameStart = model.downloadUrl.lastIndexOf("/") + 1;
-				fileName = model.downloadUrl.substring(nameStart);
+				fileName = model.name;
 				// Add timestamp to the model name. 
 				// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
 		        Calendar cal = Calendar.getInstance();
@@ -416,7 +436,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	@Override
 	public void run() {
 		install.setEnabled(false);
-		if (new File(downloadURL).isFile()) {
+		if (downloadURLs.size() == 1 && new File(downloadURLs.get(0)).isFile()) {
 			copyFromPath();
 		} else {
 			downloadModelFromInternet();
@@ -433,7 +453,9 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	public void copyFromPath() {
 		boolean copied = false;
 		try {
-			File originalModel = new File(downloadURL);
+			if (downloadURLs.size() != 1)
+				throw new Exception();
+			File originalModel = new File(downloadURLs.get(0));
 			File destFile = new File(modelsDir + File.separator +  fileName);
 			progressScreen.setFileName(modelsDir + File.separator +  fileName);
 			progressScreen.setmodelName(fileName);
@@ -458,16 +480,72 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		}
 		progressScreen.stop();
 	}
+	
+	public void downloadModelFromInternet() {
+		if (downloadURLs.size() == 1) {
+			downloadSingleFileModelFromInternet(downloadURLs.get(0));
+		} else if (downloadURLs.size() > 1) {
+			downloadSeveralFilesModelFromInternet();
+		} else {
+			throw new IllegalArgumentException("No files to download.");
+		}
+	}
 
 	/**
 	 * Method that downloads the model selected from the internet,
 	 * copies it and unzips it into the models folder
 	 */
-	public void downloadModelFromInternet() {
+	public void downloadSeveralFilesModelFromInternet() {
 		FileOutputStream fos = null;
 		ReadableByteChannel rbc = null;
 		try {
-			URL website = new URL(downloadURL);
+			webFileSize = getFileSize();
+			progressScreen.setFileName(modelsDir + File.separator +  fileName);
+			progressScreen.setmodelName(fileName);
+			progressScreen.setFileSize(webFileSize);
+			progressScreen.buildScreen();
+			progressScreen.setVisible(true);
+			for (String url : this.downloadURLs) {
+				URL website = new URL(url);
+				rbc = Channels.newChannel(website.openStream());
+				// Create the new model file as a zip
+				fos = new FileOutputStream(new File(modelsDir, fileName));
+				// Send the correct parameters to the progress screen
+				ModelDownloader downloader = new ModelDownloader(rbc, fos);
+				downloader.call();
+				if (Thread.interrupted()) {
+					break;
+				}
+				fos.close();
+				rbc.close();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			IJ.error("Error unzipping the model.");
+			e.printStackTrace();
+		} finally {
+			try {
+				if (fos != null)
+						fos.close();
+				if (rbc != null)
+					rbc.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		progressScreen.stop();
+	}
+
+	/**
+	 * Method that downloads the model selected from the internet,
+	 * copies it and unzips it into the models folder
+	 */
+	public void downloadSingleFileModelFromInternet(String url) {
+		FileOutputStream fos = null;
+		ReadableByteChannel rbc = null;
+		try {
+			URL website = new URL(url);
 			webFileSize = getFileSize(website);
 			rbc = Channels.newChannel(website.openStream());
 			// Create the new model file as a zip
@@ -501,6 +579,5 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			}
 		}
 		progressScreen.stop();
-		
 	}
 }
