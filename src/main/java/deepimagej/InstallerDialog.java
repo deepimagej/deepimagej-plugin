@@ -521,9 +521,6 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
-		} catch (InterruptedException e) {
-			IJ.error("Error unzipping the model.");
-			e.printStackTrace();
 		} finally {
 			try {
 				if (fos != null)
