@@ -108,10 +108,10 @@ public class WelcomeStamp extends AbstractStamp implements ActionListener {
 		pane.append("p", "More information: deepimagej.github.io/deepimagej");
 		pane.append("p", "Reference: E. G&oacute;mez de Mariscal and C. Garc&iacute;a-L&oacute;pez-de-Haro et al. DeepImageJ:"
 				+ " A user-friendly plugin to run\n" + 
-				"deep learning models in ImageJ. Submitted 2019.");
+				"deep learning models in ImageJ. Nat Methods 18, 1192–1195 (2021)");
 		pane.append("<hr>");
 		pane.append("p",
-				"<small>&copy; 2019. Biomedical Imaging Group, Ecole Polytechnique F&eacute;d&eacute;rale de Lausanne (EPFL), Switzerland "
+				"<small>&copy; 2019 - 2022. Biomedical Imaging Group, Ecole Polytechnique F&eacute;d&eacute;rale de Lausanne (EPFL), Switzerland "
 				+ "and Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain.</small>");
 
 		txt.setFont(new Font("Arial", Font.BOLD, 14));

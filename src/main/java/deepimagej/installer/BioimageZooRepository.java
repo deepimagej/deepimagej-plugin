@@ -45,14 +45,16 @@
 package deepimagej.installer;
 
 
-import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -61,131 +63,139 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+/**
+ * Class to interact with the Bioimage.io API. Used to get information
+ * about models and to download them
+ * @author Carlos Javier Garcia Lopez de Haro
+ *
+ */
 public class BioimageZooRepository {
-
-
-	public String url = "https://bioimage.io/";
-	public String location = "https://raw.githubusercontent.com/deepimagej/models/gh-pages/manifest.bioimage.io.json";
+	/**
+	 * URL to the file containing all the model zoo models
+	 */
+	public static String location = "https://raw.githubusercontent.com/bioimage-io/collection-bioimage-io/gh-pages/collection.json";
+	/**
+	 * Map containing the models with their name as key
+	 */
+	public HashMap<String, Model> models = new HashMap<String, Model>();
+	/**
+	 * JSon containing all the info about the Bioimage.io models
+	 */
+	private JsonArray collections;
+	/**
+	 * List of all the model IDs of the models existing in the BioImage.io
+	 */
+	private static List<String> modelIDs;
 	public String title = "BioImage Model Zoo";
 	public String name = "BioImage Model Zoo";
 
-	public HashMap<String, Model> models = new HashMap<String, Model>();
-	public ArrayList<String> logs = new ArrayList<String>();
+	public String url = "https://bioimage.io/";
 	
+	public static void main(String[] args) {
+		connect().listAllModels();
+	}
 	
 	public BioimageZooRepository() {
-		connect();
+		setCollectionsRepo();
 	}
-
-	public ArrayList<String> connect() {
-		logs.add("Time: " + new Date().toString());
-		JsonParser parser2 = new JsonParser();
-		try {
-			String text = getJSONFromUrl(location);
-			JsonObject json2 = (JsonObject) parser2.parse(text);
-			logs.add("Name: " + getString(json2, "name", "n.a"));
-			name = getString(json2, "name", "n.a");
-			title = getString(json2, "splash_title", "n.a");
-			JsonArray resources2 = (JsonArray) json2.get("resources");
-			if (models != null) {
-				for (Object resource : resources2) {
-					JsonObject jm2 = (JsonObject) resource;
-					Model model2 = parseModel(jm2);
-					if (model2 != null && model2.deepImageJ) {
-						models.put(model2.getFacename(), model2);
-					}
-				}
-			}
-			
-		} catch (Exception ex) {
-			logs.add("Error: " + ex);
-			ex.printStackTrace();
-			return logs;
+	
+	/**
+	 * Create an instance of the models stored in the Bioimage.io repository reading the 
+	 * collections rdf.yaml.
+	 * @return an instance of the {@link ModelRepo}
+	 */
+	public static BioimageZooRepository connect() {
+		return new BioimageZooRepository();
+	}
+	
+	/**
+	 * Method that connects to the BioImage.io API and retrieves the models available
+	 * at the Bioimage.io model repository
+	 * @return an object containing the zip location of the model as key and the {@link ModelDescriptor}
+	 * 	with the yaml file information in the value
+	 */
+	public void listAllModels() {
+		models = new HashMap<String, Model>();
+		if (collections == null) {
+			return;
 		}
-		logs.add("Connected: ");
-		return logs;
+		for (Object resource : collections) {
+			JsonObject jsonResource = (JsonObject) resource;
+			try {
+				if (jsonResource.get("type") == null || !jsonResource.get("type").getAsString().equals("model"))
+					continue;
+				if (jsonResource.get("links") == null) 
+					continue;
+				JsonElement links = jsonResource.get("links").getAsJsonArray();
+				if (links == null || !links.toString().toLowerCase().contains("deepimagej/deepimagej"))
+					continue;
+				String stringRDF = getJSONFromUrl(jsonResource.get("rdf_source").getAsString());
+				Model mm = Model.build(stringRDF);
+				if (mm == null)
+					continue;
+				models.put(mm.name, mm);
+			} catch (Exception ex) {
+                ex.printStackTrace();
+			}
+		}
 	}
 	
 	public HashMap<String, Model> getModels() {
+		if (models.size() == 0)
+			listAllModels();
 		return models;
 	}
-
-	private Model parseModel(JsonObject json) {
-		String type = getString(json, "type", "n.a.");
-		if (!type.equalsIgnoreCase("model"))
-			return null;
-		String id = getString(json, "id", "n.a");
-		if (id.equalsIgnoreCase("n.a."))
-			return null;
-		String root_url = getString(json, "root_url", "n.a");
-		String name = getString(json, "name", "n.a");
-		String desc = getString(json, "description", "n.a");
-		String doc = getString(json, "documentation", "n.a");
-		String source = getString(json, "source", "n.a");
-		String download = getString(json, "download_url", "n.a");
-		ArrayList<String> covers = getArray(json, "covers");
-		ArrayList<String> tags = getArray(json, "tags");
-
-		String authors = getCSV(json, "authors");
-
-		Model model = new Model(name, id, root_url, desc, authors, doc, source, covers, download);
-		for (String tag : tags)
-			if (tag.toLowerCase().equals("deepimagej")) {
-				model.deepImageJ = true;
-			}
 	
-		return model;
-	}
-	
-	private String getString(JsonObject json, String tag, String defaultValue) {
-		try {
-			String o = json.get(tag).getAsString();
-			return o;
-		} catch (Exception ex) {
-			return defaultValue;
+	/**
+	 * Method that stores all the model IDs for the models available in the BIoImage.io repo
+	 */
+	private void setCollectionsRepo() {
+		modelIDs = new ArrayList<String>();
+		String text = getJSONFromUrl(location);
+		if (text == null) {
+			return;
+		}
+		JsonObject json = new JsonParser().parse(text).getAsJsonObject();
+		// Iterate over the array corresponding to the key: "resources"
+		// which contains all the resources of the Bioimage.io
+		collections = (JsonArray) json.get("collection");
+		if (collections == null) {
+			return;
+		}
+		for (Object resource : collections) {
+			JsonObject jsonResource = (JsonObject) resource;
+			if (jsonResource.get("type") == null || !jsonResource.get("type").getAsString().equals("model"))
+				continue;
+			String modelID = jsonResource.get("id").getAsString();
+			modelIDs.add(modelID);
 		}
 	}
 
-	private ArrayList<String> getArray(JsonObject json, String tag) {
-		ArrayList<String> array = new ArrayList<String>();
-		if (json.get(tag).isJsonArray()) {
-			JsonArray objects = json.get(tag).getAsJsonArray();
-			for (JsonElement o : objects) 
-				array.add(o.getAsString());
-		}
-		return array;
-	}
-
-	private String getCSV(JsonObject json, String tag) {
-		String csv = "";
-		int count = 0;
-		if (json.get(tag).isJsonArray()) {
-			JsonArray objects = json.get(tag).getAsJsonArray();
-			for (JsonElement o : objects) {
-				try {
-				csv += (count == 0  ? "" : ", ") + o.getAsString();
-				count++;
-				} catch (Exception ex) {
-				}
-			}
-		}
-		return csv;
-	}
-
-	private String getJSONFromUrl(String url) {
+	/**
+	 * Method used to read a yaml or json file from a server as a raw string
+	 * @param url
+	 * 	String url of the file
+	 * @return a String representation of the file. It is null if the file was not accessed
+	 */
+	private static String getJSONFromUrl(String url) {
 
 		HttpsURLConnection con = null;
 		try {
 			URL u = new URL(url);
 			con = (HttpsURLConnection) u.openConnection();
 			con.connect();
-			BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream()));
-			StringBuilder sb = new StringBuilder();
-			String line;
-			while ((line = br.readLine()) != null)
-				sb.append(line + "\n");
-			br.close();
-			return sb.toString();
+			InputStream inputStream = con.getInputStream();
+			
+			 ByteArrayOutputStream result = new ByteArrayOutputStream();
+			 byte[] buffer = new byte[1024];
+			 for (int length; (length = inputStream.read(buffer)) != -1; ) {
+			     result.write(buffer, 0, length);
+			 }
+			 // StandardCharsets.UTF_8.name() > JDK 7
+			 String txt = result.toString("UTF-8");
+			 inputStream.close();
+			 result.close();
+			 return txt;
 		} 
 		catch (MalformedURLException ex) {
 			ex.printStackTrace();
@@ -204,8 +214,37 @@ public class BioimageZooRepository {
 		}
 		return null;
 	}
-
-
-
+	
+	/**
+	 * Create {@link Path} from Url String. This method removes the http:// or https://
+	 * at the begining because in windows machines it caused errors creating Paths
+	 * @param downloadUrl
+	 * 	String url of the model of interest
+	 * @return the path to the String url
+	 */
+	public static Path createPathFromURLString(String downloadUrl) {
+		Path path;
+		try {
+			if (downloadUrl.startsWith("https://")) {
+				downloadUrl = downloadUrl.substring(("https://").length());
+			} else if (downloadUrl.startsWith("http://")) {
+				downloadUrl = downloadUrl.substring(("http://").length());
+			}
+			path = new File(downloadUrl).toPath();
+		} catch (Exception ex) {
+			int startName = downloadUrl.lastIndexOf("/");
+			downloadUrl = downloadUrl.substring(startName + 1);
+			path = new File(downloadUrl).toPath();
+		}
+		return path;
+	}
+	
+	/**
+	 * Return a list with all the model IDs for the models existing in the Bioimage.io repo
+	 * @return list with the ids for each of the models in the repo
+	 */
+	public static List<String> getModelIDs(){
+		return modelIDs;
+	}
 }
 

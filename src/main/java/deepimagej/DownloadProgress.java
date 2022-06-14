@@ -50,8 +50,12 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.stream.Stream;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -91,7 +95,7 @@ public class DownloadProgress extends JDialog implements ActionListener {
 		this.setTitle(header);
 		
 		if (!downloading)
-			progressString = "Copying progress";
+			progressString = "Copying progress: ";
 		
 	}
 	
@@ -162,6 +166,42 @@ public class DownloadProgress extends JDialog implements ActionListener {
 			
 	}
 	
+	/**
+	 * Get the size of the wanted file, being either a file or directory 
+	 * @return the size in bytes
+	 */
+	public long getFileOrDirSize() {
+		File ff = new File(fileName);
+		if (ff.isDirectory()) {
+		      try (Stream<Path> walk = Files.walk(ff.toPath())) {
+		          return walk.filter(Files::isRegularFile)
+		                  .mapToLong(DownloadProgress::getSizeFromPath).sum();
+		      } catch (IOException e) {
+		          System.out.printf("IO errors %s", e);
+		          return 0;
+		      }
+		} else if (ff.isFile()) {
+			return ff.length();
+		} else {
+			return 0;
+		}
+	}
+	
+	/**
+	 * Get the size of a file specifying the path
+	 * @param p
+	 * 	path of a file
+	 * @return the size, if there is any error, returns 0
+	 */
+	private static long getSizeFromPath(Path p) {
+        try {
+            return Files.size(p);
+        } catch (IOException e) {
+            System.out.printf("Failed to get size of %s%n%s", p, e);
+            return 0L;
+        }
+	}
+	
 	public void setThread(Thread thread) {
 		this.thread = thread;
 	}
@@ -188,7 +228,7 @@ public class DownloadProgress extends JDialog implements ActionListener {
 		name.setText(modelName);
 		time.setText("Runtime: " + NumFormat.seconds((System.nanoTime() - chrono)));
 		String progress = "" + 0;
-		long currentFileSize = new File(fileName).length();
+		long currentFileSize = getFileOrDirSize();
 		progress = Math.round(currentFileSize * 100 / totalFileSize) + "";
 
 		if (currentFileSize < totalFileSize)

@@ -492,6 +492,8 @@ public class DeepImageJ {
 			modelName = "weights-torchscript.pt";
 		} else if (modelName.indexOf("/") != -1 && modelName.indexOf("/") < 2) {
 			modelName = modelName.substring(modelName.indexOf("/") + 1);
+		} else if (checkURL(modelName)) {
+			modelName = new File(modelName).getName();
 		}
 		String auxModelName = "pytorch_script.pt";
 		String auxModelName2 = "weights-torchscript.pt";
@@ -564,6 +566,21 @@ public class DeepImageJ {
 			return;
 		}
 		this.params.framework = dlg.getNextChoice();
+	}
+	
+	/**
+	 * Check if a String contains a valid URL
+	 * @param str
+	 * 	str that might contain an URL
+	 * @return true if the String corresponds to an URL and false otherwise
+	 */
+	public static boolean checkURL(String str) {
+		try {
+			URL url = new URL(str);
+		    return true;
+		} catch (MalformedURLException e) {
+			return false;
+		}
 	}
 
 }

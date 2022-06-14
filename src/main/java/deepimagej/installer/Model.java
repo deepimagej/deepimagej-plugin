@@ -44,64 +44,329 @@
 
 package deepimagej.installer;
 
-import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import org.yaml.snakeyaml.Yaml;
 
 public class Model {
 
 	public String id;
 	public String name;
-	public String desc;
+	public String description;
 	public String doc;
-	public String source;
-	public String root_url;
 	public String downloadUrl;
-	public ArrayList<String> covers;
-	public String authors;
-	public boolean deepImageJ;
+	public List<String> downloadLinks = new ArrayList<String>();
+	public List<String> covers;
+	public List<Author> authors;
+	public boolean deepImageJ = true;
+	public Map<String, Object> allModelInfo;
+	public String rdf_source;
 	
-	public Model(String name, String id, String root_url, String desc, String authors, String doc, String source,
-				ArrayList<String> covers, String downloadUrl) {
-		this.name = name;
-		this.id = id;
-		this.root_url = root_url;
-		this.downloadUrl = downloadUrl;
-		this.desc = desc;
-		this.authors = authors;
-		this.doc = doc;
-		this.source = source;
-		this.covers = covers;
+	private Model(Map<String, Object> map) throws Exception {
+		allModelInfo = map;
+		setName();
+		setAuthors();
+		setCovers();
+		setDescription();
+		setId();
+		setRdfSource();
+		setDownloadLinks();
 
 	}
 	
-	public String getFacename() {
-		return name;
+	private void setDownloadLinks() {
+		try {
+			setDownloadUrl();
+		} catch (Exception e) {
+			downloadUrl = null;
+		}
+		if (this.downloadUrl != null && checkURL(downloadUrl)) {
+			downloadLinks.add(downloadUrl);
+			return;
+		}
+		addAttachments();
+		addRDF();
+		addSampleInputs();
+		addSampleOutputs();
+		addTestInputs();
+		addTestOutputs();
+		addWeights();
+		
+	}
+	
+	/**
+	 * Key for weights in the yaml file
+	 */
+	private static String weightsKey = "weights";
+	/**
+	 * Key for weights in the Tensorflow saved model bundle format
+	 */
+	private static String tfWeightsKey = "tensorflow_saved_model_bundle";
+	/**
+	 * Key for weights in the torchscript format
+	 */
+	private static String torchscriptWeightsKey = "torchscript";
+	
+	
+	/**
+	 * Add weight links to the downloadable links
+	 */
+	private void addWeights() {
+		Object ww = allModelInfo.get(weightsKey);
+		if (ww == null || !(ww instanceof Map<?, ?>))
+			throw new IllegalArgumentException("Model '" + this.name + "' does not contain link for weights.");
+		Map<String, Object> wwMap = (Map<String, Object>) ww;
+		int c = 0;
+		for (Entry<String, Object> wwEntry : wwMap.entrySet()) {
+			if (!wwEntry.getKey().equals(torchscriptWeightsKey) && !wwEntry.getKey().equals(tfWeightsKey))
+				continue;
+			Map<String, Object> sourceMap = (Map<String, Object>) wwEntry.getValue();
+			if (sourceMap.get("source") == null || !(sourceMap.get("source") instanceof String))
+				continue;
+			downloadLinks.add((String) sourceMap.get("source"));
+			c ++;
+		}
+		if (c == 0)
+			throw new IllegalArgumentException("Model '" + this.name + "' does not contain links for valid Tensorflow or Torchscript weights.");
+	}
+	
+	/**
+	 * Add the test inputs to the downloadable links
+	 */
+	private void addTestInputs() {
+		Object ww = allModelInfo.get("test_inputs");
+		List<String> wwList = new ArrayList<String>();
+		if (ww == null || (!(ww instanceof String) && !(ww instanceof List<?>))) {
+			return;
+		} else if ((ww instanceof String)) {
+			wwList.add((String) ww);
+		} else {
+			wwList = (List<String>) ww;
+		}
+		for (String ss : wwList) {
+			if (ss != null && checkURL(ss)) {
+				downloadLinks.add( ss);
+			}
+		}
+	}
+	
+	/**
+	 * Add the test outputs to the dowloadable links
+	 */
+	private void addTestOutputs() {
+		Object ww = allModelInfo.get("test_outputs");
+		List<String> wwList = new ArrayList<String>();
+		if (ww == null || (!(ww instanceof String) && !(ww instanceof List<?>))) {
+			return;
+		} else if ((ww instanceof String)) {
+			wwList.add((String) ww);
+		} else {
+			wwList = (List<String>) ww;
+		}
+		for (String ss : wwList) {
+			if (ss != null && checkURL(ss)) {
+				downloadLinks.add( ss);
+			}
+		}
+	}
+	
+	/**
+	 * Add the sample inputs to the dowloadable links
+	 */
+	private void addSampleInputs() {
+		Object ww = allModelInfo.get("sample_inputs");
+		List<String> wwList = new ArrayList<String>();
+		if (ww == null || (!(ww instanceof String) && !(ww instanceof List<?>))) {
+			return;
+		} else if ((ww instanceof String)) {
+			wwList.add((String) ww);
+		} else {
+			wwList = (List<String>) ww;
+		}
+		for (String ss : wwList) {
+			if (ss != null && checkURL(ss)) {
+				downloadLinks.add( ss);
+			}
+		}
+	}
+	
+	/**
+	 * Add the sample outputs to the dowloadable links
+	 */
+	private void addSampleOutputs() {
+		Object ww = allModelInfo.get("sample_outputs");
+		List<String> wwList = new ArrayList<String>();
+		if (ww == null || (!(ww instanceof String) && !(ww instanceof List<?>))) {
+			return;
+		} else if ((ww instanceof String)) {
+			wwList.add((String) ww);
+		} else {
+			wwList = (List<String>) ww;
+		}
+		for (String ss : wwList) {
+			if (ss != null && checkURL(ss)) {
+				downloadLinks.add( ss);
+			}
+		}
+	}
+	
+	/**
+	 * Add the rdf.yaml file to the downloadable links of the model
+	 */
+	private void addRDF() {
+		if (rdf_source == null || !checkURL(rdf_source)) {
+			throw new IllegalArgumentException("rdf.yaml file for model '" + this.name
+					+ "' cannot be found in the specs for the model in the BioImage.io repo.");
+		}
+		downloadLinks.add(rdf_source);
+	}
+	
+	/**
+	 * Add the attachment files to the downloadable links of the model
+	 */
+	private void addAttachments() {
+		Object ww = allModelInfo.get("attachments");
+		List<String> wwList = new ArrayList<String>();
+		if (ww == null 
+				|| (!(ww instanceof String) && !(ww instanceof List<?>) && !(ww instanceof Map<?, ?>))) {
+			return;
+		} else if ((ww instanceof String)) {
+			wwList.add((String) ww);
+		} else if (ww instanceof List<?>) {
+			wwList = (List<String>) ww;
+		} else if (ww instanceof Map<?, ?>) {
+			Object files = ((Map<String, Object>) ww).get("files");
+			if (files == null 
+					|| (!(files instanceof String) && !(files instanceof List<?>))) {
+				return;
+			} else if ((files instanceof String)) {
+				wwList.add((String) files);
+			} else if (files instanceof List<?>) {
+				wwList = (List<String>) files;
+			} else {
+				return;
+			}
+		}
+		for (String ss : wwList) {
+			if (ss != null && checkURL(ss)) {
+				downloadLinks.add( ss);
+			}
+		}
+	}
+
+	private void setName() {
+		if (allModelInfo.get("name") instanceof String)
+			name = (String) allModelInfo.get("name");
+		else
+			throw new IllegalArgumentException("Rdf.yaml does not contain the compulsory field 'name'.");
+		if (name.equals(""))
+			name = "bioimageio_model";
+	}
+	
+	private void setId() {
+		if (allModelInfo.get("id") instanceof String)
+			id = (String) allModelInfo.get("id");
+		else
+			id = "unknown";
+	}
+	
+	private void setDownloadUrl() throws Exception {
+		if (allModelInfo.get("download_url") instanceof String)
+			downloadUrl = (String) allModelInfo.get("download_url");
+		else
+			throw new Exception();
+	}
+	
+	private void setDescription() {
+		if (allModelInfo.get("description") instanceof String)
+			description = (String) allModelInfo.get("description");
+		else
+			description = "";
+	}
+	
+	private void setCovers() {
+		covers = new ArrayList<String>();
+		if (allModelInfo.get("covers") instanceof String) {
+			covers.add((String) allModelInfo.get("covers"));
+		} else if (allModelInfo.get("covers") instanceof List<?>) {
+			covers = (List<String>) allModelInfo.get("covers");
+		}
+	}
+	
+	private void setAuthors() {
+		authors = new ArrayList<Author>();
+		if (!(allModelInfo.get("authors") instanceof List<?>))
+			return;
+		List<Object> authElements = (List<Object>) allModelInfo.get("authors");
+        for (Object elem : authElements)
+        {
+            if (!(elem instanceof Map<?, ?>))
+            	continue;
+            @SuppressWarnings("unchecked")
+            Map<String, String> dict = (Map<String, String>) elem;
+            authors.add(Author.build(dict));
+        }
+	}
+	
+	public static Model build(String yamlString) {
+		Map<String, Object> map = loadFromString(yamlString);
+		Model mm = null;
+		try {
+			mm = new Model(map);
+		} catch (Exception ex) {
+		}
+		return mm;
+	}
+	
+	private void setRdfSource() {
+		if (allModelInfo.get("rdf_source") instanceof String)
+			rdf_source = (String) allModelInfo.get("rdf_source");
+		else
+			rdf_source = null;
 	}
 	
 
 	public String getCoverHTML() {
 		if (covers.size() >= 1)
-			return "<img src=\"" + root_url + "/" + covers.get(0) +"\" >";
+			return "<img src=\"" + covers.get(0) +"\" >";
 		else
 			return "no cover";
 	}
 
-	/*
-	public void setCover(String cover) {
+    /**
+     * Reads the provided yaml String and loads it into a map of string keys and object values.
+     * 
+     * @param yamlString
+     *        The String yaml file.
+     * @return The map loaded with the yaml elements.
+     */
+    public static Map<String, Object> loadFromString(String yamlString)
+    {
+    	Yaml yaml = new Yaml();
+    	HashMap<String,Object> yamlElements = yaml.load(yamlString);
+        return yamlElements;
+    }
+	
+	/**
+	 * Check if a String contains a valid URL
+	 * @param str
+	 * 	str that might contain an URL
+	 * @return true if the String corresponds to an URL and false otherwise
+	 */
+	public static boolean checkURL(String str) {
 		try {
-			URL url = new URL(root_url);
-			File file = new File(url.getPath( ));
-			String parentPath = file.getParent( );
-			URL parentUrl = new URL( url.getProtocol( ), url.getHost( ), url.getPort( ), parentPath );
-			image = parentUrl.toString() ;
-			
+			URL url = new URL(str);
+		    return true;
 		} catch (MalformedURLException e) {
-			e.printStackTrace();
+			return false;
 		}
 	}
-	*/
 	
 	
 }
