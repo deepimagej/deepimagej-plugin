@@ -77,7 +77,6 @@ public class Model {
 		setId();
 		setRdfSource();
 		setDownloadLinks();
-		setDownloadUrl();
 
 	}
 	
@@ -221,7 +220,7 @@ public class Model {
 	 * Add the rdf.yaml file to the downloadable links of the model
 	 */
 	private void addRDF() {
-		if (rdf_source == null || checkURL(rdf_source)) {
+		if (rdf_source == null || !checkURL(rdf_source)) {
 			throw new IllegalArgumentException("rdf.yaml file for model '" + this.name
 					+ "' cannot be found in the specs for the model in the BioImage.io repo.");
 		}
@@ -249,8 +248,9 @@ public class Model {
 				wwList.add((String) files);
 			} else if (files instanceof List<?>) {
 				wwList = (List<String>) files;
+			} else {
+				return;
 			}
-			wwList = (List<String>) ww;
 		}
 		for (String ss : wwList) {
 			if (ss != null && checkURL(ss)) {

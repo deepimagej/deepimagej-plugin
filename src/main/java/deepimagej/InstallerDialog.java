@@ -414,13 +414,6 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 					IJ.error("No download url specified in the rdf.yaml file.\n"
 							+ "Cannot download the model");
 				}
-				fileName = model.name;
-				// Add timestamp to the model name. 
-				// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
-		        Calendar cal = Calendar.getInstance();
-				SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
-				String dateString = sdf.format(cal.getTime());
-				fileName = fileName.substring(0, fileName.lastIndexOf(".")) + "_" + dateString + ".zip";
 				
 				Thread thread = new Thread(this);
 				thread.setPriority(Thread.MIN_PRIORITY);
@@ -455,6 +448,13 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		try {
 			if (downloadURLs.size() != 1)
 				throw new Exception();
+			fileName = new File(downloadURLs.get(0)).getName();
+			// Add timestamp to the model name. 
+			// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
+	        Calendar cal = Calendar.getInstance();
+			SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
+			String dateString = sdf.format(cal.getTime());
+			fileName = fileName.substring(0, fileName.lastIndexOf(".")) + "_" + dateString + ".zip";
 			File originalModel = new File(downloadURLs.get(0));
 			File destFile = new File(modelsDir + File.separator +  fileName);
 			progressScreen.setFileName(modelsDir + File.separator +  fileName);
@@ -499,6 +499,12 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		FileOutputStream fos = null;
 		ReadableByteChannel rbc = null;
 		try {
+			// Add timestamp to the model name. 
+			// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
+	        Calendar cal = Calendar.getInstance();
+			SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
+			String dateString = sdf.format(cal.getTime());
+			fileName = model.name + "_" + dateString;
 			webFileSize = getFileSize();
 			progressScreen.setFileName(modelsDir + File.separator +  fileName);
 			progressScreen.setmodelName(fileName);
@@ -506,10 +512,11 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			progressScreen.buildScreen();
 			progressScreen.setVisible(true);
 			for (String url : this.downloadURLs) {
+				String internetName = new File(url).getName();
 				URL website = new URL(url);
 				rbc = Channels.newChannel(website.openStream());
 				// Create the new model file as a zip
-				fos = new FileOutputStream(new File(modelsDir, fileName));
+				fos = new FileOutputStream(new File(modelsDir + File.separator +  fileName + internetName));
 				// Send the correct parameters to the progress screen
 				ModelDownloader downloader = new ModelDownloader(rbc, fos);
 				downloader.call();
@@ -542,6 +549,12 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		FileOutputStream fos = null;
 		ReadableByteChannel rbc = null;
 		try {
+			// Add timestamp to the model name. 
+			// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
+	        Calendar cal = Calendar.getInstance();
+			SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
+			String dateString = sdf.format(cal.getTime());
+			fileName = model.name + "_" + dateString + ".zip";
 			URL website = new URL(url);
 			webFileSize = getFileSize(website);
 			rbc = Channels.newChannel(website.openStream());

@@ -127,7 +127,6 @@ public class BioimageZooRepository {
 				if (jsonResource.get("links") == null) 
 					continue;
 				JsonElement links = jsonResource.get("links").getAsJsonArray();
-				JsonElement tags = jsonResource.get("tags").getAsJsonArray();
 				if (links == null || !links.toString().toLowerCase().contains("deepimagej/deepimagej"))
 					continue;
 				String stringRDF = getJSONFromUrl(jsonResource.get("rdf_source").getAsString());
