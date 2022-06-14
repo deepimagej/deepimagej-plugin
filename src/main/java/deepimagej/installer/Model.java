@@ -224,6 +224,7 @@ public class Model {
 			throw new IllegalArgumentException("rdf.yaml file for model '" + this.name
 					+ "' cannot be found in the specs for the model in the BioImage.io repo.");
 		}
+		downloadLinks.add(rdf_source);
 	}
 	
 	/**
