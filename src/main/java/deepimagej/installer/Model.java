@@ -44,11 +44,16 @@
 
 package deepimagej.installer;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bioimageanalysis.icy.deepicy.model.description.SampleImage;
+import org.bioimageanalysis.icy.deepicy.model.description.weights.ModelWeight;
+import org.bioimageanalysis.icy.deepicy.model.description.weights.WeightFormatInterface;
 import org.yaml.snakeyaml.Yaml;
 
 public class Model {
@@ -58,6 +63,7 @@ public class Model {
 	public String description;
 	public String doc;
 	public String downloadUrl;
+	public List<String> downloadLinks = new ArrayList<String>();
 	public List<String> covers;
 	public List<Author> authors;
 	public boolean deepImageJ = true;
@@ -70,12 +76,135 @@ public class Model {
 		setAuthors();
 		setCovers();
 		setDescription();
-		setDownloadUrl();
 		setId();
 		setRdfSource();
+		setDownloadLinks();
+		setDownloadUrl();
 
 	}
 	
+	private void setDownloadLinks() {
+		setDownloadUrl();
+		if (this.downloadUrl != null && checkURL(downloadUrl)) {
+			downloadLinks.add(downloadUrl);
+			return;
+		}
+		addAttachments();
+		addRDF();
+		addSampleInputs();
+		addSampleOutputs();
+		addTestInputs();
+		addTestOutputs();
+		addWeights();
+		
+	}
+	
+	/**
+	 * Add weight links to the downloadable links
+	 */
+	private void addWeights() {
+		ModelWeight weights = descriptor.getWeights();
+		int c = 0;
+		for (String ww : weights.getEnginesListWithVersions()) {
+			try {
+				WeightFormatInterface w = weights.getWeightsByIdentifier(ww);
+				if (w.getSource() != null && checkURL(w.getSource())) {
+					downloadableLinks.put(weightsKey + "_" + c ++, w.getSource());
+				}
+			} catch (Exception ex) {
+				// The exception is thrown whenever the weight format is not present.
+				// This exception will not be thrown here because the weight formats are retrieved from the same object
+			}
+		}
+	}
+	
+	/**
+	 * Add the test inputs to the downloadable links
+	 */
+	private void addTestInputs() {
+		List<String> sampleInps = descriptor.getTest_inputs();
+		if (sampleInps == null)
+			return;
+		int c = 0;
+		for (String ss : sampleInps) {
+			if (ss != null && checkURL(ss)) {
+				downloadableLinks.put(testInputsKey + "_" + c ++, ss);
+			}
+		}
+	}
+	
+	/**
+	 * Add the test outputs to the dowloadable links
+	 */
+	private void addTestOutputs() {
+		List<String> sampleOuts = descriptor.getTest_outputs();
+		if (sampleOuts == null)
+			return;
+		int c = 0;
+		for (String ss : sampleOuts) {
+			if (ss != null && checkURL(ss)) {
+				downloadableLinks.put(testOutputsKey + "_" + c ++, ss);
+			}
+		}
+	}
+	
+	/**
+	 * Add the sample inputs to the dowloadable links
+	 */
+	private void addSampleInputs() {
+		List<SampleImage> sampleInps = descriptor.getSample_inputs();
+		if (sampleInps == null)
+			return;
+		int c = 0;
+		for (SampleImage ss : sampleInps) {
+			if (ss != null && ss.getUrl() != null) {
+				downloadableLinks.put(sampleInputsKey + "_" + c ++, ss.getString());
+			}
+		}
+	}
+	
+	/**
+	 * Add the sample outputs to the dowloadable links
+	 */
+	private void addSampleOutputs() {
+		List<SampleImage> sampleOuts = descriptor.getSample_outputs();
+		if (sampleOuts == null)
+			return;
+		int c = 0;
+		for (SampleImage ss : sampleOuts) {
+			if (ss != null && ss.getUrl() != null) {
+				downloadableLinks.put(sampleOutputsKey + "_" + c ++, ss.getString());
+			}
+		}
+	}
+	
+	/**
+	 * Add the rdf.yaml file to the downloadable links of the model
+	 */
+	private void addRDF() {
+		String rdf = descriptor.getRDFSource();
+		if (rdf != null && checkURL(rdf)) {
+			downloadableLinks.put(rdfKey, rdf);
+		}
+	}
+	
+	/**
+	 * Add the attachment files to the downloadable links of the model
+	 */
+	private void addAttachments() {
+		Map<String, Object> attachments = descriptor.getAttachments();
+		if (attachments == null)
+			return;
+		int c = 0;
+		for (String kk : attachments.keySet()) {
+			if (attachments.get(kk) instanceof String && checkURL((String) attachments.get(kk))) {
+				downloadableLinks.put(attachmentsKey + "_" + c ++, (String) attachments.get(kk));
+			} else if (attachments.get(kk) instanceof URL) {
+				downloadableLinks.put(attachmentsKey + "_" + c ++, ((URL) attachments.get(kk)).toString());
+			}
+		}
+	}
+
 	private void setName() {
 		if (allModelInfo.get("name") instanceof String)
 			name = (String) allModelInfo.get("name");
@@ -167,6 +296,21 @@ public class Model {
     	HashMap<String,Object> yamlElements = yaml.load(yamlString);
         return yamlElements;
     }
+	
+	/**
+	 * Check if a String contains a valid URL
+	 * @param str
+	 * 	str that might contain an URL
+	 * @return true if the String corresponds to an URL and false otherwise
+	 */
+	public static boolean checkURL(String str) {
+		try {
+			URL url = new URL(str);
+		    return true;
+		} catch (MalformedURLException e) {
+			return false;
+		}
+	}
 	
 	
 }
