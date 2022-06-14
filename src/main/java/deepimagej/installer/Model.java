@@ -200,7 +200,7 @@ public class Model {
 	 * Add the sample outputs to the dowloadable links
 	 */
 	private void addSampleOutputs() {
-		Object ww = allModelInfo.get("sample_inputs");
+		Object ww = allModelInfo.get("sample_outputs");
 		List<String> wwList = new ArrayList<String>();
 		if (ww == null || (!(ww instanceof String) && !(ww instanceof List<?>))) {
 			return;
