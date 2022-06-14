@@ -442,8 +442,11 @@ public class DeepImageJ {
 		String modelName = this.params.tfSource;
 		if (modelName == null) {
 			modelName = "tensorflow_saved_model_bundle.zip";
-		} else if (modelName.indexOf("/") != -1 && modelName.indexOf("/") < 2)
+		} else if (modelName.indexOf("/") != -1 && modelName.indexOf("/") < 2) {
 			modelName = modelName.substring(modelName.indexOf("/") + 1);
+		}  else if (checkURL(modelName)) {
+			modelName = new File(modelName).getName();
+		}
 		String auxModelName = "tensorflow_saved_model_bundle.zip";
 		boolean auxPresent = false;
 		for (String file : modelFolder.list()) {
