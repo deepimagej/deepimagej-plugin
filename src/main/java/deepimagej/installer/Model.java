@@ -264,6 +264,8 @@ public class Model {
 			name = (String) allModelInfo.get("name");
 		else
 			throw new IllegalArgumentException("Rdf.yaml does not contain the compulsory field 'name'.");
+		if (name.equals(""))
+			name = "bioimageio_model";
 	}
 	
 	private void setId() {

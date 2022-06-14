@@ -506,6 +506,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			String dateString = sdf.format(cal.getTime());
 			fileName = model.name + "_" + dateString;
 			webFileSize = getFileSize();
+			new File(modelsDir + File.separator +  fileName).mkdirs();
 			progressScreen.setFileName(modelsDir + File.separator +  fileName);
 			progressScreen.setmodelName(fileName);
 			progressScreen.setFileSize(webFileSize);
@@ -516,7 +517,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 				URL website = new URL(url);
 				rbc = Channels.newChannel(website.openStream());
 				// Create the new model file as a zip
-				fos = new FileOutputStream(new File(modelsDir + File.separator +  fileName + internetName));
+				fos = new FileOutputStream(new File(modelsDir + File.separator +  fileName + File.separator + internetName));
 				// Send the correct parameters to the progress screen
 				ModelDownloader downloader = new ModelDownloader(rbc, fos);
 				downloader.call();
