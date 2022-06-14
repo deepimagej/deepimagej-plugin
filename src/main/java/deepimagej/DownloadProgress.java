@@ -95,7 +95,7 @@ public class DownloadProgress extends JDialog implements ActionListener {
 		this.setTitle(header);
 		
 		if (!downloading)
-			progressString = "Copying progress";
+			progressString = "Copying progress: ";
 		
 	}
 	
