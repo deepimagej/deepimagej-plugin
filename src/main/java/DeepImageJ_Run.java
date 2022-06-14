@@ -65,8 +65,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Set;
 
-import deepimagej.Constants;
+
 import deepimagej.DeepImageJ;
+import deepimagej.Constants;
 import deepimagej.RunnerTf;
 import deepimagej.RunnerProgress;
 import deepimagej.RunnerPt;
@@ -131,7 +132,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	// Check if the plugin is being run in headless mode or nor
 	private boolean 					headless = false;
 	// Button used to test model on sample image
-	private JButton						testBtn  = new JButton("Test model");
+	private JButton						testBtn  = new JButton("Run on example image");
+	// Button used for showing the macro txt
+	private JButton						macroBtn = new JButton("Open macro");
 	// Whether the plugin can work only on test mode or it can fully function
 	private boolean						testModeOnly = false;
 	// Whether the plugin is running on test mode
@@ -139,6 +142,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	// Number of open images, used to check whether an image
 	// has been open or not for the testing
 	private int nOpenImages = 0;
+	
 	
 	
 	static public void main(String args[]) {
@@ -291,7 +295,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		dlg.addStringField("Axes order", "", 30);
 		dlg.addStringField("Tile size", "", 30);
 		
-		dlg.addChoice("Logging", new String[] { "mute", "normal", "debug" }, "normal");
+		dlg.addChoice("Logging", new String[] {"Mute", "Normal", "Debug" }, "Normal");
 		
 		dlg.addHelp(Constants.url);
 		dlg.addPanel(panel);
@@ -303,6 +307,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		Font font = new Font("Helvetica", Font.BOLD, 12);
 		dlg.addMessage(msg, font, Color.BLACK);
 		dlg.add(testBtn);
+		dlg.add(macroBtn);
 		
 		int countChoice = 0;
 		int countLabels = 0;

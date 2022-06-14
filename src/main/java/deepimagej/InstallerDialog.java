@@ -77,6 +77,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 
 import deepimagej.components.HTMLPane;
+import deepimagej.Constants;
 import deepimagej.components.TitleHTMLPane;
 import deepimagej.installer.Author;
 import deepimagej.installer.BioimageZooRepository;
@@ -85,13 +86,14 @@ import deepimagej.tools.FileTools;
 import deepimagej.tools.ModelDownloader;
 import ij.IJ;
 import ij.gui.GUI;
+import ij.gui.GenericDialog;
 
 public class InstallerDialog extends JDialog implements ItemListener, ActionListener, Runnable {
 
 	private BioimageZooRepository zoo;
 	private JButton install = new JButton("Install");
-	private JButton cancel = new JButton("Cancel");
-	private JButton help = new JButton("Help");
+	private JButton close = new JButton("Close");
+	private JButton help  = new JButton("Help");
 	private HTMLPane repo = new HTMLPane(600, 100);
 	private HTMLPane info = new HTMLPane(600, 200);
 	private JCheckBox chk = new JCheckBox("<html>I accept to install the model knowing that the output of a deep learning model strongly depends on the" 
@@ -116,8 +118,9 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	// URL used to download the model
 	private String downloadURL;
 	
+	
 	public InstallerDialog(BioimageZooRepository zoo) {
-		super(new JFrame(), "DeepImageJ Model Installer");
+		super(new JFrame(), "DeepImageJ Install Model [" + Constants.version + "]");
 
 		zoo.listAllModels();
 		this.zoo = zoo;
@@ -147,7 +150,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 
 		JPanel bn = new JPanel(new GridLayout(1, 3));
 		bn.add(help);
-		bn.add(cancel);
+		bn.add(close);
 		bn.add(install);
 
 		JPanel repo = new JPanel(new BorderLayout());
@@ -187,10 +190,15 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		JPanel pn3f = new JPanel(new BorderLayout());
 		pn3f.add(pn3, BorderLayout.NORTH);
 		pn3f.add(new JLabel(), BorderLayout.CENTER);
+		
+		JPanel instModel = new JPanel(new BorderLayout());
+		instModel.add(pn3, BorderLayout.NORTH); //Change pn 3necessary
+		instModel.add(new JLabel(), BorderLayout.CENTER);
 
 		
 		tab.addTab("BioImage Model Zoo", repo);
 		tab.addTab("Private Model", pn3f);
+		tab.addTab("Installed models", instModel);
 		
 		JPanel main = new JPanel(new BorderLayout());
 		main.add(new TitleHTMLPane().getPane(), BorderLayout.NORTH);
@@ -204,7 +212,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		cmb.addItemListener(this);
 		install.setEnabled(false);
 		help.addActionListener(this);
-		cancel.addActionListener(this);
+		close.addActionListener(this);
 		install.addActionListener(this);
 		pack();
 		GUI.center(this);
@@ -213,7 +221,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	}
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if (e.getSource() == cancel) {
+		if (e.getSource() == close) {
 			dispose();
 		} else if (e.getSource() == install && tab.getSelectedIndex() == 0) {
 			// If the tab selected is the first one, install from Bioimage.io
