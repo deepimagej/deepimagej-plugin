@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>27.0.1</version>
+		<version>31.1.0</version>
 		<relativePath />
 	</parent>
 
@@ -129,6 +129,8 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 
 		<protobuf.version>3.2.0</protobuf.version>
 		<tensorflow.version>1.15.0</tensorflow.version>
+		<jna.version>5.11.0</jna.version>
+		<imagej-tensorflow.version>1.1.6</imagej-tensorflow.version>
 	</properties>
 	<repositories>
 		<repository>
@@ -150,12 +152,10 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 			<groupId>org.tensorflow</groupId>
 			<artifactId>libtensorflow</artifactId>
-    		<version>1.15.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.tensorflow</groupId>
 			<artifactId>libtensorflow_jni</artifactId>
-    		<version>1.15.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.yaml</groupId>
@@ -164,7 +164,6 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 		    <groupId>net.imagej</groupId>
 		    <artifactId>imagej-tensorflow</artifactId>
-    		<version>1.1.6</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imagej</groupId>
@@ -189,18 +188,15 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 	    <dependency>
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-simple</artifactId>
-		    <version>1.7.26</version>
 		    <scope>test</scope>
 		</dependency>
 		<dependency>
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-api</artifactId>
-		    <version>1.7.26</version>
 		</dependency>
 		<dependency>
 		    <groupId>net.java.dev.jna</groupId>
 		    <artifactId>jna</artifactId>
-		    <version>5.3.0</version>
 		</dependency>
 		<!--  Dependencies for DJL Pytorch, END -->
 		<dependency>
@@ -211,7 +207,6 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 		    <groupId>org.jetbrains.kotlin</groupId>
 		    <artifactId>kotlin-stdlib</artifactId>
-		    <version>1.3.72</version>
 		</dependency>	
 		<!-- Test scope dependencies -->
 		<dependency>
