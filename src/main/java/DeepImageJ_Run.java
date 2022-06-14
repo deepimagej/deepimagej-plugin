@@ -133,8 +133,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	private boolean 					headless = false;
 	// Button used to test model on sample image
 	private JButton						testBtn  = new JButton("Run on example image");
-	// Button used for showing the macro txt
-	private JButton						macroBtn = new JButton("Open macro");
 	// Whether the plugin can work only on test mode or it can fully function
 	private boolean						testModeOnly = false;
 	// Whether the plugin is running on test mode
@@ -307,7 +305,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		Font font = new Font("Helvetica", Font.BOLD, 12);
 		dlg.addMessage(msg, font, Color.BLACK);
 		dlg.add(testBtn);
-		dlg.add(macroBtn);
 		
 		int countChoice = 0;
 		int countLabels = 0;

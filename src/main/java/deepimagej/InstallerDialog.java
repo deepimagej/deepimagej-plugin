@@ -200,7 +200,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		
 		tab.addTab("BioImage Model Zoo", repo);
 		tab.addTab("Private Model", pn3f);
-		tab.addTab("Installed models", instModel);
+		// TODO add functionality to this tab tab.addTab("Installed models", instModel);
 		
 		JPanel main = new JPanel(new BorderLayout());
 		main.add(new TitleHTMLPane().getPane(), BorderLayout.NORTH);
