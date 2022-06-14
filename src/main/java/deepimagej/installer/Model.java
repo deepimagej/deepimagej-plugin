@@ -50,10 +50,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
-import org.bioimageanalysis.icy.deepicy.model.description.SampleImage;
-import org.bioimageanalysis.icy.deepicy.model.description.weights.ModelWeight;
-import org.bioimageanalysis.icy.deepicy.model.description.weights.WeightFormatInterface;
 import org.yaml.snakeyaml.Yaml;
 
 public class Model {
@@ -84,7 +82,11 @@ public class Model {
 	}
 	
 	private void setDownloadLinks() {
-		setDownloadUrl();
+		try {
+			setDownloadUrl();
+		} catch (Exception e) {
+			downloadUrl = null;
+		}
 		if (this.downloadUrl != null && checkURL(downloadUrl)) {
 			downloadLinks.add(downloadUrl);
 			return;
@@ -100,35 +102,57 @@ public class Model {
 	}
 	
 	/**
+	 * Key for weights in the yaml file
+	 */
+	private static String weightsKey = "weights";
+	/**
+	 * Key for weights in the Tensorflow saved model bundle format
+	 */
+	private static String tfWeightsKey = "tensorflow_saved_model_bundle";
+	/**
+	 * Key for weights in the torchscript format
+	 */
+	private static String torchscriptWeightsKey = "torchscript";
+	
+	
+	/**
 	 * Add weight links to the downloadable links
 	 */
 	private void addWeights() {
-		ModelWeight weights = descriptor.getWeights();
+		Object ww = allModelInfo.get(weightsKey);
+		if (ww == null || !(ww instanceof Map<?, ?>))
+			throw new IllegalArgumentException("Model '" + this.name + "' does not contain link for weights.");
+		Map<String, Object> wwMap = (Map<String, Object>) ww;
 		int c = 0;
-		for (String ww : weights.getEnginesListWithVersions()) {
-			try {
-				WeightFormatInterface w = weights.getWeightsByIdentifier(ww);
-				if (w.getSource() != null && checkURL(w.getSource())) {
-					downloadableLinks.put(weightsKey + "_" + c ++, w.getSource());
-				}
-			} catch (Exception ex) {
-				// The exception is thrown whenever the weight format is not present.
-				// This exception will not be thrown here because the weight formats are retrieved from the same object
-			}
+		for (Entry<String, Object> wwEntry : wwMap.entrySet()) {
+			if (!wwEntry.getKey().equals(torchscriptWeightsKey) && !wwEntry.getKey().equals(tfWeightsKey))
+				continue;
+			Map<String, Object> sourceMap = (Map<String, Object>) wwEntry.getValue();
+			if (sourceMap.get("source") == null || !(sourceMap.get("source") instanceof String))
+				continue;
+			downloadLinks.add((String) sourceMap.get("source"));
+			c ++;
 		}
+		if (c == 0)
+			throw new IllegalArgumentException("Model '" + this.name + "' does not contain links for valid Tensorflow or Torchscript weights.");
 	}
 	
 	/**
 	 * Add the test inputs to the downloadable links
 	 */
 	private void addTestInputs() {
-		List<String> sampleInps = descriptor.getTest_inputs();
-		if (sampleInps == null)
+		Object ww = allModelInfo.get("test_inputs");
+		List<String> wwList = new ArrayList<String>();
+		if (ww == null || (!(ww instanceof String) && !(ww instanceof List<?>))) {
 			return;
-		int c = 0;
-		for (String ss : sampleInps) {
+		} else if ((ww instanceof String)) {
+			wwList.add((String) ww);
+		} else {
+			wwList = (List<String>) ww;
+		}
+		for (String ss : wwList) {
 			if (ss != null && checkURL(ss)) {
-				downloadableLinks.put(testInputsKey + "_" + c ++, ss);
+				downloadLinks.add( ss);
 			}
 		}
 	}
@@ -137,13 +161,18 @@ public class Model {
 	 * Add the test outputs to the dowloadable links
 	 */
 	private void addTestOutputs() {
-		List<String> sampleOuts = descriptor.getTest_outputs();
-		if (sampleOuts == null)
+		Object ww = allModelInfo.get("test_outputs");
+		List<String> wwList = new ArrayList<String>();
+		if (ww == null || (!(ww instanceof String) && !(ww instanceof List<?>))) {
 			return;
-		int c = 0;
-		for (String ss : sampleOuts) {
+		} else if ((ww instanceof String)) {
+			wwList.add((String) ww);
+		} else {
+			wwList = (List<String>) ww;
+		}
+		for (String ss : wwList) {
 			if (ss != null && checkURL(ss)) {
-				downloadableLinks.put(testOutputsKey + "_" + c ++, ss);
+				downloadLinks.add( ss);
 			}
 		}
 	}
@@ -152,13 +181,18 @@ public class Model {
 	 * Add the sample inputs to the dowloadable links
 	 */
 	private void addSampleInputs() {
-		List<SampleImage> sampleInps = descriptor.getSample_inputs();
-		if (sampleInps == null)
+		Object ww = allModelInfo.get("sample_inputs");
+		List<String> wwList = new ArrayList<String>();
+		if (ww == null || (!(ww instanceof String) && !(ww instanceof List<?>))) {
 			return;
-		int c = 0;
-		for (SampleImage ss : sampleInps) {
-			if (ss != null && ss.getUrl() != null) {
-				downloadableLinks.put(sampleInputsKey + "_" + c ++, ss.getString());
+		} else if ((ww instanceof String)) {
+			wwList.add((String) ww);
+		} else {
+			wwList = (List<String>) ww;
+		}
+		for (String ss : wwList) {
+			if (ss != null && checkURL(ss)) {
+				downloadLinks.add( ss);
 			}
 		}
 	}
@@ -167,13 +201,18 @@ public class Model {
 	 * Add the sample outputs to the dowloadable links
 	 */
 	private void addSampleOutputs() {
-		List<SampleImage> sampleOuts = descriptor.getSample_outputs();
-		if (sampleOuts == null)
+		Object ww = allModelInfo.get("sample_inputs");
+		List<String> wwList = new ArrayList<String>();
+		if (ww == null || (!(ww instanceof String) && !(ww instanceof List<?>))) {
 			return;
-		int c = 0;
-		for (SampleImage ss : sampleOuts) {
-			if (ss != null && ss.getUrl() != null) {
-				downloadableLinks.put(sampleOutputsKey + "_" + c ++, ss.getString());
+		} else if ((ww instanceof String)) {
+			wwList.add((String) ww);
+		} else {
+			wwList = (List<String>) ww;
+		}
+		for (String ss : wwList) {
+			if (ss != null && checkURL(ss)) {
+				downloadLinks.add( ss);
 			}
 		}
 	}
@@ -182,9 +221,9 @@ public class Model {
 	 * Add the rdf.yaml file to the downloadable links of the model
 	 */
 	private void addRDF() {
-		String rdf = descriptor.getRDFSource();
-		if (rdf != null && checkURL(rdf)) {
-			downloadableLinks.put(rdfKey, rdf);
+		if (rdf_source == null || checkURL(rdf_source)) {
+			throw new IllegalArgumentException("rdf.yaml file for model '" + this.name
+					+ "' cannot be found in the specs for the model in the BioImage.io repo.");
 		}
 	}
 	
@@ -192,15 +231,30 @@ public class Model {
 	 * Add the attachment files to the downloadable links of the model
 	 */
 	private void addAttachments() {
-		Map<String, Object> attachments = descriptor.getAttachments();
-		if (attachments == null)
+		Object ww = allModelInfo.get("attachments");
+		List<String> wwList = new ArrayList<String>();
+		if (ww == null 
+				|| (!(ww instanceof String) && !(ww instanceof List<?>) && !(ww instanceof Map<?, ?>))) {
 			return;
-		int c = 0;
-		for (String kk : attachments.keySet()) {
-			if (attachments.get(kk) instanceof String && checkURL((String) attachments.get(kk))) {
-				downloadableLinks.put(attachmentsKey + "_" + c ++, (String) attachments.get(kk));
-			} else if (attachments.get(kk) instanceof URL) {
-				downloadableLinks.put(attachmentsKey + "_" + c ++, ((URL) attachments.get(kk)).toString());
+		} else if ((ww instanceof String)) {
+			wwList.add((String) ww);
+		} else if (ww instanceof List<?>) {
+			wwList = (List<String>) ww;
+		} else if (ww instanceof Map<?, ?>) {
+			Object files = ((Map<String, Object>) ww).get("files");
+			if (files == null 
+					|| (!(files instanceof String) && !(files instanceof List<?>))) {
+				return;
+			} else if ((files instanceof String)) {
+				wwList.add((String) files);
+			} else if (files instanceof List<?>) {
+				wwList = (List<String>) files;
+			}
+			wwList = (List<String>) ww;
+		}
+		for (String ss : wwList) {
+			if (ss != null && checkURL(ss)) {
+				downloadLinks.add( ss);
 			}
 		}
 	}
@@ -219,7 +273,6 @@ public class Model {
 			id = "unknown";
 	}
 	
-	// TODO implement a downloader that gets all the links
 	private void setDownloadUrl() throws Exception {
 		if (allModelInfo.get("download_url") instanceof String)
 			downloadUrl = (String) allModelInfo.get("download_url");
