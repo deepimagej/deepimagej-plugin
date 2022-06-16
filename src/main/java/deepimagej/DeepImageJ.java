@@ -446,6 +446,8 @@ public class DeepImageJ {
 			modelName = modelName.substring(modelName.indexOf("/") + 1);
 		}  else if (checkURL(modelName)) {
 			modelName = new File(modelName).getName();
+		} else {
+			modelName = new File(modelName).getName();
 		}
 		String auxModelName = "tensorflow_saved_model_bundle.zip";
 		boolean auxPresent = false;
@@ -454,7 +456,8 @@ public class DeepImageJ {
 			if (file.equals(modelName) && !this.presentYaml) {
 				tfName = modelName;
 				return true;
-			} else if (file.equals(modelName) && FileTools.createSHA256(modelFolder.getPath() + File.separator + file).equals(params.tfSha256)) {
+			} else if (file.equals(modelName) ) {//&& FileTools.createSHA256(modelFolder.getPath() + File.separator + file).equals(params.tfSha256)) {
+				String sha = FileTools.createSHA256(modelFolder.getPath() + File.separator + file);
 				tfName = modelName;
 				return true;
 			} else if (file.equals(modelName)) {
@@ -496,6 +499,8 @@ public class DeepImageJ {
 		} else if (modelName.indexOf("/") != -1 && modelName.indexOf("/") < 2) {
 			modelName = modelName.substring(modelName.indexOf("/") + 1);
 		} else if (checkURL(modelName)) {
+			modelName = new File(modelName).getName();
+		} else {
 			modelName = new File(modelName).getName();
 		}
 		String auxModelName = "pytorch_script.pt";

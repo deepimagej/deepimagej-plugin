@@ -424,10 +424,23 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	@Override
 	public void run() {
 		install.setEnabled(false);
-		if (downloadURLs.size() == 1 && new File(downloadURLs.get(0)).isFile()) {
-			copyFromPath();
-		} else {
+		if (tab.getSelectedIndex() == 0 && downloadURLs != null) {
 			downloadModelFromInternet();
+		} else if (tab.getSelectedIndex() == 0 && downloadURLs == null) {
+			IJ.error("This model does not have links to download.");
+		}
+		if (tab.getSelectedIndex() == 1 && rbZIP.isSelected() && new File(txtZIP.getText()).isFile()) {
+			downloadURLs = new ArrayList<String>();
+			downloadURLs.add(txtZIP.getText());
+			copyFromPath();
+		} else if (tab.getSelectedIndex() == 1 && rbURL.isSelected() && Model.checkURL(txtURL.getText())) {
+			downloadURLs = new ArrayList<String>();
+			downloadURLs.add(txtURL.getText());
+			downloadModelFromInternet();
+		} else if (tab.getSelectedIndex() == 1 && rbURL.isSelected() && !Model.checkURL(txtURL.getText())) {
+			IJ.error("Introduced String does not correspond to a valid URL");
+		} else if (tab.getSelectedIndex() == 1 && rbZIP.isSelected() && !(new File(txtZIP.getText()).isFile())) {
+			IJ.error("Introduced String does not correspond to a valid local file.");
 		}
 		
 		stopped = true;
@@ -454,7 +467,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			File destFile = new File(modelsDir + File.separator +  fileName);
 			progressScreen.setFileName(modelsDir + File.separator +  fileName);
 			progressScreen.setmodelName(fileName);
-			progressScreen.setFileSize(webFileSize);
+			progressScreen.setFileSize(originalModel.length());
 			progressScreen.buildScreen();
 			progressScreen.setVisible(true);
 			FileTools.copyFile(originalModel, destFile);
@@ -550,7 +563,12 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	        Calendar cal = Calendar.getInstance();
 			SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
 			String dateString = sdf.format(cal.getTime());
-			fileName = model.name + "_" + dateString + ".zip";
+			String modelName;
+			if (model == null || model.name == null)
+				modelName = "model";
+			else
+				modelName = model.name;				
+			fileName = modelName + "_" + dateString + ".zip";
 			URL website = new URL(url);
 			webFileSize = getFileSize(website);
 			rbc = Channels.newChannel(website.openStream());
