@@ -211,7 +211,7 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 		    <groupId>org.jetbrains.kotlin</groupId>
 		    <artifactId>kotlin-stdlib</artifactId>
-		    <version>1.3.72</version>
+		    <version>1.6.0</version>
 		</dependency>	
 		<!-- Test scope dependencies -->
 		<dependency>
