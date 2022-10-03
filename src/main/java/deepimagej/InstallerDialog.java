@@ -335,7 +335,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		// Get the original name of the zip file
 		fileName = zipFile.getName();
 		fileName = fileName.substring(0, fileName.lastIndexOf("."));
-		fileName = fileName + "_" + dateString + ".zip";
+		fileName = removeInvalidCharacters(fileName + "_" + dateString + ".zip");
 		
 		Thread thread = new Thread(this);
 		thread.setPriority(Thread.MIN_PRIORITY);
@@ -378,7 +378,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
         Calendar cal = Calendar.getInstance();
 		SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
 		String dateString = sdf.format(cal.getTime());
-		fileName = "deepImageJModel" + "_" + dateString + ".zip";
+		fileName = removeInvalidCharacters("deepImageJModel" + "_" + dateString + ".zip");
 		
 		Thread thread = new Thread(this);
 		thread.setPriority(Thread.MIN_PRIORITY);
@@ -456,7 +456,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		try {
 			if (downloadURLs.size() != 1)
 				throw new Exception();
-			fileName = new File(downloadURLs.get(0)).getName();
+			fileName = removeInvalidCharacters(new File(downloadURLs.get(0)).getName());
 			// Add timestamp to the model name. 
 			// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
 	        Calendar cal = Calendar.getInstance();
@@ -512,7 +512,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	        Calendar cal = Calendar.getInstance();
 			SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
 			String dateString = sdf.format(cal.getTime());
-			fileName = model.name + "_" + dateString;
+			fileName = removeInvalidCharacters(model.name + "_" + dateString);
 			webFileSize = getFileSize();
 			new File(modelsDir + File.separator +  fileName).mkdirs();
 			progressScreen.setFileName(modelsDir + File.separator +  fileName);
@@ -568,11 +568,20 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 				modelName = "model";
 			else
 				modelName = model.name;				
-			fileName = modelName + "_" + dateString + ".zip";
+			fileName = removeInvalidCharacters(modelName + "_" + dateString + ".zip");
 			URL website = new URL(url);
 			webFileSize = getFileSize(website);
 			rbc = Channels.newChannel(website.openStream());
 			// Create the new model file as a zip
+			// TODO
+			// TODO
+			// TODO
+			// TODO
+			// TODO
+			// TODO
+			// TODO
+			// TODO
+			modelsDir = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models";
 			fos = new FileOutputStream(new File(modelsDir, fileName));
 			// Send the correct parameters to the progress screen
 			progressScreen.setFileName(modelsDir + File.separator +  fileName);
@@ -603,5 +612,13 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			}
 		}
 		progressScreen.stop();
+	}
+	
+	public static String removeInvalidCharacters(String filename) {
+		String[] listForbidden = new String[] {"\\", "|", "/", "<", ">", 
+												":", "\"", "?", "*"};
+		for (String invalid : listForbidden)
+			filename = filename.replace(invalid, "_");
+		return filename;
 	}
 }
