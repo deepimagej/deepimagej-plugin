@@ -573,15 +573,6 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			webFileSize = getFileSize(website);
 			rbc = Channels.newChannel(website.openStream());
 			// Create the new model file as a zip
-			// TODO
-			// TODO
-			// TODO
-			// TODO
-			// TODO
-			// TODO
-			// TODO
-			// TODO
-			modelsDir = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models";
 			fos = new FileOutputStream(new File(modelsDir, fileName));
 			// Send the correct parameters to the progress screen
 			progressScreen.setFileName(modelsDir + File.separator +  fileName);
