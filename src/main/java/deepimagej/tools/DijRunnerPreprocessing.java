@@ -113,7 +113,9 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 			im.setTitle("tmp_" + correctTitle);
 			if (batch == false) {
 				ImageWindow windToClose = inp.getWindow();
-				windToClose.dispose();
+				if (windToClose != null) {
+					windToClose.dispose();
+				}
 			}
 			WindowManager.setTempCurrentImage(inp);
 			if (rp != null && rp.isStopped()) {
