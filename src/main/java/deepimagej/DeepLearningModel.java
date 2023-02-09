@@ -44,18 +44,9 @@
 
 package deepimagej;
 
-import java.io.File;
-import java.net.JarURLConnection;
-import java.net.URL;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.Index;
-import deepimagej.tools.Log;
-import ij.IJ;
 
 public class DeepLearningModel {
 

@@ -260,9 +260,9 @@ public class YAMLUtils {
 		if (params.framework.contains("tensorflow")) {
 			Map<String, Object> modelKeys = new LinkedHashMap<>();
 			// Model tag
-			modelKeys.put("tensorflow_model_tag", DeepLearningModel.returnTfTag(params.tag));
+			modelKeys.put("tensorflow_model_tag", "serve");
 			// Model signature definition
-			modelKeys.put("tensorflow_siganture_def", DeepLearningModel.returnTfSig(params.graph));
+			modelKeys.put("tensorflow_siganture_def", "serving_default");
 			deepimagej.put("model_keys", modelKeys);
 		} else if (params.framework.contains("pytorch")) {
 			deepimagej.put("model_keys", null);

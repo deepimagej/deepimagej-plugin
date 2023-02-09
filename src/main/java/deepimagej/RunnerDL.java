@@ -51,15 +51,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.tensorflow.Tensor;
+import org.bioimageanalysis.icy.deeplearning.model.Model;
+import org.bioimageanalysis.icy.deeplearning.tensor.Tensor;
 
-import ai.djl.engine.EngineException;
-import ai.djl.inference.Predictor;
-import ai.djl.ndarray.NDArray;
-import ai.djl.ndarray.NDList;
-import ai.djl.ndarray.NDManager;
-import ai.djl.ndarray.types.Shape;
-import ai.djl.repository.zoo.ZooModel;
 import deepimagej.exceptions.BatchSizeBiggerThanOne;
 import deepimagej.exceptions.IncorrectNumberOfDimensions;
 import deepimagej.tools.ArrayOperations;
@@ -71,8 +65,10 @@ import deepimagej.tools.NumFormat;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.measure.ResultsTable;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
 
-public class RunnerDL implements Callable<HashMap<String, Object>> {
+public class RunnerDL < T extends RealType< T > & NativeType< T > > implements Callable<HashMap<String, Object>> {
 
 	private HashMap<String,Object> 	inputMap;
 	private DeepImageJ				dp;
@@ -91,7 +87,7 @@ public class RunnerDL implements Callable<HashMap<String, Object>> {
 	}
 
 	@Override
-	public HashMap<String, Object> call() {
+	public  HashMap<String, Object> call() {
 		
 		if (rp != null ) {
 			rp.setInfoTag("applyModel");
@@ -104,7 +100,7 @@ public class RunnerDL implements Callable<HashMap<String, Object>> {
 
 		Parameters params = dp.params;
 		// Load the model first
-		ZooModel<NDList, NDList> model = dp.getTorchModel();
+		Model model = dp.getModel();
 		if (log.getLevel() >= 1)
 			log.print("model " + (model == null));
 		
@@ -141,14 +137,11 @@ public class RunnerDL implements Callable<HashMap<String, Object>> {
 							+ "the preprocessing but it is not.";
 					IJ.error(error);
 					return null;
-				} else if (tensorVal instanceof Tensor<?>) {
-					parameterMap.put(tensor.name, (Tensor<?>) tensorVal);
-				} else if (tensorVal instanceof NDArray) {
-					parameterMap.put(tensor.name, (NDArray) tensorVal);
+				} else if (tensorVal instanceof Tensor) {
+					parameterMap.put(tensor.name, (Tensor<T>) tensorVal);
 				} else  {
 					// TODO improve error message and review what can be a preprocessing output
-					error = "Output of the preprocessing should be either a Tensor object"
-							+ " or a NDArray object";
+					error = "Output of the preprocessing should be a Biimage.io Tensor";
 					IJ.error(error);
 					return null;
 				}
@@ -306,7 +299,6 @@ public class RunnerDL implements Callable<HashMap<String, Object>> {
 		if (log.getLevel() >= 1)
 			log.print("start " + npx + "x" + npy);
 
-		NDList inputTensors = new NDList();
 		for (int i = 0; i < npx; i++) {
 			for (int j = 0; j < npy; j++) {
 				for (int z = 0; z < npz; z++) {
@@ -386,8 +378,8 @@ public class RunnerDL implements Callable<HashMap<String, Object>> {
 					}
 
 					// TODO optimise (take the try out of the loop) 
-					try (NDManager manager = NDManager.newBaseManager()) {
-						inputTensors = getInputTensors(manager, inputTensors, params.inputList, parameterMap,
+					try {
+						List<Tensor<?>> inputTensors = getInputTensors(params.inputList, parameterMap,
 														patch, params.pytorchVersion);
 						// TODO make easier to understand
 						if (inputTensors == null) {
@@ -400,10 +392,13 @@ public class RunnerDL implements Callable<HashMap<String, Object>> {
 						// while executing the task
 						if (rp != null)
 							rp.allowStopping(false);
-						Predictor<NDList, NDList> predictor = model.newPredictor();
-						NDList outputTensors = predictor.predict(inputTensors);
+						List<Tensor<?>> outputTensorList = new ArrayList<Tensor<?>>();
+						for (DijTensor outTensor : params.outputList)
+							outputTensorList.add(Tensor.buildEmptyTensor(outTensor.name, outTensor.form));
+						
+						model.runModel(inputTensors, outputTensorList);
 						// Close inputTensors to avoid memory leak
-						inputTensors.close();
+						inputTensors.stream().forEach(tt -> tt.close());
 						if (rp != null)
 							rp.allowStopping(true);
 						// Check if the user has tried to stop the execution while loading the model
@@ -416,7 +411,7 @@ public class RunnerDL implements Callable<HashMap<String, Object>> {
 						for (DijTensor outTensor : params.outputList) {
 							if (log.getLevel() >= 1)
 								log.print("Session run " + (c+1) + "/"  + params.outputList.size());
-							NDArray result = outputTensors.get(c);
+							Tensor<T> result = (Tensor<T>) outputTensorList.get(c);
 							if (outTensor.tensorType.contains("image") && !params.pyramidalNetwork) {
 								impatch[imCounter] = ImagePlus2Tensor.NDArray2ImagePlus(result, outTensor.form, outTensor.name, params.pytorchVersion);
 								imCounter ++;
@@ -435,13 +430,12 @@ public class RunnerDL implements Callable<HashMap<String, Object>> {
 							// Check if the user has tried to stop the execution while loading the model
 							// If they have return false and stop
 							if (rp != null && rp.isStopped()) {
-								outputTensors.close();
-								manager.close();
+								model.closeModel();
+								outputTensorList.stream().forEach(tt -> tt.close());
 								return null;
 							}
 						}
-						outputTensors.close();
-						manager.close();
+						outputTensorList.stream().forEach(tt -> tt.close());
 					} catch (IncorrectNumberOfDimensions ex) {
 						ex.printStackTrace();	
 						
@@ -461,14 +455,6 @@ public class RunnerDL implements Callable<HashMap<String, Object>> {
 						IJ.log(error);
 						IJ.log(ex.toString());
 						IJ.log("\n");
-						commentAboutPytorchVersions();
-						return null;
-					} catch (EngineException ex) {
-						ex.printStackTrace();	
-						error = dimensionsMismatch(ex.getMessage());
-						IJ.log("Error applying the model");
-						IJ.log("Check that the specifications for the input are compatible with the model architecture.");
-						IJ.log(error);
 						commentAboutPytorchVersions();
 						return null;
 					} catch (Exception ex) {
@@ -641,35 +627,16 @@ public class RunnerDL implements Callable<HashMap<String, Object>> {
 		return inputMap.get(tensor.name);
 	}
 	
-	private static NDList getInputTensors(NDManager manager, NDList tensorsArray, List<DijTensor> inputTensors, HashMap<String, Object> paramsMap,
+	private static < T extends RealType< T > & NativeType< T > > List<Tensor<?>> getInputTensors(List<DijTensor> inputTensors, HashMap<String, Object> paramsMap,
 												ImagePlus im, String pytorchVersion){
-		tensorsArray = new NDList();
+		List<Tensor<?>> tensorsArray = new ArrayList<Tensor<?>>();
 		for (DijTensor tensor : inputTensors) {
-			if (tensor.tensorType.contains("parameter") && (paramsMap.get(tensor.name) instanceof NDArray)) {
-				NDArray tt = (NDArray) paramsMap.get(tensor.name);
+			if (tensor.tensorType.contains("parameter") && (paramsMap.get(tensor.name) instanceof Tensor)) {
+				Tensor<T> tt = (Tensor<T>) paramsMap.get(tensor.name);
 				tensorsArray.add(tt);
-			} else if (tensor.tensorType.contains("parameter") && (paramsMap.get(tensor.name) instanceof Tensor<?>)) {
-				Tensor<?> t = (Tensor<?>) paramsMap.get(tensor.name);
-				try {
-					final float[] out = new float[t.numElements()];
-					FloatBuffer outBuff = FloatBuffer.wrap(out);
-					t.writeTo(outBuff);
-					NDArray tt = manager.create(out, new Shape(t.shape()));
-					tensorsArray.add(tt);
-				} catch (Exception ex) {
-					 tensorsArray.close();
-					 ex.printStackTrace();
-					 return null;
-				}
 			} else if (tensor.tensorType.contains("image")) {
-				 try {
-					 NDArray tt = ImagePlus2Tensor.imPlus2tensor(manager, im, tensor.form, pytorchVersion);
-					 tensorsArray.add(tt);
-				 } catch (Exception ex) {
-					 tensorsArray.close();
-					 ex.printStackTrace();
-					 return null;
-				 }
+				Tensor<T> tt = ImagePlus2Tensor.imPlus2tensor(im, tensor.form, pytorchVersion);
+				tensorsArray.add(tt);
 			}
 		}
 		return tensorsArray;
