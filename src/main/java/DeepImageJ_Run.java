@@ -98,7 +98,6 @@ import java.util.concurrent.Future;
 
 import javax.swing.JButton;
 
-
 public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionListener {
 	private GenericDialog 				dlg;
 	private TextArea					info;

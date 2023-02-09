@@ -137,14 +137,33 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 			<id>scijava.public</id>
 			<url>https://maven.scijava.org/content/groups/public</url>
 		</repository>
+		<repository>
+			<id>icy</id>
+			<url>https://icy-nexus.pasteur.fr/repository/Icy/</url>
+		</repository>
 	</repositories>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.bioimageanalysis.icy</groupId>
+			<artifactId>dl-model-runner</artifactId>
+			<version>0.0.1</version>
+		</dependency>
+
+		<!--        <dependency>-->
+		<!--            <groupId>io.bioimage</groupId>-->
+		<!--            <artifactId>dl-modelrunner</artifactId>-->
+		<!--            <version>0.1.0-SNAPSHOT</version>-->
+		<!--        </dependency>-->
+
 		<dependency>
 			<groupId>com.google.protobuf</groupId>
 			<artifactId>protobuf-java</artifactId>
 			<version>${protobuf.version}</version>
 		</dependency>
+
+<!--		TENSORFLOW JAVA DEPENDENCIES-->
+
 		<dependency>
 			<groupId>org.tensorflow</groupId>
 			<artifactId>proto</artifactId>
@@ -157,6 +176,7 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 			<groupId>org.tensorflow</groupId>
 			<artifactId>libtensorflow_jni</artifactId>
 		</dependency>
+
 		<dependency>
 			<groupId>org.yaml</groupId>
 			<artifactId>snakeyaml</artifactId>
