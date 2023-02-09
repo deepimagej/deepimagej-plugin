@@ -51,7 +51,6 @@ import java.util.concurrent.Callable;
 
 import deepimagej.DeepImageJ;
 import deepimagej.RunnerProgress;
-import deepimagej.stamp.LoadPytorchStamp;
 import ij.IJ;
 
 public class ModelLoader implements Callable<Boolean>{
@@ -148,18 +147,6 @@ public class ModelLoader implements Callable<Boolean>{
 					rp.setGPU("gpu");
 				}
 			} else {
-				rp.setGPU("gpu");
-			}
-		}
-		
-		if (dp.params.framework.toLowerCase().equals("pytorch")) {
-			String ptNativeFileName = LoadPytorchStamp.getNativeLbraryFile();
-			String lib = new File(ptNativeFileName).getName();
-			// Get the Pytorch version being used reading the fist part of the lib folder
-			dp.params.pytorchVersion = lib.substring(0, 5);
-			if (rp != null && lib.toLowerCase().contains("cpu")) {
-				rp.setGPU("cpu");
-			} else if (rp != null){
 				rp.setGPU("gpu");
 			}
 		}
