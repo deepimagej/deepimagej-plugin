@@ -144,6 +144,7 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 	</repositories>
 
 	<dependencies>
+<!--		MODEL RUNNER-->
 		<dependency>
 			<groupId>org.bioimageanalysis.icy</groupId>
 			<artifactId>dl-model-runner</artifactId>
@@ -176,15 +177,18 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 			<groupId>org.tensorflow</groupId>
 			<artifactId>libtensorflow_jni</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>imagej-tensorflow</artifactId>
+		</dependency>
+
+<!--		END Tensorflow java dependencies-->
 
 		<dependency>
 			<groupId>org.yaml</groupId>
 			<artifactId>snakeyaml</artifactId>
 		</dependency>
-		<dependency>
-		    <groupId>net.imagej</groupId>
-		    <artifactId>imagej-tensorflow</artifactId>
-		</dependency>
+
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
