@@ -257,10 +257,8 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		}
 		
 		processor.setText("Model Inference (GPU: " + gpuTag + ")");
-		if (runner != null && (runner instanceof RunnerTf))
-			patches.setText("Patches: " + ((RunnerTf) runner).getCurrentPatch() + "/" + ((RunnerTf) runner).getTotalPatch());
-		if (runner != null && (runner instanceof RunnerPt))
-			patches.setText("Patches: " + ((RunnerPt) runner).getCurrentPatch() + "/" + ((RunnerPt) runner).getTotalPatch());
+		if (runner != null && (runner instanceof RunnerDL))
+			patches.setText("Patches: " + ((RunnerDL) runner).getCurrentPatch() + "/" + ((RunnerDL) runner).getTotalPatch());
 		
 		
 	}

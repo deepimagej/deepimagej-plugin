@@ -72,7 +72,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.measure.ResultsTable;
 
-public class RunnerPt implements Callable<HashMap<String, Object>> {
+public class RunnerDL implements Callable<HashMap<String, Object>> {
 
 	private HashMap<String,Object> 	inputMap;
 	private DeepImageJ				dp;
@@ -82,7 +82,7 @@ public class RunnerPt implements Callable<HashMap<String, Object>> {
 	private int						totalPatch = 0;
 	public String					error = "";
 
-	public RunnerPt(DeepImageJ dp, RunnerProgress rp,HashMap<String,Object> inputMap, Log log) {
+	public RunnerDL(DeepImageJ dp, RunnerProgress rp,HashMap<String,Object> inputMap, Log log) {
 		this.dp = dp;
 		this.rp = rp;
 		this.log = log;

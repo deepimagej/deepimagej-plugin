@@ -75,7 +75,6 @@ import deepimagej.stamp.TensorPytorchTmpStamp;
 import deepimagej.stamp.TensorStamp;
 import deepimagej.stamp.TestStamp;
 import deepimagej.stamp.WelcomeStamp;
-import deepimagej.tools.Log;
 import deepimagej.tools.WebBrowser;
 import ij.IJ;
 import ij.gui.GUI;
@@ -179,11 +178,8 @@ public class BuildDialog extends JDialog implements ActionListener {
 			  removeAll();
 			  if (dp == null)
 				  return;
-			  if (getDeepPlugin().getTfModel() != null) { 
-				  getDeepPlugin().getTfModel().session().close();
-				  getDeepPlugin().getTfModel().close();
-			  } else if (getDeepPlugin().getTorchModel() != null) {
-				  getDeepPlugin().getTorchModel().close();
+			  if (getDeepPlugin().getModel() != null) { 
+				  getDeepPlugin().getModel().closeModel();
 			  }
 		  }
 		  public void windowClosing(WindowEvent e) {
@@ -192,11 +188,8 @@ public class BuildDialog extends JDialog implements ActionListener {
 			  removeAll();
 			  if (dp == null)
 				  return;
-			  if (getDeepPlugin().getTfModel() != null) { 
-				  getDeepPlugin().getTfModel().session().close();
-				  getDeepPlugin().getTfModel().close();
-			  } else if (getDeepPlugin().getTorchModel() != null) {
-				  getDeepPlugin().getTorchModel().close();
+			  if (getDeepPlugin().getModel() != null) { 
+				  getDeepPlugin().getModel().closeModel();
 			  }
 		  }
 		});
@@ -228,10 +221,9 @@ public class BuildDialog extends JDialog implements ActionListener {
 					String name = welcome.getModelName();
 					if (path != null) {
 						dp = new DeepImageJ(path, name, true);
-						if (dp.getTfModel() != null)
-							dp.getTfModel().close();
-						else if (dp.getTorchModel() != null)
-							dp.getTorchModel().close();
+						if (getDeepPlugin().getModel() != null) {
+							getDeepPlugin().getModel().closeModel();
+						}
 						if (dp != null) {
 							dp.params.path2Model = path + File.separator + name + File.separator;
 							if (dp.getValid() && dp.params.framework.contains("tensorflow")) {

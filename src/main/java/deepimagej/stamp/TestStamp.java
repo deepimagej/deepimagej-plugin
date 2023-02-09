@@ -77,7 +77,7 @@ import deepimagej.DeepImageJ;
 import deepimagej.Parameters;
 import deepimagej.RunnerTf;
 import deepimagej.RunnerProgress;
-import deepimagej.RunnerPt;
+import deepimagej.RunnerDL;
 import deepimagej.components.HTMLPane;
 import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.DijRunnerPostprocessing;
@@ -396,7 +396,7 @@ public class TestStamp extends AbstractStamp implements ActionListener, MouseLis
 				runnerError = runner.error;
 			} else {
 				rp.setGPU(parent.getGPUPt());
-				RunnerPt runner = new RunnerPt(dp, rp, inputsMap, new Log());
+				RunnerDL runner = new RunnerDL(dp, rp, inputsMap, new Log());
 				rp.setRunner(runner);
 				// TODO decide what to store at the end of the execution
 				Future<HashMap<String, Object>> f1 = service.submit(runner);

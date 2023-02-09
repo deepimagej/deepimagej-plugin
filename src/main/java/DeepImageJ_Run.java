@@ -68,9 +68,8 @@ import java.util.Set;
 
 import deepimagej.DeepImageJ;
 import deepimagej.Constants;
-import deepimagej.RunnerTf;
 import deepimagej.RunnerProgress;
-import deepimagej.RunnerPt;
+import deepimagej.RunnerDL;
 import deepimagej.DeepLearningModel;
 import deepimagej.components.BorderPanel;
 import deepimagej.exceptions.MacrosError;
@@ -82,7 +81,6 @@ import deepimagej.tools.DijTensor;
 import deepimagej.tools.Index;
 import deepimagej.tools.Log;
 import deepimagej.tools.ModelLoader;
-import deepimagej.tools.StartTensorflowService;
 import deepimagej.tools.SystemUsage;
 import ij.IJ;
 import ij.ImagePlus;
@@ -347,10 +345,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 				return null;
 			}
 			for (String kk : dps.keySet()) {
-				if (dps.get(kk).getTfModel() != null)
-					dps.get(kk).getTfModel().close();
-				else if (dps.get(kk).getTorchModel() != null)
-					dps.get(kk).getTorchModel().close();
+				if (dps.get(kk).getModel() != null)
+					dps.get(kk).getModel().closeModel();
 			}
 			return null;
 		}
@@ -643,7 +639,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 				
 				// If the model was not loaded, run again the plugin
 				if (!output) {
-					IJ.error("Load model error: " + (dp.getTfModel() == null || dp.getTorchModel() == null));
+					IJ.error("Load model error: " + (dp.getModel() == null));
 					service.shutdown();
 					if (!isMacro && !headless)
 						run("");
@@ -978,19 +974,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			if (log.getLevel() >= 1)
 				log.print("start runner");
 			HashMap<String, Object> output = null;
-			if (dp.params.framework.equals("tensorflow")) {
-				RunnerTf runner = new RunnerTf(dp, rp, inputsMap, log);
-				if (rp != null)
-					rp.setRunner(runner);
-				Future<HashMap<String, Object>> f1 = service.submit(runner);
-				output = f1.get();
-			} else {
-				RunnerPt runner = new RunnerPt(dp, rp, inputsMap, log);
-				if (rp != null)
-					rp.setRunner(runner);
-				Future<HashMap<String, Object>> f1 = service.submit(runner);
-				output = f1.get();
-			}
+
+			RunnerDL runner = new RunnerDL(dp, rp, inputsMap, log);
+			if (rp != null)
+				rp.setRunner(runner);
+			Future<HashMap<String, Object>> f1 = service.submit(runner);
+			output = f1.get();
 			
 			inp.changes = false;
 			inp.close();
@@ -1079,14 +1068,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		// If it is not headless, there is no GUI, no need to close it
 		if (!headless && !isMacro && !testMode)
 			dlg.dispose();
-		// Close the IJ2 services to free all the resources used
-		if (SystemUsage.checkFiji())
-			StartTensorflowService.closeTfService();
-		if (dp != null && dp.params.framework.equals("tensorflow") && dp.getTfModel() != null) {
-			dp.getTfModel().session().close();
-			dp.getTfModel().close();
-		} else if (dp != null && dp.params.framework.equals("pytorch") && dp.getTorchModel() != null) {
-			dp.getTorchModel().close();
+		if (dp != null && dp.getModel() != null) {
+			dp.getModel().closeModel();
+			dp.setModel(null);
 		}
 		this.dp = null;
 		this.dps = null;
@@ -1179,14 +1163,23 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			info.append("\n\n");
 			info.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- LOADING TENSORFLOW JAVA (might take some time)\n");
 		}
+		/*
+		 * TODO
+		 * TODO
+		 * TODO
+		 * TODO
+		 * TODO
+		 * TODO
+		 * TODO
+		 * TODO
+		 * TODO
 		// First load Tensorflow
-		if (isFiji && (!(headless || isMacro) || tf)) {
-			loadInfo = StartTensorflowService.loadTfLibrary();
-		} else if (!(headless || isMacro) || pt) {
+		if (!(headless || isMacro) || pt) {
 			// In order to get Pytorch to work we have to set
 			// the IJ ClassLoader as the ContextClassLoader
 			Thread.currentThread().setContextClassLoader(IJ.getClassLoader());
 		}
+		 */
 		// If the version allows GPU, find if there is CUDA
 		if (loadInfo.contains("GPU")) 
 			cudaVersion = SystemUsage.getCUDAEnvVariables();

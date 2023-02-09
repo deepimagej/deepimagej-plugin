@@ -150,40 +150,7 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 			<artifactId>dl-model-runner</artifactId>
 			<version>0.0.1</version>
 		</dependency>
-
-		<!--        <dependency>-->
-		<!--            <groupId>io.bioimage</groupId>-->
-		<!--            <artifactId>dl-modelrunner</artifactId>-->
-		<!--            <version>0.1.0-SNAPSHOT</version>-->
-		<!--        </dependency>-->
-
-		<dependency>
-			<groupId>com.google.protobuf</groupId>
-			<artifactId>protobuf-java</artifactId>
-			<version>${protobuf.version}</version>
-		</dependency>
-
-<!--		TENSORFLOW JAVA DEPENDENCIES-->
-
-		<dependency>
-			<groupId>org.tensorflow</groupId>
-			<artifactId>proto</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.tensorflow</groupId>
-			<artifactId>libtensorflow</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.tensorflow</groupId>
-			<artifactId>libtensorflow_jni</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>net.imagej</groupId>
-			<artifactId>imagej-tensorflow</artifactId>
-		</dependency>
-
-<!--		END Tensorflow java dependencies-->
-
+<!--		MODEL RUNNER-->
 		<dependency>
 			<groupId>org.yaml</groupId>
 			<artifactId>snakeyaml</artifactId>
@@ -192,35 +159,6 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
-		</dependency>
-		<!--  Dependencies for DJL Pytorch, START -->
-		<dependency>
-		    <groupId>ai.djl</groupId>
-		    <artifactId>api</artifactId>
-		    <version>0.14.0</version>
-		</dependency>
-		<dependency>
-		    <groupId>ai.djl.pytorch</groupId>
-		    <artifactId>pytorch-native-auto</artifactId>
-		    <version>1.9.1</version>
-		</dependency>
-	    <dependency>
-	        <groupId>ai.djl.pytorch</groupId>
-	        <artifactId>pytorch-engine</artifactId>
-		    <version>0.14.0</version>
-	    </dependency>
-	    <dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-simple</artifactId>
-		    <scope>test</scope>
-		</dependency>
-		<dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-api</artifactId>
-		</dependency>
-		<dependency>
-		    <groupId>net.java.dev.jna</groupId>
-		    <artifactId>jna</artifactId>
 		</dependency>
 		<!--  Dependencies for DJL Pytorch, END -->
 		<dependency>

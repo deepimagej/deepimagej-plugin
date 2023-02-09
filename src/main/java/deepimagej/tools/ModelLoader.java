@@ -48,7 +48,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
-import java.util.zip.ZipException;
 
 import deepimagej.DeepImageJ;
 import deepimagej.RunnerProgress;
@@ -113,13 +112,7 @@ public class ModelLoader implements Callable<Boolean>{
 		// while executing the task
 		if (rp != null)
 			rp.allowStopping(false);
-		boolean ret = false;
-		if (dp.params.framework.equals("tensorflow")) {
-			ret = dp.loadTfModel(true);
-		} else if (dp.params.framework.equals("pytorch")) {
-			String ptWeightsPath = dp.getPath() + File.separatorChar + dp.ptName;
-			ret = dp.loadPtModel(ptWeightsPath, isFiji);
-		}
+		boolean ret = dp.loadModel(isFiji);
 		if (ret == false && dp.params.framework.equals("tensorflow")) {
 			IJ.error("Error loading " + dp.getName() + 
 					"\nTry using another Tensorflow version.");

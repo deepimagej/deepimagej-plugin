@@ -53,15 +53,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 
-import org.tensorflow.SavedModelBundle;
+import org.bioimageanalysis.icy.deeplearning.model.Model;
 
-import ai.djl.MalformedModelException;
-import ai.djl.ndarray.NDList;
-import ai.djl.repository.zoo.Criteria;
-import ai.djl.repository.zoo.ModelNotFoundException;
-import ai.djl.repository.zoo.ModelZoo;
-import ai.djl.repository.zoo.ZooModel;
-import ai.djl.training.util.ProgressBar;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.FileTools;
 import ij.IJ;
@@ -76,8 +69,7 @@ public class DeepImageJ {
 	// Specifies if the yaml is present in the model folder
 	public boolean					presentYaml		= true;
 	private boolean					developer		= true;
-	private SavedModelBundle		tfModel			= null;
-	private ZooModel<NDList, NDList>torchModel		= null;
+	private Model model			= null;
 	public String ptName = "pytorch_script.pt";
 	public String ptName2 = "weights-torchscript.pt";
 	public String tfName = "tensorflow_saved_model_bundle.zip";
@@ -128,20 +120,12 @@ public class DeepImageJ {
 		return name.replace("\"", "");
 	}
 	
-	public ZooModel<NDList, NDList> getTorchModel() {
-		return torchModel;
+	public Model getModel() {
+		return model;
 	}
 
-	public void setTorchModel(ZooModel<NDList, NDList> model) {
-		this.torchModel = model;
-	}
-	
-	public SavedModelBundle getTfModel() {
-		return tfModel;
-	}
-
-	public void setTfModel(SavedModelBundle model) {
-		this.tfModel = model;
+	public void setModel(Model model) {
+		this.model = model;
 	}
 
 	public boolean getValid() {
@@ -195,59 +179,14 @@ public class DeepImageJ {
 	}
 
 
-	public boolean loadTfModel(boolean archi) {
-
-		double chrono = System.nanoTime();
-		SavedModelBundle model;
+	public boolean loadModel(boolean isFiji) {
 		try {
-			model = SavedModelBundle.load(path, DeepLearningModel.returnStringTag(params.tag));
-			setTfModel(model);
-		}
-		catch (Exception e) {
-			IJ.log("Exception in loading model " + dirname);
-			IJ.log(e.toString());
-			IJ.log(e.getMessage());
-			return false;
-		}
-		chrono = (System.nanoTime() - chrono) / 1000000.0;
-		return true;
-	}
-
-
-	public boolean loadPtModel(String path, boolean isFiji) {
-		try {
+			/** TODO
+			 * 
 			if (!isFiji)
 				Thread.currentThread().setContextClassLoader(IJ.getClassLoader());
-			URL url = new File(new File(path).getParent()).toURI().toURL();
-			
-			String modelName = new File(path).getName();
-			modelName = modelName.substring(0, modelName.indexOf(".pt"));
-			Criteria<NDList, NDList> criteria = Criteria.builder()
-			        .setTypes(NDList.class, NDList.class)
-			         // only search the model in local directory
-			         // "ai.djl.localmodelzoo:{name of the model}"
-			        .optModelUrls(url.toString()) // search models in specified path
-			        //.optArtifactId("ai.djl.localmodelzoo:resnet_18") // defines which model to load
-			        .optModelName(modelName)
-			        .optProgress(new ProgressBar()).build();
-	
-			ZooModel<NDList, NDList> model = ModelZoo.loadModel(criteria);
-			this.setTorchModel(model);
-			
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-			return false;
-		} catch (ModelNotFoundException e) {
-			e.printStackTrace();
-			return false;
-		} catch (MalformedModelException e) {
-			e.printStackTrace();
-			return false;
-		} catch (IOException e) {
-			IJ.log("Model not found in the path provided:");
-			IJ.log(path);
-			e.printStackTrace();
-			return false;
+			 */
+			model.loadModel();
 		} catch (UnsatisfiedLinkError e) {
 			e.printStackTrace();
 			IJ.log("DeepImageJ could not load the Pytorch model.");
