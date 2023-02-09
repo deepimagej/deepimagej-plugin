@@ -69,6 +69,7 @@ public class ModelLoader implements Callable<Boolean>{
 		this.cuda = cuda;
 		this.show = show;
 		this.model = model;
+		this.dp = dp;
 	}
 
 	@Override

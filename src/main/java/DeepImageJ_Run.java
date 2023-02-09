@@ -180,7 +180,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		path = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models" + File.separator;
 		path = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\Usiigaci_2.1.4\\usiigaci.tif");
-		ImagePlus imp = null;//IJ.openImage("C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models\\model\\sample_input_0.tif");
+		ImagePlus imp = IJ.openImage("C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models\\HPA Nucleus Segmentation (DPNUnet)_13012023_132054\\sample_input_0.tif");
 		//ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
 		if (imp != null)
 			imp.show();		WindowManager.setTempCurrentImage(imp);
@@ -458,7 +458,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			return;
 		}
 		// Get the arguments for the model execution
-		String dirname = args[0]; String format = args[1]; processingFile[0] = args[2];
+		String dirname = args[0]; String finalFormat = args[1]; processingFile[0] = args[2];
 		processingFile[1] = args[3]; String patchString = args[5]; String debugMode = args[6];
 						
 		dp = dps.get(dirname);
@@ -524,6 +524,18 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			log.print("Load model: " + dp.getName() + "(" + dirname + ")");
 		
 		List<String> engineNamesList = dp.params.weights.getEnginesListWithVersions();
+		dp.params.framework = finalFormat;
+		String format;
+		if (finalFormat.equals("pytorch")) {
+			format = "torchscript";
+		} else if (finalFormat.equals("tensorflow")) {
+			format = "tensorflow_saved_model_bundle";
+		} else if (finalFormat.equals("onnx")) {
+			format = "onnx";
+		} else {
+			throw new IllegalArgumentException("Selected 'Format' is not suppported. Only 'Formats' " + System.lineSeparator()
+									+ "supported are Tensorflow, Pytorch and Onnx");
+		}
 		String engineSelected = 
 				engineNamesList.stream().filter(i -> i.startsWith(format)).findFirst().orElse(null);
 		String source;
@@ -532,6 +544,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		try {
 			engine = dp.params.weights.getWeightsByIdentifier(engineSelected).getWeightsFormat();
 			source = dp.params.weights.getWeightsByIdentifier(engineSelected).getSource();
+			source = dp.getPath() + System.lineSeparator() + new File(source).getName();
 			version = dp.params.weights.getWeightsByIdentifier(engineSelected).getTrainingVersion();
 		} catch (IOException e1) {
 			IJ.error("The selected model does not contains source file for the selected weights.");
@@ -656,7 +669,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		
 		boolean iscuda = DeepLearningModel.TensorflowCUDACompatibility(loadInfo, cudaVersion).equals("");
 		
-		EngineInfo engineInfo = EngineInfo.defineDLEngine(engine, source, 
+		EngineInfo engineInfo = EngineInfo.defineDLEngine(engine, version, 
 				JARS_DIRECTORY, true, loadInfo.contains("GPU"));
 		Model model;
 		try {
