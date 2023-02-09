@@ -100,6 +100,8 @@ import java.util.stream.Collectors;
 import javax.swing.JButton;
 
 import org.bioimageanalysis.icy.deeplearning.engine.EngineInfo;
+import org.bioimageanalysis.icy.deeplearning.exceptions.LoadEngineException;
+import org.bioimageanalysis.icy.deeplearning.model.Model;
 import org.bioimageanalysis.icy.deeplearning.versionmanagement.DeepLearningVersion;
 import org.bioimageanalysis.icy.deeplearning.versionmanagement.InstalledDeepLearningVersions;
 
@@ -166,7 +168,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	 * HashMap containing the versions of CUDA compatible with each Onnx versions
 	 */
 	private static HashMap<String, String[]> CUDA_FOR_ONNX_VERSIONS = new HashMap<String, String[]>();;
-	
+	/**
+	 * Create the String to engines directory
+	 */
+	private static final String JARS_DIRECTORY = new File("engines").getAbsolutePath();
 	
 	
 	static public void main(String args[]) {
@@ -523,9 +528,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 				engineNamesList.stream().filter(i -> i.startsWith(format)).findFirst().orElse(null);
 		String source;
 		String engine;
+		String version;
 		try {
 			engine = dp.params.weights.getWeightsByIdentifier(engineSelected).getWeightsFormat();
 			source = dp.params.weights.getWeightsByIdentifier(engineSelected).getSource();
+			version = dp.params.weights.getWeightsByIdentifier(engineSelected).getTrainingVersion();
 		} catch (IOException e1) {
 			IJ.error("The selected model does not contains source file for the selected weights.");
 			run("");
@@ -648,7 +655,22 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		}
 		
 		boolean iscuda = DeepLearningModel.TensorflowCUDACompatibility(loadInfo, cudaVersion).equals("");
-		ModelLoader loadModel = new ModelLoader(dp, rp, loadInfo.contains("GPU"), iscuda, log.getLevel() >= 1, SystemUsage.checkFiji());
+		
+		EngineInfo engineInfo = EngineInfo.defineDLEngine(engine, source, 
+				JARS_DIRECTORY, true, loadInfo.contains("GPU"));
+		Model model;
+		try {
+			model = Model.createDeepLearningModel(dp.getPath(), source, engineInfo);
+		} catch (LoadEngineException e1) {
+			IJ.error("Error loading the following engine: " + engine + "-" + version);
+			run("");
+			return;
+		} catch (Exception e1) {
+			IJ.error("Error loading the following engine: " + engine + "-" + version);
+			run("");
+			return;
+		}
+		ModelLoader loadModel = new ModelLoader(dp, model, rp, loadInfo.contains("GPU"), iscuda, log.getLevel() >= 1);
 
 		Future<Boolean> f1 = service.submit(loadModel);
 		boolean output = false;

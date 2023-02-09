@@ -49,6 +49,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
+import org.bioimageanalysis.icy.deeplearning.model.Model;
+
 import deepimagej.DeepImageJ;
 import deepimagej.RunnerProgress;
 import ij.IJ;
@@ -59,14 +61,14 @@ public class ModelLoader implements Callable<Boolean>{
 	private boolean gpu;
 	private boolean cuda;
 	private boolean show;
-	private boolean isFiji;
+	private Model model;
 	
-	public ModelLoader(DeepImageJ dp, RunnerProgress rp, boolean gpu, boolean cuda, boolean show, boolean isFiji) {
+	public ModelLoader(DeepImageJ dp, Model model, RunnerProgress rp, boolean gpu, boolean cuda, boolean show) {
 		this.rp = rp;
 		this.gpu = gpu;
 		this.cuda = cuda;
 		this.show = show;
-		this.isFiji = isFiji;
+		this.model = model;
 	}
 
 	@Override
@@ -110,7 +112,8 @@ public class ModelLoader implements Callable<Boolean>{
 		// while executing the task
 		if (rp != null)
 			rp.allowStopping(false);
-		boolean ret = dp.loadModel(isFiji);
+		dp.setModel(model);
+		boolean ret = dp.loadModel();
 		if (ret == false && dp.params.framework.equals("tensorflow")) {
 			IJ.error("Error loading " + dp.getName() + 
 					"\nTry using another Tensorflow version.");

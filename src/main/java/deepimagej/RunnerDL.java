@@ -44,7 +44,6 @@
 
 package deepimagej;
 
-import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -65,6 +64,7 @@ import deepimagej.tools.NumFormat;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.measure.ResultsTable;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
@@ -413,19 +413,34 @@ public class RunnerDL < T extends RealType< T > & NativeType< T > > implements C
 								log.print("Session run " + (c+1) + "/"  + params.outputList.size());
 							Tensor<T> result = (Tensor<T>) outputTensorList.get(c);
 							if (outTensor.tensorType.contains("image") && !params.pyramidalNetwork) {
-								impatch[imCounter] = ImagePlus2Tensor.NDArray2ImagePlus(result, outTensor.form, outTensor.name, params.pytorchVersion);
+								impatch[imCounter] = ImagePlus2Tensor.tensor2ImagePlus(result.getData(), outTensor.form);
 								imCounter ++;
 								c ++;
 							} else if (outTensor.tensorType.contains("image") && (params.pyramidalNetwork || !params.allowPatching)) {
-								outputImages[imCounter] = ImagePlus2Tensor.NDArray2ImagePlus(result, outTensor.form, outTensor.name, params.pytorchVersion);
+								outputImages[imCounter] = ImagePlus2Tensor.tensor2ImagePlus(result.getData(), outTensor.form);
 								outputImages[imCounter].setTitle(outputTitles[imCounter]);
 								outputImages[imCounter].show();
 								imCounter ++;
 								c ++;
 							} else if (outTensor.tensorType.contains("list")){
-								ResultsTable table = Table2Tensor.tensorToTable(result, outTensor.form, outTensor.name, params.pytorchVersion);
+								/*
+								 * Adapt to new model runner tensors
+								 * TODO
+								 * TODO
+								 * TODO
+								 * TODO
+								 * TODO
+								 * TODO
+								 * TODO
+								 * TODO
+								 * TODO
+								 * TODO
+								 * TODO
+								 * TODO
+								 * ResultsTable table = Table2Tensor.tensorToTable(result, outTensor.form);
 								outputTables.add(table);
 								table.show(outputTitles[c ++]);
+								 */
 							}
 							// Check if the user has tried to stop the execution while loading the model
 							// If they have return false and stop
@@ -635,8 +650,8 @@ public class RunnerDL < T extends RealType< T > & NativeType< T > > implements C
 				Tensor<T> tt = (Tensor<T>) paramsMap.get(tensor.name);
 				tensorsArray.add(tt);
 			} else if (tensor.tensorType.contains("image")) {
-				Tensor<T> tt = ImagePlus2Tensor.imPlus2tensor(im, tensor.form, pytorchVersion);
-				tensorsArray.add(tt);
+				RandomAccessibleInterval<T> tt = ImagePlus2Tensor.imPlus2tensor(im, tensor.form);
+				tensorsArray.add(Tensor.build(tensor.name, tensor.form, tt));
 			}
 		}
 		return tensorsArray;

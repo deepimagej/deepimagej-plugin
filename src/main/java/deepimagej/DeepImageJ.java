@@ -179,7 +179,7 @@ public class DeepImageJ {
 	}
 
 
-	public boolean loadModel(boolean isFiji) {
+	public boolean loadModel() {
 		try {
 			/** TODO
 			 * 
