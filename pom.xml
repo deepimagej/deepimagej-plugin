@@ -11,7 +11,7 @@
 
 	<groupId>io.github.deepimagej</groupId>
 	<artifactId>DeepImageJ_</artifactId>
-	<version>2.1.15</version>
+	<version>3.0.0</version>
 
 	<name>DeepImageJ</name>
 	<description>A user-friendly plugin to run deep learning models in ImageJ.</description>
@@ -160,16 +160,6 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
 		</dependency>
-		<!--  Dependencies for DJL Pytorch, END -->
-		<dependency>
-		    <groupId>org.jetbrains.bio</groupId>
-		    <artifactId>npy</artifactId>
-	    	<version>0.3.3</version>
-		</dependency>
-		<dependency>
-		    <groupId>org.jetbrains.kotlin</groupId>
-		    <artifactId>kotlin-stdlib</artifactId>
-		</dependency>	
 		<!-- Test scope dependencies -->
 		<dependency>
 			<groupId>junit</groupId>
