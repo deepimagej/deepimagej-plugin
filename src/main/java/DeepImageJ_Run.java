@@ -58,11 +58,13 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
 
@@ -93,8 +95,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 import javax.swing.JButton;
+
+import org.bioimageanalysis.icy.deeplearning.engine.EngineInfo;
+import org.bioimageanalysis.icy.deeplearning.versionmanagement.DeepLearningVersion;
+import org.bioimageanalysis.icy.deeplearning.versionmanagement.InstalledDeepLearningVersions;
 
 public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionListener {
 	private GenericDialog 				dlg;
@@ -137,6 +144,28 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	// Number of open images, used to check whether an image
 	// has been open or not for the testing
 	private int nOpenImages = 0;
+	
+	/**
+	 * List of the installed DL frameworks compatible with this OS
+	 */
+	private List<DeepLearningVersion> installedEngines;
+	
+	/**
+	 * List of the installed DL frameworks compatible with this OS
+	 */
+	private static List<String> LOADED_ENGINES = new ArrayList<String>();
+	/**
+	 * HashMap containing the versions of CUDA compatible with each Pytorch versions
+	 */
+	private static HashMap<String, String[]> CUDA_FOR_PYTORCH_VERSIONS = new HashMap<String, String[]>();
+	/**
+	 * HashMap containing the versions of CUDA compatible with each Tensorflow versions
+	 */
+	private static HashMap<String, String[]> CUDA_FOR_TF_VERSIONS = new HashMap<String, String[]>();;
+	/**
+	 * HashMap containing the versions of CUDA compatible with each Onnx versions
+	 */
+	private static HashMap<String, String[]> CUDA_FOR_ONNX_VERSIONS = new HashMap<String, String[]>();;
 	
 	
 	
@@ -246,11 +275,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			// If this was done in another thread, the plugin would try to execute the
 			// models before everything was ready
 			loadModels();
-			String engine = args[1];
-			// In macro or headless mode, only the needed engines are loaded
-			boolean loadTf = engine.toLowerCase().contentEquals("tensorflow");
-			boolean loadPt = engine.toLowerCase().contentEquals("pytorch");
-			loadTfAndPytorch(loadTf, loadPt);
+			try {
+				findAvailableEngines();
+			} catch (IOException e) {
+				IJ.error("Unable to find an engines directory. Please create" 
+						+ System.lineSeparator() + "a folder called"
+						+ " engines inside the ImageJ/Fiji folder.");
+			}
 			// Get the index of the model selected in the list of models
 			String index = Integer.toString(Index.indexOf(items, args[0]));
 			// Select the model name using its index in the list
@@ -412,245 +443,245 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	
 	public void arrangeParametersAndRunModel(ImagePlus imp, String[] args) {
 		// If the args are null, something wrong happened
-				if (args == null && (headless || isMacro)) {
-					IJ.error("Incorrect Macro call");
-					return;
-				} else if (args == null) {
-					return;
-				} else if ((headless || isMacro) && dps.keySet().size() == 0) {
-					// If no models have been found, do nothing and stop execution
-					return;
-				}
-				// Get the arguments for the model execution
-				String dirname = args[0]; String format = args[1]; processingFile[0] = args[2];
-				processingFile[1] = args[3]; String patchString = args[5]; String debugMode = args[6];
-								
-				dp = dps.get(dirname);
-				
-				// If the plugin is running in test mode, get the test image
-				// that has just been displayed
-				int currentImagesOpen = WindowManager.getImageTitles().length;
-				// Check if there has been an image opened, checking the number
-				// of images open now vs at the begining
-				boolean imageHasBeenOpened = currentImagesOpen > nOpenImages;
-				if (testMode && !isMacro && WindowManager.getCurrentImage() != null && imageHasBeenOpened) {
-					// Set batch mode to false
-					batch = false;
-					imp = WindowManager.getCurrentImage();
-					// Get basic specifications for the input from the yaml
-					String tensorForm = dp.params.inputList.get(0).form;
-					// Minimum size if it is not fixed, 0s if it is
-					int[] tensorMin = dp.params.inputList.get(0).minimum_size;
-					// Step if the size is not fixed, 0s if it is
-					int[] tensorStep = dp.params.inputList.get(0).step;
-					float[] haloSize = ArrayOperations.findTotalPadding(dp.params.inputList.get(0), dp.params.outputList, dp.params.pyramidalNetwork);
-					// Get the minimum tile size given by the yaml without batch
-					int[] min = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
-					// Get the step given by the yaml without batch
-					int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep);
-					// Get the halo given by the yaml without batch 
-					float[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
-					// Get the axes given by the yaml without batch
-					String[] dim = DijTensor.getWorkingDims(tensorForm);
-					patchString = ArrayOperations.optimalPatch(haloVals, dim, step, min, dp.params.allowPatching);
-				} else if (testMode && !isMacro) {
-					// If no image has been displayed there is an error
-					String err = "No test image has been found in the model folder.\n"
-							+ "There should be an image called: ";
-					// REtieve the images names
-					String imageName = dp.params.inputList.get(0).exampleInput;
-					err +=  imageName;
-					// Path to the test image specified in the rdf.yaml in 
-					// the >sample_inputs
-					String imageName2 = null;
-					if (dp.params.sampleInputs != null && dp.params.sampleInputs.length != 0) {
-						imageName2 =  dp.params.sampleInputs[0];
-						err += " or " + imageName2;
-					}
-					IJ.error(err);
-					run("");
-					return;
-				}
-				// Check if the patxh size is editable or not
-				boolean patchEditable = false;
-				if (!headless && !isMacro && texts[1].isEditable())
-					patchEditable = true;
-				
-				if (debugMode.equals("debug")) {
-					log.setLevel(2);
-				} else if (debugMode.equals("normal")) {
-					log.setLevel(1);
-				} else if (debugMode.equals("mute")) {
-					log.setLevel(0);
-				}
-				
-				if (log.getLevel() >= 1)
-					log.print("Load model: " + dp.getName() + "(" + dirname + ")");
-				
-				dp.params.framework = format.toLowerCase().contains("pytorch") ? "pytorch" : "tensorflow";
-				// Select the needed attachments for the version used
-				if (dp.params.framework.toLowerCase().contentEquals("pytorch")) {
-					dp.params.attachments = dp.params.ptAttachments;
-				} else if (dp.params.framework.toLowerCase().contentEquals("tensorflow")) {
-					dp.params.attachments = dp.params.tfAttachments;
-				}
-				
-				if (!headless && !isMacro) {
-					info.setText("");
-					info.setCaretPosition(0);
-					info.append("Loading model. Please wait...\n");
-				}
+		if (args == null && (headless || isMacro)) {
+			IJ.error("Incorrect Macro call");
+			return;
+		} else if (args == null) {
+			return;
+		} else if ((headless || isMacro) && dps.keySet().size() == 0) {
+			// If no models have been found, do nothing and stop execution
+			return;
+		}
+		// Get the arguments for the model execution
+		String dirname = args[0]; String format = args[1]; processingFile[0] = args[2];
+		processingFile[1] = args[3]; String patchString = args[5]; String debugMode = args[6];
+						
+		dp = dps.get(dirname);
+		
+		// If the plugin is running in test mode, get the test image
+		// that has just been displayed
+		int currentImagesOpen = WindowManager.getImageTitles().length;
+		// Check if there has been an image opened, checking the number
+		// of images open now vs at the begining
+		boolean imageHasBeenOpened = currentImagesOpen > nOpenImages;
+		if (testMode && !isMacro && WindowManager.getCurrentImage() != null && imageHasBeenOpened) {
+			// Set batch mode to false
+			batch = false;
+			imp = WindowManager.getCurrentImage();
+			// Get basic specifications for the input from the yaml
+			String tensorForm = dp.params.inputList.get(0).form;
+			// Minimum size if it is not fixed, 0s if it is
+			int[] tensorMin = dp.params.inputList.get(0).minimum_size;
+			// Step if the size is not fixed, 0s if it is
+			int[] tensorStep = dp.params.inputList.get(0).step;
+			float[] haloSize = ArrayOperations.findTotalPadding(dp.params.inputList.get(0), dp.params.outputList, dp.params.pyramidalNetwork);
+			// Get the minimum tile size given by the yaml without batch
+			int[] min = DijTensor.getWorkingDimValues(tensorForm, tensorMin); 
+			// Get the step given by the yaml without batch
+			int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep);
+			// Get the halo given by the yaml without batch 
+			float[] haloVals = DijTensor.getWorkingDimValues(tensorForm, haloSize); 
+			// Get the axes given by the yaml without batch
+			String[] dim = DijTensor.getWorkingDims(tensorForm);
+			patchString = ArrayOperations.optimalPatch(haloVals, dim, step, min, dp.params.allowPatching);
+		} else if (testMode && !isMacro) {
+			// If no image has been displayed there is an error
+			String err = "No test image has been found in the model folder.\n"
+					+ "There should be an image called: ";
+			// REtieve the images names
+			String imageName = dp.params.inputList.get(0).exampleInput;
+			err +=  imageName;
+			// Path to the test image specified in the rdf.yaml in 
+			// the >sample_inputs
+			String imageName2 = null;
+			if (dp.params.sampleInputs != null && dp.params.sampleInputs.length != 0) {
+				imageName2 =  dp.params.sampleInputs[0];
+				err += " or " + imageName2;
+			}
+			IJ.error(err);
+			run("");
+			return;
+		}
+		// Check if the patxh size is editable or not
+		boolean patchEditable = false;
+		if (!headless && !isMacro && texts[1].isEditable())
+			patchEditable = true;
+		
+		if (debugMode.equals("debug")) {
+			log.setLevel(2);
+		} else if (debugMode.equals("normal")) {
+			log.setLevel(1);
+		} else if (debugMode.equals("mute")) {
+			log.setLevel(0);
+		}
+		
+		if (log.getLevel() >= 1)
+			log.print("Load model: " + dp.getName() + "(" + dirname + ")");
+		
+		dp.params.framework = format.toLowerCase().contains("pytorch") ? "pytorch" : "tensorflow";
+		// Select the needed attachments for the version used
+		if (dp.params.framework.toLowerCase().contentEquals("pytorch")) {
+			dp.params.attachments = dp.params.ptAttachments;
+		} else if (dp.params.framework.toLowerCase().contentEquals("tensorflow")) {
+			dp.params.attachments = dp.params.tfAttachments;
+		}
+		
+		if (!headless && !isMacro) {
+			info.setText("");
+			info.setCaretPosition(0);
+			info.append("Loading model. Please wait...\n");
+		}
 
 
-				dp.params.firstPreprocessing = null;
-				dp.params.secondPreprocessing = null;
-				dp.params.firstPostprocessing = null;
-				dp.params.secondPostprocessing = null;
-				
-				if (!processingFile[0].equals("no preprocessing")) {
-					// Workaround for ImageJ Macros. 
-					// DeepImageJ always writes the pre and post-processing between brackets,
-					// however when runnning the plugin for a macro this does not happen when there is only
-					// one processing file. This workaround adds the brackets
-					if (isMacro && !processingFile[0].startsWith("["))
-						processingFile[0] = "[" + processingFile[0];
-					if (isMacro && !processingFile[0].endsWith("]"))
-						processingFile[0] = processingFile[0] + "]";
-					String[] preprocArray = processingFile[0].substring(processingFile[0].indexOf("[") + 1, processingFile[0].lastIndexOf("]")).split(",");
-					dp.params.firstPreprocessing = dp.getPath() + File.separator + preprocArray[0].trim();
-					if (preprocArray.length > 1) {
-						dp.params.secondPreprocessing = dp.getPath() + File.separator + preprocArray[1].trim();
-					}
-				}
-				
-				if (!processingFile[1].equals("no postprocessing")) {
-					// Workaround for ImageJ Macros. 
-					if (isMacro && !processingFile[1].startsWith("["))
-						processingFile[1] = "[" + processingFile[1];
-					if (isMacro && !processingFile[1].endsWith("]"))
-						processingFile[1] = processingFile[1] + "]";
-					String[] postprocArray = processingFile[1].substring(processingFile[1].indexOf("[") + 1, processingFile[1].lastIndexOf("]")).split(",");
-					dp.params.firstPostprocessing = dp.getPath() + File.separator + postprocArray[0].trim();
-					if (postprocArray.length > 1) {
-						dp.params.secondPostprocessing = dp.getPath() + File.separator + postprocArray[1].trim();
-					}
-				}
+		dp.params.firstPreprocessing = null;
+		dp.params.secondPreprocessing = null;
+		dp.params.firstPostprocessing = null;
+		dp.params.secondPostprocessing = null;
+		
+		if (!processingFile[0].equals("no preprocessing")) {
+			// Workaround for ImageJ Macros. 
+			// DeepImageJ always writes the pre and post-processing between brackets,
+			// however when runnning the plugin for a macro this does not happen when there is only
+			// one processing file. This workaround adds the brackets
+			if (isMacro && !processingFile[0].startsWith("["))
+				processingFile[0] = "[" + processingFile[0];
+			if (isMacro && !processingFile[0].endsWith("]"))
+				processingFile[0] = processingFile[0] + "]";
+			String[] preprocArray = processingFile[0].substring(processingFile[0].indexOf("[") + 1, processingFile[0].lastIndexOf("]")).split(",");
+			dp.params.firstPreprocessing = dp.getPath() + File.separator + preprocArray[0].trim();
+			if (preprocArray.length > 1) {
+				dp.params.secondPreprocessing = dp.getPath() + File.separator + preprocArray[1].trim();
+			}
+		}
+		
+		if (!processingFile[1].equals("no postprocessing")) {
+			// Workaround for ImageJ Macros. 
+			if (isMacro && !processingFile[1].startsWith("["))
+				processingFile[1] = "[" + processingFile[1];
+			if (isMacro && !processingFile[1].endsWith("]"))
+				processingFile[1] = processingFile[1] + "]";
+			String[] postprocArray = processingFile[1].substring(processingFile[1].indexOf("[") + 1, processingFile[1].lastIndexOf("]")).split(",");
+			dp.params.firstPostprocessing = dp.getPath() + File.separator + postprocArray[0].trim();
+			if (postprocArray.length > 1) {
+				dp.params.secondPostprocessing = dp.getPath() + File.separator + postprocArray[1].trim();
+			}
+		}
 
-				// TODO generalise for several image inputs
-				for (DijTensor inp: dp.params.inputList) {
-					String tensorForm = inp.form;
-					int[] tensorStep = inp.step;
-					int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep); 
-					String[] dims = DijTensor.getWorkingDims(tensorForm);
-	
-					float[] haloSize = ArrayOperations.findTotalPadding(inp, dp.params.outputList, dp.params.pyramidalNetwork);
-					// haloSize is null if any of the offset definitions of the outputs is not a multiple of 0.5
-					if (haloSize == null) {
-						IJ.error("The rdf.yaml of this model contains an error at 'outputs>shape>offset'.\n"
-							   + "The output offsets defined in the rdf.yaml should be multiples of 0.5.\n"
-							   + " If not, the outputs defined will not have a round number of pixels, which\n"
-							   + "is impossible.");
-						// Relaunch the plugin
-						closeAndReopenPlugin(imp);
-						return;
-					}
-					
-					patch = ArrayOperations.getPatchSize(dims, inp.form, patchString, patchEditable);
-					if (patch == null) {
-						IJ.error("Please, introduce the patch size as integers separated by commas.\n"
-								+ "For the axes order 'Y,X,C' with:\n"
-								+ "Y=256, X=256 and C=1, we need to introduce:\n"
-								+ "'256,256,1'\n"
-								+ "Note: the key 'auto' can only be used by the plugin.");
-						// Relaunch the plugin
-						closeAndReopenPlugin(imp);
-						return;
-					}
-	
-					for (int i = 0; i < patch.length; i ++) {
-						if(haloSize[i] * 2 >= patch[i] && patch[i] != -1) {
-							String errMsg = "Error: Tiles cannot be smaller or equal than 2 times the halo at any dimension.\n"
-										  + "Please, either choose a bigger tile size or change the halo in the rdf.yaml.";
-							IJ.error(errMsg);
-							// Relaunch the plugin
-							closeAndReopenPlugin(imp);
-							return;
-						}
-					}
-					for (int i = 0; i < inp.minimum_size.length; i ++) {
-						if (inp.step[i] != 0 && (patch[i] - inp.minimum_size[i]) % inp.step[i] != 0 && patch[i] != -1 && dp.params.allowPatching) {
-							int approxTileSize = ((patch[i] - inp.minimum_size[i]) / inp.step[i]) * inp.step[i] + inp.minimum_size[i];
-							IJ.error("Tile size at dim: " + tensorForm.split("")[i] + " should be product of:\n  " + inp.minimum_size[i] +
-									" + " + step[i] + "*N, where N can be any integer >= 0.\n"
-										+ "The immediately smaller valid tile size is " + approxTileSize);
-							// Relaunch the plugin
-							closeAndReopenPlugin(imp);
-							return;
-						} else if (inp.step[i] == 0 && patch[i] != inp.minimum_size[i]) {
-							IJ.error("Patch size at dim: " + tensorForm.split("")[i] + " should be " + inp.minimum_size[i]);
-							// Relaunch the plugin
-							closeAndReopenPlugin(imp);
-							return;
-						}
-					}
-				}
-				dp.params.inputList.get(0).recommended_patch = patch;
+		// TODO generalise for several image inputs
+		for (DijTensor inp: dp.params.inputList) {
+			String tensorForm = inp.form;
+			int[] tensorStep = inp.step;
+			int[] step = DijTensor.getWorkingDimValues(tensorForm, tensorStep); 
+			String[] dims = DijTensor.getWorkingDims(tensorForm);
 
-				ExecutorService service = Executors.newFixedThreadPool(1);
-				RunnerProgress rp = null;
-				if (!headless) {
-					rp = new RunnerProgress(dp, "load", service);
-				}
-				else {
-					System.out.println("[DEBUG] Loading model");
-				}
+			float[] haloSize = ArrayOperations.findTotalPadding(inp, dp.params.outputList, dp.params.pyramidalNetwork);
+			// haloSize is null if any of the offset definitions of the outputs is not a multiple of 0.5
+			if (haloSize == null) {
+				IJ.error("The rdf.yaml of this model contains an error at 'outputs>shape>offset'.\n"
+					   + "The output offsets defined in the rdf.yaml should be multiples of 0.5.\n"
+					   + " If not, the outputs defined will not have a round number of pixels, which\n"
+					   + "is impossible.");
+				// Relaunch the plugin
+				closeAndReopenPlugin(imp);
+				return;
+			}
+			
+			patch = ArrayOperations.getPatchSize(dims, inp.form, patchString, patchEditable);
+			if (patch == null) {
+				IJ.error("Please, introduce the patch size as integers separated by commas.\n"
+						+ "For the axes order 'Y,X,C' with:\n"
+						+ "Y=256, X=256 and C=1, we need to introduce:\n"
+						+ "'256,256,1'\n"
+						+ "Note: the key 'auto' can only be used by the plugin.");
+				// Relaunch the plugin
+				closeAndReopenPlugin(imp);
+				return;
+			}
 
-				if (rp!= null && dp.params.framework.contains("tensorflow") && !(new File(dp.getPath() + File.separator + "variables").exists())) {
-					info.append("Unzipping Tensorflow model. Please wait...\n");
-					rp.setUnzipping(true);
-				}
-				
-				boolean iscuda = DeepLearningModel.TensorflowCUDACompatibility(loadInfo, cudaVersion).equals("");
-				ModelLoader loadModel = new ModelLoader(dp, rp, loadInfo.contains("GPU"), iscuda, log.getLevel() >= 1, SystemUsage.checkFiji());
-
-				Future<Boolean> f1 = service.submit(loadModel);
-				boolean output = false;
-				try {
-					output = f1.get();
-				} catch (InterruptedException | ExecutionException e) {
-					if (rp != null && rp.getUnzipping())
-						IJ.error("Unable to unzip model");
-					else
-						IJ.error("Unable to load model");
-					e.printStackTrace();
-					if (rp != null)
-						rp.stop();
-				}
-				
-				
-				// If the user has pressed stop button, stop execution and return
-				if (rp != null && rp.isStopped()) {
-					service.shutdown();
-					rp.dispose();
-					// Free memory allocated by the plugin 
-					freeIJMemory(dlg, imp);
+			for (int i = 0; i < patch.length; i ++) {
+				if(haloSize[i] * 2 >= patch[i] && patch[i] != -1) {
+					String errMsg = "Error: Tiles cannot be smaller or equal than 2 times the halo at any dimension.\n"
+								  + "Please, either choose a bigger tile size or change the halo in the rdf.yaml.";
+					IJ.error(errMsg);
+					// Relaunch the plugin
+					closeAndReopenPlugin(imp);
 					return;
 				}
-				
-				// If the model was not loaded, run again the plugin
-				if (!output) {
-					IJ.error("Load model error: " + (dp.getModel() == null));
-					service.shutdown();
-					if (!isMacro && !headless)
-						run("");
+			}
+			for (int i = 0; i < inp.minimum_size.length; i ++) {
+				if (inp.step[i] != 0 && (patch[i] - inp.minimum_size[i]) % inp.step[i] != 0 && patch[i] != -1 && dp.params.allowPatching) {
+					int approxTileSize = ((patch[i] - inp.minimum_size[i]) / inp.step[i]) * inp.step[i] + inp.minimum_size[i];
+					IJ.error("Tile size at dim: " + tensorForm.split("")[i] + " should be product of:\n  " + inp.minimum_size[i] +
+							" + " + step[i] + "*N, where N can be any integer >= 0.\n"
+								+ "The immediately smaller valid tile size is " + approxTileSize);
+					// Relaunch the plugin
+					closeAndReopenPlugin(imp);
+					return;
+				} else if (inp.step[i] == 0 && patch[i] != inp.minimum_size[i]) {
+					IJ.error("Patch size at dim: " + tensorForm.split("")[i] + " should be " + inp.minimum_size[i]);
+					// Relaunch the plugin
+					closeAndReopenPlugin(imp);
 					return;
 				}
-				
-				if (rp != null)
-					rp.setService(null);
+			}
+		}
+		dp.params.inputList.get(0).recommended_patch = patch;
 
-				calculateImage(imp, rp, service);
-				service.shutdown();
+		ExecutorService service = Executors.newFixedThreadPool(1);
+		RunnerProgress rp = null;
+		if (!headless) {
+			rp = new RunnerProgress(dp, "load", service);
+		}
+		else {
+			System.out.println("[DEBUG] Loading model");
+		}
+
+		if (rp!= null && dp.params.framework.contains("tensorflow") && !(new File(dp.getPath() + File.separator + "variables").exists())) {
+			info.append("Unzipping Tensorflow model. Please wait...\n");
+			rp.setUnzipping(true);
+		}
+		
+		boolean iscuda = DeepLearningModel.TensorflowCUDACompatibility(loadInfo, cudaVersion).equals("");
+		ModelLoader loadModel = new ModelLoader(dp, rp, loadInfo.contains("GPU"), iscuda, log.getLevel() >= 1, SystemUsage.checkFiji());
+
+		Future<Boolean> f1 = service.submit(loadModel);
+		boolean output = false;
+		try {
+			output = f1.get();
+		} catch (InterruptedException | ExecutionException e) {
+			if (rp != null && rp.getUnzipping())
+				IJ.error("Unable to unzip model");
+			else
+				IJ.error("Unable to load model");
+			e.printStackTrace();
+			if (rp != null)
+				rp.stop();
+		}
+		
+		
+		// If the user has pressed stop button, stop execution and return
+		if (rp != null && rp.isStopped()) {
+			service.shutdown();
+			rp.dispose();
+			// Free memory allocated by the plugin 
+			freeIJMemory(dlg, imp);
+			return;
+		}
+		
+		// If the model was not loaded, run again the plugin
+		if (!output) {
+			IJ.error("Load model error: " + (dp.getModel() == null));
+			service.shutdown();
+			if (!isMacro && !headless)
+				run("");
+			return;
+		}
+		
+		if (rp != null)
+			rp.setService(null);
+
+		calculateImage(imp, rp, service);
+		service.shutdown();
 	}
 	
 	/**
@@ -1140,8 +1171,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	 * no input is provided, loads both engines
 	 * 
 	 */
-	public void loadTfAndPytorch() {
-		loadTfAndPytorch(true, true);
+	public void loadTfAndPytorch() throws IOException {
+		findAvailableEngines();
 	}
 	
 	/*
@@ -1149,12 +1180,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	 * the DJL takes some time. Normally the GUI would not sho until everything is loaded.
 	 *  In order to show the DeepImageJ Run GUI fast, Tf and Pt are loaded in a separate thread.
 	 *  
-	 * @param tf
-	 * 	load Tensorflow library or not
-	 * @param pt
-	 * 	load Pytorch library or not
 	 */
-	public void loadTfAndPytorch(boolean tf, boolean pt) {
+	public void findAvailableEngines() throws IOException {
 		loadInfo = "ImageJ";
 		boolean isFiji = SystemUsage.checkFiji();
 		// FOrmat for the date
@@ -1180,37 +1207,29 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			Thread.currentThread().setContextClassLoader(IJ.getClassLoader());
 		}
 		 */
-		// If the version allows GPU, find if there is CUDA
-		if (loadInfo.contains("GPU")) 
-			cudaVersion = SystemUsage.getCUDAEnvVariables();
+		installedEngines = InstalledDeepLearningVersions.buildEnginesFinder().loadDownloadedCompatible();
+		List<String> engineNames = 
+				installedEngines.stream()
+				.map(v -> v.getEngine() + "-" 
+				+ v.getPythonVersion() + " (GPU: " + v.getGPU() + ") " 
+						+ getCudaVersionsCompatible(v.getEngine(), v.getPythonVersion(), v.getGPU()))
+				.collect(Collectors.toList());
 		
-		if (loadInfo.equals("")) {
-			loadInfo += "No Tensorflow library found.\n";
-			loadInfo += "Please install a new Tensorflow version.\n";
-		} else if (loadInfo.equals("ImageJ") && (!headless || tf)) {
-			loadInfo = "Currently using TensorFlow  ";
-			loadInfo += DeepLearningModel.getTFVersion(false);
-			if (!loadInfo.contains("GPU"))
-				loadInfo += "_CPU";
-			loadInfo += ".\n";
-			loadInfo += "To change the version, consult the DeepImageJ Wiki.\n";
+		if (engineNames.size() == 0) {
+			loadInfo += "No Deep Learning frameworks installed, please install." + System.lineSeparator();
 		} else {
-			loadInfo += ".\n";
-			loadInfo += "To change the TF version go to Edit>Options>Tensorflow.\n";
-		}	
-		// Then find Pytorch the Pytorch version
-		if (!headless && !isMacro)
-			info.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- LOADING DJL PYTORCH\n");
-		String ptVersion = null;
-		if (!(headless || isMacro) || pt)
-			ptVersion = DeepLearningModel.getPytorchVersion();
-		loadInfo += "\n";
-		loadInfo += "Currently using Pytorch " + ptVersion + ".\n";
-		loadInfo += "Supported by Deep Java Library " + ptVersion + ".\n";
-
-		if (!headless && !isMacro)
+			loadInfo += "Available Deep Learning frameworks:" + System.lineSeparator();
+			for (String names : engineNames)
+				loadInfo += " -" + names + System.lineSeparator();
+		}
+		loadInfo += System.lineSeparator();
+			
+		// If the version allows GPU, find if there is CUDA
+		if (!headless && !isMacro) {
 			info.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- Looking for installed CUDA distributions");
-		getCUDAInfo(loadInfo, ptVersion, cudaVersion);
+			cudaVersion = SystemUsage.getCUDAEnvVariables();
+			loadInfo += "Installed CUDA versions: " + cudaVersion + System.lineSeparator();
+		}
 		
 		loadInfo += "Models' path: " + DeepImageJ.cleanPathStr(path) + "\n";
 		loadInfo += "<Please select a model>\n";
@@ -1219,6 +1238,22 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			info.setText(loadInfo);
 			// Allow selecting the wanted model
 			choices[0].setEnabled(true);
+		}
+	}
+	
+	/*
+	 * Find out which CUDA version it is being used and if its use is viable toguether with
+	 * Tensorflow
+	 */
+	public String getCudaVersionsCompatible(String engine, String version, boolean gpu) {
+		if (engine.equals(EngineInfo.getPytorchKey())) {
+			return Arrays.toString(CUDA_FOR_PYTORCH_VERSIONS.get(engine));
+		} else if (engine.equals(EngineInfo.getTensorflowKey())) {
+			return Arrays.toString(CUDA_FOR_TF_VERSIONS.get(engine));
+		} else if (engine.equals(EngineInfo.getOnnxKey())) {
+			return Arrays.toString(CUDA_FOR_ONNX_VERSIONS.get(engine));
+		} else {
+			return "";
 		}
 	}
 	
@@ -1316,7 +1351,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	 */
 	public void run() {
 		loadModels();
-		loadTfAndPytorch();
+		try {
+			loadTfAndPytorch();
+		} catch (IOException ex) {
+			IJ.error("Unable to find an engines directory. Please create" 
+					+ System.lineSeparator() + "a folder called"
+					+ " engines inside the ImageJ/Fiji folder.");
+		}
 	}
 
 	@Override
