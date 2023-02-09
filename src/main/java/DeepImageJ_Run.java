@@ -518,12 +518,18 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		if (log.getLevel() >= 1)
 			log.print("Load model: " + dp.getName() + "(" + dirname + ")");
 		
-		dp.params.framework = format.toLowerCase().contains("pytorch") ? "pytorch" : "tensorflow";
-		// Select the needed attachments for the version used
-		if (dp.params.framework.toLowerCase().contentEquals("pytorch")) {
-			dp.params.attachments = dp.params.ptAttachments;
-		} else if (dp.params.framework.toLowerCase().contentEquals("tensorflow")) {
-			dp.params.attachments = dp.params.tfAttachments;
+		List<String> engineNamesList = dp.params.weights.getEnginesListWithVersions();
+		String engineSelected = 
+				engineNamesList.stream().filter(i -> i.startsWith(format)).findFirst().orElse(null);
+		String source;
+		String engine;
+		try {
+			engine = dp.params.weights.getWeightsByIdentifier(engineSelected).getWeightsFormat();
+			source = dp.params.weights.getWeightsByIdentifier(engineSelected).getSource();
+		} catch (IOException e1) {
+			IJ.error("The selected model does not contains source file for the selected weights.");
+			run("");
+			return;
 		}
 		
 		if (!headless && !isMacro) {

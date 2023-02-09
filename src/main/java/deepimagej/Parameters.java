@@ -59,6 +59,7 @@ import java.util.Set;
 
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.YAMLUtils;
+import deepimagej.tools.weights.ModelWeight;
 import ij.ImagePlus;
 
 public class Parameters {
@@ -297,6 +298,10 @@ public class Parameters {
 	 * weights folder
 	 */
 	public String selectedModelPath = "";
+	/**
+	 * Weights object specified in the YAml file
+	 */
+	public ModelWeight weights;
 	
 	public Parameters(boolean valid, String path, boolean isDeveloper) {
 		// If the model is not valid or we are in the developer plugin,
@@ -397,6 +402,7 @@ public class Parameters {
 		git_repo = (String) "" + obj.get("git_repo");
 		
 		LinkedHashMap<String, Object> weights = (LinkedHashMap<String, Object>) obj.get("weights");
+		this.weights = ModelWeight.build(weights);
 		// Look for the valid weights tags
 		Set<String> weightFormats = weights.keySet();
 		boolean tf = false;

@@ -63,7 +63,6 @@ public class ModelLoader implements Callable<Boolean>{
 	private boolean isFiji;
 	
 	public ModelLoader(DeepImageJ dp, RunnerProgress rp, boolean gpu, boolean cuda, boolean show, boolean isFiji) {
-		this.dp = dp;
 		this.rp = rp;
 		this.gpu = gpu;
 		this.cuda = cuda;
