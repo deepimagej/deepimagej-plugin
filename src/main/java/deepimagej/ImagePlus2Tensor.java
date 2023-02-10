@@ -107,7 +107,7 @@ public class ImagePlus2Tensor {
         	// TODO remove
         	int[] icyInd = {auxCounter[orderCorrespondence[0]], auxCounter[orderCorrespondence[1]], auxCounter[orderCorrespondence[3]], auxCounter[orderCorrespondence[4]], auxCounter[orderCorrespondence[2]]};
         	
-        	img.setPositionWithoutUpdate(icyInd[2] + 1, icyInd[4] + 1, icyInd[5] + 1);
+        	img.setPositionWithoutUpdate(icyInd[2] + 1, icyInd[3] + 1, icyInd[4] + 1);
         	float val = img.getProcessor().get(icyInd[0], icyInd[1]);
         	tensorCursor.get().set(val);
         }
@@ -122,7 +122,6 @@ public class ImagePlus2Tensor {
 		// ImagePlus dimensions in the TensorFlow style. In this case we consider B as T,
 		// as for the moment both are going to be 1
 		
-		ImagePlus imPlus = null;
 		// TODO adapt to several batch sizes
     	long[] dataShape = data.dimensionsAsLongArray();
     	
@@ -174,8 +173,8 @@ public class ImagePlus2Tensor {
         	float val = tensorCursor.get().getRealFloat();
         	// TODO remove
         	int[] icyInd = {auxInd[seqDimOrder[0]], auxInd[seqDimOrder[1]], auxInd[seqDimOrder[3]], auxInd[seqDimOrder[4]], auxInd[seqDimOrder[2]]};
-        	imPlus.setPositionWithoutUpdate(icyInd[2] + 1, icyInd[4] + 1, icyInd[5] + 1);
-        	imPlus.getProcessor().putPixelValue(icyInd[0], icyInd[1], val);		
+        	sequence.setPositionWithoutUpdate(icyInd[2] + 1, icyInd[3] + 1, icyInd[4] + 1);
+        	sequence.getProcessor().putPixelValue(icyInd[0], icyInd[1], val);		
         }
 		return sequence;
 	}	
