@@ -544,7 +544,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		try {
 			engine = dp.params.weights.getWeightsByIdentifier(engineSelected).getWeightsFormat();
 			source = dp.params.weights.getWeightsByIdentifier(engineSelected).getSource();
-			source = dp.getPath() + System.lineSeparator() + new File(source).getName();
+			source = dp.getPath() + File.separator + new File(source).getName();
 			version = dp.params.weights.getWeightsByIdentifier(engineSelected).getTrainingVersion();
 		} catch (IOException e1) {
 			IJ.error("The selected model does not contains source file for the selected weights.");

@@ -48,11 +48,7 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import org.tensorflow.Tensor;
 
-import ai.djl.ndarray.NDArray;
-import ai.djl.ndarray.NDManager;
-import ai.djl.ndarray.types.Shape;
 import deepimagej.exceptions.BatchSizeBiggerThanOne;
 import deepimagej.exceptions.IncorrectNumberOfDimensions;
 import deepimagej.tools.Index;
