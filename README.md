@@ -13,7 +13,7 @@ DeepImageJ is a user-friendly plugin that enables the use of a variety of pre-tr
 
 Start using it with the guidelines in the [Wiki](https://github.com/deepimagej/deepimagej-plugin/wiki).
 
-Find further information about DeepImageJ environment at https://deepimagej.github.io/deepimagej
+Find further information about DeepImageJ environment at https://deepimagej.github.io
 
 ## Conditions of use
 The DeepImageJ project is an open source software (OSS) under the BSD 2-Clause License. All the resources provided here are freely available. 
