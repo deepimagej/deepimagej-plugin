@@ -100,10 +100,11 @@ public class ImagePlus2Tensor {
         		auxCounter[i] = (int) position[i];
         	}
         	// TODO remove
-        	int[] icyInd = {auxCounter[orderCorrespondence[0]], auxCounter[orderCorrespondence[1]], auxCounter[orderCorrespondence[3]], auxCounter[orderCorrespondence[4]], auxCounter[orderCorrespondence[2]]};
+        	int[] icyInd = {auxCounter[orderCorrespondence[0]], auxCounter[orderCorrespondence[1]], auxCounter[orderCorrespondence[2]], auxCounter[orderCorrespondence[3]], auxCounter[orderCorrespondence[4]]};
         	
         	img.setPositionWithoutUpdate(icyInd[2] + 1, icyInd[3] + 1, icyInd[4] + 1);
-        	float val = img.getProcessor().get(icyInd[0], icyInd[1]);
+        	ImageProcessor ip = img.getProcessor();
+        	float val = ip.getPixelValue(icyInd[0], icyInd[1]);
         	tensorCursor.get().set(val);
         }
 		return (RandomAccessibleInterval<T>) tensor;

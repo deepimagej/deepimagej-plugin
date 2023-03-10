@@ -92,7 +92,6 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 
 		// Auxiliary variables for DIJ_Run
 		ImagePlus im = null;
-		double val = inp.getProcessor().getValue(0, 0);
 		String correctTitle = "";
 		// Variable indicating whether the plugin is in Run mode or Build
 		boolean dev = true;
