@@ -44,7 +44,6 @@
 
 package deepimagej;
 
-import java.nio.FloatBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.stream.LongStream;
@@ -53,18 +52,14 @@ import org.bioimageanalysis.icy.deeplearning.tensor.Tensor;
 
 import deepimagej.exceptions.BatchSizeBiggerThanOne;
 import deepimagej.exceptions.IncorrectNumberOfDimensions;
-import deepimagej.tools.ArrayOperations;
 import ij.IJ;
 import ij.ImagePlus;
-import ij.WindowManager;
 import ij.process.ImageProcessor;
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.RealType;
@@ -171,68 +166,12 @@ public class ImagePlus2Tensor {
         		auxInd[i] = (int) cursorPos[i];
         	}
         	float val = tensorCursor.get().getRealFloat();
-        	// TODO remove
-        	int[] icyInd = {auxInd[seqDimOrder[0]], auxInd[seqDimOrder[1]], auxInd[seqDimOrder[3]], auxInd[seqDimOrder[4]], auxInd[seqDimOrder[2]]};
+        	int[] icyInd = {auxInd[seqDimOrder[0]], auxInd[seqDimOrder[1]], auxInd[seqDimOrder[2]], auxInd[seqDimOrder[3]], auxInd[seqDimOrder[4]]};
         	sequence.setPositionWithoutUpdate(icyInd[2] + 1, icyInd[3] + 1, icyInd[4] + 1);
-        	sequence.getProcessor().putPixelValue(icyInd[0], icyInd[1], val);		
+        	ImageProcessor ip = sequence.getProcessor();
+        	ip.putPixelValue(icyInd[0], icyInd[1], (float) val);
         }
-		return sequence;
-	}	
-	
-	private static int[] longShape6(long[] shape) {
-		// First convert add the needed entries with value 1 to the array
-		// until its length is 5
-		int[] f_shape = { 1, 1, 1, 1, 1, 1 };
-		for (int i = 0; i < shape.length; i++) {
-			f_shape[i] = (int) shape[i];
-		}
-		return f_shape;
-	}
-	
-	// Convert image plus into int array 
-	
-	/*
-	 * Method that gets an long[] array with the shape of the tensor/image
-	 */
-	private static long[] getTensorShape(ImagePlus img, String form) {
-		int[] dims = img.getDimensions();
-		int xSize = dims[0];
-		int ySize = dims[1];
-		int cSize = dims[2];
-		int zSize = dims[3];
-		// TODO allow different batch sizes
-		int batch = 1;
-		// Create aux variable to indicate
-		// if it is channels one of the dimensions of
-		// the tensor or it is the batch size
-		int fBatch = -1;
-		int fChannel = -1;
-		int fDepth = -1;
-		int fWidth = -1;
-		int fHeight = -1;
-
-		long[] arrayShape = new long[form.length()];;
-		if (form.indexOf("B") != -1) {
-			fBatch = form.indexOf("B");
-			arrayShape[fBatch] = (long) batch;
-		}
-		if (form.indexOf("Y") != -1) {
-			fHeight = form.indexOf("Y");
-			arrayShape[fHeight] = (long) ySize;
-		}
-		if (form.indexOf("X") != -1) {
-			fWidth = form.indexOf("X");
-			arrayShape[fWidth] = (long) xSize;
-		}
-		if (form.indexOf("C") != -1) {
-			fChannel = form.indexOf("C");
-			arrayShape[fChannel] = (long) cSize;
-		}
-		if (form.indexOf("Z") != -1) {
-			fDepth = form.indexOf("Z");
-			arrayShape[fDepth] = (long) zSize;
-		}
-		return arrayShape;
+    	return sequence;
 	}
 
 	/**

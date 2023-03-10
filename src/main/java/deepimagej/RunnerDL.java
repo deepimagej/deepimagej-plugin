@@ -67,6 +67,7 @@ import ij.measure.ResultsTable;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.util.Util;
 
 public class RunnerDL < T extends RealType< T > & NativeType< T > > implements Callable<HashMap<String, Object>> {
 
