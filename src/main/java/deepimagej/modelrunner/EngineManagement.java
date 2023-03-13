@@ -51,6 +51,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -89,8 +90,28 @@ public class EngineManagement {
 		ENGINES_VERSIONS.put(EngineInfo.getPytorchKey() + "_1", "1.13.0");
 	}
 	/**
-	 * Key word that substitutes the OS part of teh engine folder name in some
+	 * Key word that substitutes the OS part of the engine folder name in some
 	 * of the engines installed from the update site
+	 * In order to reduce repetition and to reduce the number of deps downloaded
+	 * by the user when deepImageJ is installed, a selection of engines is created.
+	 * There are some of the engines that are the same for every operating system,
+	 * for example TF1 and Pytorch.
+	 * To reduce the number of deps donwloaded, the TF1 and Pytorch engines are
+	 * installed as for example:
+	 *  - "tensorflow-1.15.0-1.15.0" + {@link #GENERAL_KEYWORD}
+	 * Just one of the above folder is downloaded for all the OS.
+	 * If it was not done like this, as the Fiji update site does not recognise the
+	 * OS of the user, the three following engines would be required:
+	 *  - "tensorflow-1.15.0-1.15.0-windows-x86_64-cpu-gpu"
+	 *  - "tensorflow-1.15.0-1.15.0-linux-x86_64-cpu-gpu"
+	 *  - "tensorflow-1.15.0-1.15.0-macos-x86_64-cpu"
+	 * however, the 3 engines would contain exactly the same deps.
+	 * This is the reason why we make the workaround to download a single
+	 * engine for certain engines and then rename it follwoing the corresponding
+	 * convention
+	 * 
+	 * Regard, that for certain engines, downloading all the OS depending engines
+	 * is necessary, as the dependencies vary from one system to another. 
 	 */
 	private static final String GENERAL_KEYWORD = "-general";
 	/**
@@ -105,6 +126,26 @@ public class EngineManagement {
 	/**
 	 * Constructor that checks whether the minimum engines are installed
 	 * or not.
+	 * In order to reduce repetition and to reduce the number of deps downloaded
+	 * by the user when deepImageJ is installed, a selection of engines is created.
+	 * There are some of the engines that are the same for every operating system,
+	 * for example TF1 and Pytorch.
+	 * To reduce the number of deps donwloaded, the TF1 and Pytorch engines are
+	 * installed as for example:
+	 *  - "tensorflow-1.15.0-1.15.0" + {@link #GENERAL_KEYWORD}
+	 * Just one of the above folder is downloaded for all the OS.
+	 * If it was not done like this, as the Fiji update site does not recognise the
+	 * OS of the user, the three following engines would be required:
+	 *  - "tensorflow-1.15.0-1.15.0-windows-x86_64-cpu-gpu"
+	 *  - "tensorflow-1.15.0-1.15.0-linux-x86_64-cpu-gpu"
+	 *  - "tensorflow-1.15.0-1.15.0-macos-x86_64-cpu"
+	 * however, the 3 engines would contain exactly the same deps.
+	 * This is the reason why we make the workaround to download a single
+	 * engine for certain engines and then rename it follwoing the corresponding
+	 * convention
+	 * 
+	 * Regard, that for certain engines, downloading all the OS depending engines
+	 * is necessary, as the dependencies vary from one system to another. 
 	 */
 	private EngineManagement() {
 		readEnginesJSON();
@@ -114,11 +155,43 @@ public class EngineManagement {
 	}
 	
 	/**
-	 * Creates an {@link EngineManagement} object to check if the required engines are installed
+	 * Creates an {@link EngineManagement} object to check if the required engines are installed.
+	 * 
+	 * In order to reduce repetition and to reduce the number of deps downloaded
+	 * by the user when deepImageJ is installed, a selection of engines is created.
+	 * There are some of the engines that are the same for every operating system,
+	 * for example TF1 and Pytorch.
+	 * To reduce the number of deps donwloaded, the TF1 and Pytorch engines are
+	 * installed as for example:
+	 *  - "tensorflow-1.15.0-1.15.0" + {@link #GENERAL_KEYWORD}
+	 * Just one of the above folder is downloaded for all the OS.
+	 * If it was not done like this, as the Fiji update site does not recognise the
+	 * OS of the user, the three following engines would be required:
+	 *  - "tensorflow-1.15.0-1.15.0-windows-x86_64-cpu-gpu"
+	 *  - "tensorflow-1.15.0-1.15.0-linux-x86_64-cpu-gpu"
+	 *  - "tensorflow-1.15.0-1.15.0-macos-x86_64-cpu"
+	 * however, the 3 engines would contain exactly the same deps.
+	 * This is the reason why we make the workaround to download a single
+	 * engine for certain engines and then rename it follwoing the corresponding
+	 * convention
+	 * 
+	 * Regard, that for certain engines, downloading all the OS depending engines
+	 * is necessary, as the dependencies vary from one system to another. 
 	 * @return
 	 */
 	public static EngineManagement manage() {
 		return new EngineManagement();
+	}
+	
+	/**
+	 * Returns the required engines that have not been yet correctly installed
+	 * @return a list with the required engines for the plugin that have not been installed
+	 * 	yet.
+	 */
+	public ArrayList<String> getMissingEngines() {
+		if (missingEngineFolders == null)
+			checkEnginesInstalled();
+		return new ArrayList<>(missingEngineFolders.keySet());
 	}
 	
 	/**
@@ -160,7 +233,7 @@ public class EngineManagement {
 	}
 	
 	/**
-	 * Checks which of the required engines are not installed
+	 * Checks which of the required engines are not installed.
 	 */
 	public void checkEnginesInstalled() {
 		Map<String, String> engineFolders = ENGINES_VERSIONS.entrySet().stream()
@@ -186,7 +259,32 @@ public class EngineManagement {
 	
 	/**
 	 * Manages the missing engines, either renaming the OS-general engine folder
-	 * to OS-specific or directly installing the engine from scratch
+	 * to OS-specific or directly installing the engine from scratch.
+	 * 
+	 * This method tries to find if there is any engine with the {@link #GENERAL_KEYWORD}
+	 * tag and renames it following the dl-modelrunner naming convention.
+	 * 
+	 * In order to reduce repetition and to reduce the number of deps downloaded
+	 * by the user when deepImageJ is installed, a selection of engines is created.
+	 * There are some of the engines that are the same for every operating system,
+	 * for example TF1 and Pytorch.
+	 * To reduce the number of deps donwloaded, the TF1 and Pytorch engines are
+	 * installed as for example:
+	 *  - "tensorflow-1.15.0-1.15.0" + {@link #GENERAL_KEYWORD}
+	 * Just one of the above folder is downloaded for all the OS.
+	 * If it was not done like this, as the Fiji update site does not recognise the
+	 * OS of the user, the three following engines would be required:
+	 *  - "tensorflow-1.15.0-1.15.0-windows-x86_64-cpu-gpu"
+	 *  - "tensorflow-1.15.0-1.15.0-linux-x86_64-cpu-gpu"
+	 *  - "tensorflow-1.15.0-1.15.0-macos-x86_64-cpu"
+	 * however, the 3 engines would contain exactly the same deps.
+	 * This is the reason why we make the workaround to download a single
+	 * engine for certain engines and then rename it follwoing the corresponding
+	 * convention
+	 * 
+	 * Regard, that for certain engines, downloading all the OS depending engines
+	 * is necessary, as the dependencies vary from one system to another. 
+	 * 
 	 */
 	public void manageMissingEngines() {
 		if (missingEngineFolders == null)
