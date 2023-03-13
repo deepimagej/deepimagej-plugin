@@ -50,9 +50,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.bioimageanalysis.icy.deeplearning.model.Model;
-import org.bioimageanalysis.icy.deeplearning.tensor.Tensor;
-
 import deepimagej.exceptions.BatchSizeBiggerThanOne;
 import deepimagej.exceptions.IncorrectNumberOfDimensions;
 import deepimagej.tools.ArrayOperations;
@@ -64,6 +61,8 @@ import deepimagej.tools.NumFormat;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.measure.ResultsTable;
+import io.bioimage.modelrunner.model.Model;
+import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;

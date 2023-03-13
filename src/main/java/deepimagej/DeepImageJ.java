@@ -53,12 +53,12 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 
-import org.bioimageanalysis.icy.deeplearning.model.Model;
 
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.FileTools;
 import ij.IJ;
 import ij.gui.GenericDialog;
+import io.bioimage.modelrunner.model.Model;
 
 public class DeepImageJ {
 

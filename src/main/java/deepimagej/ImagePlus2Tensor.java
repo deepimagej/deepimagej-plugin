@@ -48,13 +48,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.stream.LongStream;
 
-import org.bioimageanalysis.icy.deeplearning.tensor.Tensor;
 
 import deepimagej.exceptions.BatchSizeBiggerThanOne;
 import deepimagej.exceptions.IncorrectNumberOfDimensions;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
+import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;

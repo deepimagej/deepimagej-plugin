@@ -49,11 +49,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
-import org.bioimageanalysis.icy.deeplearning.model.Model;
 
 import deepimagej.DeepImageJ;
 import deepimagej.RunnerProgress;
 import ij.IJ;
+import io.bioimage.modelrunner.model.Model;
 
 public class ModelLoader implements Callable<Boolean>{
 	private DeepImageJ dp;
