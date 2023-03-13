@@ -1,9 +1,14 @@
 package deepimagej.modelrunner;
 
 import java.io.File;
+import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.bioimageanalysis.icy.deepicy.tools.CollectionUtils;
 
 import io.bioimage.modelrunner.engine.EngineInfo;
 
@@ -37,20 +42,22 @@ public class EngineManagement {
 	}
 	
 	public void checkEnginesInstalled() {
-		List<String> engineFolders = ENGINES_VERSIONS.entrySet().stream().map(v -> {
-			String framework = v.getKey().substring(0, v.getKey().lastIndexOf("_"));
-			String pythonVersion = v.getValue();
-			try {
-				EngineInfo engineInfo = 
-					EngineInfo.defineDLEngine(framework, pythonVersion, ENGINES_DIR, true, true);
-				return engineInfo.getDeepLearningVersionJarsDirectory();
-			} catch (Exception e) {
-				return null;
-			}
-			}).collect(Collectors.toList());
-		
-		missingEngineFolders = engineFolders.stream()
-				.filter( dir -> !(new File(dir).isDirectory()) ).collect(Collectors.toList());
+		Map<String, String> engineFolders = ENGINES_VERSIONS.entrySet().stream()
+				.collect(Collectors.toMap( v -> v.getKey(), v -> {
+					String framework = v.getKey().substring(0, v.getKey().lastIndexOf("_"));
+					String pythonVersion = v.getValue();
+					try {
+						EngineInfo engineInfo = 
+							EngineInfo.defineDLEngine(framework, pythonVersion, ENGINES_DIR, true, true);
+						return engineInfo.getDeepLearningVersionJarsDirectory();
+					} catch (Exception ex) {
+						return null;
+					}
+					}));
+
+		missingEngineFolders = engineFolders.values().stream()
+				.filter( dir -> (dir != null) && !(new File(dir).isDirectory()) )
+				.collect(Collectors.toList());
 		
 		if (missingEngineFolders.size() == 0)
 			everythingInstalled = true;
