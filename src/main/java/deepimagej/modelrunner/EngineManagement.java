@@ -27,7 +27,7 @@ public class EngineManagement {
 	
 	private boolean everythingInstalled = false;
 	
-	private List<String> missingEngineFolders;
+	private Map<String, String> missingEngineFolders;
 	
 	
 	private EngineManagement() {
@@ -55,11 +55,11 @@ public class EngineManagement {
 					}
 					}));
 
-		missingEngineFolders = engineFolders.values().stream()
-				.filter( dir -> (dir != null) && !(new File(dir).isDirectory()) )
-				.collect(Collectors.toList());
+		missingEngineFolders = engineFolders.entrySet().stream()
+				.filter( dir -> (dir.getValue() != null) && !(new File(dir.getValue()).isDirectory()) )
+				.collect(Collectors.toMap(dir -> dir.getKey(), dir -> dir.getValue()));
 		
-		if (missingEngineFolders.size() == 0)
+		if (missingEngineFolders.entrySet().size() == 0)
 			everythingInstalled = true;
 	}
 }
