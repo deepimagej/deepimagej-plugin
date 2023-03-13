@@ -51,8 +51,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.AbstractMap;
-import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -120,6 +119,44 @@ public class EngineManagement {
 	 */
 	public static EngineManagement manage() {
 		return new EngineManagement();
+	}
+	
+	/**
+	 * Read the engines JSON and finds if there is any new framework that is not required
+	 * by the {@link #ENGINES_VERSIONS} dictionary. 
+	 * If a new framework is found, the {@link #ENGINES_VERSIONS} dictionary is updated with
+	 * the latest version available in the JSON for that framework.
+	 * Regard that there is a workaround for Onnx versions due to its weird versioning,
+	 * instead of being 1.1.0, 1.2.1, 1.3.0, it changes as 1, 2, 3, 4...
+	 * 
+	 * The engines JSOn is located at {@code /src/main/resources/availableDLVersions.json}
+	 * at the JAR file {@code dl-modelrunner-X-Y-Z.jar}.
+	 * The link to a github repo is: https://raw.githubusercontent.com/bioimage-io/model-runner-java/main/src/main/resources/availableDLVersions.json
+	 */
+	private void readEnginesJSON() {
+		 Map<String, String> versionsNotInRequired = AvailableDeepLearningVersions
+				.loadCompatibleOnly().getVersions().stream()
+				.filter( v -> !v.getEngine().startsWith(EngineInfo.getOnnxKey())
+						&& !ENGINES_VERSIONS.keySet().contains( v.getEngine() 
+						+ "_" + v.getPythonVersion().substring(0, v.getPythonVersion().indexOf(".")) ) )
+				.collect(Collectors.toMap(
+						v -> v.getEngine() + "_" + v.getPythonVersion(), v -> v.getPythonVersion()));
+		 List<String> uniqueFrameworks = versionsNotInRequired.keySet().stream()
+				 .map(f -> f.substring(0, f.lastIndexOf("_"))).distinct()
+				 .collect(Collectors.toList());
+		 Comparator<String> versionComparator = (v1, v2) -> {
+			 // Multiply by -1 because we want to return 1 if v1 is bigger and -1 otherwise
+			 // and the used method does the opposite
+			 return DeepLearningVersion.stringVersionComparator(v1, v2) * -1;
+	        };
+		 for (String f : uniqueFrameworks) {
+			 String selectedVersion = versionsNotInRequired.entrySet().stream()
+					 .filter( v -> v.getKey().startsWith(f + "_"))
+					 .map(v -> v.getValue()).max(versionComparator).orElse(null);
+			 ENGINES_VERSIONS.put(f + "_" + selectedVersion.indexOf("."), selectedVersion);
+		 }
+		 
+		
 	}
 	
 	/**
