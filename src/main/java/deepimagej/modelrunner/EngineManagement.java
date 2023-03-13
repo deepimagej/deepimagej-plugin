@@ -44,6 +44,13 @@
 package deepimagej.modelrunner;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.HashMap;
@@ -51,8 +58,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import deepimagej.tools.ModelDownloader;
 import io.bioimage.modelrunner.engine.EngineInfo;
 import io.bioimage.modelrunner.system.PlatformDetection;
+import io.bioimage.modelrunner.versionmanagement.AvailableDeepLearningVersions;
 import io.bioimage.modelrunner.versionmanagement.DeepLearningVersion;
 
 /**
@@ -202,7 +211,20 @@ public class EngineManagement {
 	 * @return true if the installation was successful and false otherwise
 	 */
 	public static boolean installEngine(DeepLearningVersion engine) {
-		return false;
+		try {
+			for (String jar : engine.getJars()) {
+				URL website = new URL(jar);
+				ReadableByteChannel rbc = Channels.newChannel(website.openStream());
+				// Create the new model file as a zip
+				Path filePath = Paths.get(website.getPath()).getFileName();
+				FileOutputStream fos = new FileOutputStream(new File(ENGINES_DIR, filePath.toString()));
+				ModelDownloader downloader = new ModelDownloader(rbc, fos);
+				downloader.call();
+			}
+		} catch (IOException ex) {
+			return false;
+		}
+		return true;
 	}
 	
 	/**
@@ -217,7 +239,11 @@ public class EngineManagement {
 	 * 	whether the engine supports gpu or not
 	 * @return true if the installation was successful and false otherwise
 	 */
-	public boolean installEngineForSystemOs(String framework, String version, boolean cpu, boolean gpu) {
-		return false;
+	public static  boolean installEngineForSystemOs(String framework, String version, boolean cpu, boolean gpu) {
+		DeepLearningVersion engine = AvailableDeepLearningVersions.getAvailableVersionsForEngine(framework).getVersions()
+				.stream().filter(v -> (v.getPythonVersion() == version)
+					&& (v.getCPU() == cpu)
+					&& (v.getGPU() == gpu)).findFirst().orElse(null);
+		return installEngine(engine);
 	}
 }
