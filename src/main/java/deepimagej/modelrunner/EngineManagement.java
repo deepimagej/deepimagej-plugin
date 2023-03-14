@@ -56,8 +56,10 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import deepimagej.InstallerDialog;
 import deepimagej.tools.ModelDownloader;
 import io.bioimage.modelrunner.engine.EngineInfo;
 import io.bioimage.modelrunner.system.PlatformDetection;
@@ -78,6 +80,18 @@ public class EngineManagement {
 	 * Directory where the engines shold be installed
 	 */
 	private static final String ENGINES_DIR = new File("engines").getAbsolutePath();
+	/**
+	 * Keyword used to identify the engine being installed
+	 */
+	public static final String PROGRESS_ENGINE_KEYWORD = "Engine: ";
+	/**
+	 * Keyword used to identify the JAR file being downloaded
+	 */
+	public static final String PROGRESS_JAR_KEYWORD = "JAR: ";
+	/**
+	 * Keyword used to identify the size of the JAR file being downloaded
+	 */
+	public static final String PROGRESS_SIZE_KEYWORD = "Size: ";
 	/**
 	 * Map containing which version should always be installed per framework
 	 */
@@ -122,6 +136,10 @@ public class EngineManagement {
 	 * Which of the required engines are not installed
 	 */
 	private Map<String, String> missingEngineFolders;
+	/**
+	 * String that communicates the progress made downloading engines
+	 */
+	private String progressString;
 	
 	/**
 	 * Constructor that checks whether the minimum engines are installed
@@ -327,13 +345,27 @@ public class EngineManagement {
 	 * @return true if the installation was successful and false otherwise
 	 */
 	public static boolean installSpecificEngine(String engineDir) {
+		return installSpecificEngine(engineDir, null);
+	}
+	
+	/**
+	 * Install the engine that should be located in the engine dir specified
+	 * @param engineDir
+	 * 	directory where the specific engine shuold be installed. Regard that this 
+	 * 	is the whole path to the folder, and that the folder name should follow the 
+	 * 	dl-modelrunner naming convention (https://github.com/bioimage-io/model-runner-java#readme)
+	 * @param consumer
+	 * 	consumer used to communicate the progress made donwloading files. It can be null
+	 * @return true if the installation was successful and false otherwise
+	 */
+	public static boolean installSpecificEngine(String engineDir, Consumer<String> consumer) {
 		File engineFileDir = new File(engineDir);
 		if (engineFileDir.mkdirs() == false)
 			return false;
 		DeepLearningVersion dlVersion;
 		try {
 			dlVersion = DeepLearningVersion.fromFile(engineFileDir);
-			return installEngine(dlVersion);
+			return installEngine(dlVersion, consumer);
 		} catch (Exception e) {
 			return false;
 		}
@@ -346,13 +378,30 @@ public class EngineManagement {
 	 * @return true if the installation was successful and false otherwise
 	 */
 	public static boolean installEngine(DeepLearningVersion engine) {
+		return installEngine(engine, null);
+	}
+	
+	/**
+	 * Install the engine specified by the {@link DeepLearningVersion} object
+	 * @param engine
+	 * 	the {@link DeepLearningVersion} object specifying the wanted engine
+	 * @param consumer
+	 * 	consumer used to communicate the progress made donwloading files
+	 * @return true if the installation was successful and false otherwise
+	 */
+	public static boolean installEngine(DeepLearningVersion engine, Consumer<String> consumer) {
+		addProgress(consumer, PROGRESS_ENGINE_KEYWORD + engine.folderName());
 		try {
 			for (String jar : engine.getJars()) {
 				URL website = new URL(jar);
+				long size = InstallerDialog.getFileSize(website);
 				ReadableByteChannel rbc = Channels.newChannel(website.openStream());
 				// Create the new model file as a zip
 				Path filePath = Paths.get(website.getPath()).getFileName();
 				FileOutputStream fos = new FileOutputStream(new File(ENGINES_DIR, filePath.toString()));
+				addProgress(consumer, PROGRESS_JAR_KEYWORD + ENGINES_DIR + File.separator
+						+ filePath.toString());
+				addProgress(consumer, PROGRESS_SIZE_KEYWORD + size);
 				ModelDownloader downloader = new ModelDownloader(rbc, fos);
 				downloader.call();
 			}
@@ -375,12 +424,45 @@ public class EngineManagement {
 	 * @return true if the installation was successful and false otherwise
 	 */
 	public static  boolean installEngineForSystemOs(String framework, String version, boolean cpu, boolean gpu) {
+		return installEngineForSystemOs(framework, version, cpu, gpu, null);
+	}
+	
+	/**
+	 * Install the engine specified by the arguments of the method
+	 * @param framework
+	 * 	DL framework as specified by the Bioimage.io model zoo ()https://github.com/bioimage-io/spec-bioimage-io/blob/gh-pages/weight_formats_spec_0_4.md)
+	 * @param version
+	 * 	the version of the framework
+	 * @param cpu
+	 * 	whether the engine supports cpu or not
+	 * @param gpu
+	 * 	whether the engine supports gpu or not
+	 * @param consumer
+	 * 	consumer used to communicate the progress made donwloading files
+	 * @return true if the installation was successful and false otherwise
+	 */
+	public static  boolean installEngineForSystemOs(String framework, String version, 
+			boolean cpu, boolean gpu, Consumer<String> consumer) {
 		if (AvailableDeepLearningVersions.getEngineKeys().get(framework) != null)
 			framework = AvailableDeepLearningVersions.getEngineKeys().get(framework);
 		DeepLearningVersion engine = AvailableDeepLearningVersions.getAvailableVersionsForEngine(framework).getVersions()
 				.stream().filter(v -> (v.getPythonVersion() == version)
 					&& (v.getCPU() == cpu)
 					&& (v.getGPU() == gpu)).findFirst().orElse(null);
-		return installEngine(engine);
+		return installEngine(engine, consumer);
 	}
+	
+	private static void addProgress(Consumer<String> consumer, String str) {
+		if (consumer == null)
+			return;
+		consumer.accept(str + System.lineSeparator());
+	}
+    
+    public Consumer<String> getInstallationProgressConsumer() {
+    	progressString = "";
+    	Consumer<String> progressConsumer = (String b) -> {
+    		progressString += b;
+    		};
+		return progressConsumer;
+    }
 }

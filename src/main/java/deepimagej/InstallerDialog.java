@@ -295,7 +295,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	/*
 	 * Get file size of the online model
 	 */
-	public long getFileSize(URL url) {
+	public static long getFileSize(URL url) {
 	HttpURLConnection conn = null;
 		try {
 			conn = (HttpURLConnection) url.openConnection();
