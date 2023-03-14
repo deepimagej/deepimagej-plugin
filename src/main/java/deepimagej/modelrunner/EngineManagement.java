@@ -240,7 +240,7 @@ public class EngineManagement {
 		checkEnginesInstalled();
 		if (!this.everythingInstalled)
 			manageMissingEngines();
-		this.progressString = PROGRESS_DONE_KEYWORD + "s";
+		//this.progressString = PROGRESS_DONE_KEYWORD;
 	}
 	
 	/**
@@ -377,8 +377,9 @@ public class EngineManagement {
 			checkEnginesInstalled();
 		if (missingEngineFolders.entrySet().size() == 0)
 			return;
+		Consumer<String> consumer = getInstallationProgressConsumer();
 		missingEngineFolders = missingEngineFolders.entrySet().stream()
-				.filter(v -> !installSpecificEngine(v.getValue(), getInstallationProgressConsumer()))
+				.filter(v -> !installSpecificEngine(v.getValue(), consumer))
 				.collect(Collectors.toMap(v -> v.getKey(), v -> v.getValue()));
 	}
 	
@@ -437,22 +438,36 @@ public class EngineManagement {
 	 */
 	public static boolean installEngine(DeepLearningVersion engine, Consumer<String> consumer) {
 		addProgress(consumer, PROGRESS_ENGINE_KEYWORD + engine.folderName());
+		ReadableByteChannel rbc = null;
+		FileOutputStream fos = null;
 		try {
 			for (String jar : engine.getJars()) {
 				URL website = new URL(jar);
 				long size = InstallerDialog.getFileSize(website);
-				ReadableByteChannel rbc = Channels.newChannel(website.openStream());
+				rbc = Channels.newChannel(website.openStream());
 				// Create the new model file as a zip
 				Path filePath = Paths.get(website.getPath()).getFileName();
 				String engineDir = ENGINES_DIR + File.separator + engine.folderName();
-				FileOutputStream fos = new FileOutputStream(new File(engineDir, filePath.toString()));
-				addProgress(consumer, PROGRESS_JAR_KEYWORD + ENGINES_DIR + File.separator
+				fos = new FileOutputStream(new File(engineDir, filePath.toString()));
+				addProgress(consumer, PROGRESS_JAR_KEYWORD + engineDir + File.separator
 						+ filePath.toString());
 				addProgress(consumer, PROGRESS_SIZE_KEYWORD + size);
 				ModelDownloader downloader = new ModelDownloader(rbc, fos);
 				downloader.call();
+				rbc.close();
+				fos.close();
 			}
 		} catch (IOException ex) {
+			try {
+				if (rbc != null)
+					rbc.close();
+			} catch (IOException e) {
+			}
+			try {
+				if (fos != null)
+					fos.close();
+			} catch (IOException e) {
+			}
 			return false;
 		}
 		return true;
@@ -536,20 +551,22 @@ public class EngineManagement {
     		String engine = progressString.substring(engineStart, engineStart + engineEnd).trim();
     		caret += engineStart + engineEnd;
     		infoStr += "Installing: " + engine + System.lineSeparator();
-    		while (progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD) == -1
-    				&& progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) != -1
-    				&& progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) < 
-    						progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD)) {
+    		while (progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD) != -1) {
+    			if (progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) != -1
+        				&& progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) < 
+						progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD)) {
+    				continue;
+    			}
 	    		int jarStart = progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD) + PROGRESS_JAR_KEYWORD.length();
 	    		int jarEnd = progressString.substring(caret + jarStart).indexOf(System.lineSeparator());
-	    		String jar = progressString.substring(jarStart, jarStart + jarEnd).trim();
+	    		String jar = progressString.substring(caret + jarStart, caret + jarStart + jarEnd).trim();
 	    		caret += jarStart + jarEnd;
-	    		int sizeStart = progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD) + PROGRESS_JAR_KEYWORD.length();
+	    		int sizeStart = progressString.substring(caret).indexOf(PROGRESS_SIZE_KEYWORD) + PROGRESS_SIZE_KEYWORD.length();
 	    		int sizeEnd = progressString.substring(caret + sizeStart).indexOf(System.lineSeparator());
-	    		String sizeStr = progressString.substring(sizeStart, sizeStart + sizeEnd).trim();
+	    		String sizeStr = progressString.substring(caret + sizeStart, caret + sizeStart + sizeEnd).trim();
 	    		caret += sizeStart + sizeEnd;
 	    		long size = Long.parseLong(sizeStr);
-	    		File jarFile = new File(ENGINES_DIR, jar);
+	    		File jarFile = new File(jar);
 	    		if (jarFile.isFile())
 	    			infoStr += jar + ": " + (100 * jarFile.length() / size) + "%" + System.lineSeparator();
 	    		else
