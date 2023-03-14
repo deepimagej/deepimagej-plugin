@@ -173,6 +173,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	 * Create the String to engines directory
 	 */
 	private static final String JARS_DIRECTORY = new File("engines").getAbsolutePath();
+	/**
+	 * Track of threads that have been opened during execution and have to be closed
+	 */
+	private ArrayList<Thread> extraThreads = new ArrayList<Thread>();
 	
 	
 	static public void main(String args[]) {
@@ -366,6 +370,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		// th plugin is not run from a macro
 		Thread thread = new Thread(this);
 		thread.start();
+		extraThreads.add(thread);
 		
 		// Set the 'ok' button and the model choice
 		// combo box disabled until Tf and Pt are loaded
@@ -385,6 +390,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 				if (dps.get(kk).getModel() != null)
 					dps.get(kk).getModel().closeModel();
 			}
+			this.closeAllThreads();
 			return null;
 		}
 		String[] args = retrieveDialogParamas();
@@ -1254,6 +1260,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		Thread checkAndInstallMissingEngines = new Thread(() -> {
 			engineManager.checkMinimalEngineInstallation();
         });
+		extraThreads.add(checkAndInstallMissingEngines);
 		checkAndInstallMissingEngines.start();
 		String backup = info.getText();
 		while (!engineManager.getProgressString().equals(EngineManagement.PROGRESS_DONE_KEYWORD)
@@ -1465,6 +1472,17 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		// PErform the click action
 		okay.getActionListeners()[0].actionPerformed(ee);
 		testMode = true;
+	}
+	
+	/**
+	 * Close all the threads that have been opened during the execution
+	 */
+	private void closeAllThreads() {
+		extraThreads.stream().forEach(t -> {
+			if (t != null)
+				t.interrupt();
+			t = null;
+		});
 	}
 
 }
