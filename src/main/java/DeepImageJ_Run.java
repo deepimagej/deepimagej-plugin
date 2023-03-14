@@ -90,6 +90,11 @@ import ij.Macro;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
+import io.bioimage.modelrunner.engine.EngineInfo;
+import io.bioimage.modelrunner.exceptions.LoadEngineException;
+import io.bioimage.modelrunner.model.Model;
+import io.bioimage.modelrunner.versionmanagement.DeepLearningVersion;
+import io.bioimage.modelrunner.versionmanagement.InstalledDeepLearningVersions;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -99,11 +104,6 @@ import java.util.stream.Collectors;
 
 import javax.swing.JButton;
 
-import org.bioimageanalysis.icy.deeplearning.engine.EngineInfo;
-import org.bioimageanalysis.icy.deeplearning.exceptions.LoadEngineException;
-import org.bioimageanalysis.icy.deeplearning.model.Model;
-import org.bioimageanalysis.icy.deeplearning.versionmanagement.DeepLearningVersion;
-import org.bioimageanalysis.icy.deeplearning.versionmanagement.InstalledDeepLearningVersions;
 
 public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionListener {
 	private GenericDialog 				dlg;
