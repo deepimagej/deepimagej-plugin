@@ -102,9 +102,9 @@ public class EngineManagement {
 	private static final HashMap<String, String> ENGINES_VERSIONS = new HashMap<String, String>();
 	
 	static {
-		ENGINES_VERSIONS.put(EngineInfo.getTensorflowKey() + "_2", "2.7.1");
+		ENGINES_VERSIONS.put(EngineInfo.getTensorflowKey() + "_2", "2.7.0");
 		ENGINES_VERSIONS.put(EngineInfo.getTensorflowKey() + "_1", "1.15.0");
-		ENGINES_VERSIONS.put(EngineInfo.getOnnxKey() + "_1", "1.11.0");
+		ENGINES_VERSIONS.put(EngineInfo.getOnnxKey() + "_17", "17");
 		ENGINES_VERSIONS.put(EngineInfo.getPytorchKey() + "_1", "1.13.0");
 	}
 	/**
@@ -170,6 +170,7 @@ public class EngineManagement {
 	 * is necessary, as the dependencies vary from one system to another. 
 	 */
 	private EngineManagement() {
+		progressString = "";
 	}
 	
 	/**
@@ -515,7 +516,7 @@ public class EngineManagement {
     		return progressString;
     	int caret = 0;
     	String infoStr = "";
-    	while (progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) == -1) {
+    	while (progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) != -1) {
     		int engineStart = progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) + PROGRESS_ENGINE_KEYWORD.length();
     		int engineEnd = progressString.substring(engineStart).indexOf(System.lineSeparator());
     		String engine = progressString.substring(engineStart, engineStart + engineEnd).trim();
