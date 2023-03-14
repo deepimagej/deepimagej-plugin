@@ -1228,8 +1228,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		// FOrmat for the date
 		Date now = new Date(); 
 		if (!headless && !isMacro) {
-			info.append("\n\n");
-			info.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- LOADING TENSORFLOW JAVA (might take some time)\n");
+			info.append(System.lineSeparator());
+			info.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) 
+					+ " -- CHECKING THE REQUIRED ENGINES ARE INSTALLED");
+			info.append(System.lineSeparator());
 		}
 		/*
 		 * TODO
@@ -1253,10 +1255,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			engineManager.checkMinimalEngineInstallation();
         });
 		checkAndInstallMissingEngines.start();
-		int caret = loadInfo.length();
-		while (!engineManager.getProgressString().equals(EngineManagement.PROGRESS_DONE_KEYWORD))
-			loadInfo = loadInfo.substring(0, caret) 
-									+ System.lineSeparator() + engineManager.manageProgress();
+		String backup = info.getText();
+		while (!engineManager.getProgressString().equals(EngineManagement.PROGRESS_DONE_KEYWORD)
+				&& !engineManager.getProgressString().equals("")) {
+			try {Thread.sleep(300);} catch (InterruptedException e) {}
+			info.setText(backup + System.lineSeparator() + engineManager.manageProgress());
+		}
 			
 		installedEngines = InstalledDeepLearningVersions.buildEnginesFinder().loadDownloadedCompatible();
 		List<String> engineNames = 

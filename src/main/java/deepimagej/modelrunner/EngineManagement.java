@@ -51,8 +51,10 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +94,14 @@ public class EngineManagement {
 	 * Keyword used to identify the size of the JAR file being downloaded
 	 */
 	public static final String PROGRESS_SIZE_KEYWORD = "Size: ";
+	/**
+	 * Keyword used to identify the time at whihc the engine started being downloaded
+	 */
+	public static final String PROGRESS_ENGINE_TIME_KEYWORD = "Engine time start: ";
+	/**
+	 * Keyword used to identify the time at whihc the engine started being downloaded
+	 */
+	public static final String PROGRESS_JAR_TIME_KEYWORD = "JAR time start: ";
 	/**
 	 * Keyword used to signal that the installation of the engines has finished
 	 */
@@ -178,7 +188,7 @@ public class EngineManagement {
 	 * is necessary, as the dependencies vary from one system to another. 
 	 */
 	private EngineManagement() {
-		progressString = "";
+		progressString = "start";
 	}
 	
 	/**
@@ -240,7 +250,7 @@ public class EngineManagement {
 		checkEnginesInstalled();
 		if (!this.everythingInstalled)
 			manageMissingEngines();
-		//this.progressString = PROGRESS_DONE_KEYWORD;
+		this.progressString = PROGRESS_DONE_KEYWORD;
 	}
 	
 	/**
@@ -438,6 +448,8 @@ public class EngineManagement {
 	 */
 	public static boolean installEngine(DeepLearningVersion engine, Consumer<String> consumer) {
 		addProgress(consumer, PROGRESS_ENGINE_KEYWORD + engine.folderName());
+		Date now = new Date();
+		addProgress(consumer, PROGRESS_ENGINE_TIME_KEYWORD + new SimpleDateFormat("HH:mm:ss").format(now));
 		ReadableByteChannel rbc = null;
 		FileOutputStream fos = null;
 		try {
@@ -452,6 +464,7 @@ public class EngineManagement {
 				addProgress(consumer, PROGRESS_JAR_KEYWORD + engineDir + File.separator
 						+ filePath.toString());
 				addProgress(consumer, PROGRESS_SIZE_KEYWORD + size);
+				addProgress(consumer, PROGRESS_JAR_TIME_KEYWORD + new SimpleDateFormat("HH:mm:ss").format(now));
 				ModelDownloader downloader = new ModelDownloader(rbc, fos);
 				downloader.call();
 				rbc.close();
@@ -547,15 +560,19 @@ public class EngineManagement {
     	String infoStr = "";
     	while (progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) != -1) {
     		int engineStart = progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) + PROGRESS_ENGINE_KEYWORD.length();
-    		int engineEnd = progressString.substring(engineStart).indexOf(System.lineSeparator());
-    		String engine = progressString.substring(engineStart, engineStart + engineEnd).trim();
+    		int engineEnd = progressString.substring(caret + engineStart).indexOf(System.lineSeparator());
+    		String engine = progressString.substring(caret + engineStart, caret + engineStart + engineEnd).trim();
     		caret += engineStart + engineEnd;
-    		infoStr += "Installing: " + engine + System.lineSeparator();
+    		int engineTimeStart = progressString.substring(caret).indexOf(PROGRESS_ENGINE_TIME_KEYWORD) + PROGRESS_ENGINE_TIME_KEYWORD.length();
+    		int engineTimeEnd = progressString.substring(caret + engineTimeStart).indexOf(System.lineSeparator());
+    		String time = progressString.substring(caret + engineTimeStart, caret + engineTimeStart + engineTimeEnd).trim();
+    		caret += engineTimeStart + engineTimeEnd;
+    		infoStr += " - " + time + " -- Installing: " + engine + System.lineSeparator();
     		while (progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD) != -1) {
     			if (progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) != -1
         				&& progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) < 
 						progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD)) {
-    				continue;
+    				break;
     			}
 	    		int jarStart = progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD) + PROGRESS_JAR_KEYWORD.length();
 	    		int jarEnd = progressString.substring(caret + jarStart).indexOf(System.lineSeparator());
@@ -565,12 +582,17 @@ public class EngineManagement {
 	    		int sizeEnd = progressString.substring(caret + sizeStart).indexOf(System.lineSeparator());
 	    		String sizeStr = progressString.substring(caret + sizeStart, caret + sizeStart + sizeEnd).trim();
 	    		caret += sizeStart + sizeEnd;
+	    		int jarTimeStart = progressString.substring(caret).indexOf(PROGRESS_JAR_TIME_KEYWORD) + PROGRESS_JAR_TIME_KEYWORD.length();
+	    		int jarTimeEnd = progressString.substring(caret + jarTimeStart).indexOf(System.lineSeparator());
+	    		String jarTime = progressString.substring(caret + jarTimeStart, caret + jarTimeStart + jarTimeEnd).trim();
+	    		caret += jarTimeStart + jarTimeEnd;
 	    		long size = Long.parseLong(sizeStr);
 	    		File jarFile = new File(jar);
+	    		jar = jarFile.getName();
 	    		if (jarFile.isFile())
-	    			infoStr += jar + ": " + (100 * jarFile.length() / size) + "%" + System.lineSeparator();
+	    			infoStr += " - " + jarTime + " -- " + jar + ":   " + (100 * jarFile.length() / size) + "%" + System.lineSeparator();
 	    		else
-	    			infoStr += jar + ": " + "unknown%" + System.lineSeparator();
+	    			infoStr += " - " + jarTime + " -- " + jar + ":   " + "unknown%" + System.lineSeparator();
     		}
     	}
     	return infoStr;
