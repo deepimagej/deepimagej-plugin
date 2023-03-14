@@ -75,6 +75,7 @@ import deepimagej.RunnerDL;
 import deepimagej.DeepLearningModel;
 import deepimagej.components.BorderPanel;
 import deepimagej.exceptions.MacrosError;
+import deepimagej.modelrunner.EngineManagement;
 import deepimagej.processing.HeadlessProcessing;
 import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.DijRunnerPostprocessing;
@@ -1247,6 +1248,16 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			Thread.currentThread().setContextClassLoader(IJ.getClassLoader());
 		}
 		 */
+		EngineManagement engineManager = EngineManagement.createManager();
+		Thread checkAndInstallMissingEngines = new Thread(() -> {
+			engineManager.checkMinimalEngineInstallation();
+        });
+		checkAndInstallMissingEngines.start();
+		int caret = loadInfo.length();
+		while (!engineManager.getProgressString().equals(EngineManagement.PROGRESS_DONE_KEYWORD))
+			loadInfo = loadInfo.substring(0, caret) 
+									+ System.lineSeparator() + engineManager.manageProgress();
+			
 		installedEngines = InstalledDeepLearningVersions.buildEnginesFinder().loadDownloadedCompatible();
 		List<String> engineNames = 
 				installedEngines.stream()

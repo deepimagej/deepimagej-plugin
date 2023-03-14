@@ -93,6 +93,10 @@ public class EngineManagement {
 	 */
 	public static final String PROGRESS_SIZE_KEYWORD = "Size: ";
 	/**
+	 * Keyword used to signal that the installation of the engines has finished
+	 */
+	public static final String PROGRESS_DONE_KEYWORD = "DONE";
+	/**
 	 * Map containing which version should always be installed per framework
 	 */
 	private static final HashMap<String, String> ENGINES_VERSIONS = new HashMap<String, String>();
@@ -227,6 +231,7 @@ public class EngineManagement {
 		checkEnginesInstalled();
 		if (this.everythingInstalled)
 			manageMissingEngines();
+		this.progressString = PROGRESS_DONE_KEYWORD;
 	}
 	
 	/**
@@ -320,9 +325,9 @@ public class EngineManagement {
 	 * Just one of the above folder is downloaded for all the OS.
 	 * If it was not done like this, as the Fiji update site does not recognise the
 	 * OS of the user, the three following engines would be required:
-	 *  - "tensorflow-1.15.0-1.15.0-windows-x86_64-cpu-gpu"
-	 *  - "tensorflow-1.15.0-1.15.0-linux-x86_64-cpu-gpu"
-	 *  - "tensorflow-1.15.0-1.15.0-macos-x86_64-cpu"
+	 *  -"tensorflow-1.15.0-1.15.0-windows-x86_64-cpu-gpu"
+	 *  -"tensorflow-1.15.0-1.15.0-linux-x86_64-cpu-gpu"
+	 *  -"tensorflow-1.15.0-1.15.0-macos-x86_64-cpu"
 	 * however, the 3 engines would contain exactly the same deps.
 	 * This is the reason why we make the workaround to download a single
 	 * engine for certain engines and then rename it follwoing the corresponding
@@ -361,7 +366,6 @@ public class EngineManagement {
 		missingEngineFolders = missingEngineFolders.entrySet().stream()
 				.filter(v -> !installSpecificEngine(v.getValue(), getInstallationProgressConsumer()))
 				.collect(Collectors.toMap(v -> v.getKey(), v -> v.getValue()));
-		
 	}
 	
 	/**
@@ -500,5 +504,43 @@ public class EngineManagement {
      */
     public String getProgressString() {
     	return progressString;
+    }
+    
+    /**
+     * Get the download information provided by {@link #progressString} 
+     * @return a meaningful String containing info about the installation
+     */
+    public String manageProgress() {
+    	if (progressString.equals(PROGRESS_DONE_KEYWORD))
+    		return progressString;
+    	int caret = 0;
+    	String infoStr = "";
+    	while (progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) == -1) {
+    		int engineStart = progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) + PROGRESS_ENGINE_KEYWORD.length();
+    		int engineEnd = progressString.substring(engineStart).indexOf(System.lineSeparator());
+    		String engine = progressString.substring(engineStart, engineStart + engineEnd).trim();
+    		caret += engineStart + engineEnd;
+    		infoStr += "Installing: " + engine + System.lineSeparator();
+    		while (progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD) == -1
+    				&& progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) != -1
+    				&& progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) < 
+    						progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD)) {
+	    		int jarStart = progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD) + PROGRESS_JAR_KEYWORD.length();
+	    		int jarEnd = progressString.substring(caret + jarStart).indexOf(System.lineSeparator());
+	    		String jar = progressString.substring(jarStart, jarStart + jarEnd).trim();
+	    		caret += jarStart + jarEnd;
+	    		int sizeStart = progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD) + PROGRESS_JAR_KEYWORD.length();
+	    		int sizeEnd = progressString.substring(caret + sizeStart).indexOf(System.lineSeparator());
+	    		String sizeStr = progressString.substring(sizeStart, sizeStart + sizeEnd).trim();
+	    		caret += sizeStart + sizeEnd;
+	    		long size = Long.parseLong(sizeStr);
+	    		File jarFile = new File(ENGINES_DIR, jar);
+	    		if (jarFile.isFile())
+	    			infoStr += jar + ": " + (100 * jarFile.length() / size) + "%" + System.lineSeparator();
+	    		else
+	    			infoStr += jar + ": " + "unknown%" + System.lineSeparator();
+    		}
+    	}
+    	return infoStr;
     }
 }
