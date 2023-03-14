@@ -232,7 +232,7 @@ public class EngineManagement {
 		checkEnginesInstalled();
 		if (this.everythingInstalled)
 			manageMissingEngines();
-		this.progressString = PROGRESS_DONE_KEYWORD;
+		this.progressString = PROGRESS_DONE_KEYWORD + "s";
 	}
 	
 	/**
@@ -293,8 +293,11 @@ public class EngineManagement {
 					String framework = v.getKey().substring(0, v.getKey().lastIndexOf("_"));
 					String pythonVersion = v.getValue();
 					try {
+						boolean gpu = true;
+						if (!isEngineSupported(framework, pythonVersion, true, gpu))
+							gpu = false;
 						EngineInfo engineInfo = 
-							EngineInfo.defineDLEngine(framework, pythonVersion, ENGINES_DIR, true, true);
+							EngineInfo.defineDLEngine(framework, pythonVersion, ENGINES_DIR, true, gpu);
 						return engineInfo.getDeepLearningVersionJarsDirectory();
 					} catch (Exception ex) {
 						return null;
@@ -543,5 +546,31 @@ public class EngineManagement {
     		}
     	}
     	return infoStr;
+    }
+    
+    /**
+     * Check if an engine is supported by the dl-modelrunner or not
+     * @param framework
+	 * 	DL framework as specified by the Bioimage.io model zoo ()https://github.com/bioimage-io/spec-bioimage-io/blob/gh-pages/weight_formats_spec_0_4.md)
+	 * @param version
+	 * 	the version of the framework
+	 * @param cpu
+	 * 	whether the engine supports cpu or not
+	 * @param gpu
+	 * 	whether the engine supports gpu or not
+	 * @param consumer
+	 * 	consumer used to communicate the progress made donwloading files
+     * @return true if the engine exists and false otherwise
+     */
+    public static boolean isEngineSupported(String framework, String version, boolean cpu, boolean gpu) {
+    	if (AvailableDeepLearningVersions.getEngineKeys().get(framework) != null)
+			framework = AvailableDeepLearningVersions.getEngineKeys().get(framework);
+		DeepLearningVersion engine = AvailableDeepLearningVersions.getAvailableVersionsForEngine(framework).getVersions()
+				.stream().filter(v -> (v.getPythonVersion() == version)
+					&& (v.getCPU() == cpu)
+					&& (v.getGPU() == gpu)).findFirst().orElse(null);
+		if (engine == null) 
+			return false;
+		return true;
     }
 }
