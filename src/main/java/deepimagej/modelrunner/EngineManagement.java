@@ -166,10 +166,6 @@ public class EngineManagement {
 	 * is necessary, as the dependencies vary from one system to another. 
 	 */
 	private EngineManagement() {
-		readEnginesJSON();
-		checkEnginesInstalled();
-		if (this.everythingInstalled)
-			manageMissingEngines();
 	}
 	
 	/**
@@ -197,8 +193,40 @@ public class EngineManagement {
 	 * is necessary, as the dependencies vary from one system to another. 
 	 * @return
 	 */
-	public static EngineManagement manage() {
+	public static EngineManagement createManager() {
 		return new EngineManagement();
+	}
+	
+	/**
+	 * Checks if the minimal required engines to execute the majority of models
+	 * are installed, if not it manages the installation of the missing ones.
+	 *  
+	 * In order to reduce repetition and to reduce the number of deps downloaded
+	 * by the user when deepImageJ is installed, a selection of engines is created.
+	 * There are some of the engines that are the same for every operating system,
+	 * for example TF1 and Pytorch.
+	 * To reduce the number of deps donwloaded, the TF1 and Pytorch engines are
+	 * installed as for example:
+	 *  - "tensorflow-1.15.0-1.15.0" + {@link #GENERAL_KEYWORD}
+	 * Just one of the above folder is downloaded for all the OS.
+	 * If it was not done like this, as the Fiji update site does not recognise the
+	 * OS of the user, the three following engines would be required:
+	 *  - "tensorflow-1.15.0-1.15.0-windows-x86_64-cpu-gpu"
+	 *  - "tensorflow-1.15.0-1.15.0-linux-x86_64-cpu-gpu"
+	 *  - "tensorflow-1.15.0-1.15.0-macos-x86_64-cpu"
+	 * however, the 3 engines would contain exactly the same deps.
+	 * This is the reason why we make the workaround to download a single
+	 * engine for certain engines and then rename it follwoing the corresponding
+	 * convention
+	 * 
+	 * Regard, that for certain engines, downloading all the OS depending engines
+	 * is necessary, as the dependencies vary from one system to another. 
+	 */
+	public void checkMinimalEngineInstallation() {
+		readEnginesJSON();
+		checkEnginesInstalled();
+		if (this.everythingInstalled)
+			manageMissingEngines();
 	}
 	
 	/**
@@ -331,7 +359,7 @@ public class EngineManagement {
 		if (missingEngineFolders.entrySet().size() == 0)
 			return;
 		missingEngineFolders = missingEngineFolders.entrySet().stream()
-				.filter(v -> !installSpecificEngine(v.getValue()))
+				.filter(v -> !installSpecificEngine(v.getValue(), getInstallationProgressConsumer()))
 				.collect(Collectors.toMap(v -> v.getKey(), v -> v.getValue()));
 		
 	}
@@ -458,11 +486,19 @@ public class EngineManagement {
 		consumer.accept(str + System.lineSeparator());
 	}
     
-    public Consumer<String> getInstallationProgressConsumer() {
+    private Consumer<String> getInstallationProgressConsumer() {
     	progressString = "";
     	Consumer<String> progressConsumer = (String b) -> {
     		progressString += b;
     		};
 		return progressConsumer;
+    }
+    
+    /**
+     * Retrieve the progress String
+     * @return progress String that updates the progress about installing engines
+     */
+    public String getProgressString() {
+    	return progressString;
     }
 }
