@@ -375,6 +375,8 @@ public class EngineManagement {
 	 * @return true if the installation was successful and false otherwise
 	 */
 	public static  boolean installEngineForSystemOs(String framework, String version, boolean cpu, boolean gpu) {
+		if (AvailableDeepLearningVersions.getEngineKeys().get(framework) != null)
+			framework = AvailableDeepLearningVersions.getEngineKeys().get(framework);
 		DeepLearningVersion engine = AvailableDeepLearningVersions.getAvailableVersionsForEngine(framework).getVersions()
 				.stream().filter(v -> (v.getPythonVersion() == version)
 					&& (v.getCPU() == cpu)
