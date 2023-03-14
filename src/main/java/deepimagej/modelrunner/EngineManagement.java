@@ -238,7 +238,7 @@ public class EngineManagement {
 	public void checkMinimalEngineInstallation() {
 		readEnginesJSON();
 		checkEnginesInstalled();
-		if (this.everythingInstalled)
+		if (!this.everythingInstalled)
 			manageMissingEngines();
 		this.progressString = PROGRESS_DONE_KEYWORD + "s";
 	}
@@ -359,7 +359,7 @@ public class EngineManagement {
 		missingEngineFolders = missingEngineFolders.entrySet().stream()
 			.filter(v -> {
 				String value = v.getValue();
-				String generalName = value.substring(0, value.indexOf(new PlatformDetection().getOs()));
+				String generalName = value.substring(0, value.indexOf(new PlatformDetection().toString()) - 1);
 				generalName += GENERAL_KEYWORD;
 				File generalFile = new File(generalName);
 				if (generalFile.isDirectory() && generalFile.renameTo(new File(v.getValue())))
@@ -444,7 +444,8 @@ public class EngineManagement {
 				ReadableByteChannel rbc = Channels.newChannel(website.openStream());
 				// Create the new model file as a zip
 				Path filePath = Paths.get(website.getPath()).getFileName();
-				FileOutputStream fos = new FileOutputStream(new File(ENGINES_DIR, filePath.toString()));
+				String engineDir = ENGINES_DIR + File.separator + engine.folderName();
+				FileOutputStream fos = new FileOutputStream(new File(engineDir, filePath.toString()));
 				addProgress(consumer, PROGRESS_JAR_KEYWORD + ENGINES_DIR + File.separator
 						+ filePath.toString());
 				addProgress(consumer, PROGRESS_SIZE_KEYWORD + size);
