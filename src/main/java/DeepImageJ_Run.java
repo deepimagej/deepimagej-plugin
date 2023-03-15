@@ -1263,8 +1263,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		extraThreads.add(checkAndInstallMissingEngines);
 		checkAndInstallMissingEngines.start();
 		String backup = info.getText();
-		while (!engineManager.getProgressString().equals(EngineManagement.PROGRESS_DONE_KEYWORD)
-				&& !engineManager.getProgressString().equals("")) {
+		while (!engineManager.isManagementDone()) {
 			try {Thread.sleep(300);} catch (InterruptedException e) {}
 			info.setText(backup + System.lineSeparator() + engineManager.manageProgress());
 		}

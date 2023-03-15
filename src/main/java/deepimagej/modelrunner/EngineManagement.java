@@ -74,7 +74,7 @@ import io.bioimage.modelrunner.versionmanagement.DeepLearningVersion;
  * There is one required engine per DL framework. It can be either the latest one or the one specified
  * in the variable {@link EngineManagement#ENGINES_VERSIONS}.
  * This class also contains the methods to install engines on demand.
- * @author Carlos Garcia Lopez de Haro
+ * @author Carlos Garcia Lopez de Haro, Ivan Estevez Albuja and Caterina Fuster Barcelo
  *
  */
 public class EngineManagement {
@@ -103,13 +103,9 @@ public class EngineManagement {
 	 */
 	public static final String PROGRESS_JAR_TIME_KEYWORD = "JAR time start: ";
 	/**
-	 * Keyword used to signal that the installation of the engines has finished
-	 */
-	public static final String PROGRESS_DONE_KEYWORD = "DONE";
-	/**
 	 * Map containing which version should always be installed per framework
 	 */
-	private static final HashMap<String, String> ENGINES_VERSIONS = new HashMap<String, String>();
+	private static HashMap<String, String> ENGINES_VERSIONS = new HashMap<String, String>();
 	
 	static {
 		ENGINES_VERSIONS.put(EngineInfo.getTensorflowKey() + "_2", "2.7.0");
@@ -162,6 +158,10 @@ public class EngineManagement {
 	 * String that communicates the progress made downloading engines
 	 */
 	private String progressString;
+	/**
+	 * Flag to communicate if the management of engines is already finished
+	 */
+	private boolean isManagementFinished = false;
 	
 	/**
 	 * Constructor that checks whether the minimum engines are installed
@@ -188,7 +188,6 @@ public class EngineManagement {
 	 * is necessary, as the dependencies vary from one system to another. 
 	 */
 	private EngineManagement() {
-		progressString = "start";
 	}
 	
 	/**
@@ -246,11 +245,12 @@ public class EngineManagement {
 	 * is necessary, as the dependencies vary from one system to another. 
 	 */
 	public void checkMinimalEngineInstallation() {
+		isManagementFinished = false;
 		readEnginesJSON();
 		checkEnginesInstalled();
 		if (!this.everythingInstalled)
 			manageMissingEngines();
-		this.progressString = PROGRESS_DONE_KEYWORD;
+		isManagementFinished = true;
 	}
 	
 	/**
@@ -325,8 +325,14 @@ public class EngineManagement {
 					}));
 
 		missingEngineFolders = engineFolders.entrySet().stream()
-				.filter( dir -> (dir.getValue() != null) && !(new File(dir.getValue()).isDirectory()) )
-				.collect(Collectors.toMap(dir -> dir.getKey(), dir -> dir.getValue()));
+				.filter( dir -> {
+					try {
+						File dirFile = new File(dir.getValue());
+						return !dirFile.isDirectory() || DeepLearningVersion.fromFile(dirFile).checkMissingJars().size() != 0;
+					} catch (Exception e) {
+						return true;
+					}
+				} ).collect(Collectors.toMap(dir -> dir.getKey(), dir -> dir.getValue()));
 		
 		if (missingEngineFolders.entrySet().size() == 0)
 			everythingInstalled = true;
@@ -417,7 +423,7 @@ public class EngineManagement {
 	 */
 	public static boolean installSpecificEngine(String engineDir, Consumer<String> consumer) {
 		File engineFileDir = new File(engineDir);
-		if (engineFileDir.mkdirs() == false)
+		if (!engineFileDir.isDirectory() && engineFileDir.mkdirs() == false)
 			return false;
 		DeepLearningVersion dlVersion;
 		try {
@@ -550,41 +556,50 @@ public class EngineManagement {
     }
     
     /**
+     * Check whether the management of the engines is finished or not
+     * @return true if it is finished or false otherwise
+     */
+    public boolean isManagementDone() {
+    	return isManagementFinished;
+    }
+    
+    /**
      * Get the download information provided by {@link #progressString} 
      * @return a meaningful String containing info about the installation
      */
     public String manageProgress() {
-    	if (progressString.equals(PROGRESS_DONE_KEYWORD))
-    		return progressString;
+    	String str = "" + this.progressString;
+    	if (this.isManagementFinished)
+    		return "";
     	int caret = 0;
     	String infoStr = "";
-    	while (progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) != -1) {
-    		int engineStart = progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) + PROGRESS_ENGINE_KEYWORD.length();
-    		int engineEnd = progressString.substring(caret + engineStart).indexOf(System.lineSeparator());
-    		String engine = progressString.substring(caret + engineStart, caret + engineStart + engineEnd).trim();
+    	while (str.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) != -1) {
+    		int engineStart = str.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) + PROGRESS_ENGINE_KEYWORD.length();
+    		int engineEnd = str.substring(caret + engineStart).indexOf(System.lineSeparator());
+    		String engine = str.substring(caret + engineStart, caret + engineStart + engineEnd).trim();
     		caret += engineStart + engineEnd;
-    		int engineTimeStart = progressString.substring(caret).indexOf(PROGRESS_ENGINE_TIME_KEYWORD) + PROGRESS_ENGINE_TIME_KEYWORD.length();
-    		int engineTimeEnd = progressString.substring(caret + engineTimeStart).indexOf(System.lineSeparator());
-    		String time = progressString.substring(caret + engineTimeStart, caret + engineTimeStart + engineTimeEnd).trim();
+    		int engineTimeStart = str.substring(caret).indexOf(PROGRESS_ENGINE_TIME_KEYWORD) + PROGRESS_ENGINE_TIME_KEYWORD.length();
+    		int engineTimeEnd = str.substring(caret + engineTimeStart).indexOf(System.lineSeparator());
+    		String time = str.substring(caret + engineTimeStart, caret + engineTimeStart + engineTimeEnd).trim();
     		caret += engineTimeStart + engineTimeEnd;
     		infoStr += " - " + time + " -- Installing: " + engine + System.lineSeparator();
-    		while (progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD) != -1) {
-    			if (progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) != -1
-        				&& progressString.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) < 
-						progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD)) {
+    		while (str.substring(caret).indexOf(PROGRESS_JAR_KEYWORD) != -1) {
+    			if (str.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) != -1
+        				&& str.substring(caret).indexOf(PROGRESS_ENGINE_KEYWORD) < 
+						str.substring(caret).indexOf(PROGRESS_JAR_KEYWORD)) {
     				break;
     			}
-	    		int jarStart = progressString.substring(caret).indexOf(PROGRESS_JAR_KEYWORD) + PROGRESS_JAR_KEYWORD.length();
-	    		int jarEnd = progressString.substring(caret + jarStart).indexOf(System.lineSeparator());
-	    		String jar = progressString.substring(caret + jarStart, caret + jarStart + jarEnd).trim();
+	    		int jarStart = str.substring(caret).indexOf(PROGRESS_JAR_KEYWORD) + PROGRESS_JAR_KEYWORD.length();
+	    		int jarEnd = str.substring(caret + jarStart).indexOf(System.lineSeparator());
+	    		String jar = str.substring(caret + jarStart, caret + jarStart + jarEnd).trim();
 	    		caret += jarStart + jarEnd;
-	    		int sizeStart = progressString.substring(caret).indexOf(PROGRESS_SIZE_KEYWORD) + PROGRESS_SIZE_KEYWORD.length();
-	    		int sizeEnd = progressString.substring(caret + sizeStart).indexOf(System.lineSeparator());
-	    		String sizeStr = progressString.substring(caret + sizeStart, caret + sizeStart + sizeEnd).trim();
+	    		int sizeStart = str.substring(caret).indexOf(PROGRESS_SIZE_KEYWORD) + PROGRESS_SIZE_KEYWORD.length();
+	    		int sizeEnd = str.substring(caret + sizeStart).indexOf(System.lineSeparator());
+	    		String sizeStr = str.substring(caret + sizeStart, caret + sizeStart + sizeEnd).trim();
 	    		caret += sizeStart + sizeEnd;
-	    		int jarTimeStart = progressString.substring(caret).indexOf(PROGRESS_JAR_TIME_KEYWORD) + PROGRESS_JAR_TIME_KEYWORD.length();
-	    		int jarTimeEnd = progressString.substring(caret + jarTimeStart).indexOf(System.lineSeparator());
-	    		String jarTime = progressString.substring(caret + jarTimeStart, caret + jarTimeStart + jarTimeEnd).trim();
+	    		int jarTimeStart = str.substring(caret).indexOf(PROGRESS_JAR_TIME_KEYWORD) + PROGRESS_JAR_TIME_KEYWORD.length();
+	    		int jarTimeEnd = str.substring(caret + jarTimeStart).indexOf(System.lineSeparator());
+	    		String jarTime = str.substring(caret + jarTimeStart, caret + jarTimeStart + jarTimeEnd).trim();
 	    		caret += jarTimeStart + jarTimeEnd;
 	    		long size = Long.parseLong(sizeStr);
 	    		File jarFile = new File(jar);
