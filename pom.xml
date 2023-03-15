@@ -127,19 +127,12 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>deploy-to-scijava</releaseProfiles>
 
-		<protobuf.version>3.2.0</protobuf.version>
-		<tensorflow.version>1.15.0</tensorflow.version>
 		<jna.version>5.11.0</jna.version>
-		<imagej-tensorflow.version>1.1.6</imagej-tensorflow.version>
 	</properties>
 	<repositories>
 		<repository>
 			<id>scijava.public</id>
 			<url>https://maven.scijava.org/content/groups/public</url>
-		</repository>
-		<repository>
-			<id>icy</id>
-			<url>https://icy-nexus.pasteur.fr/repository/Icy/</url>
 		</repository>
 	</repositories>
 
