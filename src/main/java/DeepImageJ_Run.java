@@ -158,18 +158,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	 */
 	private static List<String> LOADED_ENGINES = new ArrayList<String>();
 	/**
-	 * HashMap containing the versions of CUDA compatible with each Pytorch versions
-	 */
-	private static HashMap<String, String[]> CUDA_FOR_PYTORCH_VERSIONS = new HashMap<String, String[]>();
-	/**
-	 * HashMap containing the versions of CUDA compatible with each Tensorflow versions
-	 */
-	private static HashMap<String, String[]> CUDA_FOR_TF_VERSIONS = new HashMap<String, String[]>();;
-	/**
-	 * HashMap containing the versions of CUDA compatible with each Onnx versions
-	 */
-	private static HashMap<String, String[]> CUDA_FOR_ONNX_VERSIONS = new HashMap<String, String[]>();;
-	/**
 	 * Create the String to engines directory
 	 */
 	private static final String JARS_DIRECTORY = new File("engines").getAbsolutePath();
@@ -1307,15 +1295,18 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	 * Tensorflow
 	 */
 	public String getCudaVersionsCompatible(String engine, String version, boolean gpu) {
-		if (engine.equals(EngineInfo.getPytorchKey())) {
-			return Arrays.toString(CUDA_FOR_PYTORCH_VERSIONS.get(engine));
-		} else if (engine.equals(EngineInfo.getTensorflowKey())) {
-			return Arrays.toString(CUDA_FOR_TF_VERSIONS.get(engine));
-		} else if (engine.equals(EngineInfo.getOnnxKey())) {
-			return Arrays.toString(CUDA_FOR_ONNX_VERSIONS.get(engine));
-		} else {
-			return "";
+		String cudas = null;
+		if (engine.equals(EngineInfo.getPytorchKey()) && SystemUsage.MAP_PYTORCH_CUDA.get(version) != null) {
+			cudas = SystemUsage.MAP_PYTORCH_CUDA.get(version).toString();
+		} else if (engine.equals(EngineInfo.getTensorflowKey()) && SystemUsage.MAP_TF_CUDA.get(version) != null) {
+			cudas = SystemUsage.MAP_TF_CUDA.get(version).toString();
+		} else if (engine.equals(EngineInfo.getOnnxKey()) && SystemUsage.MAP_ONNX_CUDA.get(version) != null) {
+			cudas = SystemUsage.MAP_ONNX_CUDA.get(version).toString();
+		} 
+		if (cudas == null){
+			cudas = "";
 		}
+		return cudas;
 	}
 	
 	/*
