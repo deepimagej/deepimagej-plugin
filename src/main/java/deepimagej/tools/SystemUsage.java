@@ -650,52 +650,52 @@ public class SystemUsage {
 	
 	private static HashMap<String, List<String>> createCudaCompatiblePytorchMap(){
 		HashMap<String, List<String>> map = new HashMap<String, List<String>>();
-		map.put("1.7.1", Arrays.asList(new String[]{"10.1", "10.2", "11.0"}));
-		map.put("1.8.1", Arrays.asList(new String[]{"10.2", "11.1"}));
-		map.put("1.9.0", Arrays.asList(new String[]{"10.2", "11.1"}));
-		map.put("1.9.1", Arrays.asList(new String[]{"10.2", "11.1"}));
-		map.put("1.10.0", Arrays.asList(new String[]{"10.2", "11.3"}));
-		map.put("1.11.0", Arrays.asList(new String[]{"10.2", "11.3"}));
-		map.put("1.12.1", Arrays.asList(new String[]{"10.2", "11.6"}));
-		map.put("1.13.0", Arrays.asList(new String[]{"11.7"}));
+		map.put("1.7.1", Arrays.asList(new String[]{"CUDA 10.1", "CUDA 10.2", "CUDA 11.0"}));
+		map.put("1.8.1", Arrays.asList(new String[]{"CUDA 10.2", "CUDA 11.1"}));
+		map.put("1.9.0", Arrays.asList(new String[]{"CUDA 10.2", "CUDA 11.1"}));
+		map.put("1.9.1", Arrays.asList(new String[]{"CUDA 10.2", "CUDA 11.1"}));
+		map.put("1.10.0", Arrays.asList(new String[]{"CUDA 10.2", "CUDA 11.3"}));
+		map.put("1.11.0", Arrays.asList(new String[]{"CUDA 10.2", "CUDA 11.3"}));
+		map.put("1.12.1", Arrays.asList(new String[]{"CUDA 10.2", "CUDA 11.6"}));
+		map.put("1.13.0", Arrays.asList(new String[]{"CUDA 11.7"}));
 		return map;
 	}
 	
 	private static HashMap<String, List<String>> createCudaCompatibleTensorflowMap(){
 		HashMap<String, List<String>> map = new HashMap<String, List<String>>();
-		map.put("1.12.0", Arrays.asList(new String[]{"9.0"}));
-		map.put("1.13.0", Arrays.asList(new String[]{"10.0"}));
-		map.put("1.13.1", Arrays.asList(new String[]{"10.0"}));
-		map.put("1.14.0", Arrays.asList(new String[]{"10.0"}));
-		map.put("1.15.0", Arrays.asList(new String[]{"10.0"}));
-		map.put("2.0.0", Arrays.asList(new String[]{"10.0"}));
-		map.put("2.1.0", Arrays.asList(new String[]{"10.1"}));
-		map.put("2.2.0", Arrays.asList(new String[]{"10.1"}));
-		map.put("2.3.0", Arrays.asList(new String[]{"10.1"}));
-		map.put("2.3.1", Arrays.asList(new String[]{"10.1"}));
-		map.put("2.4.0", Arrays.asList(new String[]{"11.0"}));
-		map.put("2.4.1", Arrays.asList(new String[]{"11.0"}));
-		map.put("2.5.0", Arrays.asList(new String[]{"11.2"}));
-		map.put("2.6.0", Arrays.asList(new String[]{"11.2"}));
-		map.put("2.7.0", Arrays.asList(new String[]{"11.2"}));
-		map.put("2.7.1", Arrays.asList(new String[]{"11.2"}));
-		map.put("2.7.4", Arrays.asList(new String[]{"11.2"}));
+		map.put("1.12.0", Arrays.asList(new String[]{"CUDA 9.0"}));
+		map.put("1.13.0", Arrays.asList(new String[]{"CUDA 10.0"}));
+		map.put("1.13.1", Arrays.asList(new String[]{"CUDA 10.0"}));
+		map.put("1.14.0", Arrays.asList(new String[]{"CUDA 10.0"}));
+		map.put("1.15.0", Arrays.asList(new String[]{"CUDA 10.0"}));
+		map.put("2.0.0", Arrays.asList(new String[]{"CUDA 10.0"}));
+		map.put("2.1.0", Arrays.asList(new String[]{"CUDA 10.1"}));
+		map.put("2.2.0", Arrays.asList(new String[]{"CUDA 10.1"}));
+		map.put("2.3.0", Arrays.asList(new String[]{"CUDA 10.1"}));
+		map.put("2.3.1", Arrays.asList(new String[]{"CUDA 10.1"}));
+		map.put("2.4.0", Arrays.asList(new String[]{"CUDA 11.0"}));
+		map.put("2.4.1", Arrays.asList(new String[]{"CUDA 11.0"}));
+		map.put("2.5.0", Arrays.asList(new String[]{"CUDA 11.2"}));
+		map.put("2.6.0", Arrays.asList(new String[]{"CUDA 11.2"}));
+		map.put("2.7.0", Arrays.asList(new String[]{"CUDA 11.2"}));
+		map.put("2.7.1", Arrays.asList(new String[]{"CUDA 11.2"}));
+		map.put("2.7.4", Arrays.asList(new String[]{"CUDA 11.2"}));
 		return map;
 	}
 	
 	private static HashMap<String, List<String>> createCudaCompatibleOnnxMap(){
 		HashMap<String, List<String>> map = new HashMap<String, List<String>>();
-		map.put("8", Arrays.asList(new String[]{"10.1"}));
-		map.put("9", Arrays.asList(new String[]{"10.1"}));
-		map.put("10", Arrays.asList(new String[]{"10.2"}));
-		map.put("11", Arrays.asList(new String[]{"10.2"}));
-		map.put("12", Arrays.asList(new String[]{"11.0.3"}));
-		map.put("13", Arrays.asList(new String[]{"11.0.3"}));
-		map.put("14", Arrays.asList(new String[]{"11.4"}));
-		map.put("15", Arrays.asList(new String[]{"11.4"}));
-		map.put("16", Arrays.asList(new String[]{"11.4"}));
-		map.put("17", Arrays.asList(new String[]{"11.4"}));
-		map.put("18", Arrays.asList(new String[]{"11.6"}));
+		map.put("8", Arrays.asList(new String[]{"CUDA 10.1"}));
+		map.put("9", Arrays.asList(new String[]{"CUDA 10.1"}));
+		map.put("10", Arrays.asList(new String[]{"CUDA 10.2"}));
+		map.put("11", Arrays.asList(new String[]{"CUDA 10.2"}));
+		map.put("12", Arrays.asList(new String[]{"CUDA 11.0.3"}));
+		map.put("13", Arrays.asList(new String[]{"CUDA 11.0.3"}));
+		map.put("14", Arrays.asList(new String[]{"CUDA 11.4"}));
+		map.put("15", Arrays.asList(new String[]{"CUDA 11.4"}));
+		map.put("16", Arrays.asList(new String[]{"CUDA 11.4"}));
+		map.put("17", Arrays.asList(new String[]{"CUDA 11.4"}));
+		map.put("18", Arrays.asList(new String[]{"CUDA 11.6"}));
 		return map;
 	}
 }
