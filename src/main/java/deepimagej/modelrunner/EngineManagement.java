@@ -109,7 +109,7 @@ public class EngineManagement {
 	
 	static {
 		ENGINES_VERSIONS.put(EngineInfo.getTensorflowKey() + "_2", "2.7.0");
-		ENGINES_VERSIONS.put(EngineInfo.getTensorflowKey() + "_1", "1.15.0");
+		//ENGINES_VERSIONS.put(EngineInfo.getTensorflowKey() + "_1", "1.15.0");
 		ENGINES_VERSIONS.put(EngineInfo.getOnnxKey() + "_17", "17");
 		ENGINES_VERSIONS.put(EngineInfo.getPytorchKey() + "_1", "1.13.0");
 	}
@@ -277,22 +277,16 @@ public class EngineManagement {
 	 * The link to a github repo is: https://raw.githubusercontent.com/bioimage-io/model-runner-java/main/src/main/resources/availableDLVersions.json
 	 */
 	private void readEnginesJSON() {
-		 Map<String, String> versionsNotInRequired = AvailableDeepLearningVersions
-				.loadCompatibleOnly().getVersions().stream()
-				.filter( v -> !v.getEngine().startsWith(EngineInfo.getOnnxKey())
-						&& !ENGINES_VERSIONS.keySet().contains( v.getEngine() 
-						+ "_" + v.getPythonVersion().substring(0, v.getPythonVersion().indexOf(".")) ) )
-				.collect(Collectors.toMap(
-						v -> v.getEngine() + "_" + v.getPythonVersion(), v -> v.getPythonVersion()));
-		 List<String> uniqueFrameworks = versionsNotInRequired.keySet().stream()
+		Map<String, String> versionsNotInRequired = getListOfSingleVersionsPerFrameworkNotInRequired();
+		List<String> uniqueFrameworks = versionsNotInRequired.keySet().stream()
 				 .map(f -> f.substring(0, f.lastIndexOf("_"))).distinct()
 				 .collect(Collectors.toList());
-		 Comparator<String> versionComparator = (v1, v2) -> {
+		Comparator<String> versionComparator = (v1, v2) -> {
 			 // Multiply by -1 because we want to return 1 if v1 is bigger and -1 otherwise
 			 // and the used method does the opposite
 			 return DeepLearningVersion.stringVersionComparator(v1, v2) * -1;
 	        };
-		 for (String f : uniqueFrameworks) {
+        for (String f : uniqueFrameworks) {
 			 String selectedVersion = versionsNotInRequired.entrySet().stream()
 					 .filter( v -> v.getKey().startsWith(f + "_"))
 					 .map(v -> v.getValue()).max(versionComparator).orElse(null);
@@ -300,6 +294,39 @@ public class EngineManagement {
 		 }
 		 
 		
+	}
+	
+	/**
+	 * Method to retrieve a list of single python versions for the system OS. If there exist GPU
+	 * and CPU versions, it chooses the GPU one
+	 * @return a list of all the versions available for each framework that is not contained in 
+	 * the {@link #ENGINES_MAP} map of required versions
+	 */
+	public static Map<String, String> getListOfSingleVersionsPerFrameworkNotInRequired() {
+		List<DeepLearningVersion> vList = AvailableDeepLearningVersions
+				.loadCompatibleOnly().getVersions().stream()
+				.filter( v -> !v.getEngine().startsWith(EngineInfo.getOnnxKey())
+						&& !ENGINES_VERSIONS.keySet().contains( v.getEngine() 
+						+ "_" + v.getPythonVersion().substring(0, v.getPythonVersion().indexOf(".")) ) 
+						&& v.getOs().equals(new PlatformDetection().toString()))
+				.collect(Collectors.groupingBy(DeepLearningVersion::getPythonVersion)).values().stream()
+			    .flatMap(sizeGroup -> {
+			        List<DeepLearningVersion> uniquePythonVersions = sizeGroup.stream()
+			            .filter(v -> sizeGroup.stream()
+			            		.noneMatch(otherV -> v != otherV && v.getPythonVersion().equals(otherV.getPythonVersion())))
+			            .collect(Collectors.toList());
+
+			        List<DeepLearningVersion> guVersions = sizeGroup.stream()
+			            .filter(obj -> obj.getGPU()).limit(1).collect(Collectors.toList());
+
+			        uniquePythonVersions.addAll(guVersions);
+			        return uniquePythonVersions.stream();
+			    })
+			    .collect(Collectors.toList());
+				
+		Map<String, String> versionsNotInRequired = vList.stream().collect(Collectors.toMap(
+							v -> v.getEngine() + "_" + v.getPythonVersion(), v -> v.getPythonVersion()));;
+		return versionsNotInRequired;
 	}
 	
 	/**
