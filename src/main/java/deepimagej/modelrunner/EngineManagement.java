@@ -109,7 +109,7 @@ public class EngineManagement {
 	
 	static {
 		ENGINES_VERSIONS.put(EngineInfo.getTensorflowKey() + "_2", "2.7.0");
-		//ENGINES_VERSIONS.put(EngineInfo.getTensorflowKey() + "_1", "1.15.0");
+		ENGINES_VERSIONS.put(EngineInfo.getTensorflowKey() + "_1", "1.15.0");
 		ENGINES_VERSIONS.put(EngineInfo.getOnnxKey() + "_17", "17");
 		ENGINES_VERSIONS.put(EngineInfo.getPytorchKey() + "_1", "1.13.0");
 	}
