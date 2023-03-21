@@ -59,7 +59,7 @@ public class TorchscriptWeights implements WeightFormatInterface{
 		// TODO add fixed version if it is not shown because many models are missing
 		// the Pytorch version. Remove when they start appearing
 		if (trainingVersion == null)
-			trainingVersion = "1.9.1";
+			trainingVersion = "1.13.0";
 	}
 
 	private String weightsFormat;
