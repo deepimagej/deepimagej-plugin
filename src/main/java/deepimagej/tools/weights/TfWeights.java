@@ -57,13 +57,6 @@ public class TfWeights implements WeightFormatInterface{
 	            	setArchitectureSha256(fieldElement);
 	                break;
 	        }
-			// Pin the tensorflow versions (TF 1 or TF 2, according to the engines version downloaded)
-			if(trainingVersion == null || trainingVersion.startsWith("1")){
-				trainingVersion = EngineManagement.ENGINES_VERSIONS.get(EngineInfo.getTensorflowKey() + "_1");
-			}
-			else {
-				trainingVersion = EngineManagement.ENGINES_VERSIONS.get(EngineInfo.getTensorflowKey() + "_2");
-			}
 		}
 	}
 
@@ -97,6 +90,14 @@ public class TfWeights implements WeightFormatInterface{
 			this.trainingVersion = "" + v;
 		else if (v instanceof Integer)
 			this.trainingVersion = "" + v;
+
+		// Pin the tensorflow versions (TF 1 or TF 2, according to the engines version downloaded)
+		if (trainingVersion == null && trainingVersion.startsWith("1")){
+			trainingVersion = EngineManagement.ENGINES_VERSIONS.get(EngineInfo.getTensorflowKey() + "_1");
+		}
+		else if (trainingVersion == null) {
+			trainingVersion = EngineManagement.ENGINES_VERSIONS.get(EngineInfo.getTensorflowKey() + "_2");
+		}
 	}
 
 	private String sha256;
