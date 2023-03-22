@@ -158,7 +158,7 @@ public class Table2Tensor {
 		Cursor<FloatType> tensorCursor;
 		if (data instanceof IntervalView)
 			tensorCursor = ((IntervalView<FloatType>) data).cursor();
-		else if (data instanceof Img<T>) 
+		else if (data instanceof Img) 
 			tensorCursor = ((Img<FloatType>) data).cursor();
 		else throw new IllegalArgumentException("The data of the " + Tensor.class +
 			" has " + "to be an instance of " + Img.class + " or " +
