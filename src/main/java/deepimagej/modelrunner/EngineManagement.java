@@ -118,7 +118,7 @@ public class EngineManagement {
 	 * to name the engine folder
 	 */
 	private static final Map<String, String> ENGINES_MAP = 
-			AvailableEngines.getEngineKeys().entrySet()
+			AvailableEngines.bioimageioToModelRunnerKeysMap().entrySet()
 			.stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
 	
 	/**
@@ -551,8 +551,8 @@ public class EngineManagement {
 	 */
 	public static  boolean installEngineForSystemOs(String framework, String version, 
 			boolean cpu, boolean gpu, Consumer<String> consumer) {
-		if (AvailableEngines.getEngineKeys().get(framework) != null)
-			framework = AvailableEngines.getEngineKeys().get(framework);
+		if (AvailableEngines.bioimageioToModelRunnerKeysMap().get(framework) != null)
+			framework = AvailableEngines.bioimageioToModelRunnerKeysMap().get(framework);
 		DeepLearningVersion engine = AvailableEngines.getAvailableVersionsForEngine(framework).getVersions()
 				.stream().filter(v -> (v.getPythonVersion() == version)
 					&& (v.getCPU() == cpu)
@@ -656,7 +656,7 @@ public class EngineManagement {
      */
     public static boolean isEngineSupported(String framework, String version, boolean cpu, boolean gpu) {
     	if (ENGINES_MAP.get(framework) != null)
-			framework = AvailableEngines.getEngineKeys().get(framework);
+			framework = AvailableEngines.bioimageioToModelRunnerKeysMap().get(framework);
     	DeepLearningVersion engine = AvailableEngines.getAvailableVersionsForEngine(framework).getVersions()
 				.stream().filter(v -> v.getPythonVersion().equals(version) 
 						&& v.getOs().equals(new PlatformDetection().toString())
