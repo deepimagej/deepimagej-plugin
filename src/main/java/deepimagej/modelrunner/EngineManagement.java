@@ -65,7 +65,7 @@ import deepimagej.InstallerDialog;
 import deepimagej.tools.ModelDownloader;
 import io.bioimage.modelrunner.engine.EngineInfo;
 import io.bioimage.modelrunner.system.PlatformDetection;
-import io.bioimage.modelrunner.versionmanagement.AvailableDeepLearningVersions;
+import io.bioimage.modelrunner.versionmanagement.AvailableEngines;
 import io.bioimage.modelrunner.versionmanagement.DeepLearningVersion;
 
 /**
@@ -118,7 +118,7 @@ public class EngineManagement {
 	 * to name the engine folder
 	 */
 	private static final Map<String, String> ENGINES_MAP = 
-			AvailableDeepLearningVersions.getEngineKeys().entrySet()
+			AvailableEngines.getEngineKeys().entrySet()
 			.stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
 	
 	/**
@@ -303,7 +303,7 @@ public class EngineManagement {
 	 * the {@link #ENGINES_MAP} map of required versions
 	 */
 	public static Map<String, String> getListOfSingleVersionsPerFrameworkNotInRequired() {
-		List<DeepLearningVersion> vList = AvailableDeepLearningVersions
+		List<DeepLearningVersion> vList = AvailableEngines
 				.loadCompatibleOnly().getVersions().stream()
 				.filter( v -> !v.getEngine().startsWith(EngineInfo.getOnnxKey())
 						&& !ENGINES_VERSIONS.keySet().contains( v.getEngine() 
@@ -551,9 +551,9 @@ public class EngineManagement {
 	 */
 	public static  boolean installEngineForSystemOs(String framework, String version, 
 			boolean cpu, boolean gpu, Consumer<String> consumer) {
-		if (AvailableDeepLearningVersions.getEngineKeys().get(framework) != null)
-			framework = AvailableDeepLearningVersions.getEngineKeys().get(framework);
-		DeepLearningVersion engine = AvailableDeepLearningVersions.getAvailableVersionsForEngine(framework).getVersions()
+		if (AvailableEngines.getEngineKeys().get(framework) != null)
+			framework = AvailableEngines.getEngineKeys().get(framework);
+		DeepLearningVersion engine = AvailableEngines.getAvailableVersionsForEngine(framework).getVersions()
 				.stream().filter(v -> (v.getPythonVersion() == version)
 					&& (v.getCPU() == cpu)
 					&& (v.getGPU() == gpu)).findFirst().orElse(null);
@@ -656,8 +656,8 @@ public class EngineManagement {
      */
     public static boolean isEngineSupported(String framework, String version, boolean cpu, boolean gpu) {
     	if (ENGINES_MAP.get(framework) != null)
-			framework = AvailableDeepLearningVersions.getEngineKeys().get(framework);
-    	DeepLearningVersion engine = AvailableDeepLearningVersions.getAvailableVersionsForEngine(framework).getVersions()
+			framework = AvailableEngines.getEngineKeys().get(framework);
+    	DeepLearningVersion engine = AvailableEngines.getAvailableVersionsForEngine(framework).getVersions()
 				.stream().filter(v -> v.getPythonVersion().equals(version) 
 						&& v.getOs().equals(new PlatformDetection().toString())
 						&& v.getCPU() == cpu
