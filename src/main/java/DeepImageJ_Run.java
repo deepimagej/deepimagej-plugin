@@ -95,7 +95,7 @@ import io.bioimage.modelrunner.engine.EngineInfo;
 import io.bioimage.modelrunner.exceptions.LoadEngineException;
 import io.bioimage.modelrunner.model.Model;
 import io.bioimage.modelrunner.versionmanagement.DeepLearningVersion;
-import io.bioimage.modelrunner.versionmanagement.InstalledDeepLearningVersions;
+import io.bioimage.modelrunner.versionmanagement.InstalledEngines;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -664,17 +664,17 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		
 		boolean iscuda = DeepLearningModel.TensorflowCUDACompatibility(loadInfo, cudaVersion).equals("");
 		
-		EngineInfo engineInfo = EngineInfo.defineDLEngine(engine, version, 
-				JARS_DIRECTORY, true, loadInfo.contains("GPU"));
+		EngineInfo engineInfo = EngineInfo.defineDLEngine(engine, version, JARS_DIRECTORY, true, true);
 		Model model;
 		try {
+			engineInfo = engineInfo.getEngineInfoOfTheClosestInstalledEngineVersion();
 			model = Model.createDeepLearningModel(dp.getPath(), source, engineInfo);
 		} catch (LoadEngineException e1) {
-			IJ.error("Error loading the following engine: " + engine + "-" + version);
+			IJ.error("Error loading " + engine + System.lineSeparator() + e1.toString());
 			run("");
 			return;
 		} catch (Exception e1) {
-			IJ.error("Error loading the following engine: " + engine + "-" + version);
+			IJ.error("Error loading " + engine + System.lineSeparator() + e1.toString());
 			run("");
 			return;
 		}
@@ -1256,7 +1256,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			info.setText(backup + System.lineSeparator() + engineManager.manageProgress());
 		}
 			
-		installedEngines = InstalledDeepLearningVersions.buildEnginesFinder().loadDownloadedCompatible();
+		installedEngines = InstalledEngines.buildEnginesFinder().loadDownloadedCompatible();
 		List<String> engineNames = 
 				installedEngines.stream()
 				.map(v -> v.getEngine() + "-" 
