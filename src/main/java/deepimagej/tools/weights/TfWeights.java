@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import deepimagej.modelrunner.EngineManagement;
+import io.bioimage.modelrunner.engine.EngineInfo;
 
 /**
  * Class that contains the information for Tensorflow weights.
@@ -55,6 +57,13 @@ public class TfWeights implements WeightFormatInterface{
 	            	setArchitectureSha256(fieldElement);
 	                break;
 	        }
+			// Pin the tensorflow versions (TF 1 or TF 2, according to the engines version downloaded)
+			if(trainingVersion == null || trainingVersion.startsWith("1")){
+				trainingVersion = EngineManagement.ENGINES_VERSIONS.get(EngineInfo.getTensorflowKey() + "_1");
+			}
+			else {
+				trainingVersion = EngineManagement.ENGINES_VERSIONS.get(EngineInfo.getTensorflowKey() + "_2");
+			}
 		}
 	}
 

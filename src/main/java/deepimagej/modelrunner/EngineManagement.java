@@ -105,7 +105,7 @@ public class EngineManagement {
 	/**
 	 * Map containing which version should always be installed per framework
 	 */
-	private static HashMap<String, String> ENGINES_VERSIONS = new HashMap<String, String>();
+	public static HashMap<String, String> ENGINES_VERSIONS = new HashMap<String, String>();
 	
 	static {
 		ENGINES_VERSIONS.put(EngineInfo.getTensorflowKey() + "_2", "2.7.0");
