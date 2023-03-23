@@ -323,7 +323,7 @@ public class EngineManagement {
 			        return uniquePythonVersions.stream();
 			    })
 			    .collect(Collectors.toList());
-				
+
 		Map<String, String> versionsNotInRequired = vList.stream().collect(Collectors.toMap(
 							v -> v.getEngine() + "_" + v.getPythonVersion(), v -> v.getPythonVersion()));;
 		return versionsNotInRequired;

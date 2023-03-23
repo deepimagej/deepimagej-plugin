@@ -298,13 +298,12 @@ public class RunnerDL < T extends RealType< T > & NativeType< T > > implements C
 
 		if (log.getLevel() >= 1)
 			log.print("start " + npx + "x" + npy);
-		String engine = dp.params.weights.getSelectedWeights().getWeightsFormat() ;
 		for (int i = 0; i < npx; i++) {
 			for (int j = 0; j < npy; j++) {
 				for (int z = 0; z < npz; z++) {
 					// TODO reduce this mega big loop to something more modular
 					currentPatch++;
-					System.out.println("[DEBUG] (" + engine + ") Patch " + currentPatch + "/" + totalPatch);
+					System.out.println("[DEBUG] (Inference) Patch " + currentPatch + "/" + totalPatch);
 					if (log.getLevel() >= 1)
 						log.print("currentPatch " + currentPatch);
 					if (rp != null && rp.isStopped()) {

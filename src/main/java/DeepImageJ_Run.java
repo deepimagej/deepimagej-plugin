@@ -173,7 +173,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		path = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models" + File.separator;
 		path = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\Usiigaci_2.1.4\\usiigaci.tif");
-		ImagePlus imp = IJ.openImage("C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models\\HPA Nucleus Segmentation (DPNUnet)_13012023_132054\\sample_input_0.tif");
+		ImagePlus imp = IJ.openImage("C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models\\b.-sutilist-bacteria-segmentation---widefield-microscopy---2d-unet_tensorflow_saved_model_bundle\\sample_input_0.tif");
 		//ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
 		if (imp != null)
 			imp.show();		WindowManager.setTempCurrentImage(imp);
@@ -668,7 +668,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		Model model;
 		try {
 			engineInfo = engineInfo.getEngineInfoOfTheClosestInstalledEngineVersion();
-			model = Model.createDeepLearningModel(dp.getPath(), source, engineInfo);
+			model = Model.createDeepLearningModel(dp.getPath(), source, engineInfo, getClass().getClassLoader());
 		} catch (LoadEngineException e1) {
 			IJ.error("Error loading " + engine + System.lineSeparator() + e1.toString());
 			run("");
@@ -1254,6 +1254,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		while (!engineManager.isManagementDone()) {
 			try {Thread.sleep(300);} catch (InterruptedException e) {}
 			info.setText(backup + System.lineSeparator() + engineManager.manageProgress());
+			info.setCaretPosition(info.getText().length());
 		}
 			
 		installedEngines = InstalledEngines.buildEnginesFinder().loadDownloadedCompatible();
