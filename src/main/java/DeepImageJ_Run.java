@@ -173,8 +173,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		path = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models" + File.separator;
 		path = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\Usiigaci_2.1.4\\usiigaci.tif");
-		ImagePlus imp = IJ.openImage("C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models\\b.-sutilist-bacteria-segmentation---widefield-microscopy---2d-unet_tensorflow_saved_model_bundle\\sample_input_0.tif");
+		//ImagePlus imp = IJ.openImage("C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models\\b.-sutilist-bacteria-segmentation---widefield-microscopy---2d-unet_tensorflow_saved_model_bundle\\sample_input_0.tif");
 		//ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
+	    path = System.getProperty("user.home") + File.separator +"blank_fiji\\Fiji.app\\models"+ File.separator;
+		ImagePlus imp=null;
 		if (imp != null)
 			imp.show();		WindowManager.setTempCurrentImage(imp);
 		new DeepImageJ_Run().run("");
@@ -182,6 +184,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 
 	@Override
 	public void run(String arg) {
+		System.out.println("engines jars directory is"+JARS_DIRECTORY);
+
 		
 		testMode = false;
 		
@@ -1250,11 +1254,17 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
         });
 		extraThreads.add(checkAndInstallMissingEngines);
 		checkAndInstallMissingEngines.start();
-		String backup = info.getText();
+		
+		String backup = null;
+		if (!headless && !isMacro) {
+			backup = info.getText();
+		}
 		while (!engineManager.isManagementDone()) {
-			try {Thread.sleep(300);} catch (InterruptedException e) {}
-			info.setText(backup + System.lineSeparator() + engineManager.manageProgress());
-			info.setCaretPosition(info.getText().length());
+			if (!headless && !isMacro) {
+				try {Thread.sleep(300);} catch (InterruptedException e) {}
+				info.setText(backup + System.lineSeparator() + engineManager.manageProgress());
+				info.setCaretPosition(info.getText().length());
+			}
 		}
 			
 		installedEngines = InstalledEngines.buildEnginesFinder().loadDownloadedCompatible();
