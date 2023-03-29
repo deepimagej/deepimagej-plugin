@@ -51,6 +51,7 @@ import java.util.concurrent.Callable;
 import java.util.zip.ZipException;
 
 import deepimagej.DeepImageJ;
+import deepimagej.DeepLearningModel;
 import deepimagej.RunnerProgress;
 import deepimagej.stamp.LoadPytorchStamp;
 import ij.IJ;
@@ -162,13 +163,19 @@ public class ModelLoader implements Callable<Boolean>{
 		
 		if (dp.params.framework.toLowerCase().equals("pytorch")) {
 			String ptNativeFileName = LoadPytorchStamp.getNativeLbraryFile();
-			String lib = new File(ptNativeFileName).getName();
-			// Get the Pytorch version being used reading the fist part of the lib folder
-			dp.params.pytorchVersion = lib.substring(0, 5);
-			if (rp != null && lib.toLowerCase().contains("cpu")) {
-				rp.setGPU("cpu");
-			} else if (rp != null){
-				rp.setGPU("gpu");
+			File libFile = new File(ptNativeFileName);
+			if (!libFile.exists()) {
+				rp.setGPU(ptNativeFileName);
+				dp.params.pytorchVersion = DeepLearningModel.getPytorchVersion();
+			} else {
+				// Get the Pytorch version being used reading the fist part of the lib folder
+				String parentFolderName = libFile.getParentFile().getName();
+				dp.params.pytorchVersion = parentFolderName.substring(0, parentFolderName.indexOf("-"));
+				if (rp != null && libFile.getName().toLowerCase().contains("cpu")) {
+					rp.setGPU("cpu");
+				} else if (rp != null){
+					rp.setGPU("gpu");
+				}
 			}
 		}
 		

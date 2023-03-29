@@ -46,10 +46,13 @@ package deepimagej.stamp;
 import java.awt.BorderLayout;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Vector;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.swing.BoxLayout;
@@ -355,11 +358,26 @@ public class LoadPytorchStamp extends AbstractStamp implements Runnable {
 	 */
 	public static String getNativeLbraryFile() {
 		String nativeLibrary = "???";
+		Field field;
 		try {
-			Method method = LibUtils.class.getDeclaredMethod("findNativeLibrary", new Class[]{AtomicBoolean.class});
-	        method.setAccessible(true); /*promote the method to public access*/
-	        AtomicBoolean bb = new AtomicBoolean(false);
-	        nativeLibrary = (String) method.invoke(LibUtils.class, bb);
+			field = ClassLoader.class.getDeclaredField("loadedLibraryNames");
+	        field.setAccessible(true);
+	        Object libraries = field.get(null);
+	        if (libraries instanceof Vector) {
+	        	for (String ll : (Vector<String>) libraries) {
+		        	if (ll.contains("torch_")){
+		        		nativeLibrary = ll;
+		        		break;
+		        	}
+		        }
+	        } else if (libraries instanceof String[]) {
+	        	for (String ll : (String[]) libraries) {
+		        	if (ll.contains("torch_")){
+		        		nativeLibrary = ll;
+		        		break;
+		        	}
+		        }
+	        }
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
