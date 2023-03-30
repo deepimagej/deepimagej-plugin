@@ -174,9 +174,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		path = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\Usiigaci_2.1.4\\usiigaci.tif");
 		//ImagePlus imp = IJ.openImage("C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models\\b.-sutilist-bacteria-segmentation---widefield-microscopy---2d-unet_tensorflow_saved_model_bundle\\sample_input_0.tif");
-		//ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
+		ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
 	    path = System.getProperty("user.home") + File.separator +"blank_fiji\\Fiji.app\\models"+ File.separator;
-		ImagePlus imp=null;
+		//ImagePlus imp=null;
 		if (imp != null)
 			imp.show();		WindowManager.setTempCurrentImage(imp);
 		new DeepImageJ_Run().run("");
@@ -294,6 +294,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			String index = Integer.toString(Index.indexOf(items, args[0]));
 			// Select the model name using its index in the list
 			args[0] = fullnames.get(index);
+			// Put the framework name in lower case
+			args[1] = args[1].toLowerCase();
 		} else {
 			args = createAndShowDialog();
 		}
@@ -1266,8 +1268,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			backup = info.getText();
 		}
 		while (!engineManager.isManagementDone()) {
-			if (!headless && !isMacro) {
 				try {Thread.sleep(300);} catch (InterruptedException e) {}
+			if (!headless && !isMacro) {
 				info.setText(backup + System.lineSeparator() + engineManager.manageProgress());
 				info.setCaretPosition(info.getText().length());
 			}
