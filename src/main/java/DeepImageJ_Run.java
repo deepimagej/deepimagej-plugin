@@ -190,6 +190,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		testMode = false;
 		
 		headless = GraphicsEnvironment.isHeadless();
+		//headless = true; // true only for debug
 
 		isMacro = IJ.isMacro();
 		
@@ -257,6 +258,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		if (isMacro || headless) {
 			// Macro argument
 			String macroArg = Macro.getOptions();
+			
+			//macroArg = "model=[StarDist H&E Nuclei Segmentation] format=Tensorflow preprocessing=[per_sample_scale_range.ijm] postprocessing=[no postprocessing] axes=Y,X,C tile=496,704,3 logging=Normal";
 			// Names of the variables needed to run DIJ
 			// Especially Pytorch, add the possibility of including
 			// the path to the model directory. See DeepImageJ wiki for more
@@ -276,9 +279,12 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			// If it is a macro, load models, tf and pt directly in the same thread.
 			// If this was done in another thread, the plugin would try to execute the
 			// models before everything was ready
+			System.out.println("[DEBUG] Start loading models");
 			loadModels();
+			System.out.println("[DEBUG] Finished loading models");
 			try {
 				findAvailableEngines();
+				System.out.println("[DEBUG] Engines found");
 			} catch (IOException e) {
 				IJ.error("Unable to find an engines directory. Please create" 
 						+ System.lineSeparator() + "a folder called"
