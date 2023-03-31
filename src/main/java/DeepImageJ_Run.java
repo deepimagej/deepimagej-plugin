@@ -174,9 +174,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		path = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\Usiigaci_2.1.4\\usiigaci.tif");
 		//ImagePlus imp = IJ.openImage("C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models\\b.-sutilist-bacteria-segmentation---widefield-microscopy---2d-unet_tensorflow_saved_model_bundle\\sample_input_0.tif");
-		ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
+		//ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
 	    path = System.getProperty("user.home") + File.separator +"blank_fiji\\Fiji.app\\models"+ File.separator;
-		//ImagePlus imp=null;
+		ImagePlus imp=null;
 		if (imp != null)
 			imp.show();		WindowManager.setTempCurrentImage(imp);
 		new DeepImageJ_Run().run("");
@@ -1261,6 +1261,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			engineManager.checkMinimalEngineInstallation();
         });
 		extraThreads.add(checkAndInstallMissingEngines);
+		System.out.println("[DEBUG] Checking and installing missing engines");
 		checkAndInstallMissingEngines.start();
 		
 		String backup = null;
@@ -1291,6 +1292,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 				loadInfo += " -" + names + System.lineSeparator();
 		}
 		loadInfo += System.lineSeparator();
+		System.out.println("[DEBUG] " + loadInfo);
 			
 		// If the version allows GPU, find if there is CUDA
 		if (!headless && !isMacro) {
