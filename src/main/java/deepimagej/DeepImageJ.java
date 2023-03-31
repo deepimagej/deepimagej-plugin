@@ -49,6 +49,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -91,7 +95,7 @@ public class DeepImageJ {
 				this.params.path2Model = this.path;
 				this.valid = check(p);
 			} catch (Exception ex) {
-				IJ.log("Unable to read the rdf.yaml specifications file in following fodler.\n"
+				IJ.log("Unable to read the rdf.yaml specifications file in following folder.\n"
 					+ "Please review that the compulsory fields are not missing.\n"
 					+ " -" + path);
 			}
@@ -347,6 +351,7 @@ public class DeepImageJ {
 		}
 		boolean validTf = false;
 		boolean validPt = false;
+		boolean validOnnx = false;
 
 		File modelFile = new File(path + "saved_model.pb");
 		File variableFile = new File(path + "variables");
@@ -361,11 +366,23 @@ public class DeepImageJ {
 			validPt = true;
 			this.params.framework = "pytorch";
 		}
+
+		// For onnx models, check if the folder contains weights with the name something.onnx
+		PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:**.onnx");
+		File folder = new File(path);
+		for(File f: folder.listFiles()) {
+			if (matcher.matches(f.toPath())){
+				validOnnx = true;
+				break;
+			}
+		}
+
+
 		
 		if (validTf && validPt)
 			this.params.framework = "tensorflow/pytorch";
 		
-		if (!validTf && !validPt) {
+		if (!validTf && !validPt && !validOnnx) {
 			// Find zipped biozoo model
 			try {
 				validTf = findZippedBiozooModel(dir);
@@ -373,8 +390,12 @@ public class DeepImageJ {
 				validTf = false;
 			}
 		}
+
+		if (validOnnx && !validPt && !validTf){
+			this.params.framework = "onnx";
+		}
 		
-		return validTf || validPt;
+		return validTf || validPt || validOnnx;
 	}
 	
 	/*

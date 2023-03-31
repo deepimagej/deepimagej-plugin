@@ -174,7 +174,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		path = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\Usiigaci_2.1.4\\usiigaci.tif");
 		//ImagePlus imp = IJ.openImage("C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models\\b.-sutilist-bacteria-segmentation---widefield-microscopy---2d-unet_tensorflow_saved_model_bundle\\sample_input_0.tif");
-		//ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
+//		ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
 	    path = System.getProperty("user.home") + File.separator +"blank_fiji\\Fiji.app\\models"+ File.separator;
 		ImagePlus imp=null;
 		if (imp != null)
@@ -190,7 +190,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		testMode = false;
 		
 		headless = GraphicsEnvironment.isHeadless();
-		//headless = true; // true only for debug
+//		headless = true; // true only for debug
 
 		isMacro = IJ.isMacro();
 		
@@ -258,11 +258,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		if (isMacro || headless) {
 			// Macro argument
 			String macroArg = Macro.getOptions();
-			
-			//macroArg = "model=[StarDist H&E Nuclei Segmentation] format=Tensorflow preprocessing=[per_sample_scale_range.ijm] postprocessing=[no postprocessing] axes=Y,X,C tile=496,704,3 logging=Normal";
-			// Names of the variables needed to run DIJ
-			// Especially Pytorch, add the possibility of including
-			// the path to the model directory. See DeepImageJ wiki for more
+
+//			macroArg = "model=NucleiSegmentationBoundaryModel format=Onnx preprocessing=[zero_mean_unit_variance.ijm] postprocessing=[no postprocessing] axes=C,Y,X tile=1,288,288 logging=Normal";
+//			macroArg = "model=[StarDist H&E Nuclei Segmentation] format=Tensorflow preprocessing=[per_sample_scale_range.ijm] postprocessing=[no postprocessing] axes=Y,X,C tile=496,704,3 logging=Normal";
+
+			/* Names of the variables needed to run DIJ
+			Especially Pytorch, add the possibility of including
+			the path to the model directory. See DeepImageJ wiki for more */
 			String[] varNames = new String[] {"model", "format", "preprocessing", "postprocessing",
 												"axes", "tile", "logging", "model_dir"};
 			try {
