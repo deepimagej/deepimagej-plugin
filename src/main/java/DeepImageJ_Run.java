@@ -189,7 +189,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 
 	@Override
 	public void run(String arg) {
-		System.out.println("engines jars directory is"+JARS_DIRECTORY);
+		System.out.println("engines jars directory is "+JARS_DIRECTORY);
 
 		
 		testMode = false;
@@ -1269,12 +1269,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		 */
 		TwoParameterConsumer<String, Double> consumer = DownloadTracker.createConsumerProgress();
 		EngineManagement engineManager = EngineManagement.createManager();
-		Map<String, String> missing = new LinkedHashMap<String, String>();
-		missing.putAll(engineManager.getNotInstalledMainEngines());
-		engineManager.basicEngineInstallation(consumer);
+		Map<String, TwoParameterConsumer<String, Double>> consumers = 
+				new LinkedHashMap<String, TwoParameterConsumer<String, Double>>();
 		Thread checkAndInstallMissingEngines = new Thread(() -> {
-			missing.putAll(engineManager.getNotInstalledMainEngines());
-			engineManager.basicEngineInstallation(consumer);
+			consumers.putAll(engineManager.getBasicEnginesProgress());
+			engineManager.basicEngineInstallation();
         });
 		extraThreads.add(checkAndInstallMissingEngines);
 		System.out.println("[DEBUG] Checking and installing missing engines");
@@ -1286,8 +1285,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		}
 		while (!engineManager.isManagementDone()) {
 				try {Thread.sleep(300);} catch (InterruptedException e) {}
-			if ((!headless && !isMacro) || missing == null) {
-				String progress = EngineInstaller.basicEnginesInstallationProgress(missing, consumer);
+			if ((!headless && !isMacro) && consumers.keySet().size() != 0) {
+				String progress = EngineInstaller.basicEnginesInstallationProgress(consumers);
 				info.setText(backup + System.lineSeparator() + progress);
 				info.setCaretPosition(info.getText().length());
 			}
