@@ -13,7 +13,7 @@ public class EngineInstaller {
 
 	private static String TOTAL_PROGRESS_STRING = "";
 	private static String TOTAL_REMAINING_STRING = "";
-	private static int N_BINS = 30;
+	private static int N_BINS = 10;
 	
 	static {
 		for (int i = 0; i < N_BINS; i ++) {
@@ -35,19 +35,26 @@ public class EngineInstaller {
 		for (Entry<String, TwoParameterConsumer<String, Double>> entry : consumers.entrySet()) {
 			progress += System.lineSeparator();
 			TwoParameterConsumer<String, Double> consumer = entry.getValue();
-			progress += "- " + new File(entry.getKey()).getName();
-			double totalProgress = consumer.get().keySet().contains(progress) ? 
+			double totalProgress = consumer.get().keySet().contains(DownloadTracker.TOTAL_PROGRESS_KEY) ? 
 					consumer.get().get(DownloadTracker.TOTAL_PROGRESS_KEY) : 0.0;
 			if (totalProgress == 0.0)
 				continue;
-			progress += " " + getProgressBar(totalProgress) + System.lineSeparator();
+			progress += "- Installing: " + new File(entry.getKey()).getName();
+			progress += " " + getProgressPerc(totalProgress) + System.lineSeparator();
 			for (Entry<String, Double> fEntry : consumer.get().entrySet()) {
-				progress += " * " + new File(fEntry.getKey()).getName();
-				progress += " " + getProgressBar(fEntry.getValue()) + System.lineSeparator();
+				if (fEntry.getKey().equals(DownloadTracker.TOTAL_PROGRESS_KEY))
+					continue;
+				progress += " -- " + new File(fEntry.getKey()).getName();
+				progress += " " + getProgressPerc(fEntry.getValue()) + System.lineSeparator();
 				
 			}
 		}
 		return progress;
+	}
+	
+	private static String getProgressPerc(double progress) {
+		String progressStr = "[" + Math.round(progress * 100) + "%]";
+		return progressStr;
 	}
 	
 	private static String getProgressBar(double progress) {
