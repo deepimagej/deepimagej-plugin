@@ -1267,7 +1267,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			Thread.currentThread().setContextClassLoader(IJ.getClassLoader());
 		}
 		 */
-		TwoParameterConsumer<String, Double> consumer = DownloadTracker.createConsumerProgress();
 		EngineManagement engineManager = EngineManagement.createManager();
 		Map<String, TwoParameterConsumer<String, Double>> consumers = 
 				new LinkedHashMap<String, TwoParameterConsumer<String, Double>>();
@@ -1283,10 +1282,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		if (!headless && !isMacro) {
 			backup = info.getText();
 		}
+		EngineInstaller installerInfo = new EngineInstaller();
 		while (!engineManager.isManagementDone()) {
 				try {Thread.sleep(300);} catch (InterruptedException e) {}
 			if ((!headless && !isMacro) && consumers.keySet().size() != 0) {
-				String progress = EngineInstaller.basicEnginesInstallationProgress(consumers);
+				String progress = installerInfo.basicEnginesInstallationProgress(consumers);
 				info.setText(backup + System.lineSeparator() + progress);
 				info.setCaretPosition(info.getText().length());
 			}
