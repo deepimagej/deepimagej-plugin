@@ -231,6 +231,7 @@ public class Parameters {
 	public String		framework				= "";
 	public String		tfSource				= null;
 	public String		ptSource				= null;
+	public String		onnxSource				= null;
 	public String		description				= null;
 	public String		git_repo				= null;
 
@@ -278,6 +279,7 @@ public class Parameters {
 	 * there is a Pytorch model
 	 */
 	public String ptSha256 = "";
+	public String onnxSha256 = "";
 	/*
 	 * Specifies if the folder contains a Bioimage Zoo model
 	 */
@@ -407,6 +409,7 @@ public class Parameters {
 		Set<String> weightFormats = weights.keySet();
 		boolean tf = false;
 		boolean pt = false;
+		boolean onnx = false;
 		for (String format : weightFormats) {
 			if (format.equals("tensorflow_saved_model_bundle")) {
 				tf = true;
@@ -459,6 +462,11 @@ public class Parameters {
 							ptAttachmentsNotIncluded.add(str);
 					}
 				}
+			} else if (format.equals("onnx")) {
+				onnx = true;
+				HashMap<String, Object> onnxMap = ((HashMap<String, Object>) weights.get("onnx"));
+				onnxSource = (String) onnxMap.get("source");
+
 			}
 		}
 		
@@ -484,7 +492,11 @@ public class Parameters {
 			else
 				aux =  ((LinkedHashMap<String, Object>) weights.get("torchscript")).get("sha256");
 			ptSha256 = "" + (String) aux;
-		} else if (!tf && !pt) {
+		} else if (onnx){
+			framework = "onnx";
+			onnxSha256 = (String) "" + ((LinkedHashMap<String, Object>) weights.get("onnx")).get("sha256");
+
+		} else if (!tf && !pt && !onnx) {
 			completeConfig = false;
 			return;
 		}
