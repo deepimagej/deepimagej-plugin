@@ -64,7 +64,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 
@@ -75,7 +77,7 @@ import deepimagej.RunnerDL;
 import deepimagej.DeepLearningModel;
 import deepimagej.components.BorderPanel;
 import deepimagej.exceptions.MacrosError;
-import deepimagej.modelrunner.EngineManagement;
+import deepimagej.modelrunner.EngineInstaller;
 import deepimagej.processing.HeadlessProcessing;
 import deepimagej.tools.ArrayOperations;
 import deepimagej.tools.DijRunnerPostprocessing;
@@ -91,7 +93,10 @@ import ij.Macro;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
+import io.bioimage.modelrunner.bioimageio.download.DownloadTracker;
+import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
 import io.bioimage.modelrunner.engine.EngineInfo;
+import io.bioimage.modelrunner.engine.installation.EngineManagement;
 import io.bioimage.modelrunner.exceptions.LoadEngineException;
 import io.bioimage.modelrunner.model.Model;
 import io.bioimage.modelrunner.versionmanagement.DeepLearningVersion;
@@ -174,7 +179,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		path = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models" + File.separator;
 		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\Usiigaci_2.1.4\\usiigaci.tif");
 		//ImagePlus imp = IJ.openImage("C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models\\b.-sutilist-bacteria-segmentation---widefield-microscopy---2d-unet_tensorflow_saved_model_bundle\\sample_input_0.tif");
-//		ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
+//		ImagePlus imp = IJ.createImage("aux", 256, 256, 1, 24); // useful for debugging headless
 	    path = System.getProperty("user.home") + File.separator +"blank_fiji\\Fiji.app\\models"+ File.separator;
 		ImagePlus imp=null;
 		if (imp != null)
@@ -190,7 +195,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		testMode = false;
 		
 		headless = GraphicsEnvironment.isHeadless();
-//		headless = true; // true only for debug
+//		headless = true; // true only for debug headless testing
 
 		isMacro = IJ.isMacro();
 		
@@ -976,7 +981,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		} else if (dp.params.framework.toLowerCase().equals("tensorflow")) {
 			choices[1].removeAll();
 			choices[1].addItem("Tensorflow");
+		} else if (dp.params.framework.toLowerCase().equals("onnx")) {
+			choices[1].removeAll();
+			choices[1].addItem("ONNX");
 		}
+
 	}
 	
 	/**
@@ -1258,9 +1267,14 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			Thread.currentThread().setContextClassLoader(IJ.getClassLoader());
 		}
 		 */
+		TwoParameterConsumer<String, Double> consumer = DownloadTracker.createConsumerProgress();
 		EngineManagement engineManager = EngineManagement.createManager();
+		Map<String, String> missing = new LinkedHashMap<String, String>();
+		missing.putAll(engineManager.getNotInstalledMainEngines());
+		engineManager.basicEngineInstallation(consumer);
 		Thread checkAndInstallMissingEngines = new Thread(() -> {
-			engineManager.checkMinimalEngineInstallation();
+			missing.putAll(engineManager.getNotInstalledMainEngines());
+			engineManager.basicEngineInstallation(consumer);
         });
 		extraThreads.add(checkAndInstallMissingEngines);
 		System.out.println("[DEBUG] Checking and installing missing engines");
@@ -1272,8 +1286,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		}
 		while (!engineManager.isManagementDone()) {
 				try {Thread.sleep(300);} catch (InterruptedException e) {}
-			if (!headless && !isMacro) {
-				info.setText(backup + System.lineSeparator() + engineManager.manageProgress());
+			if ((!headless && !isMacro) || missing == null) {
+				String progress = EngineInstaller.basicEnginesInstallationProgress(missing, consumer);
+				info.setText(backup + System.lineSeparator() + progress);
 				info.setCaretPosition(info.getText().length());
 			}
 		}

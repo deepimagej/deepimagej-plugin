@@ -77,7 +77,7 @@ import io.bioimage.modelrunner.versionmanagement.DeepLearningVersion;
  * @author Carlos Garcia Lopez de Haro, Ivan Estevez Albuja and Caterina Fuster Barcelo
  *
  */
-public class EngineManagement {
+public class EngineManagement_old {
 	/**
 	 * Directory where the engines shold be installed
 	 */
@@ -187,7 +187,7 @@ public class EngineManagement {
 	 * Regard, that for certain engines, downloading all the OS depending engines
 	 * is necessary, as the dependencies vary from one system to another. 
 	 */
-	private EngineManagement() {
+	private EngineManagement_old() {
 	}
 	
 	/**
@@ -215,8 +215,8 @@ public class EngineManagement {
 	 * is necessary, as the dependencies vary from one system to another. 
 	 * @return
 	 */
-	public static EngineManagement createManager() {
-		return new EngineManagement();
+	public static EngineManagement_old createManager() {
+		return new EngineManagement_old();
 	}
 	
 	/**

@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import deepimagej.modelrunner.EngineManagement;
 import io.bioimage.modelrunner.engine.EngineInfo;
+import io.bioimage.modelrunner.engine.installation.EngineManagement;
 
 /**
  * Class that contains the information for Tensorflow weights.
