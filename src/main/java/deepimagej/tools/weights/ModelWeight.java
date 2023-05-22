@@ -97,7 +97,8 @@ public class ModelWeight
 	    	} else if (ww.contentEquals(tfJsIdentifier)) {
 	    		TfJsWeights weightsObject = new TfJsWeights(weights);
 	    		model.weightsDic.put(model.tfJsEngineName(weightsObject), weightsObject);
-	    	} else if (ww.contentEquals(torchscriptIdentifier)) {
+	    	} else if (ww.contentEquals(torchscriptIdentifier)
+	    			|| ww.contentEquals("pytorch_script")) {
 	    		TorchscriptWeights weightsObject = new TorchscriptWeights(weights);
 	    		model.weightsDic.put(model.torchscriptEngineName(weightsObject), weightsObject);
 	    	}

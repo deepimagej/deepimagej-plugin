@@ -122,21 +122,30 @@ public class Table2Tensor {
 	 * Convert NDArrays into results table
 	 */
 	public static < T extends RealType< T > & NativeType< T > > ResultsTable 
-			tensorToTable(Tensor<T> tensor, String form, String name) throws IncorrectNumberOfDimensions, BatchSizeBiggerThanOne {
+			tensorToTable(Tensor<T> tensor) throws IncorrectNumberOfDimensions, BatchSizeBiggerThanOne {
+		return imgLib2ToTable(tensor.getData(), tensor.getAxesOrderString(), tensor.getName());
+	}
 
-		long[] shape = tensor.getData().dimensionsAsLongArray();
-		if (form == null)
-			form = findTableForm(shape, name);
+	
+	/*
+	 * Convert NDArrays into results table
+	 */
+	public static < T extends RealType< T > & NativeType< T > > ResultsTable 
+			imgLib2ToTable(RandomAccessibleInterval<T> data, String axes, String name) throws IncorrectNumberOfDimensions, BatchSizeBiggerThanOne {
+
+		long[] shape = data.dimensionsAsLongArray();
+		if (axes == null)
+			axes = findTableForm(shape, name);
 		// If DeepImageJ has not been able to induce a form, the tensor is not valid
-		if (form == null)
+		if (axes == null)
 			return null;
 		// Check that the output dimensions correspond to the form length
-		if (shape.length != form.length())
-			throw new IncorrectNumberOfDimensions(shape, form, name);
+		if (shape.length != axes.length())
+			throw new IncorrectNumberOfDimensions(shape, axes, name);
 		// TODO add possibility of batch>1
-		int batchIndex = form.indexOf("B");
+		int batchIndex = axes.indexOf("B");
 		if (batchIndex != -1 && shape[batchIndex] > 1)
-			throw new BatchSizeBiggerThanOne(shape, form, name);
+			throw new BatchSizeBiggerThanOne(shape, axes, name);
 				
 		// For the moment DeepImageJ only supports 2D tables, thus
 		// if the tensor has more than to dimensions greater than one,
@@ -154,7 +163,6 @@ public class Table2Tensor {
 			arraySize = arraySize * ((int) el);
 		float[] flatArray = new float[arraySize];	 	
 
-		RandomAccessibleInterval<T> data = tensor.getData();
 		Cursor<FloatType> tensorCursor;
 		if (data instanceof IntervalView)
 			tensorCursor = ((IntervalView<FloatType>) data).cursor();
@@ -172,7 +180,7 @@ public class Table2Tensor {
 			flatArray[flatPos] = val;
 		}
 	 	
-		return flatArrayToTable(flatArray, shape, form);
+		return flatArrayToTable(flatArray, shape, axes);
 	}
 	
 	/*

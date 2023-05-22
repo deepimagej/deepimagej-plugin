@@ -422,24 +422,9 @@ public class RunnerDL < T extends RealType< T > & NativeType< T > > implements C
 								imCounter ++;
 								c ++;
 							} else if (outTensor.tensorType.contains("list")){
-								/*
-								 * Adapt to new model runner tensors
-								 * TODO
-								 * TODO
-								 * TODO
-								 * TODO
-								 * TODO
-								 * TODO
-								 * TODO
-								 * TODO
-								 * TODO
-								 * TODO
-								 * TODO
-								 * TODO
-								 * ResultsTable table = Table2Tensor.tensorToTable(result, outTensor.form);
+								ResultsTable table = Table2Tensor.tensorToTable(result);
 								outputTables.add(table);
 								table.show(outputTitles[c ++]);
-								 */
 							}
 							// Check if the user has tried to stop the execution while loading the model
 							// If they have return false and stop

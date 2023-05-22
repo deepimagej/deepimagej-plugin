@@ -6,6 +6,7 @@
 /.project
 /.settings/
 /engines/
+/models/
 
 # Log file
 *.log

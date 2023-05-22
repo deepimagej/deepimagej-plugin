@@ -141,7 +141,7 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 			<groupId>io.bioimage</groupId>
 			<artifactId>dl-modelrunner</artifactId>
-			<version>0.2.1-SNAPSHOT</version>
+			<version>0.3.5-SNAPSHOT</version>
 		</dependency>
 <!--		MODEL RUNNER-->
 		<dependency>
@@ -159,6 +159,5 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
-		
 	</dependencies>
 </project>

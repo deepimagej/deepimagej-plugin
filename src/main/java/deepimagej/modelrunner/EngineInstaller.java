@@ -45,7 +45,7 @@ public class EngineInstaller {
 				timesMap.put(entry.getKey(), Log.gct());
 			String timeKey = timesMap.get(entry.getKey());
 			progress += System.lineSeparator();
-			progress += " - " + timeKey + " -- Installing: " + new File(entry.getKey()).getName();
+			progress += " - " + timeKey + " -- " + new File(entry.getKey()).getName();
 				
 			progress += " " + getProgressPerc(totalProgress) + System.lineSeparator();
 			for (Entry<String, Double> fEntry : consumer.get().entrySet()) {

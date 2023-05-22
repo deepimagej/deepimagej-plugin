@@ -93,7 +93,6 @@ import ij.Macro;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
-import io.bioimage.modelrunner.bioimageio.download.DownloadTracker;
 import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
 import io.bioimage.modelrunner.engine.EngineInfo;
 import io.bioimage.modelrunner.engine.installation.EngineManagement;
@@ -159,10 +158,6 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	private List<DeepLearningVersion> installedEngines;
 	
 	/**
-	 * List of the installed DL frameworks compatible with this OS
-	 */
-	private static List<String> LOADED_ENGINES = new ArrayList<String>();
-	/**
 	 * Create the String to engines directory
 	 */
 	private static final String JARS_DIRECTORY = new File("engines").getAbsolutePath();
@@ -173,15 +168,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	
 	
 	static public void main(String args[]) {
-		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
-		path = "C:\\Users\\Carlos(tfg)\\Pictures\\Fiji.app\\models" + File.separator;
-		path = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models" + File.separator;
-		path = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models" + File.separator;
-		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\Usiigaci_2.1.4\\usiigaci.tif");
-		//ImagePlus imp = IJ.openImage("C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models\\b.-sutilist-bacteria-segmentation---widefield-microscopy---2d-unet_tensorflow_saved_model_bundle\\sample_input_0.tif");
-//		ImagePlus imp = IJ.createImage("aux", 256, 256, 1, 24); // useful for debugging headless
-	    path = System.getProperty("user.home") + File.separator +"blank_fiji\\Fiji.app\\models"+ File.separator;
-		ImagePlus imp=null;
+		path = new File("models").getAbsolutePath();
+		ImagePlus imp = null;
+		//imp = IJ.openImage(path + "\\pr\\sample_input_0.tif");
 		if (imp != null)
 			imp.show();		WindowManager.setTempCurrentImage(imp);
 		new DeepImageJ_Run().run("");
@@ -683,10 +672,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		
 		boolean iscuda = DeepLearningModel.TensorflowCUDACompatibility(loadInfo, cudaVersion).equals("");
 		
-		EngineInfo engineInfo = EngineInfo.defineDLEngine(engine, version, JARS_DIRECTORY, true, true);
+		EngineInfo engineInfo;
 		Model model;
 		try {
-			engineInfo = engineInfo.getEngineInfoOfTheClosestInstalledEngineVersion();
+			engineInfo = EngineInfo.defineCompatibleDLEngine(engine, version, true, true, JARS_DIRECTORY);
 			model = Model.createDeepLearningModel(dp.getPath(), source, engineInfo, getClass().getClassLoader());
 		} catch (LoadEngineException e1) {
 			IJ.error("Error loading " + engine + System.lineSeparator() + e1.toString());
@@ -983,7 +972,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			choices[1].addItem("Tensorflow");
 		} else if (dp.params.framework.toLowerCase().equals("onnx")) {
 			choices[1].removeAll();
-			choices[1].addItem("ONNX");
+			choices[1].addItem("Onnx");
 		}
 
 	}
@@ -1250,23 +1239,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 					+ " -- CHECKING THE REQUIRED ENGINES ARE INSTALLED");
 			info.append(System.lineSeparator());
 		}
-		/*
-		 * TODO
-		 * TODO
-		 * TODO
-		 * TODO
-		 * TODO
-		 * TODO
-		 * TODO
-		 * TODO
-		 * TODO
-		// First load Tensorflow
-		if (!(headless || isMacro) || pt) {
-			// In order to get Pytorch to work we have to set
-			// the IJ ClassLoader as the ContextClassLoader
-			Thread.currentThread().setContextClassLoader(IJ.getClassLoader());
-		}
-		 */
+		
 		EngineManagement engineManager = EngineManagement.createManager();
 		Map<String, TwoParameterConsumer<String, Double>> consumers = 
 				new LinkedHashMap<String, TwoParameterConsumer<String, Double>>();
@@ -1292,7 +1265,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			}
 		}
 			
-		installedEngines = InstalledEngines.buildEnginesFinder().loadDownloadedCompatible();
+		installedEngines = InstalledEngines.buildEnginesFinder().getDownloadedForOS();
 		List<String> engineNames = 
 				installedEngines.stream()
 				.map(v -> v.getEngine() + "-" 
@@ -1457,12 +1430,14 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		DeepImageJ dp = dps.get(dirname);
 		// Path to the test image specified in the rdf.yaml in 
 		// the >config>deepimagej>test_information part
-		String imageName = dp.getPath() + dp.params.inputList.get(0).exampleInput;
+		String imageName = "";
+		if (dp.params.inputList != null && dp.params.inputList.get(0).exampleInput != null)
+			imageName = dp.getPath() + new File(dp.params.inputList.get(0).exampleInput).getName();
 		// Path to the test image specified in the rdf.yaml in 
 		// the >sample_inputs
 		String imageName2 = null;
 		if (dp.params.sampleInputs != null && dp.params.sampleInputs.length != 0)
-			imageName2 = dp.getPath() + dp.params.sampleInputs[0];
+			imageName2 = dp.getPath() + new File(dp.params.sampleInputs[0]).getName();
 		ImagePlus imp = null;
 		// Do not try to read npy files
 		boolean notNpy = !(imageName.endsWith(".npy") || imageName.endsWith(".npx") || imageName.endsWith(".np"));
