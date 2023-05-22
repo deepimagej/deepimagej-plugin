@@ -64,6 +64,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
@@ -116,6 +118,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	private long webFileSize = 1;
 	private Model model = null;
 	boolean stopped = true;
+	private JPanel pn4 = new JPanel();
 	
 	// URL used to download the model
 	private List<String> downloadURLs;
@@ -155,9 +158,11 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		bn.add(close);
 		bn.add(install);
 
+
 		JPanel repo = new JPanel(new BorderLayout());
 		repo.add(pn1, BorderLayout.NORTH);
 		repo.add(pn2, BorderLayout.CENTER);
+		repo.add(pn4, BorderLayout.SOUTH);
 
 		JPanel botton = new JPanel(new BorderLayout());
 		botton.add(chk, BorderLayout.NORTH);
@@ -222,13 +227,13 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			dispose();
 		} else if (e.getSource() == install && tab.getSelectedIndex() == 0) {
 			// If the tab selected is the first one, install from Bioimage.io
-			installModelBioimageio();
+			installModelBioimageio(pn4);
 		} else if (e.getSource() == install && tab.getSelectedIndex() == 1 && rbURL.isSelected()) {
 			// If the tab selected is the seond one, install from URL
-			installModelUrl();
+			installModelUrl(pn4);
 		} else if (e.getSource() == install && tab.getSelectedIndex() == 1 && rbZIP.isSelected()) {
 			// If the tab selected is the seond one, install from URL
-			installModelZip();
+			installModelZip(pn4);
 		} else if (e.getSource() == help) {
 			openWebBrowser("https://deepimagej.github.io/deepimagej/");
 		}
@@ -239,6 +244,9 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		if (e.getSource() == cmb) {
 			info.clear();
 			chk.setSelected(false);
+			pn4.removeAll();
+			pn4.revalidate();
+			pn4.repaint();
 			String name = (String)cmb.getSelectedItem();
 			if (name != null && !name.equals("")) {
 				Model model = zoo.models.get(name);
@@ -314,7 +322,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	 * Copy DeepImageJ model from path and unzip it in the 
 	 * models folder of Fiji/ImageJ
 	 */
-	private void installModelZip() {
+	private void installModelZip(JPanel pn3) {
 		String name = (String) txtZIP.getText();
 		File zipFile = new File(name);
 		if (name == null || name.equals("") || !zipFile.isFile() || !name.endsWith(".zip")) {
@@ -335,13 +343,16 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		// Get the original name of the zip file
 		fileName = zipFile.getName();
 		fileName = fileName.substring(0, fileName.lastIndexOf("."));
-		fileName = removeInvalidCharacters(fileName + "_" + dateString + ".zip");
+		fileName = fileName + "_" + dateString + ".zip";
 		
 		Thread thread = new Thread(this);
 		thread.setPriority(Thread.MIN_PRIORITY);
 		progressScreen = new DownloadProgress(false);
+		pn3.add(progressScreen);
 		progressScreen.setThread(thread);
 		stopped = false;
+		chk.setEnabled(false);
+		cmb.setEnabled(false);
 		thread.start();
 		chk.setSelected(false);
 	}
@@ -350,7 +361,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	 * Download DeepImageJ model from URL and unzip it in the 
 	 * models folder of Fiji/ImageJ
 	 */
-	private void installModelUrl() {
+	private void installModelUrl(JPanel pn3) {
 		String name = (String) txtURL.getText();
 		if (name == null || name.equals("")) {
 			IJ.error("Please introduce a valid URL.");
@@ -378,13 +389,16 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
         Calendar cal = Calendar.getInstance();
 		SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
 		String dateString = sdf.format(cal.getTime());
-		fileName = removeInvalidCharacters("deepImageJModel" + "_" + dateString + ".zip");
+		fileName = "deepImageJModel" + "_" + dateString + ".zip";
 		
 		Thread thread = new Thread(this);
 		thread.setPriority(Thread.MIN_PRIORITY);
 		progressScreen = new DownloadProgress(true);
+		pn3.add(progressScreen);
 		progressScreen.setThread(thread);
 		stopped = false;
+		chk.setEnabled(false);
+		cmb.setEnabled(false);
 		thread.start();
 		chk.setSelected(false);
 	}
@@ -394,7 +408,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	 * Download DeepImageJ model from the Bioimage.io and unzip it in the 
 	 * models folder of Fiji/ImageJ
 	 */
-	private void installModelBioimageio() {
+	private void installModelBioimageio(JPanel pn3) {
 		String name = (String)cmb.getSelectedItem();
 		if (name != null && !name.equals("")) {
 			// First check that "Fiji.App\models" exist or create it if not
@@ -413,8 +427,11 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 				Thread thread = new Thread(this);
 				thread.setPriority(Thread.MIN_PRIORITY);
 				progressScreen = new DownloadProgress(true);
+				pn3.add(progressScreen);
 				progressScreen.setThread(thread);
 				stopped = false;
+				chk.setEnabled(false);
+				cmb.setEnabled(false);
 				thread.start();
 				chk.setSelected(false);
 			}
@@ -443,6 +460,8 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 			IJ.error("Introduced String does not correspond to a valid local file.");
 		}
 		
+		chk.setEnabled(true);
+		cmb.setEnabled(true);
 		stopped = true;
 		chk.setSelected(false);
 	}
@@ -456,7 +475,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 		try {
 			if (downloadURLs.size() != 1)
 				throw new Exception();
-			fileName = removeInvalidCharacters(new File(downloadURLs.get(0)).getName());
+			fileName = new File(downloadURLs.get(0)).getName();
 			// Add timestamp to the model name. 
 			// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
 	        Calendar cal = Calendar.getInstance();
@@ -486,6 +505,8 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 				IJ.error("Unable to unzip he file in the models folder.");
 			}
 		}
+		chk.setEnabled(true);
+		cmb.setEnabled(true);
 		progressScreen.stop();
 	}
 	
@@ -512,7 +533,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 	        Calendar cal = Calendar.getInstance();
 			SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
 			String dateString = sdf.format(cal.getTime());
-			fileName = removeInvalidCharacters(model.name + "_" + dateString);
+			fileName = model.name + "_" + dateString;
 			webFileSize = getFileSize();
 			new File(modelsDir + File.separator +  fileName).mkdirs();
 			progressScreen.setFileName(modelsDir + File.separator +  fileName);
@@ -547,6 +568,8 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 				e.printStackTrace();
 			}
 		}
+		chk.setEnabled(true);
+		cmb.setEnabled(true);
 		progressScreen.stop();
 	}
 
@@ -568,7 +591,7 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 				modelName = "model";
 			else
 				modelName = model.name;				
-			fileName = removeInvalidCharacters(modelName + "_" + dateString + ".zip");
+			fileName = modelName + "_" + dateString + ".zip";
 			URL website = new URL(url);
 			webFileSize = getFileSize(website);
 			rbc = Channels.newChannel(website.openStream());
@@ -602,14 +625,8 @@ public class InstallerDialog extends JDialog implements ItemListener, ActionList
 				e.printStackTrace();
 			}
 		}
+		chk.setEnabled(true);
+		cmb.setEnabled(true);
 		progressScreen.stop();
-	}
-	
-	public static String removeInvalidCharacters(String filename) {
-		String[] listForbidden = new String[] {"\\", "|", "/", "<", ">", 
-												":", "\"", "?", "*"};
-		for (String invalid : listForbidden)
-			filename = filename.replace(invalid, "_");
-		return filename;
 	}
 }

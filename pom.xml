@@ -117,7 +117,7 @@
 	</ciManagement>
 
 	<properties>
-		<main-class>DeepImageJ_Run</main-class>
+		<main-class>DeepImageJ_Run_Swing</main-class>
 		<automatic-module-name>io.github.deepimagej</automatic-module-name>
 
 		<license.licenseName>bsd_2</license.licenseName>
@@ -136,6 +136,10 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<repository>
 			<id>scijava.public</id>
 			<url>https://maven.scijava.org/content/groups/public</url>
+		</repository>
+		<repository>
+  			<id>icy</id>
+  			<url>https://icy-nexus.pasteur.fr/repository/Icy/</url>
 		</repository>
 	</repositories>
 
@@ -189,11 +193,14 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-simple</artifactId>
 		    <scope>test</scope>
+			<version>${slf4j.version}</version>
 		</dependency>
 		<dependency>
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-api</artifactId>
+			<version>${slf4j.version}</version>
 		</dependency>
+		
 		<dependency>
 		    <groupId>net.java.dev.jna</groupId>
 		    <artifactId>jna</artifactId>
@@ -214,6 +221,10 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
-		
+		<dependency>
+  			<groupId>org.bioimageanalysis.icy</groupId>
+  			<artifactId>dl-model-runner</artifactId>
+  			<version>0.0.1</version>
+		</dependency>
 	</dependencies>
 </project>

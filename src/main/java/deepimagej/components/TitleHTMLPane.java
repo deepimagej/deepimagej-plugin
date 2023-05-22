@@ -57,6 +57,7 @@ public class TitleHTMLPane extends HTMLPane {
 				"<span style=\"" + style2 + "\">ImageJ</span>");
 		this.append("center", "<span style=\"" + style3 + "\">&nbsp;</span>");
 		this.append("center", "<span style=\"" + style3 + "\">An ImageJ plugin to run deep-learning models</span> ");
+		this.append("center","<a href= \"https://www.nature.com/articles/s41592-021-01262-9> Link to the official paper</a>");
 	}
 	
 }

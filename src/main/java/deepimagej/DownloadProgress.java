@@ -67,7 +67,7 @@ import deepimagej.components.BorderLabel;
 import deepimagej.tools.NumFormat;
 import ij.gui.GUI;
 
-public class DownloadProgress extends JDialog implements ActionListener {
+public class DownloadProgress extends JPanel implements ActionListener {
 
 	private Timer				timer		= new Timer(true);
 	private JButton				bnStop		= new JButton("Stop");
@@ -88,11 +88,11 @@ public class DownloadProgress extends JDialog implements ActionListener {
 	private String progressString = "Download progress: ";
 	
 	public DownloadProgress(boolean downloading) {
-		super(new JFrame(), "");
+		//super(new JFrame(), "");
 		String header = "Downloading model";
 		if (!downloading)
 			header = "Copying model: ";
-		this.setTitle(header);
+		//this.setTitle(header);
 		
 		if (!downloading)
 			progressString = "Copying progress: ";
@@ -112,15 +112,16 @@ public class DownloadProgress extends JDialog implements ActionListener {
 		place(panel, 0, 0, 10, prog);
 		
 		add(panel);
-		setResizable(false);
-		pack();
-		GUI.center(this);
+		//setResizable(false);
+		//pack();
+		//GUI.center(this);
 
 		bnStop.addActionListener(this);
 		clock = new Clock();
 		chrono = System.nanoTime();
 		timer.scheduleAtFixedRate(clock, 0, 300);
 		stop = false;
+		this.setVisible(true);
 	}
 	
 	public void place(JPanel panel, int row, int col, int space, JComponent comp) {
@@ -220,8 +221,9 @@ public class DownloadProgress extends JDialog implements ActionListener {
 		timer.purge();
 		timer = null;
 		stop = true;
-		dispose();
+		//dispose();
 		thread.interrupt();
+		this.setVisible(false);
 	}
  
 	public void info() {

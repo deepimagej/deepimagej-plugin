@@ -62,6 +62,7 @@ import ai.djl.repository.zoo.ModelNotFoundException;
 import ai.djl.repository.zoo.ModelZoo;
 import ai.djl.repository.zoo.ZooModel;
 import ai.djl.training.util.ProgressBar;
+import deepimagej.components.HTMLPane;
 import deepimagej.tools.DijTensor;
 import deepimagej.tools.FileTools;
 import ij.IJ;
@@ -99,8 +100,8 @@ public class DeepImageJ {
 				this.params.path2Model = this.path;
 				this.valid = check(p);
 			} catch (Exception ex) {
-				IJ.log("Unable to read the rdf.yaml specifications file in following fodler.\n"
-					+ "Please review that the compulsory fields are not missing.\n"
+				IJ.log("Unable to read the rdf.yaml specifications file in following fodler.<br>"
+					+ "Please review that the compulsory fields are not missing.<br>"
 					+ " -" + path);
 			}
 		}
@@ -184,7 +185,7 @@ public class DeepImageJ {
 			if (dir.isDirectory()) {
 				String name = dir.getName();
 				if (textField != null)
-					textField.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- Looking for a model at: " + name + "\n");
+					textField.append(" - " + new SimpleDateFormat("HH:mm:ss").format(now) + " -- Looking for a model at: " + name + "<br>");
 				DeepImageJ dp = new DeepImageJ(pathModels + File.separator, name, isDeveloper);
 				if (dp.valid && dp.params != null) {
 					list.put(dp.dirname, dp);
@@ -266,70 +267,78 @@ public class DeepImageJ {
 		return true;
 	}
 
-	public void writeParameters(TextArea info) {
+	public void writeParameters(HTMLPane info) {
 		if (params == null) {
-			info.append("No params\n");
+			info.append("No params<br>");
 			return;
 		}
 		// If there is any external dependency, add it here
 		if (params.ptAttachmentsNotIncluded.size() != 0) {
-			info.append("----------- ATTENTION -----------\n");
-			info.append("To use the Pytorch format, please make sure that\n"
-					+ "the following plugins/jars are installed:\n");
+			info.append("<h2>----------- ATTENTION -----------</h2>");
+			info.append("To use the Pytorch format, please make sure that<br>"
+					+ "the following plugins/jars are installed:<br>");
 			for (String str : params.ptAttachmentsNotIncluded)
-				info.append(" - " + str + "\n");
+				info.append(" - " + str + "<br>");
 		}
 		// If there is any external dependency, add it here
 		if (params.tfAttachmentsNotIncluded.size() != 0) {
-			info.append("----------- ATTENTION -----------\n");
-			info.append("To use the Tensorflow format, please make sure that\n"
-					+ "the following plugins/jars are installed:\n");
+			info.append("<h2----------- ATTENTION -----------</h2>");
+			info.append("To use the Tensorflow format, please make sure that<br>"
+					+ "the following plugins/jars are installed:<br>");
 			for (String str : params.tfAttachmentsNotIncluded)
-				info.append(" - " + str + "\n");
+				info.append(" - " + str + "<br>");
 		}
-		info.append("---------- MODEL INFO ----------\n");
-		info.append("Authors" + "\n");
+		info.append("<h2>---------- MODEL INFO ----------</h2>");
+		info.append("<i>Authors</i> <ul style =  \"margin: 10\">");
 		for (HashMap<String, String> auth : params.author) {
 			String name = auth.get("name") == null ? "n/a" : auth.get("name");
 			String aff = auth.get("affiliation") == null ? "n/a" : auth.get("affiliation");
 			String orcid = auth.get("orcid") == null ? "n/a" : auth.get("orcid");
-			info.append("  - Name: " + name + "\n");
-			info.append("    Affiliation: " + aff + "\n");
-			info.append("    Orcid: " + orcid + "\n");
+			info.append("<li><b>Name:</b> " + name + ", ");
+			info.append("    <b>Affiliation:</b> " + aff + ", ");
+			info.append("    <b>Orcid:</b> " + orcid + "</li>");
 		}
-		info.append("References" + "\n");
+		info.append("</ul>");
+		info.append("<i>References</i> <ul style =  \"margin: 10\">");
 		for (HashMap<String, String> ref : params.cite) {
-			info.append("  - Article: " + ref.get("text") + "\n");
-			info.append("    Doi: " + ref.get("doi") + "\n");
+			String article = ref.get("text") == null ? "n/a" : ref.get("name");
+			String doi = ref.get("doi") == null ? "n/a" : ref.get("doi");
+			info.append("  <li><b>Article:</b> " + article  + ", ");
+			info.append("    <b>Doi:</b> " + doi + "</li>");
 		}
-		info.append("Framework: " + params.framework + "\n");
+		info.append("</ul>");
+		info.append("<i>Framework:</i> " + params.framework + "<br>");
 		
 		if (params.framework.contains("tensorflow")) {
-			info.append("Tag: " + params.tag + "\n");
-			info.append("Signature: " + params.graph + "\n");
+			info.append("<ul style =  \"margin: 10\">");
+			info.append("li","<b>Tag:</b> " + params.tag + "<br>");
+			info.append("li","<b>Signature:</b> " + params.graph + "<br>");
+			info.append("</ul>");
 		}
-		info.append("Allow tiling: " + params.allowPatching + "\n");
+		info.append("<i>Allow tiling:</i> " + params.allowPatching + "<br>");
 
-		info.append("\n");
+		info.append("<br>");
 
-		info.append("------------ TEST INFO -----------\n");
-		info.append("Inputs:" + "\n");
+		info.append("<h2>------------ TEST INFO -----------</h2>");
+		info.append("<i>Inputs:</i>" + "<ul style =  \"margin: 10\">");
 		for (DijTensor inp : params.inputList) {
-			info.append("  - Name: " + inp.exampleInput + "\n");
-			info.append("    Size: " + inp.inputTestSize + "\n");
-			info.append("      x: " + inp.inputPixelSizeX  + "\n");
-			info.append("      y: " + inp.inputPixelSizeY  + "\n");
-			info.append("      z: " + inp.inputPixelSizeZ  + "\n");			
+			info.append("  <li><b>Name:</b> " + inp.exampleInput + ", ");
+			info.append("    <b>Size:</b> " + inp.inputTestSize + ", ");
+			info.append("      <b>x:</b> " + inp.inputPixelSizeX  + ", ");
+			info.append("      <b>y:</b> " + inp.inputPixelSizeY  + ", ");
+			info.append("      <b>z:</b> " + inp.inputPixelSizeZ + "</li>");			
 		}
-		info.append("Outputs:" + "\n");
+		info.append("</ul>");
+		info.append("<i>Outputs:</i>" + "<ul style =  \"margin: 10\">");
 		for (HashMap<String, String> out : params.savedOutputs) {
-			info.append("  - Name: " + out.get("name") + "\n");
-			info.append("  - Type: " + out.get("type") + "\n");
-			info.append("     Size: " + out.get("size")  + "\n");		
+			info.append("  <li><b>Name:</b> " + out.get("name") + ", ");
+			info.append("  <b>Type:</b> " + out.get("type") + ", ");
+			info.append("  <b>Size:</b> " + out.get("size")  + "</li>");		
 		}
-		info.append("Memory peak: " + params.memoryPeak + "\n");
-		info.append("Runtime: " + params.runtime + "\n");
-		double modelSize = 0;
+		info.append("</ul>");
+		info.append("<i>Memory peak:</i> " + params.memoryPeak + "<br>");
+		info.append("<i>Runtime:</i> " + params.runtime + "<br>");
+		String modelSize = "-1";
 		
 		String ptModelName = "weights-torchscript.pt";
 		String tfModelName = "tensorflow_saved_model_bundle.zip";
@@ -345,26 +354,33 @@ public class DeepImageJ {
 		}
 		
 		if (params.framework.equals("pytorch")) {
-			modelSize = new File(this.getPath() + File.separator + ptModelName).length() / (1024 * 1024.0);
-			info.append("Weights size: " + Math.round(modelSize * 100.0) / 100.0 + " MB\n");
+			modelSize = "" + new File(this.getPath() + File.separator + ptModelName).length() / (1024 * 1024.0);
+			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
+			info.append("<i>Weights size:</i> " + modelSize + " MB<br>");
 		} else if (params.framework.equals("tensorflow") && new File(this.getPath(), "variables").exists()) {
-			modelSize = FileTools.getFolderSize(this.getPath() + File.separator + "variables") / (1024 * 1024.0);
-			info.append("Weights size: " + Math.round(modelSize * 100.0) / 100.0 + " MB\n");
+			modelSize = "" + FileTools.getFolderSize(this.getPath() + File.separator + "variables") / (1024 * 1024.0);
+			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
+			info.append("<i>Weights size:</i> " + modelSize + " MB<br>");
 		} else if (params.framework.equals("tensorflow")) {
-			modelSize = new File(this.getPath() + File.separator + tfModelName).length() / (1024 * 1024.0);
-			info.append("Zipped model size: " + Math.round(modelSize * 100.0) / 100.0 + " MB\n");
+			modelSize = "" + new File(this.getPath() + File.separator + tfModelName).length() / (1024 * 1024.0);
+			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 2);
+			info.append("<i>Zipped model size:</i> " + modelSize + " MB<br>");
 		} else if (params.framework.equals("tensorflow/pytorch") && new File(this.getPath(), "variables").exists()) {
-			modelSize = new File(this.getPath() + File.separator + ptModelName).length() / (1024 * 1024.0);
-			info.append("Pytorch weights size: " + Math.round(modelSize * 100.0) / 100.0 + " MB\n");
+			modelSize = "" + new File(this.getPath() + File.separator + ptModelName).length() / (1024 * 1024.0);
+			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
+			info.append("<i>Pytorch weights size:</i> " + modelSize + " MB<br>");
 
-			modelSize = FileTools.getFolderSize(this.getPath() + File.separator + "variables") / (1024 * 1024.0);
-			info.append("Tensorflow weights size: " + Math.round(modelSize * 100.0) / 100.0 + " MB\n");
+			modelSize = "" + FileTools.getFolderSize(this.getPath() + File.separator + "variables") / (1024 * 1024.0);
+			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
+			info.append("<i>Tensorflow weights size:</i> " + modelSize + " MB<br>");
 		} else if (params.framework.equals("tensorflow/pytorch")) {
-			modelSize = new File(this.getPath() + File.separator + ptModelName).length() / (1024 * 1024.0);
-			info.append("Pytorch weights size: " + Math.round(modelSize * 100.0) / 100.0 + " MB\n");
+			modelSize = "" + new File(this.getPath() + File.separator + ptModelName).length() / (1024 * 1024.0);
+			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
+			info.append("<i>Pytorch weights size:</i> " + modelSize + " MB<br>");
 
-			modelSize = new File(this.getPath() + File.separator + tfModelName).length() / (1024 * 1024.0);
-			info.append("Zipped Tensorflow model size: " + Math.round(modelSize * 100.0) / 100.0 + " MB\n");
+			modelSize = "" + new File(this.getPath() + File.separator + tfModelName).length() / (1024 * 1024.0);
+			modelSize = modelSize.substring(0, modelSize.lastIndexOf(".") + 3);
+			info.append("<i>Zipped Tensorflow model size:</i> " + modelSize + " MB<br>");
 		}
 		
 	}
@@ -383,19 +399,8 @@ public class DeepImageJ {
 			modelName = "tensorflow_saved_model_bundle.zip";
 		} else if (modelName.indexOf("/") != -1 && modelName.indexOf("/") < 2) {
 			modelName = modelName.substring(modelName.indexOf("/") + 1);
-		} else if (checkValidUrl(modelName)) {
-			modelName = modelName.substring(modelName.lastIndexOf("/") + 1);
 		}
 		return modelName;
-	}
-	
-	private static boolean checkValidUrl(String urlString) {
-		try {
-			new URL(urlString);
-			return true;
-		} catch (MalformedURLException e) {
-			return false;
-		}
 	}
 
 	public  boolean check(String path) {
@@ -468,7 +473,7 @@ public class DeepImageJ {
 				IJ.log("Zipped Bioimage Model Zoo model at:");
 				IJ.log(modelFolder.getAbsolutePath() + File.separator + file);
 				IJ.log("does not coincide with the one specified in the rdf.yaml (incorrect sha256).");
-				IJ.log("\n");
+				IJ.log("<br>");
 				params.incorrectSha256 = true;
 				tfName = modelName;
 				return true;
@@ -484,7 +489,7 @@ public class DeepImageJ {
 			IJ.log("Zipped Bioimage Model Zoo model at:");
 			IJ.log(modelFolder.getAbsolutePath() + File.separator + auxModelName);
 			IJ.log("does not coincide with the one specified in the rdf.yaml (incorrect sha256).");
-			IJ.log("\n");
+			IJ.log("<br>");
 			params.incorrectSha256 = true;
 			return true;
 		}
@@ -525,7 +530,7 @@ public class DeepImageJ {
 					IJ.log("Pytorch model at:");
 					IJ.log(modelFolder.getAbsolutePath() + File.separator + file);
 					IJ.log("does not coincide with the one specified in the rdf.yaml (incorrect sha256).");
-					IJ.log("\n");
+					IJ.log("<br>");
 					params.incorrectSha256 = true;
 					ptName = modelName;
 					return true;
@@ -543,7 +548,7 @@ public class DeepImageJ {
 				IJ.log("Zipped Bioimage Model Zoo model at:");
 				IJ.log(modelFolder.getAbsolutePath() + File.separator + auxModelName);
 				IJ.log("does not coincide with the one specified in the rdf.yaml (incorrect sha256).");
-				IJ.log("\n");
+				IJ.log("<br>");
 				params.incorrectSha256 = true;
 				return true;
 			}
