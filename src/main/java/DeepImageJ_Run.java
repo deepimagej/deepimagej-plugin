@@ -676,6 +676,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		Model model;
 		try {
 			engineInfo = EngineInfo.defineCompatibleDLEngine(engine, version, JARS_DIRECTORY);
+			if (engineInfo == null)
+				throw new Exception("No compatible engine installed.");
 			model = Model.createDeepLearningModel(dp.getPath(), source, engineInfo, getClass().getClassLoader());
 		} catch (LoadEngineException e1) {
 			IJ.error("Error loading " + engine + System.lineSeparator() + e1.toString());
