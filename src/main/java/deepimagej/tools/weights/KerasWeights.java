@@ -78,8 +78,16 @@ public class KerasWeights implements WeightFormatInterface {
 	 * 	training version of the weights
 	 */
 	public void setTrainingVersion(Object v) {
-		if (v instanceof String)
+		if (v instanceof String && !((String)v).contains("+")
+				 && !((String)v).contains("cu")
+				 && !((String)v).contains("cuda"))
 			this.trainingVersion = (String) v;
+		else if (v instanceof String && ((String)v).contains("+"))
+			this.trainingVersion = ((String) v).substring(0, ((String) v).indexOf("+")).trim();
+		else if (v instanceof String && ((String)v).contains("cuda"))
+			this.trainingVersion = ((String) v).substring(0, ((String) v).indexOf("cuda")).trim();
+		else if (v instanceof String && ((String)v).contains("cu"))
+			this.trainingVersion = ((String) v).substring(0, ((String) v).indexOf("cu")).trim();
 		else if (v instanceof Double)
 			this.trainingVersion = "" + v;
 		else if (v instanceof Float)
