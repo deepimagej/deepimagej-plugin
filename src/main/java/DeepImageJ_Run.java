@@ -398,11 +398,13 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		String index = Integer.toString(choices[0].getSelectedIndex());
 		if ((index.equals("-1") || index.equals("0")) && loadedEngine) {
 			IJ.error("Select a valid model.");
-			run("");
+			if (!this.isMacro && !this.headless)
+				run("");
 			return null;
 		} else if ((choices[0].getSelectedIndex() == -1 ||choices[0].getSelectedIndex() == 0) && !loadedEngine) {
 			IJ.error("Please wait until the Deep Learning engines are loaded.");
-			run("");
+			if (!this.isMacro && !this.headless)
+				run("");
 			return null;
 		}
 		
@@ -507,7 +509,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 				err += " or " + imageName2;
 			}
 			IJ.error(err);
-			run("");
+			if (!this.isMacro && !this.headless)
+				run("");
 			return;
 		}
 		// Check if the patxh size is editable or not
@@ -551,7 +554,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			version = dp.params.weights.getWeightsByIdentifier(engineSelected).getTrainingVersion();
 		} catch (IOException e1) {
 			IJ.error("The selected model does not contains source file for the selected weights.");
-			run("");
+			if (!this.isMacro && !this.headless)
+				run("");
 			return;
 		}
 		
@@ -677,15 +681,18 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		try {
 			engineInfo = EngineInfo.defineCompatibleDLEngine(engine, version, JARS_DIRECTORY);
 			if (engineInfo == null)
-				throw new Exception("No compatible engine installed.");
+				throw new Exception("No compatible engine installed." + System.lineSeparator()
+									+ "Required engine: " + engine + " " + version);
 			model = Model.createDeepLearningModel(dp.getPath(), source, engineInfo, getClass().getClassLoader());
 		} catch (LoadEngineException e1) {
 			IJ.error("Error loading " + engine + System.lineSeparator() + e1.toString());
-			run("");
+			if (!this.isMacro && !this.headless)
+				run("");
 			return;
 		} catch (Exception e1) {
 			IJ.error("Error loading " + engine + System.lineSeparator() + e1.toString());
-			run("");
+			if (!this.isMacro && !this.headless)
+				run("");
 			return;
 		}
 		ModelLoader loadModel = new ModelLoader(dp, model, rp, loadInfo.contains("GPU"), iscuda, log.getLevel() >= 1);
