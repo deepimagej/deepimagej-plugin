@@ -1462,7 +1462,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 				// Do nothing
 			}
 		}
-		notNpy = !(imageName2.endsWith(".npy") || imageName2.endsWith(".npx") || imageName2.endsWith(".np"));
+		notNpy = imageName2 != null && !(imageName2.endsWith(".npy") || imageName2.endsWith(".npx") || imageName2.endsWith(".np"));
 		if (!openTest && notNpy && imageName2 != null && new File(imageName2).isFile()) {
 			try{
 				imp = IJ.openImage(imageName2);
