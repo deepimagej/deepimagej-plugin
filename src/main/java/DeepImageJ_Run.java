@@ -76,6 +76,7 @@ import deepimagej.RunnerProgress;
 import deepimagej.RunnerDL;
 import deepimagej.DeepLearningModel;
 import deepimagej.components.BorderPanel;
+import deepimagej.components.VerticalLabelsExample;
 import deepimagej.exceptions.MacrosError;
 import deepimagej.modelrunner.EngineInstaller;
 import deepimagej.processing.HeadlessProcessing;
@@ -108,6 +109,7 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import javax.swing.JButton;
+import javax.swing.JLabel;
 
 
 public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionListener {
@@ -165,6 +167,18 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	 * Track of threads that have been opened during execution and have to be closed
 	 */
 	private ArrayList<Thread> extraThreads = new ArrayList<Thread>();
+	/**
+	 * Message containing the references to the plugin
+	 */
+	private static final String REF_MSG = "References: Please cite the model developper";
+	/**
+	 * Message containing the references to the plugin
+	 */
+	private static final String REF_1 = "\t[1] E. Gomez de Mariscal, DeepImageJ, Nature Methods, 2021";
+	/**
+	 * Message containing the references to the plugin
+	 */
+	private static final String REF_2 = "\t[2] C. Carlos García López de Haro, JDLL, arXiv, 2023";
 	
 	
 	static public void main(String args[]) {
@@ -306,10 +320,10 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	
 	public String[] createAndShowDialog() {
 		
-		info = new TextArea("Please wait until Tensorflow and Pytorch are loaded...", 14, 58, TextArea.SCROLLBARS_BOTH);
+		info = new TextArea("Please wait until Tensorflow and Pytorch are loaded...", 12, 65, TextArea.SCROLLBARS_BOTH);
 		choices	= new Choice[5];
 		texts = new TextField[2];
-		labels = new Label[8];
+		labels = new Label[11];
 			
 		BorderPanel panel = new BorderPanel();
 		panel.setLayout(new BorderLayout());
@@ -332,13 +346,17 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		
 		dlg.addHelp(Constants.url);
 		dlg.addPanel(panel);
-		String msg = "Note: the output of a deep learning model strongly depends on the\n"
-			+ "data and the conditions of the training process. A pre-trained model\n"
-			+ "may require re-training. Please, check the documentation of this\n"
-			+ "model to get user guidelines: Help button.";
-		
-		Font font = new Font("Helvetica", Font.BOLD, 12);
-		dlg.addMessage(msg, font, Color.BLACK);
+		String msg = "Note: The output of a deep learning model strongly depends on the data and the" + System.lineSeparator()
+					+ "conditions of training process. A pre-trained model may require re-training." + System.lineSeparator()
+					+ "Please, check the documentation of each model: Help button";
+		dlg.setInsets(-5, 23, -15);
+		dlg.addMessage(msg, new Font("Helvetica", Font.BOLD, 12), Color.BLACK);
+		dlg.setInsets(dlg.getInsets().top, 26, -5);
+		dlg.addMessage(REF_MSG, new Font("Arial", Font.BOLD, 12), Color.BLACK);
+		dlg.setInsets(0, 30, -5);
+		dlg.addMessage(REF_1, new Font("Arial", Font.BOLD, 12), Color.BLUE);
+		dlg.setInsets(0, 30, 5);
+		dlg.addMessage(REF_2, new Font("Arial", Font.BOLD, 12), Color.BLUE);
 		dlg.add(testBtn);
 		
 		int countChoice = 0;
