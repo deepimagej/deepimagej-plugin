@@ -5,13 +5,13 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>31.1.0</version>
+		<version>35.1.1</version>
 		<relativePath />
 	</parent>
 
 	<groupId>io.github.deepimagej</groupId>
 	<artifactId>DeepImageJ_</artifactId>
-	<version>3.0.0</version>
+	<version>3.0.1</version>
 
 	<name>DeepImageJ</name>
 	<description>A user-friendly plugin to run deep learning models in ImageJ.</description>
@@ -141,7 +141,7 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 			<groupId>io.bioimage</groupId>
 			<artifactId>dl-modelrunner</artifactId>
-			<version>0.3.7</version>
+			<version>0.3.10</version>
 		</dependency>
 <!--		MODEL RUNNER-->
 		<dependency>
