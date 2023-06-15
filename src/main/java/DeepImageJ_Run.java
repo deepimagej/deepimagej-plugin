@@ -76,7 +76,6 @@ import deepimagej.RunnerProgress;
 import deepimagej.RunnerDL;
 import deepimagej.DeepLearningModel;
 import deepimagej.components.BorderPanel;
-import deepimagej.components.VerticalLabelsExample;
 import deepimagej.exceptions.MacrosError;
 import deepimagej.modelrunner.EngineInstaller;
 import deepimagej.processing.HeadlessProcessing;
@@ -174,11 +173,11 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	/**
 	 * Message containing the references to the plugin
 	 */
-	private static final String REF_1 = "\t[1] E. Gomez de Mariscal, DeepImageJ, Nature Methods, 2021";
+	private static final String REF_1 = "[1] E. Gómez de Mariscal, DeepImageJ, Nature Methods, 2021";
 	/**
 	 * Message containing the references to the plugin
 	 */
-	private static final String REF_2 = "\t[2] C. Carlos García López de Haro, JDLL, arXiv, 2023";
+	private static final String REF_2 = "[2] C. Carlos García López de Haro, JDLL, arXiv, 2023";
 	
 	
 	static public void main(String args[]) {
