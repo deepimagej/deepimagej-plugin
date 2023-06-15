@@ -168,18 +168,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	
 	
 	static public void main(String args[]) {
-<<<<<<< HEAD
-		path = System.getProperty("user.home") + File.separator + "Google Drive" + File.separator + "ImageJ" + File.separator + "models" + File.separator;
-		path = "C:\\Users\\Carlos(tfg)\\Pictures\\Fiji.app\\models" + File.separator;
-		path = "C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models" + File.separator;
-		//ImagePlus imp = IJ.openImage("C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models\\Usiigaci_2.1.4\\usiigaci.tif");
-		ImagePlus imp = IJ.openImage("C:\\Users\\angel\\OneDrive\\Documentos\\deepimagej\\fiji-win64\\Fiji.app\\models\\pt\\sample_input_0.tif");
-		//ImagePlus imp = IJ.createImage("aux", 64, 64, 1, 24);
-=======
 		path = new File("models").getAbsolutePath();
 		ImagePlus imp = null;
 		//imp = IJ.openImage(path + "\\pr\\sample_input_0.tif");
->>>>>>> development
 		if (imp != null)
 			imp.show();		WindowManager.setTempCurrentImage(imp);
 		new DeepImageJ_Run().run("");

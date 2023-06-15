@@ -11,11 +11,7 @@
 
 	<groupId>io.github.deepimagej</groupId>
 	<artifactId>DeepImageJ_</artifactId>
-<<<<<<< HEAD
-	<version>2.1.16</version>
-=======
 	<version>3.0.1</version>
->>>>>>> development
 
 	<name>DeepImageJ</name>
 	<description>A user-friendly plugin to run deep learning models in ImageJ.</description>
@@ -157,48 +153,6 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
 		</dependency>
-<<<<<<< HEAD
-		<!--  Dependencies for DJL Pytorch, START -->
-		<dependency>
-			<groupId>ai.djl.pytorch</groupId>
-			<artifactId>pytorch-engine</artifactId>
-			<version>0.21.0</version>
-		</dependency>
-		<dependency>
-			<groupId>ai.djl.pytorch</groupId>
-			<artifactId>pytorch-jni</artifactId>
-			<version>1.13.1-0.21.0</version>
-		</dependency>
-		<dependency>
-			<groupId>ai.djl</groupId>
-			<artifactId>api</artifactId>
-			<version>0.21.0</version>
-		</dependency>
-	    <dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-simple</artifactId>
-		    <scope>test</scope>
-		</dependency>
-		<dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-api</artifactId>
-		</dependency>
-		<dependency>
-		    <groupId>net.java.dev.jna</groupId>
-		    <artifactId>jna</artifactId>
-		</dependency>
-		<!--  Dependencies for DJL Pytorch, END -->
-		<dependency>
-		    <groupId>org.jetbrains.bio</groupId>
-		    <artifactId>npy</artifactId>
-	    	<version>0.3.3</version>
-		</dependency>
-		<dependency>
-		    <groupId>org.jetbrains.kotlin</groupId>
-		    <artifactId>kotlin-stdlib</artifactId>
-		</dependency>	
-=======
->>>>>>> development
 		<!-- Test scope dependencies -->
 		<dependency>
 			<groupId>junit</groupId>
