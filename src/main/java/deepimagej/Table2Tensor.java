@@ -44,20 +44,24 @@
 
 package deepimagej;
 
-import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import org.tensorflow.Tensor;
-
-import ai.djl.ndarray.NDArray;
-import ai.djl.ndarray.NDManager;
-import ai.djl.ndarray.types.Shape;
 import deepimagej.exceptions.BatchSizeBiggerThanOne;
 import deepimagej.exceptions.IncorrectNumberOfDimensions;
 import deepimagej.tools.Index;
 import ij.IJ;
 import ij.measure.ResultsTable;
+import io.bioimage.modelrunner.tensor.Tensor;
+import io.bioimage.modelrunner.utils.IndexingUtils;
+import net.imglib2.Cursor;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.Img;
+import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.view.IntervalView;
 
 
 public class Table2Tensor {
@@ -117,74 +121,31 @@ public class Table2Tensor {
 	/*
 	 * Convert NDArrays into results table
 	 */
-	public static ResultsTable tensorToTable(Tensor<?> tensor, String form, String name) throws IncorrectNumberOfDimensions, BatchSizeBiggerThanOne {
-
-		long[] shape = tensor.shape();
-		if (form == null)
-			form = findTableForm(shape, name);
-		// If DeepImageJ has not been able to induce a form, the tensor is not valid
-		if (form == null)
-			return null;
-		// Check that the output dimensions correspond to the form length
-		if (shape.length != form.length())
-			throw new IncorrectNumberOfDimensions(shape, form, name);
-		// TODO add possibility of batch>1
-		int batchIndex = form.indexOf("B");
-		if (batchIndex != -1 && shape[batchIndex] > 1)
-			throw new BatchSizeBiggerThanOne(shape, form, name);
-				
-		// For the moment DeepImageJ only supports 2D tables, thus
-		// if the tensor has more than to dimensions greater than one,
-		// the plugin throws an exception
-		// TODO support more than 2d tables
-		ArrayList<Integer> non1Occurences = findNon1occurences(shape);
-		if (non1Occurences.size() > 2) {
-			IJ.error("For the moment DeepImageJ only supports 2D tables as outputs with batch_size = 1.\n"
-					+ "Represent the tensor as an image, instead of as a list.");
-			return null;
-		}
-
-		// Array of one dimension containing all the data from the tensor
-		int arraySize = 1;
-		for (long el : shape)
-			arraySize = arraySize * ((int) el);
-		float[] flatArray = new float[arraySize];
-
-		FloatBuffer outBuff = FloatBuffer.wrap(flatArray);
-	 	tensor.writeTo(outBuff);
-		return flatArrayToTable(flatArray, shape, form);
+	public static < T extends RealType< T > & NativeType< T > > ResultsTable 
+			tensorToTable(Tensor<T> tensor) throws IncorrectNumberOfDimensions, BatchSizeBiggerThanOne {
+		return imgLib2ToTable(tensor.getData(), tensor.getAxesOrderString(), tensor.getName());
 	}
 
 	
 	/*
 	 * Convert NDArrays into results table
 	 */
-	public static ResultsTable tensorToTable(NDArray tensor, String form, String name, String ptVersion) throws IncorrectNumberOfDimensions, BatchSizeBiggerThanOne {
-		// Array of one dimension containing all the data from the tensor
-		float[] flatArray = tensor.toFloatArray();
-		long[] shape = tensor.getShape().getShape();
-		if (form == null)
-			form = findTableForm(shape, name);
+	public static < T extends RealType< T > & NativeType< T > > ResultsTable 
+			imgLib2ToTable(RandomAccessibleInterval<T> data, String axes, String name) throws IncorrectNumberOfDimensions, BatchSizeBiggerThanOne {
+
+		long[] shape = data.dimensionsAsLongArray();
+		if (axes == null)
+			axes = findTableForm(shape, name);
 		// If DeepImageJ has not been able to induce a form, the tensor is not valid
-		if (form == null)
+		if (axes == null)
 			return null;
-		int batchIndex = form.indexOf("B");
-		// TODO should batch be eliminated always or only when the dimensions are incorrect
-		boolean old = ImagePlus2Tensor.olderThanPytorch170(ptVersion);
-		if (old && batchIndex != -1) {
-			String oldForm = "" + form;
-			form = oldForm.substring(0, batchIndex) +  oldForm.substring(batchIndex + 1);
-			IJ.log("WARNING: DJL Pytorch versions <=1.6.0 do not allow definition of the batch size.");
-			IJ.log("WARNING: Output tensor " + name + " dimension organization has changed: " + oldForm + " --> " + form);
-		}
-		// REtrieve again the batch index
-		batchIndex = form.indexOf("B");
-		// TODO add possibility of batch>1
-		if (batchIndex != -1 && shape[batchIndex] > 1)
-			throw new BatchSizeBiggerThanOne(shape, form, name);
 		// Check that the output dimensions correspond to the form length
-		if (shape.length != form.length())
-			throw new IncorrectNumberOfDimensions(shape, form, name);
+		if (shape.length != axes.length())
+			throw new IncorrectNumberOfDimensions(shape, axes, name);
+		// TODO add possibility of batch>1
+		int batchIndex = axes.indexOf("B");
+		if (batchIndex != -1 && shape[batchIndex] > 1)
+			throw new BatchSizeBiggerThanOne(shape, axes, name);
 				
 		// For the moment DeepImageJ only supports 2D tables, thus
 		// if the tensor has more than to dimensions greater than one,
@@ -196,7 +157,30 @@ public class Table2Tensor {
 					+ "Represent the tensor as an image, instead of as a list.");
 			return null;
 		}
-		return flatArrayToTable(flatArray, shape, form);
+		// Array of one dimension containing all the data from the tensor
+		int arraySize = 1;
+		for (long el : shape)
+			arraySize = arraySize * ((int) el);
+		float[] flatArray = new float[arraySize];	 	
+
+		Cursor<FloatType> tensorCursor;
+		if (data instanceof IntervalView)
+			tensorCursor = ((IntervalView<FloatType>) data).cursor();
+		else if (data instanceof Img) 
+			tensorCursor = ((Img<FloatType>) data).cursor();
+		else throw new IllegalArgumentException("The data of the " + Tensor.class +
+			" has " + "to be an instance of " + Img.class + " or " +
+			IntervalView.class);
+		while (tensorCursor.hasNext()) {
+			tensorCursor.fwd();
+			long[] cursorPos = tensorCursor.positionAsLongArray();
+			int flatPos = IndexingUtils.multidimensionalIntoFlatIndex(cursorPos,
+					shape);
+			float val = tensorCursor.get().getRealFloat();
+			flatArray[flatPos] = val;
+		}
+	 	
+		return flatArrayToTable(flatArray, shape, axes);
 	}
 	
 	/*
@@ -395,7 +379,7 @@ public class Table2Tensor {
 	 * Method that gets a Tensor from a ResultsTable
 	 */
 	// TODO can this method be used somewhere in the plugin?
-	public static NDArray tableToTensor(ResultsTable rt, String form, String ptVersion, NDManager manager){
+	public static Img<FloatType> tableToTensor(ResultsTable rt, String form){
 		// Get rows and columns (by default sum 1 to the number of columns)
 		int rSize = rt.size();
 		// Get last column indicates position, that is why we sum 1
@@ -409,55 +393,25 @@ public class Table2Tensor {
 			IJ.error("Table has 2 dimensions but only one (" + form + ") was specified.");
 			return null;
 		}
-
-		boolean old = ImagePlus2Tensor.olderThanPytorch170(ptVersion);
-		int batchIndex = form.indexOf("B");
-		// TODO should batch be eliminated always or only when the dimensions are incorrect
-		if (old && batchIndex != -1) {
-			String oldForm = "" + form;
-			form = oldForm.substring(0, batchIndex) +  oldForm.substring(batchIndex + 1);
-			IJ.log("WARNING: DJL Pytorch versions <=1.6.0 do not allow definition of the batch size.");
-			IJ.log("WARNING: List input tensor dimension organization has changed: " + oldForm + " --> " + form);
-		}
+		// Create a variable that acts as imp.getDimensions() for ImagePlus types
+		int[] defaultTableDimensions = new int[] {rSize, cSize};
+		long[] arrayShape = getTableTensorDims(defaultTableDimensions, form);
+		// Get the array
+		float[] flatRt = tableToFlatArray(rt, form, arrayShape);	
 		
-		// Create a variable that acts as imp.getDimensions() for ImagePlus types
-		int[] defaultTableDimensions = new int[] {rSize, cSize};
-		long[] arrayShape = getTableTensorDims(defaultTableDimensions, form);
-		// Get the array
-		float[] flatRt = tableToFlatArray(rt, form, arrayShape);
-		// Create the tensor
-		FloatBuffer outBuff = FloatBuffer.wrap(flatRt);
-		NDArray tensor = manager.create(flatRt, new Shape(arrayShape));
-		return tensor;
-	}
-	
-	/*
-	 * Method that gets a Tensor from a ResultsTable
-	 */
-	// TODO can this method be used somewhere in the plugin?
-	public static Tensor<Float> tableToTensor(ResultsTable rt, String form){
-		// Get rows and columns (by default sum 1 to the number of columns)
-		int rSize = rt.size();
-		// Get last column indicates position, that is why we sum 1
-		int cSize = rt.getLastColumn() + 1;
-		if (cSize == 0)
-			cSize = 1;
-		if (cSize != 1 && rSize != 1 && form.indexOf("B") != -1) {
-			IJ.error("Batch size should be 1.");
-			return null;
-		} else if (cSize != 1 && rSize != 1 && form.length() == 1) {
-			IJ.error("Table has 2 dimensions but only one (" + form + ") was specified.");
-			return null;
+
+		final ArrayImgFactory<FloatType> factory = new ArrayImgFactory<>(new FloatType());
+		final Img<FloatType> outputImg = factory.create(arrayShape);
+		Cursor<FloatType> tensorCursor = outputImg.cursor();
+		while (tensorCursor.hasNext()) {
+			tensorCursor.fwd();
+			long[] cursorPos = tensorCursor.positionAsLongArray();
+			int flatPos = IndexingUtils.multidimensionalIntoFlatIndex(cursorPos,
+					arrayShape);
+			float val = flatRt[flatPos];
+			tensorCursor.get().set(val);
 		}
-		// Create a variable that acts as imp.getDimensions() for ImagePlus types
-		int[] defaultTableDimensions = new int[] {rSize, cSize};
-		long[] arrayShape = getTableTensorDims(defaultTableDimensions, form);
-		// Get the array
-		float[] flatRt = tableToFlatArray(rt, form, arrayShape);
-		// Create the tensor
-		FloatBuffer outBuff = FloatBuffer.wrap(flatRt);
-		Tensor<Float> tensor = Tensor.create(arrayShape, outBuff);
-		return tensor;
+		return outputImg;
 	}
 	
 	/*

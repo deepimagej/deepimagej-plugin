@@ -48,13 +48,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
-import java.util.zip.ZipException;
+
 
 import deepimagej.DeepImageJ;
 import deepimagej.DeepLearningModel;
 import deepimagej.RunnerProgress;
-import deepimagej.stamp.LoadPytorchStamp;
 import ij.IJ;
+import io.bioimage.modelrunner.model.Model;
 
 public class ModelLoader implements Callable<Boolean>{
 	private DeepImageJ dp;
@@ -62,15 +62,15 @@ public class ModelLoader implements Callable<Boolean>{
 	private boolean gpu;
 	private boolean cuda;
 	private boolean show;
-	private boolean isFiji;
+	private Model model;
 	
-	public ModelLoader(DeepImageJ dp, RunnerProgress rp, boolean gpu, boolean cuda, boolean show, boolean isFiji) {
-		this.dp = dp;
+	public ModelLoader(DeepImageJ dp, Model model, RunnerProgress rp, boolean gpu, boolean cuda, boolean show) {
 		this.rp = rp;
 		this.gpu = gpu;
 		this.cuda = cuda;
 		this.show = show;
-		this.isFiji = isFiji;
+		this.model = model;
+		this.dp = dp;
 	}
 
 	@Override
@@ -114,13 +114,8 @@ public class ModelLoader implements Callable<Boolean>{
 		// while executing the task
 		if (rp != null)
 			rp.allowStopping(false);
-		boolean ret = false;
-		if (dp.params.framework.equals("tensorflow")) {
-			ret = dp.loadTfModel(true);
-		} else if (dp.params.framework.equals("pytorch")) {
-			String ptWeightsPath = dp.getPath() + File.separatorChar + dp.ptName;
-			ret = dp.loadPtModel(ptWeightsPath, isFiji);
-		}
+		dp.setModel(model);
+		boolean ret = dp.loadModel();
 		if (ret == false && dp.params.framework.equals("tensorflow")) {
 			IJ.error("Error loading " + dp.getName() + 
 					"\nTry using another Tensorflow version.");
@@ -160,25 +155,6 @@ public class ModelLoader implements Callable<Boolean>{
 				rp.setGPU("gpu");
 			}
 		}
-		
-		if (dp.params.framework.toLowerCase().equals("pytorch")) {
-			String ptNativeFileName = LoadPytorchStamp.getNativeLbraryFile();
-			File libFile = new File(ptNativeFileName);
-			if (!libFile.exists()) {
-				rp.setGPU(ptNativeFileName);
-				dp.params.pytorchVersion = DeepLearningModel.getPytorchVersion();
-			} else {
-				// Get the Pytorch version being used reading the fist part of the lib folder
-				String parentFolderName = libFile.getParentFile().getName();
-				dp.params.pytorchVersion = parentFolderName.substring(0, parentFolderName.indexOf("-"));
-				if (rp != null && libFile.getName().toLowerCase().contains("cpu")) {
-					rp.setGPU("cpu");
-				} else if (rp != null){
-					rp.setGPU("gpu");
-				}
-			}
-		}
-		
 		return true;
 	}
 
