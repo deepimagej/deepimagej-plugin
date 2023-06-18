@@ -76,6 +76,7 @@ import deepimagej.RunnerProgress;
 import deepimagej.RunnerDL;
 import deepimagej.DeepLearningModel;
 import deepimagej.components.BorderPanel;
+import deepimagej.components.Hyperlink;
 import deepimagej.exceptions.MacrosError;
 import deepimagej.modelrunner.EngineInstaller;
 import deepimagej.processing.HeadlessProcessing;
@@ -108,7 +109,6 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import javax.swing.JButton;
-import javax.swing.JLabel;
 
 
 public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionListener {
@@ -191,7 +191,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 
 	@Override
 	public void run(String arg) {
-		System.out.println("engines jars directory is "+JARS_DIRECTORY);
+		System.out.println("engines jars directory is " + JARS_DIRECTORY);
 
 		
 		testMode = false;
@@ -322,7 +322,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		info = new TextArea("Please wait until Tensorflow and Pytorch are loaded...", 12, 65, TextArea.SCROLLBARS_BOTH);
 		choices	= new Choice[5];
 		texts = new TextField[2];
-		labels = new Label[11];
+		labels = new Label[10];
 			
 		BorderPanel panel = new BorderPanel();
 		panel.setLayout(new BorderLayout());
@@ -378,6 +378,8 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		}
 		texts[0].setEditable(false);
 		texts[1].setEditable(false);
+		labels[8].addMouseListener(Hyperlink.createHyperlink(labels[8], dlg));
+		labels[9].addMouseListener(Hyperlink.createHyperlink(labels[9], dlg));
 
 		// Load the models and Deep Learning engines in a separate thread if 
 		// th plugin is not run from a macro
@@ -1266,7 +1268,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			info.append(System.lineSeparator());
 		}
 		
-		EngineManagement engineManager = EngineManagement.createManager();
+		EngineManagement engineManager = EngineManagement.createManager(JARS_DIRECTORY);
 		Map<String, TwoParameterConsumer<String, Double>> consumers = 
 				new LinkedHashMap<String, TwoParameterConsumer<String, Double>>();
 		Thread checkAndInstallMissingEngines = new Thread(() -> {
