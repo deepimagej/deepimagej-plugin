@@ -169,7 +169,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	/**
 	 * Message containing the references to the plugin
 	 */
-	private static final String REF_MSG = "References: Please cite the model developper";
+	private static final String REF_MSG = "References: Please cite the model developer and";
 	/**
 	 * Message containing the references to the plugin
 	 */
@@ -177,7 +177,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	/**
 	 * Message containing the references to the plugin
 	 */
-	private static final String REF_2 = "[2] C. Carlos García López de Haro, JDLL, arXiv, 2023";
+	private static final String REF_2 = "[2] C. García López de Haro, JDLL, arXiv, 2023";
 	
 	
 	static public void main(String args[]) {

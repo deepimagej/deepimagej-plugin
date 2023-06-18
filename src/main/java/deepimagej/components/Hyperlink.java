@@ -41,7 +41,7 @@ public class Hyperlink implements MouseListener {
 
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		if (name.toLowerCase().contains("carlos")) {
+		if (name.toLowerCase().contains("de haro")) {
 			openWebpage(JDLL_LINK);
 		} else if (name.toLowerCase().contains("de mariscal")) {
 			openWebpage(DIJ_LINK);
