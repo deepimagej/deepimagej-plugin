@@ -99,6 +99,7 @@ import io.bioimage.modelrunner.engine.EngineInfo;
 import io.bioimage.modelrunner.engine.installation.EngineManagement;
 import io.bioimage.modelrunner.exceptions.LoadEngineException;
 import io.bioimage.modelrunner.model.Model;
+import io.bioimage.modelrunner.system.PlatformDetection;
 import io.bioimage.modelrunner.versionmanagement.DeepLearningVersion;
 import io.bioimage.modelrunner.versionmanagement.InstalledEngines;
 
@@ -348,13 +349,21 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		String msg = "Note: The output of a deep learning model strongly depends on the data and the" + System.lineSeparator()
 					+ "conditions of training process. A pre-trained model may require re-training." + System.lineSeparator()
 					+ "Please, check the documentation of each model: Help button";
-		dlg.setInsets(-5, 23, -15);
+		dlg.setInsets(-5, 23, 0);
+		if (!PlatformDetection.isMacOS())
+			dlg.setInsets(-5, 23, -15);
 		dlg.addMessage(msg, new Font("Helvetica", Font.BOLD, 12), Color.BLACK);
-		dlg.setInsets(dlg.getInsets().top, 26, -5);
+		dlg.setInsets(-2, 30, 0);
+		if (!PlatformDetection.isMacOS())
+			dlg.setInsets(0, 26, -5);
 		dlg.addMessage(REF_MSG, new Font("Arial", Font.BOLD, 12), Color.BLACK);
-		dlg.setInsets(0, 30, -5);
+		dlg.setInsets(-1, 34, 0);
+		if (!PlatformDetection.isMacOS())
+			dlg.setInsets(0, 30, -5);
 		dlg.addMessage(REF_1, new Font("Arial", Font.BOLD, 12), Color.BLUE);
-		dlg.setInsets(0, 30, 5);
+		dlg.setInsets(0, 34, 5);
+		if (!PlatformDetection.isMacOS())
+			dlg.setInsets(0, 30, 5);
 		dlg.addMessage(REF_2, new Font("Arial", Font.BOLD, 12), Color.BLUE);
 		dlg.add(testBtn);
 		
