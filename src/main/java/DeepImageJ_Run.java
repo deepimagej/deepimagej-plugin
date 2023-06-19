@@ -111,7 +111,11 @@ import java.util.stream.Collectors;
 
 import javax.swing.JButton;
 
-
+/**
+ * 
+ * @author Carlos Javier Garcia Lopez de Haro
+ *
+ */
 public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionListener {
 	private GenericDialog 				dlg;
 	private TextArea					info;
@@ -355,7 +359,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		dlg.addMessage(msg, new Font("Helvetica", Font.BOLD, 12), Color.BLACK);
 		dlg.setInsets(-2, 30, 0);
 		if (!PlatformDetection.isMacOS())
-			dlg.setInsets(0, 26, -5);
+			dlg.setInsets(dlg.getInsets().top, 26, -5);
 		dlg.addMessage(REF_MSG, new Font("Arial", Font.BOLD, 12), Color.BLACK);
 		dlg.setInsets(-1, 34, 0);
 		if (!PlatformDetection.isMacOS())

@@ -49,8 +49,6 @@ import java.util.HashMap;
 import java.util.stream.LongStream;
 
 
-import deepimagej.exceptions.BatchSizeBiggerThanOne;
-import deepimagej.exceptions.IncorrectNumberOfDimensions;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
@@ -111,7 +109,7 @@ public class ImagePlus2Tensor {
     }
 	
 	// TODO make specific for different types
-	public static < T extends NumericType< T > & RealType< T > > ImagePlus tensor2ImagePlus(RandomAccessibleInterval<T> data, String form) throws IncorrectNumberOfDimensions, BatchSizeBiggerThanOne{
+	public static < T extends NumericType< T > & RealType< T > > ImagePlus tensor2ImagePlus(RandomAccessibleInterval<T> data, String form) {
 		// This method copies the information from the tensor to a matrix. At first only works
 		// if the batch size is 1
 		
