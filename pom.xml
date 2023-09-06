@@ -141,7 +141,7 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 			<groupId>io.bioimage</groupId>
 			<artifactId>dl-modelrunner</artifactId>
-			<version>0.3.10</version>
+			<version>0.3.12</version>
 		</dependency>
 <!--		MODEL RUNNER-->
 		<dependency>

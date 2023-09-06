@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import io.bioimage.modelrunner.engine.EngineInfo;
-import io.bioimage.modelrunner.engine.installation.EngineManagement;
+import io.bioimage.modelrunner.engine.installation.EngineInstall;
 
 /**
  * Class that contains the information for Tensorflow weights.
@@ -101,10 +101,10 @@ public class TfWeights implements WeightFormatInterface{
 
 		// Pin the tensorflow versions (TF 1 or TF 2, according to the engines version downloaded)
 		if (trainingVersion == null && trainingVersion.startsWith("1")){
-			trainingVersion = EngineManagement.ENGINES_VERSIONS.get(EngineInfo.getTensorflowKey() + "_1");
+			trainingVersion = EngineInstall.ENGINES_VERSIONS.get(EngineInfo.getTensorflowKey() + "_1");
 		}
 		else if (trainingVersion == null) {
-			trainingVersion = EngineManagement.ENGINES_VERSIONS.get(EngineInfo.getTensorflowKey() + "_2");
+			trainingVersion = EngineInstall.ENGINES_VERSIONS.get(EngineInfo.getTensorflowKey() + "_2");
 		}
 	}
 

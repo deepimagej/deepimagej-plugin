@@ -96,7 +96,7 @@ import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
 import io.bioimage.modelrunner.engine.EngineInfo;
-import io.bioimage.modelrunner.engine.installation.EngineManagement;
+import io.bioimage.modelrunner.engine.installation.EngineInstall;
 import io.bioimage.modelrunner.exceptions.LoadEngineException;
 import io.bioimage.modelrunner.model.Model;
 import io.bioimage.modelrunner.system.PlatformDetection;
@@ -711,7 +711,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		EngineInfo engineInfo;
 		Model model;
 		try {
-			engineInfo = EngineInfo.defineCompatibleDLEngine(engine, version, JARS_DIRECTORY);
+			engineInfo = EngineInfo.defineCompatibleDLEngineCPU(engine, version, JARS_DIRECTORY);
 			if (engineInfo == null)
 				throw new Exception("No compatible engine installed." + System.lineSeparator()
 									+ "Required engine: " + engine + " " + version);
@@ -1281,7 +1281,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			info.append(System.lineSeparator());
 		}
 		
-		EngineManagement engineManager = EngineManagement.createManager(JARS_DIRECTORY);
+		EngineInstall engineManager = EngineInstall.createInstaller(JARS_DIRECTORY);
 		Map<String, TwoParameterConsumer<String, Double>> consumers = 
 				new LinkedHashMap<String, TwoParameterConsumer<String, Double>>();
 		Thread checkAndInstallMissingEngines = new Thread(() -> {
@@ -1297,7 +1297,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 			backup = info.getText();
 		}
 		EngineInstaller installerInfo = new EngineInstaller();
-		while (!engineManager.isManagementDone()) {
+		while (!engineManager.isInstallationFinished()) {
 				try {Thread.sleep(300);} catch (InterruptedException e) {}
 			if ((!headless && !isMacro) && consumers.keySet().size() != 0) {
 				String progress = installerInfo.basicEnginesInstallationProgress(consumers);
@@ -1309,9 +1309,9 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 		installedEngines = InstalledEngines.buildEnginesFinder().getDownloadedForOS();
 		List<String> engineNames = 
 				installedEngines.stream()
-				.map(v -> v.getEngine() + "-" 
+				.map(v -> v.getFramework() + "-" 
 				+ v.getPythonVersion() + " (GPU: " + v.getGPU() + ") " 
-						+ getCudaVersionsCompatible(v.getEngine(), v.getPythonVersion(), v.getGPU()))
+						+ getCudaVersionsCompatible(v.getFramework(), v.getPythonVersion(), v.getGPU()))
 				.collect(Collectors.toList());
 		
 		if (engineNames.size() == 0) {
