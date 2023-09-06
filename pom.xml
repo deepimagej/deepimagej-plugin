@@ -11,7 +11,7 @@
 
 	<groupId>io.github.deepimagej</groupId>
 	<artifactId>DeepImageJ_</artifactId>
-	<version>3.0.3</version>
+	<version>3.0.4-SNAPSHOT</version>
 
 	<name>DeepImageJ</name>
 	<description>A user-friendly plugin to run deep learning models in ImageJ.</description>
