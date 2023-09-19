@@ -11,7 +11,7 @@
 
 	<groupId>io.github.deepimagej</groupId>
 	<artifactId>DeepImageJ_</artifactId>
-	<version>3.0.4-SNAPSHOT</version>
+	<version>3.0.4</version>
 
 	<name>DeepImageJ</name>
 	<description>A user-friendly plugin to run deep learning models in ImageJ.</description>
@@ -141,7 +141,7 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		<dependency>
 			<groupId>io.bioimage</groupId>
 			<artifactId>dl-modelrunner</artifactId>
-			<version>0.3.12</version>
+			<version>0.4.0</version>
 		</dependency>
 <!--		MODEL RUNNER-->
 		<dependency>
