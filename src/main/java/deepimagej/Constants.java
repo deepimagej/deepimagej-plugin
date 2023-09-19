@@ -47,7 +47,7 @@ package deepimagej;
 public class Constants {
 
 	public static String url = "https://deepimagej.github.io/deepimagej/";
-	public static String version = "3.0.3";
+	public static String version = "3.0.4";
 	public static int width = 120;
 	public static String name = "deepImageJ";
 	
