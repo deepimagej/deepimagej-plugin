@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>35.1.1</version>
+		<version>36.0.0</version>
 		<relativePath />
 	</parent>
 
@@ -139,9 +139,9 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 	<dependencies>
 <!--		MODEL RUNNER-->
 		<dependency>
-			<groupId>io.bioimage</groupId>
-			<artifactId>dl-modelrunner</artifactId>
-			<version>0.4.0</version>
+		  <groupId>io.bioimage</groupId>
+		  <artifactId>dl-modelrunner</artifactId>
+		  <version>0.4.0</version>
 		</dependency>
 <!--		MODEL RUNNER-->
 		<dependency>
