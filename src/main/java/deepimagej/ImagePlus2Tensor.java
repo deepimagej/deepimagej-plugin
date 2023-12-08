@@ -62,8 +62,10 @@ import net.imglib2.type.Type;
 import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Cast;
 import net.imglib2.util.Util;
 import net.imglib2.view.IntervalView;
+import net.imglib2.view.Views;
 
 
 public class ImagePlus2Tensor {
@@ -105,7 +107,7 @@ public class ImagePlus2Tensor {
         	float val = ip.getPixelValue(icyInd[0], icyInd[1]);
         	tensorCursor.get().set(val);
         }
-		return (RandomAccessibleInterval<T>) tensor;
+		return Cast.unchecked(tensor);
     }
 	
 	// TODO make specific for different types
@@ -148,16 +150,7 @@ public class ImagePlus2Tensor {
         tensorShape[seqDimOrder[2]] = seqSize[2]; tensorShape[seqDimOrder[3]] = seqSize[3];
         tensorShape[seqDimOrder[4]] = seqSize[4];
 		int[] auxInd = {0, 0, 0, 0, 0};
-		Cursor<FloatType> tensorCursor;
-		if (data instanceof IntervalView)
-			tensorCursor = ((IntervalView<FloatType>) data).cursor();
-		else if (data instanceof Img)
-			tensorCursor = ((Img<FloatType>) data).cursor();
-		else if (data instanceof ArrayImg)
-			tensorCursor = ((ArrayImg<FloatType, ?>) data).cursor();
-		else
-			throw new IllegalArgumentException("First parameter has to be an instance of " + Img.class 
-					+ " or " + IntervalView.class + " or " + ArrayImg.class);
+		Cursor<FloatType> tensorCursor = Cast.unchecked(Views.flatIterable(data).cursor());
 		while (tensorCursor.hasNext()) {
 			tensorCursor.fwd();
 			long[] cursorPos = tensorCursor.positionAsLongArray();

@@ -61,7 +61,9 @@ import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Cast;
 import net.imglib2.view.IntervalView;
+import net.imglib2.view.Views;
 
 
 public class Table2Tensor {
@@ -163,14 +165,7 @@ public class Table2Tensor {
 			arraySize = arraySize * ((int) el);
 		float[] flatArray = new float[arraySize];	 	
 
-		Cursor<FloatType> tensorCursor;
-		if (data instanceof IntervalView)
-			tensorCursor = ((IntervalView<FloatType>) data).cursor();
-		else if (data instanceof Img) 
-			tensorCursor = ((Img<FloatType>) data).cursor();
-		else throw new IllegalArgumentException("The data of the " + Tensor.class +
-			" has " + "to be an instance of " + Img.class + " or " +
-			IntervalView.class);
+		Cursor<FloatType> tensorCursor = Cast.unchecked(Views.iterable(data).cursor());
 		while (tensorCursor.hasNext()) {
 			tensorCursor.fwd();
 			long[] cursorPos = tensorCursor.positionAsLongArray();
