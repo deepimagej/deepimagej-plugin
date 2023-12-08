@@ -188,7 +188,7 @@ public class DeepImageJ_Run implements PlugIn, ItemListener, Runnable, ActionLis
 	static public void main(String args[]) {
 		path = new File("models").getAbsolutePath();
 		ImagePlus imp = null;
-		//imp = IJ.openImage(path + "\\pr\\sample_input_0.tif");
+		imp = IJ.openImage("/home/carlos/Downloads/export_qupath_part1_v2.tif");
 		if (imp != null)
 			imp.show();		WindowManager.setTempCurrentImage(imp);
 		new DeepImageJ_Run().run("");

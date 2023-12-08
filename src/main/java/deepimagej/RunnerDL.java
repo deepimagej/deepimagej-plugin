@@ -263,9 +263,20 @@ public class RunnerDL < T extends RealType< T > & NativeType< T > > implements C
 		int[] roi = {roiX, roiY, roiC, roiZ};
 		int[] size = {nx, ny, nc, nz};
 		int[][] mirrorPixels = ArrayOperations.findAddedPixels(size, padding, roi);
-		ImagePlus mirrorImage = CompactMirroring.mirrorXY(imp, mirrorPixels[0][0], mirrorPixels[1][0],
+		int mirrorDim = 0;
+		for (int i = 0; i < mirrorPixels.length; i ++) {
+			for (int j = 0; j < mirrorPixels[0].length; j ++) {
+				mirrorDim += mirrorPixels[i][j];
+			}
+		}
+		ImagePlus mirrorImage;
+		if (mirrorDim > 0) {
+		mirrorImage = CompactMirroring.mirrorXY(imp, mirrorPixels[0][0], mirrorPixels[1][0],
 														  	   mirrorPixels[0][1], mirrorPixels[1][1],
 														       mirrorPixels[0][3], mirrorPixels[1][3]);
+		} else {
+			mirrorImage = imp;
+		}
 		if (log.getLevel() == 2) {
 			mirrorImage.setTitle("Extended image");
 			mirrorImage.getProcessor().resetMinAndMax();

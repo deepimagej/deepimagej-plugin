@@ -108,9 +108,12 @@ public class DijRunnerPreprocessing implements Callable<HashMap<String, Object>>
 			
 			// Create copy of input image to have it after the original image
 			// has been modified
-			im = inp.duplicate();
 			correctTitle = inp.getTitle();
-			im.setTitle("tmp_" + correctTitle);
+			if (inp.getSizeInBytes() / 1024 / 1024 / 1024 < 1) {
+				im = inp.duplicate();
+				im.setTitle("tmp_" + correctTitle);
+			} else
+				im = inp;
 			if (batch == false) {
 				ImageWindow windToClose = inp.getWindow();
 				windToClose.dispose();
