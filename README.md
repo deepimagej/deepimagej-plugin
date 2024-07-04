@@ -1,4 +1,3 @@
-[![](https://api.travis-ci.com/deepimagej/deepimagej-plugin.svg?branch=master)](https://travis-ci.com/github/deepimagej/deepimagej-plugin)
 ![GitHub All Releases](https://img.shields.io/github/downloads/deepimagej/deepimagej-plugin/total?color=red)
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/deepimagej/deepimagej-plugin)](https://github.com/deepimagej/deepimagej-plugin/releases)
 [![GitHub](https://img.shields.io/github/license/deepimagej/deepimagej-plugin)](https://raw.githubusercontent.com/deepimagej/deepimagej-plugin/master/LICENSE)
