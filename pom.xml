@@ -10,7 +10,7 @@
 	</parent>
 
 	<groupId>io.github.deepimagej</groupId>
-	<artifactId>DeepImageJ_</artifactId>
+	<artifactId>DeepImageJ</artifactId>
 	<version>3.0.4</version>
 
 	<name>DeepImageJ</name>
