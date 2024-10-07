@@ -11,7 +11,7 @@
 
 	<groupId>io.github.deepimagej</groupId>
 	<artifactId>DeepImageJ</artifactId>
-	<version>3.0.4</version>
+	<version>3.1.0-SNAPSHOT</version>
 
 	<name>DeepImageJ</name>
 	<description>A user-friendly plugin to run deep learning models in ImageJ.</description>
@@ -30,9 +30,9 @@
 
 	<developers>
 		<developer>
-			<id>esgomezm</id>
-			<name>Estibaliz Gomez-de-Mariscal</name>
-			<url>https://github.com/esgomezm</url>
+			<id>carlosuc3m</id>
+			<name>Carlos Garcia-Lopez-de-Haro</name>
+			<url>https://github.com/carlosuc3m</url>
 			<roles>
 				<role>founder</role>
 				<role>lead</role>
@@ -44,9 +44,9 @@
 			</roles>
 		</developer>
 		<developer>
-			<id>carlosuc3m</id>
-			<name>Carlos Garcia-Lopez-de-Haro</name>
-			<url>https://github.com/carlosuc3m</url>
+			<id>esgomezm</id>
+			<name>Estibaliz Gomez-de-Mariscal</name>
+			<url>https://github.com/esgomezm</url>
 			<roles>
 				<role>founder</role>
 				<role>lead</role>
@@ -126,8 +126,6 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>deploy-to-scijava</releaseProfiles>
-
-		<jna.version>5.11.0</jna.version>
 	</properties>
 	<repositories>
 		<repository>
@@ -137,27 +135,16 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 	</repositories>
 
 	<dependencies>
-<!--		MODEL RUNNER-->
+		<!--MODEL RUNNER-->
 		<dependency>
 		  <groupId>io.bioimage</groupId>
 		  <artifactId>dl-modelrunner</artifactId>
-		  <version>0.4.0</version>
+		  <version>0.5.10-SNAPSHOT</version>
 		</dependency>
-<!--		MODEL RUNNER-->
-		<dependency>
-			<groupId>org.yaml</groupId>
-			<artifactId>snakeyaml</artifactId>
-		</dependency>
-
+		<!--MODEL RUNNER-->
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
-		</dependency>
-		<!-- Test scope dependencies -->
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<scope>test</scope>
 		</dependency>
 	</dependencies>
 </project>
