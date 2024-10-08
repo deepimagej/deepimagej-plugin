@@ -1,9 +1,13 @@
 package deepimagej.gui;
 
 import ij.plugin.frame.PlugInFrame;
+import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 
 import javax.imageio.ImageIO;
@@ -18,23 +22,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Gui extends PlugInFrame {
 
     private static final long serialVersionUID = 1081914206026104187L;
 	private int currentIndex = 1;
-    private List<String> modelNames = Arrays.asList("Model A", "Model B", "Model C");
-    private List<String> modelNicknames = Arrays.asList("Nickname A", "Nickname B", "Nickname C");
-    private List<URL> modelImagePaths = Arrays.asList(getClass().getResource(DIJ_ICON_PATH), 
-											    		getClass().getResource(DIJ_ICON_PATH), 
-											    		getClass().getResource(DIJ_ICON_PATH));
+    private List<String> modelNames;
+    private List<String> modelNicknames;
+    private List<URL> modelImagePaths;
+    private List<ModelDescriptor> models;
 
-    private JPanel prevModelPanel;
-    private JPanel selectedModelPanel;
+    private ModelCard prevModelPanel;
+    private ModelCard selectedModelPanel;
+    private ModelCard nextModelPanel;
     private JPanel modelSelectionPanel;
-    private JPanel nextModelPanel;
     private JPanel modelCarouselPanel;
-    private JPanel modelCardPanel;
     private JPanel titlePanel;
     private JPanel footerPanel;
 
@@ -50,15 +53,16 @@ public class Gui extends PlugInFrame {
     private static final double MODEL_VRATIO = 0.4;
     private static final double FOOTER_VRATIO = 0.1;
 
-    private static final String LOADING_STR = "loading...";
-    private static final String LOADING_GIF_PATH = "loading...";
-    private static final String DIJ_ICON_PATH = "dij_imgs/deepimagej_icon.png";
-    private static final double MAIN_CARD_RT = 1;
-    private static final double SECOND_CARD_RT = 0.8;
+    protected static final String LOADING_STR = "loading...";
+    protected static final String LOADING_GIF_PATH = "loading...";
+    protected static final String DIJ_ICON_PATH = "dij_imgs/deepimagej_icon.png";
+    protected static final double MAIN_CARD_RT = 1;
+    protected static final double SECOND_CARD_RT = 0.8;
     
 
     public Gui() {
         super("DeepImageJ Plugin");
+        setDefaultCardsData();
         setSize(800, 900);
         setLayout(new BorderLayout());
 
@@ -68,6 +72,51 @@ public class Gui extends PlugInFrame {
         initFooterPanel();
 
         setVisible(true);
+    }
+    
+    public Gui(List<ModelDescriptor> models) {
+        super("DeepImageJ Plugin");
+    	this.models = models;
+    	setCardsData();
+        setSize(800, 900);
+        setLayout(new BorderLayout());
+
+        // Initialize UI components
+        initTitlePanel();
+        initMainContentPanel();
+        initFooterPanel();
+
+        setVisible(true);
+    }
+    
+    private void setDefaultCardsData() {
+        modelNames = Arrays.asList(LOADING_STR, LOADING_STR, LOADING_STR);
+        modelNicknames = Arrays.asList(LOADING_STR, LOADING_STR, LOADING_STR);
+        modelImagePaths = Arrays.asList(getClass().getClassLoader().getResource(DIJ_ICON_PATH), 
+    											    		getClass().getClassLoader().getResource(DIJ_ICON_PATH), 
+    											    		getClass().getClassLoader().getResource(DIJ_ICON_PATH));
+        models = new ArrayList<ModelDescriptor>();
+    }
+    
+    private void setCardsData() {
+    	this.modelNames = models.stream().map(mm -> mm.getName()).collect(Collectors.toList());
+    	this.modelNicknames = models.stream().map(mm -> mm.getModelID()).collect(Collectors.toList());
+    	this.modelImagePaths = models.stream().map(mm -> {
+    		File imFile = new File(mm.getCovers().get(0));
+    		if (!imFile.exists()) return this.getClass().getClassLoader().getResource(DIJ_ICON_PATH);
+    		try {
+				return imFile.toURI().toURL();
+			} catch (MalformedURLException e) {
+				return this.getClass().getClassLoader().getResource(DIJ_ICON_PATH);
+			}
+    	}).collect(Collectors.toList());
+    }
+    
+    public void updateCards(List<ModelDescriptor> models) {
+    	this.models = models;
+    	setCardsData();
+    	currentIndex = 0;
+        redrawModelCards();
     }
 
     private void initTitlePanel() {
@@ -161,16 +210,12 @@ public class Gui extends PlugInFrame {
         modelCarouselPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 5));
         modelCarouselPanel.setBackground(new Color(236, 240, 241));
         modelCarouselPanel.setSize(new Dimension(getWidth(), (int) (this.getHeight() * CARR_VRATIO)));
-
-        prevModelPanel = createModelCard(modelNames.get(getWrappedIndex(currentIndex - 1)),
-                                         modelImagePaths.get(getWrappedIndex(currentIndex - 1)),
-                                         modelNicknames.get(getWrappedIndex(currentIndex - 1)), 0.8f);
-        selectedModelPanel = createModelCard(modelNames.get(currentIndex),
-                                             modelImagePaths.get(currentIndex),
-                                             modelNicknames.get(currentIndex), 1.0f);
-        nextModelPanel = createModelCard(modelNames.get(getWrappedIndex(currentIndex + 1)),
-                                         modelImagePaths.get(getWrappedIndex(currentIndex + 1)),
-                                         modelNicknames.get(getWrappedIndex(currentIndex + 1)), 0.8f);
+        
+        int cardHeight = (int) (getHeight() * CARR_VRATIO * 0.9);
+        int cardWidth = getWidth() / 3;
+        prevModelPanel = ModelCard.createModelCard(cardWidth, cardHeight, SECOND_CARD_RT);
+        selectedModelPanel = ModelCard.createModelCard(cardWidth, cardHeight, MAIN_CARD_RT);
+        nextModelPanel = ModelCard.createModelCard(cardWidth, cardHeight, SECOND_CARD_RT);
 
         modelCarouselPanel.add(prevModelPanel);
         modelCarouselPanel.add(selectedModelPanel);
@@ -217,7 +262,7 @@ public class Gui extends PlugInFrame {
         // Calculate dimensions for the logo based on the main interface size
         int logoHeight = (int) (getHeight() * 0.3);
         int logoWidth = getWidth() / 3;
-        ImageIcon logoIcon = createScaledIcon(getClass().getResource(DIJ_ICON_PATH), logoWidth, logoHeight);
+        ImageIcon logoIcon = createScaledIcon(getClass().getClassLoader().getResource(DIJ_ICON_PATH), logoWidth, logoHeight);
         exampleImageLabel = new JLabel(logoIcon, JLabel.CENTER);
         exampleImagePanel.add(exampleTitleLabel, BorderLayout.NORTH);
         exampleImagePanel.add(exampleImageLabel, BorderLayout.CENTER);
@@ -274,67 +319,36 @@ public class Gui extends PlugInFrame {
         add(footerPanel, BorderLayout.SOUTH);
     }
 
-    private JPanel createModelCard(String modelName, URL imagePath, String modelNickname, double scale) {
-        modelCardPanel = new JPanel(new BorderLayout());
-        int cardHeight = (int) (getHeight() * CARR_VRATIO * 0.9);
-        int cardWidth = getWidth() / 3;
-        modelCardPanel.setPreferredSize(new Dimension((int) (cardWidth * scale), (int) (cardHeight * scale)));
-        modelCardPanel.setBackground(Color.WHITE);
-        modelCardPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
-
-        // Calculate dimensions for the logo based on the main interface size
-        int logoHeight = (int) (getHeight() * CARR_VRATIO / 3);
-        int logoWidth = getWidth() / 4;
-        ImageIcon logoIcon = createScaledIcon(imagePath, logoWidth, logoHeight);
-        JLabel modelImageLabel = new JLabel(logoIcon, JLabel.CENTER);
-
-        JLabel modelNameLabel = new JLabel(modelName, JLabel.CENTER);
-        modelNameLabel.setFont(new Font("SansSerif", Font.BOLD, (int) (16 * scale)));
-        JLabel modelNicknameLabel = new JLabel(modelNickname, JLabel.CENTER);
-        modelNicknameLabel.setFont(new Font("SansSerif", Font.ITALIC, (int) (14 * scale)));
-
-        modelCardPanel.add(modelImageLabel, BorderLayout.CENTER);
-        modelCardPanel.add(modelNameLabel, BorderLayout.NORTH);
-        modelCardPanel.add(modelNicknameLabel, BorderLayout.SOUTH);
-
-        return modelCardPanel;
-    }
-
     private void updateCarousel(int direction) {
         modelSelectionPanel.setSize(new Dimension(this.getWidth(), (int) (this.getHeight() * SELECTION_PANE_VRATIO)));
         modelCarouselPanel.setSize(new Dimension(this.getWidth(), (int) (this.getHeight() * CARR_VRATIO)));
-        modelCardPanel.setSize(new Dimension(this.getWidth(), (int) (this.getHeight() * CARR_VRATIO)));
         titlePanel.setSize(new Dimension(this.getWidth(), (int) (this.getHeight() * TITLE_VRATIO)));
         footerPanel.setSize(new Dimension(this.getWidth(), (int) (this.getHeight() * FOOTER_VRATIO)));
         currentIndex = getWrappedIndex(currentIndex + direction);
 
-        // Update model panels
-        modelCarouselPanel.removeAll();
-
-        prevModelPanel = createModelCard(modelNames.get(getWrappedIndex(currentIndex - 1)),
-                modelImagePaths.get(getWrappedIndex(currentIndex - 1)),
-                modelNicknames.get(getWrappedIndex(currentIndex - 1)), 0.8f);
-        selectedModelPanel = createModelCard(modelNames.get(currentIndex),
-                modelImagePaths.get(currentIndex),
-                modelNicknames.get(currentIndex), 1.0f);
-        nextModelPanel = createModelCard(modelNames.get(getWrappedIndex(currentIndex + 1)),
-                modelImagePaths.get(getWrappedIndex(currentIndex + 1)),
-                modelNicknames.get(getWrappedIndex(currentIndex + 1)), 0.8f);
-
-        modelCarouselPanel.add(prevModelPanel);
-        modelCarouselPanel.add(selectedModelPanel);
-        modelCarouselPanel.add(nextModelPanel);
-
-
-        modelCarouselPanel.revalidate();
-        modelCarouselPanel.repaint();
-
+        redrawModelCards();
+        
         // Update example image and model info
         int logoHeight = (int) (getHeight() * 0.3);
         int logoWidth = getWidth() / 3;
-        ImageIcon logoIcon = createScaledIcon(getClass().getResource(DIJ_ICON_PATH), logoWidth, logoHeight);
+        ImageIcon logoIcon = createScaledIcon(getClass().getClassLoader().getResource(DIJ_ICON_PATH), logoWidth, logoHeight);
         exampleImageLabel.setIcon(logoIcon);
         modelInfoArea.setText("Detailed information for " + modelNames.get(currentIndex));
+    }
+    
+    private void redrawModelCards() {
+        prevModelPanel.updateCard(modelNames.get(getWrappedIndex(currentIndex - 1)),
+                modelNicknames.get(getWrappedIndex(currentIndex - 1)),
+                modelImagePaths.get(getWrappedIndex(currentIndex - 1)));
+        selectedModelPanel.updateCard(modelNames.get(currentIndex),
+                modelNicknames.get(currentIndex),
+                modelImagePaths.get(currentIndex));
+        nextModelPanel.updateCard(modelNames.get(getWrappedIndex(currentIndex + 1)),
+                modelNicknames.get(getWrappedIndex(currentIndex + 1)),
+                modelImagePaths.get(getWrappedIndex(currentIndex + 1)));
+
+        modelCarouselPanel.revalidate();
+        modelCarouselPanel.repaint();
     }
 
     private int getWrappedIndex(int index) {
@@ -361,13 +375,12 @@ public class Gui extends PlugInFrame {
     private List<JPanel> generateLoadingCards() {
     	double[] cardSizes = new double[] {SECOND_CARD_RT, MAIN_CARD_RT, SECOND_CARD_RT};
     	List<JPanel> cards = new ArrayList<JPanel>();
-    	for (double size : cardSizes)
-    		cards.add(createModelCard(LOADING_STR, Gui.class.getResource(LOADING_GIF_PATH), LOADING_STR, size));
+    	//for (double size : cardSizes)
+    		//cards.add(ModelCard.createModelCard(LOADING_STR, Gui.class.getResource(LOADING_GIF_PATH), LOADING_STR, size));
     	return cards;
-    	
     }
     
-    private static ImageIcon createScaledIcon(URL imagePath, int logoWidth, int logoHeight) {
+    protected static ImageIcon createScaledIcon(URL imagePath, int logoWidth, int logoHeight) {
         if (imagePath == null) {
             return getDefaultIcon(logoWidth, logoHeight);
         }
