@@ -42,10 +42,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import ij.IJ;
-import ij.ImagePlus;
-import ij.WindowManager;
+import java.io.File;
+import java.util.List;
+
+import javax.swing.SwingUtilities;
+
+import deepimagej.gui.Gui;
 import ij.plugin.PlugIn;
+import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
+import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
 
 /**
  * 
@@ -68,17 +73,20 @@ public class DeepImageJ_Run implements PlugIn {
 	
 	
 	static public void main(String args[]) {
-		ImagePlus imp = null;
-		imp = IJ.openImage("/home/carlos/Downloads/export_qupath_part1_v2.tif");
-		if (imp != null)
-			imp.show();		WindowManager.setTempCurrentImage(imp);
 		new DeepImageJ_Run().run("");
 	}
 
 	@Override
 	public void run(String arg) {
 		
-		lodingModels =
+		File modelsDir = new File("models");
+		if (!modelsDir.isDirectory() && !modelsDir.mkdir())
+			throw new RuntimeException("Unable to create 'models' folder inside ImageJ/Fiji directory. Please create it yourself.");
+			
+		
+		List<ModelDescriptor> models = ModelDescriptorFactory.getModelsAtLocalRepo(modelsDir.getAbsolutePath());
+		
+		SwingUtilities.invokeLater(() -> new Gui(models));
 		
 	}
 

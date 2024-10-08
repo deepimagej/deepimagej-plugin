@@ -102,8 +102,12 @@ public class Gui extends PlugInFrame {
     	this.modelNames = models.stream().map(mm -> mm.getName()).collect(Collectors.toList());
     	this.modelNicknames = models.stream().map(mm -> mm.getModelID()).collect(Collectors.toList());
     	this.modelImagePaths = models.stream().map(mm -> {
+    		if (mm.getCovers().size() == 0) return this.getClass().getClassLoader().getResource(DIJ_ICON_PATH);
     		File imFile = new File(mm.getCovers().get(0));
-    		if (!imFile.exists()) return this.getClass().getClassLoader().getResource(DIJ_ICON_PATH);
+    		if (!imFile.exists())
+    			imFile = new File(mm.getModelPath() + File.separator + mm.getCovers().get(0));
+    		if (!imFile.exists()) 
+    			return this.getClass().getClassLoader().getResource(DIJ_ICON_PATH);
     		try {
 				return imFile.toURI().toURL();
 			} catch (MalformedURLException e) {
@@ -131,7 +135,7 @@ public class Gui extends PlugInFrame {
         int logoWidth = (int) (getWidth() * TITLE_LOGO_HRATIO);
 
         // Create logo label with the specified size
-        ImageIcon logoIcon = createScaledIcon(getClass().getResource(DIJ_ICON_PATH), logoWidth, logoHeight);
+        ImageIcon logoIcon = createScaledIcon(getClass().getClassLoader().getResource(DIJ_ICON_PATH), logoWidth, logoHeight);
         JLabel logoLabel = new JLabel(logoIcon);
 
         // Title label
