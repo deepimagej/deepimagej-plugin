@@ -1,24 +1,33 @@
-package deepimagej.gui
+package deepimagej.gui;
 
 import ij.plugin.frame.PlugInFrame;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.net.URL;
 
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
-public class DeepImageJPluginUI extends PlugInFrame {
+public class Gui extends PlugInFrame {
 
-    private int currentIndex = 1;
+    private static final long serialVersionUID = 1081914206026104187L;
+	private int currentIndex = 1;
     private List<String> modelNames = Arrays.asList("Model A", "Model B", "Model C");
     private List<String> modelNicknames = Arrays.asList("Nickname A", "Nickname B", "Nickname C");
-    private List<URL> modelImagePaths = Arrays.asList(getClass().getResource("deepimagej_icon.png"), 
-											    		getClass().getResource("deepimagej_icon.png"), 
-											    		getClass().getResource("deepimagej_icon.png"));
+    private List<URL> modelImagePaths = Arrays.asList(getClass().getResource(DIJ_ICON_PATH), 
+											    		getClass().getResource(DIJ_ICON_PATH), 
+											    		getClass().getResource(DIJ_ICON_PATH));
 
     private JPanel prevModelPanel;
     private JPanel selectedModelPanel;
@@ -32,16 +41,23 @@ public class DeepImageJPluginUI extends PlugInFrame {
     private JLabel exampleImageLabel;
     private JTextArea modelInfoArea;
 
-    private final double CARR_VRATIO = 0.34;
-    private final double SELECTION_PANE_VRATIO = 0.35;
-    private final double ARROWS_VRATIO = 0.1;
-    private final double TITLE_VRATIO = 0.15;
-    private final double TITLE_LOGO_VRATIO = 0.1;
-    private final double TITLE_LOGO_HRATIO = 1.0 / 7;
-    private final double MODEL_VRATIO = 0.4;
-    private final double FOOTER_VRATIO = 0.1;
+    private static final double CARR_VRATIO = 0.34;
+    private static final double SELECTION_PANE_VRATIO = 0.35;
+    private static final double ARROWS_VRATIO = 0.1;
+    private static final double TITLE_VRATIO = 0.15;
+    private static final double TITLE_LOGO_VRATIO = 0.1;
+    private static final double TITLE_LOGO_HRATIO = 1.0 / 7;
+    private static final double MODEL_VRATIO = 0.4;
+    private static final double FOOTER_VRATIO = 0.1;
 
-    public DeepImageJPluginUI() {
+    private static final String LOADING_STR = "loading...";
+    private static final String LOADING_GIF_PATH = "loading...";
+    private static final String DIJ_ICON_PATH = "dij_imgs/deepimagej_icon.png";
+    private static final double MAIN_CARD_RT = 1;
+    private static final double SECOND_CARD_RT = 0.8;
+    
+
+    public Gui() {
         super("DeepImageJ Plugin");
         setSize(800, 900);
         setLayout(new BorderLayout());
@@ -66,8 +82,7 @@ public class DeepImageJPluginUI extends PlugInFrame {
         int logoWidth = (int) (getWidth() * TITLE_LOGO_HRATIO);
 
         // Create logo label with the specified size
-        ImageIcon logoIcon = new ImageIcon(new ImageIcon(getClass().getResource("deepimagej_icon.png"))
-                .getImage().getScaledInstance(logoWidth, logoHeight, Image.SCALE_SMOOTH));
+        ImageIcon logoIcon = createScaledIcon(getClass().getResource(DIJ_ICON_PATH), logoWidth, logoHeight);
         JLabel logoLabel = new JLabel(logoIcon);
 
         // Title label
@@ -202,8 +217,7 @@ public class DeepImageJPluginUI extends PlugInFrame {
         // Calculate dimensions for the logo based on the main interface size
         int logoHeight = (int) (getHeight() * 0.3);
         int logoWidth = getWidth() / 3;
-        ImageIcon logoIcon = new ImageIcon(new ImageIcon(getClass().getResource("deepimagej_icon.png"))
-                .getImage().getScaledInstance(logoWidth, logoHeight, Image.SCALE_SMOOTH));
+        ImageIcon logoIcon = createScaledIcon(getClass().getResource(DIJ_ICON_PATH), logoWidth, logoHeight);
         exampleImageLabel = new JLabel(logoIcon, JLabel.CENTER);
         exampleImagePanel.add(exampleTitleLabel, BorderLayout.NORTH);
         exampleImagePanel.add(exampleImageLabel, BorderLayout.CENTER);
@@ -260,7 +274,7 @@ public class DeepImageJPluginUI extends PlugInFrame {
         add(footerPanel, BorderLayout.SOUTH);
     }
 
-    private JPanel createModelCard(String modelName, URL imagePath, String modelNickname, float scale) {
+    private JPanel createModelCard(String modelName, URL imagePath, String modelNickname, double scale) {
         modelCardPanel = new JPanel(new BorderLayout());
         int cardHeight = (int) (getHeight() * CARR_VRATIO * 0.9);
         int cardWidth = getWidth() / 3;
@@ -271,8 +285,7 @@ public class DeepImageJPluginUI extends PlugInFrame {
         // Calculate dimensions for the logo based on the main interface size
         int logoHeight = (int) (getHeight() * CARR_VRATIO / 3);
         int logoWidth = getWidth() / 4;
-        ImageIcon logoIcon = new ImageIcon(new ImageIcon(getClass().getResource("deepimagej_icon.png"))
-                .getImage().getScaledInstance(logoWidth, logoHeight, Image.SCALE_SMOOTH));
+        ImageIcon logoIcon = createScaledIcon(imagePath, logoWidth, logoHeight);
         JLabel modelImageLabel = new JLabel(logoIcon, JLabel.CENTER);
 
         JLabel modelNameLabel = new JLabel(modelName, JLabel.CENTER);
@@ -319,8 +332,7 @@ public class DeepImageJPluginUI extends PlugInFrame {
         // Update example image and model info
         int logoHeight = (int) (getHeight() * 0.3);
         int logoWidth = getWidth() / 3;
-        ImageIcon logoIcon = new ImageIcon(new ImageIcon(getClass().getResource("deepimagej_icon.png"))
-                .getImage().getScaledInstance(logoWidth, logoHeight, Image.SCALE_SMOOTH));
+        ImageIcon logoIcon = createScaledIcon(getClass().getResource(DIJ_ICON_PATH), logoWidth, logoHeight);
         exampleImageLabel.setIcon(logoIcon);
         modelInfoArea.setText("Detailed information for " + modelNames.get(currentIndex));
     }
@@ -337,8 +349,82 @@ public class DeepImageJPluginUI extends PlugInFrame {
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
     }
+    
+    public void setLoadingCards() {
+    	setCards(generateLoadingCards());
+    }
+    
+    public void setCards(List<JPanel> cards) {
+    	
+    }
+    
+    private List<JPanel> generateLoadingCards() {
+    	double[] cardSizes = new double[] {SECOND_CARD_RT, MAIN_CARD_RT, SECOND_CARD_RT};
+    	List<JPanel> cards = new ArrayList<JPanel>();
+    	for (double size : cardSizes)
+    		cards.add(createModelCard(LOADING_STR, Gui.class.getResource(LOADING_GIF_PATH), LOADING_STR, size));
+    	return cards;
+    	
+    }
+    
+    private static ImageIcon createScaledIcon(URL imagePath, int logoWidth, int logoHeight) {
+        if (imagePath == null) {
+            return getDefaultIcon(logoWidth, logoHeight);
+        }
+
+        try (ImageInputStream iis = ImageIO.createImageInputStream(imagePath.openStream())) {
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
+            if (!readers.hasNext()) {
+                return getDefaultIcon(logoWidth, logoHeight);
+            }
+
+            ImageReader reader = readers.next();
+            reader.setInput(iis);
+
+            if (isAnimatedGif(reader)) {
+                return createScaledAnimatedGif(imagePath, logoWidth, logoHeight);
+            } else {
+                return createScaledStaticImage(imagePath, logoWidth, logoHeight);
+            }
+        } catch (IOException e) {
+            return getDefaultIcon(logoWidth, logoHeight);
+        }
+    }
+
+    private static boolean isAnimatedGif(ImageReader reader) throws IOException {
+        return reader.getFormatName().equalsIgnoreCase("gif") && reader.getNumImages(true) > 1;
+    }
+
+    private static ImageIcon createScaledAnimatedGif(URL imagePath, int width, int height) {
+        ImageIcon originalIcon = new ImageIcon(imagePath);
+        Image scaledImage = originalIcon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
+        return new ImageIcon(scaledImage);
+    }
+
+    private static ImageIcon createScaledStaticImage(URL imagePath, int width, int height) throws IOException {
+        BufferedImage originalImage = ImageIO.read(imagePath);
+        if (originalImage == null) {
+            return getDefaultIcon(width, height);
+        }
+        Image scaledImage = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+        return new ImageIcon(scaledImage);
+    }
+
+    private static ImageIcon getDefaultIcon(int width, int height) {
+        try {
+            URL defaultIconUrl = Gui.class.getResource(DIJ_ICON_PATH);
+            if (defaultIconUrl == null) {
+                return null;
+            }
+            BufferedImage defaultImage = ImageIO.read(defaultIconUrl);
+            Image scaledDefaultImage = defaultImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+            return new ImageIcon(scaledDefaultImage);
+        } catch (IOException e) {
+            return null;
+        }
+    }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new DeepImageJPluginUI());
+        SwingUtilities.invokeLater(() -> new Gui());
     }
 }

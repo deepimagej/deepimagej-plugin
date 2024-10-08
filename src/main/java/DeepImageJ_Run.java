@@ -78,6 +78,8 @@ public class DeepImageJ_Run implements PlugIn {
 	@Override
 	public void run(String arg) {
 		
+		lodingModels =
+		
 	}
 
 }
