@@ -1,3 +1,5 @@
+package deepimagej.gui
+
 import ij.plugin.frame.PlugInFrame;
 import java.awt.*;
 import java.net.URL;
@@ -30,10 +32,12 @@ public class DeepImageJPluginUI extends PlugInFrame {
     private JLabel exampleImageLabel;
     private JTextArea modelInfoArea;
 
-    private final double CARR_VRATIO = 0.3;
+    private final double CARR_VRATIO = 0.34;
     private final double SELECTION_PANE_VRATIO = 0.35;
-    private final double ARROWS_VRATIO = 0.05;
+    private final double ARROWS_VRATIO = 0.1;
     private final double TITLE_VRATIO = 0.15;
+    private final double TITLE_LOGO_VRATIO = 0.1;
+    private final double TITLE_LOGO_HRATIO = 1.0 / 7;
     private final double MODEL_VRATIO = 0.4;
     private final double FOOTER_VRATIO = 0.1;
 
@@ -57,16 +61,9 @@ public class DeepImageJPluginUI extends PlugInFrame {
         titlePanel.setBorder(new LineBorder(Color.BLACK, 5, true));
         titlePanel.setSize(new Dimension(this.getWidth(), (int) (this.getHeight() * TITLE_VRATIO)));
 
-        // Constraints for horizontal centering
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.CENTER;
-        gbc.fill = GridBagConstraints.NONE;
-
         // Calculate dimensions for the logo based on the main interface size
-        int logoHeight = getHeight() / 10;
-        int logoWidth = getWidth() / 7;
+        int logoHeight = (int) (getHeight() * TITLE_LOGO_VRATIO);
+        int logoWidth = (int) (getWidth() * TITLE_LOGO_HRATIO);
 
         // Create logo label with the specified size
         ImageIcon logoIcon = new ImageIcon(new ImageIcon(getClass().getResource("deepimagej_icon.png"))
@@ -77,11 +74,13 @@ public class DeepImageJPluginUI extends PlugInFrame {
         JLabel titleLabel = new JLabel("deepImageJ");
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 36));
         titleLabel.setForeground(Color.WHITE);
+        titleLabel.setAlignmentX(CENTER_ALIGNMENT);
 
         // Subtitle label
         JLabel subtitleLabel = new JLabel("The Fiji/ImageJ Plugin for AI");
         subtitleLabel.setFont(new Font("SansSerif", Font.PLAIN, 18));
         subtitleLabel.setForeground(Color.WHITE);
+        subtitleLabel.setAlignmentX(CENTER_ALIGNMENT);
 
         // Panel for title and subtitle
         JPanel textPanel = new JPanel();
@@ -91,14 +90,31 @@ public class DeepImageJPluginUI extends PlugInFrame {
         textPanel.add(subtitleLabel);
 
         // Create a wrapper panel to hold logo and textPanel inline
-        JPanel wrapperPanel = new JPanel(new BorderLayout());
+        JPanel wrapperPanel = new JPanel(new GridBagLayout());
         wrapperPanel.setOpaque(false);
-        wrapperPanel.add(logoLabel, BorderLayout.WEST);
-        wrapperPanel.add(Box.createHorizontalStrut(10), BorderLayout.CENTER); // Space between logo and text
-        wrapperPanel.add(textPanel, BorderLayout.EAST);
 
-        // Add the wrapperPanel to the titlePanel with centering constraints
-        titlePanel.add(wrapperPanel, gbc);
+        // GridBagConstraints for the logo
+        GridBagConstraints logoGbc = new GridBagConstraints();
+        logoGbc.gridx = 0;
+        logoGbc.gridy = 0;
+        logoGbc.anchor = GridBagConstraints.WEST;
+        logoGbc.insets = new Insets(0, 0, 0, this.getWidth() / 80);
+        wrapperPanel.add(logoLabel, logoGbc);
+
+        // GridBagConstraints for the text panel
+        GridBagConstraints textGbc = new GridBagConstraints();
+        textGbc.gridx = 1;
+        textGbc.gridy = 0;
+        textGbc.anchor = GridBagConstraints.WEST;
+        wrapperPanel.add(textPanel, textGbc);
+
+        // Add the wrapperPanel to the titlePanel with custom constraints
+        GridBagConstraints wrapperGbc = new GridBagConstraints();
+        wrapperGbc.gridx = 0;
+        wrapperGbc.gridy = 0;
+        wrapperGbc.anchor = GridBagConstraints.CENTER;
+        wrapperGbc.insets = new Insets(0, -logoWidth, 0, 0);
+        titlePanel.add(wrapperPanel, wrapperGbc);
 
         // Add the title panel to the frame's NORTH section
         add(titlePanel, BorderLayout.NORTH);
@@ -119,7 +135,8 @@ public class DeepImageJPluginUI extends PlugInFrame {
     }
 
     private JPanel initModelSelectionPanel() {
-        modelSelectionPanel = new JPanel(new BorderLayout());
+        modelSelectionPanel = new JPanel();
+        modelSelectionPanel.setLayout(new BoxLayout(modelSelectionPanel, BoxLayout.Y_AXIS));
         modelSelectionPanel.setBackground(new Color(236, 240, 241));
         Border lineBorder = BorderFactory.createLineBorder(Color.gray, 2, true); // 2-pixel thick line border
         Border paddingBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5); // 10-pixel padding around the content
@@ -147,19 +164,23 @@ public class DeepImageJPluginUI extends PlugInFrame {
         JButton prevButton = new JButton("◀");
         prevButton.setFont(new Font("SansSerif", Font.BOLD, 16));
         prevButton.addActionListener(e -> updateCarousel(-1));
+        prevButton.setPreferredSize(new Dimension(this.getWidth() / 2, (int) (getHeight() * SELECTION_PANE_VRATIO * ARROWS_VRATIO)));
 
         JButton nextButton = new JButton("▶");
         nextButton.setFont(new Font("SansSerif", Font.BOLD, 16));
         nextButton.addActionListener(e -> updateCarousel(1));
+        nextButton.setPreferredSize(new Dimension(this.getWidth() / 2, (int) (getHeight() * SELECTION_PANE_VRATIO * ARROWS_VRATIO)));
 
-        JPanel navigationPanel = new JPanel(new BorderLayout());
+        JPanel navigationPanel = new JPanel();
+        navigationPanel.setLayout(new BoxLayout(navigationPanel, BoxLayout.X_AXIS));
+        navigationPanel.setPreferredSize(new Dimension(this.getWidth(), (int) (getHeight() * SELECTION_PANE_VRATIO * ARROWS_VRATIO)));
         navigationPanel.setBackground(new Color(236, 240, 241));
-        navigationPanel.add(prevButton, BorderLayout.WEST);
-        navigationPanel.add(nextButton, BorderLayout.EAST);
-        navigationPanel.setSize(new Dimension(this.getWidth(), (int) (this.getHeight() * ARROWS_VRATIO)));
+        navigationPanel.add(prevButton);
+        navigationPanel.add(Box.createHorizontalGlue());
+        navigationPanel.add(nextButton);
 
-        modelSelectionPanel.add(modelCarouselPanel, BorderLayout.CENTER);
-        modelSelectionPanel.add(navigationPanel, BorderLayout.SOUTH);
+        modelSelectionPanel.add(modelCarouselPanel);
+        modelSelectionPanel.add(navigationPanel);
 
         // Return the modelSelectionPanel
         return modelSelectionPanel;
@@ -241,8 +262,8 @@ public class DeepImageJPluginUI extends PlugInFrame {
 
     private JPanel createModelCard(String modelName, URL imagePath, String modelNickname, float scale) {
         modelCardPanel = new JPanel(new BorderLayout());
-        int cardHeight = (int) (getHeight() * CARR_VRATIO * 0.95);
-        int cardWidth = getWidth() / 4;
+        int cardHeight = (int) (getHeight() * CARR_VRATIO * 0.9);
+        int cardWidth = getWidth() / 3;
         modelCardPanel.setPreferredSize(new Dimension((int) (cardWidth * scale), (int) (cardHeight * scale)));
         modelCardPanel.setBackground(Color.WHITE);
         modelCardPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
