@@ -50,7 +50,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map.Entry;
 
+import ij.IJ;
+import ij.ImagePlus;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.TensorSpec;
 import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
@@ -58,6 +61,7 @@ import io.bioimage.modelrunner.exceptions.LoadEngineException;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
 import io.bioimage.modelrunner.exceptions.RunModelException;
 import io.bioimage.modelrunner.model.Model;
+import io.bioimage.modelrunner.numpy.DecodeNumpy;
 import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
@@ -102,6 +106,23 @@ public class Runner implements Closeable {
 		LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>> inputRais = displayTestOutputs(testInputs);
 		List<Tensor<T>> inputTensors = createTestTensorList(inputRais);
 		return model.runBMZ(inputTensors);
+	}
+	
+	private <T extends RealType<T> & NativeType<T>>
+	LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>> displayTestOutputs(LinkedHashMap<TensorSpec, String> testInputs) {
+		LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>> inputRais = new LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>>();
+		for (Entry<TensorSpec, String> input : testInputs.entrySet()) {
+			if (input.getValue().endsWith(".npy")) {
+				try {
+					RandomAccessibleInterval<T> im = DecodeNumpy.loadNpy(input.getValue());
+				} catch (IOException e) {
+				}
+			} else {
+				ImagePlus imp = IJ.openImage(input.getValue());
+				imp.show();
+			}
+		}
+		return inputRais;
 	}
 	
 	private LinkedHashMap<TensorSpec, String> getTestInputs() {
