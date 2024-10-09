@@ -51,7 +51,9 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
+import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
 import ij.ImagePlus;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
@@ -101,26 +103,38 @@ public class Runner implements Closeable {
 	}
 	
 	public <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	List<Tensor<R>> runOnTestImages() {
+	List<Tensor<R>> runOnTestImages() throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
 		LinkedHashMap<TensorSpec, String> testInputs = getTestInputs();
 		LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>> inputRais = displayTestOutputs(testInputs);
 		List<Tensor<T>> inputTensors = createTestTensorList(inputRais);
 		return model.runBMZ(inputTensors);
 	}
 	
+	private  <T extends RealType<T> & NativeType<T>> 
+	List<Tensor<T>> createTestTensorList(LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>> inputRais){
+		return inputRais.entrySet().stream()
+				.map(ee -> Tensor.build(ee.getKey().getName(), ee.getKey().getAxesOrder(), ee.getValue()))
+				.collect(Collectors.toList());
+	}
+	
 	private <T extends RealType<T> & NativeType<T>>
 	LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>> displayTestOutputs(LinkedHashMap<TensorSpec, String> testInputs) {
 		LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>> inputRais = new LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>>();
 		for (Entry<TensorSpec, String> input : testInputs.entrySet()) {
+			RandomAccessibleInterval<T> rai;
 			if (input.getValue().endsWith(".npy")) {
 				try {
-					RandomAccessibleInterval<T> im = DecodeNumpy.loadNpy(input.getValue());
+					rai = DecodeNumpy.loadNpy(input.getValue());
+					ImPlusRaiManager.convert(rai, input.getKey().getAxesOrder()).show();
 				} catch (IOException e) {
+					throw new RuntimeException("Unexpected error reading .npy file.");
 				}
 			} else {
 				ImagePlus imp = IJ.openImage(input.getValue());
+				rai = ImPlusRaiManager.convert(imp, input.getKey().getAxesOrder());
 				imp.show();
 			}
+			inputRais.put(input.getKey(), rai);
 		}
 		return inputRais;
 	}
