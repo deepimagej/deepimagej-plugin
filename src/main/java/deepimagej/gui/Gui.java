@@ -2,6 +2,9 @@ package deepimagej.gui;
 
 import ij.plugin.frame.PlugInFrame;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
+import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
+import io.bioimage.modelrunner.exceptions.LoadModelException;
+import io.bioimage.modelrunner.exceptions.RunModelException;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -18,6 +21,8 @@ import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
+import deepimagej.Runner;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -32,6 +37,7 @@ public class Gui extends PlugInFrame {
     private List<String> modelNicknames;
     private List<URL> modelImagePaths;
     private List<ModelDescriptor> models;
+    private Runner runner;
 
     private ModelCard prevModelPanel;
     private ModelCard selectedModelPanel;
@@ -358,7 +364,15 @@ public class Gui extends PlugInFrame {
     }
     
     private void runModelOnTestImage() {
-    	
+    	if (runner == null || runner.isClosed())
+    		runner = Runner.create(this.models.get(currentIndex));
+    	try {
+    		runner.load();
+			runner.runOnTestImages();
+		} catch (ModelSpecsException | RunModelException | IOException | LoadModelException e) {
+			e.printStackTrace();
+		}
+    		
     }
 
     private int getWrappedIndex(int index) {

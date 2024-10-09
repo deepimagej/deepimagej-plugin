@@ -77,7 +77,7 @@ public class Runner implements Closeable {
 	
 	private boolean closed = false;
 
-	public Runner(ModelDescriptor descriptor) {
+	private Runner(ModelDescriptor descriptor) {
 		this.descriptor = descriptor;
 		try {
 			this.model = Model.createBioimageioModel(new File(descriptor.getModelPath()).getParentFile().getAbsolutePath());
@@ -85,6 +85,10 @@ public class Runner implements Closeable {
 			throw new IllegalArgumentException("Something has happened, the model wanted does not "
 					+ "seem to exist anymore or it has been moved.");
 		}
+	}
+	
+	public static Runner create(ModelDescriptor descriptor) {
+		return new Runner(descriptor);
 	}
 	
 	public void load() throws LoadModelException {
@@ -155,6 +159,10 @@ public class Runner implements Closeable {
 			testInputs.put(tt, ff.getAbsolutePath());
 		}
 		return testInputs;
+	}
+	
+	public boolean isClosed() {
+		return this.closed;
 	}
 
 	@Override
