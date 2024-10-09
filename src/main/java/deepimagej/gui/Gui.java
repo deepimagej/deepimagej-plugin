@@ -305,7 +305,9 @@ public class Gui extends PlugInFrame {
         runButtonPanel.setBackground(new Color(45, 62, 80));
 
         JButton runOnTestButton = new JButton("Run on Test");
+        runOnTestButton.addActionListener(e -> runModelOnTestImage());
         JButton runButton = new JButton("Run");
+        runButton.addActionListener(e -> runModel());
 
         styleButton(runOnTestButton);
         styleButton(runButton);
@@ -349,6 +351,14 @@ public class Gui extends PlugInFrame {
 
         modelCarouselPanel.revalidate();
         modelCarouselPanel.repaint();
+    }
+    
+    private void runModel() {
+    	
+    }
+    
+    private void runModelOnTestImage() {
+    	
     }
 
     private int getWrappedIndex(int index) {
