@@ -14,10 +14,8 @@ public class ImPlusRaiManager {
 
 	public static <T extends RealType<T> & NativeType<T>>
 	ImagePlus convert(RandomAccessibleInterval<T> rai, String axesOrder) {
-		String newImAxesOrder = addExtraDims(rai, axesOrder, IJ_AXES_ORDER);
-		for (int i = 0; i < newImAxesOrder.length() - axesOrder.length(); i ++)
-			rai = Views.addDimension(rai, 0, 0);
-		rai = transposeToAxesOrder(rai, newImAxesOrder, IJ_AXES_ORDER);
+		String newImAxesOrder = removeExtraDims(rai, IJ_AXES_ORDER, axesOrder);
+		rai = transposeToAxesOrder(rai, axesOrder, newImAxesOrder);
 		return ImageJFunctions.show(rai);
 	}
 
@@ -35,6 +33,17 @@ public class ImPlusRaiManager {
 			rai = Views.addDimension(rai, 0, 0);
 		rai = transposeToAxesOrder(rai, newImAxesOrder, axesOrder);
 		return rai;
+	}
+	
+	private static <T extends RealType<T> & NativeType<T>>
+	String removeExtraDims(RandomAccessibleInterval<T> rai, String ogAxes, String targetAxes) {
+		String nAxes = "";
+		for (String ax : ogAxes.split("")) {
+			if (!targetAxes.contains(ax))
+				continue;
+			nAxes += ax;
+		}
+		return nAxes;
 	}
 	
 	private static <T extends RealType<T> & NativeType<T>>
