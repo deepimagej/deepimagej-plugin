@@ -53,6 +53,8 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import javax.swing.SwingUtilities;
+
 import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
 import ij.ImagePlus;
@@ -80,7 +82,7 @@ public class Runner implements Closeable {
 	private Runner(ModelDescriptor descriptor) {
 		this.descriptor = descriptor;
 		try {
-			this.model = Model.createBioimageioModel(new File(descriptor.getModelPath()).getParentFile().getAbsolutePath());
+			this.model = Model.createBioimageioModel(new File(descriptor.getModelPath()).getAbsolutePath());
 		} catch (ModelSpecsException | LoadEngineException | IOException e) {
 			throw new IllegalArgumentException("Something has happened, the model wanted does not "
 					+ "seem to exist anymore or it has been moved.");
@@ -129,14 +131,14 @@ public class Runner implements Closeable {
 			if (input.getValue().endsWith(".npy")) {
 				try {
 					rai = DecodeNumpy.loadNpy(input.getValue());
-					ImPlusRaiManager.convert(rai, input.getKey().getAxesOrder()).show();
+					SwingUtilities.invokeLater(() -> ImPlusRaiManager.convert(rai, input.getKey().getAxesOrder()).show()); 
 				} catch (IOException e) {
 					throw new RuntimeException("Unexpected error reading .npy file.");
 				}
 			} else {
 				ImagePlus imp = IJ.openImage(input.getValue());
 				rai = ImPlusRaiManager.convert(imp, input.getKey().getAxesOrder());
-				imp.show();
+				SwingUtilities.invokeLater(() -> imp.show());
 			}
 			inputRais.put(input.getKey(), rai);
 		}
