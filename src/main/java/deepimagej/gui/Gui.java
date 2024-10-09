@@ -77,7 +77,6 @@ public class Gui extends PlugInFrame {
     public Gui(List<ModelDescriptor> models) {
         super("DeepImageJ Plugin");
     	this.models = models;
-    	setCardsData();
         setSize(800, 900);
         setLayout(new BorderLayout());
 
@@ -85,6 +84,7 @@ public class Gui extends PlugInFrame {
         initTitlePanel();
         initMainContentPanel();
         initFooterPanel();
+    	setCardsData();
 
         setVisible(true);
     }
@@ -100,9 +100,9 @@ public class Gui extends PlugInFrame {
     
     private void setCardsData() {
     	this.modelNames = models.stream().map(mm -> mm.getName()).collect(Collectors.toList());
-    	this.modelNicknames = models.stream().map(mm -> mm.getModelID()).collect(Collectors.toList());
+    	this.modelNicknames = models.stream().map(mm -> mm.getNickname()).collect(Collectors.toList());
     	this.modelImagePaths = models.stream().map(mm -> {
-    		if (mm.getCovers().size() == 0) return this.getClass().getClassLoader().getResource(DIJ_ICON_PATH);
+    		if (mm.getCovers() == null || mm.getCovers().size() == 0) return this.getClass().getClassLoader().getResource(DIJ_ICON_PATH);
     		File imFile = new File(mm.getCovers().get(0));
     		if (!imFile.exists())
     			imFile = new File(mm.getModelPath() + File.separator + mm.getCovers().get(0));
@@ -324,10 +324,6 @@ public class Gui extends PlugInFrame {
     }
 
     private void updateCarousel(int direction) {
-        modelSelectionPanel.setSize(new Dimension(this.getWidth(), (int) (this.getHeight() * SELECTION_PANE_VRATIO)));
-        modelCarouselPanel.setSize(new Dimension(this.getWidth(), (int) (this.getHeight() * CARR_VRATIO)));
-        titlePanel.setSize(new Dimension(this.getWidth(), (int) (this.getHeight() * TITLE_VRATIO)));
-        footerPanel.setSize(new Dimension(this.getWidth(), (int) (this.getHeight() * FOOTER_VRATIO)));
         currentIndex = getWrappedIndex(currentIndex + direction);
 
         redrawModelCards();
@@ -335,7 +331,7 @@ public class Gui extends PlugInFrame {
         // Update example image and model info
         int logoHeight = (int) (getHeight() * 0.3);
         int logoWidth = getWidth() / 3;
-        ImageIcon logoIcon = createScaledIcon(getClass().getClassLoader().getResource(DIJ_ICON_PATH), logoWidth, logoHeight);
+        ImageIcon logoIcon = createScaledIcon(modelImagePaths.get(currentIndex), logoWidth, logoHeight);
         exampleImageLabel.setIcon(logoIcon);
         modelInfoArea.setText("Detailed information for " + modelNames.get(currentIndex));
     }

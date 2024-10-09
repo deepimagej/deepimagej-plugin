@@ -25,8 +25,8 @@ public class ModelCard extends JPanel {
     private final double scale;
     
 
-    private static double CARD_ICON_VRATIO = 1.0 / 3;
-    private static double CARD_ICON_HRATIO = 1.0 / 4;
+    private static double CARD_ICON_VRATIO = 0.8;
+    private static double CARD_ICON_HRATIO = 0.9;
 
 	private ModelCard(long cardWidth, long cardHeight, double scale) {
     	super(new BorderLayout());
