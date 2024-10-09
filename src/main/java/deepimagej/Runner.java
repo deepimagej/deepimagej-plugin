@@ -78,6 +78,8 @@ public class Runner implements Closeable {
 	private final Model model;
 	
 	private boolean closed = false;
+	
+	private boolean loaded = false;
 
 	private Runner(ModelDescriptor descriptor) {
 		this.descriptor = descriptor;
@@ -97,6 +99,7 @@ public class Runner implements Closeable {
 		if (closed)
 			throw new RuntimeException("The model has already been closed");
 		this.model.loadModel();
+		this.loaded = true;
 	}
 	
 	public <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
@@ -166,11 +169,18 @@ public class Runner implements Closeable {
 	public boolean isClosed() {
 		return this.closed;
 	}
+	
+	public boolean isLoaded() {
+		if (this.isClosed())
+			return false;
+		return this.loaded;
+	}
 
 	@Override
 	public void close() throws IOException {
 		model.close();
 		closed = true;
+		loaded = false;
 		
 	}
 }

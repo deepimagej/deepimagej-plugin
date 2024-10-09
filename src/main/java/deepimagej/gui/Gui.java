@@ -372,7 +372,8 @@ public class Gui extends PlugInFrame {
     		runner = Runner.create(this.models.get(currentIndex));
     	}
     	try {
-    		runner.load();
+    		if (!runner.isLoaded())
+    			runner.load();
 			List<Tensor<T>> outs = runner.runOnTestImages();
 			for (Tensor<T> tt : outs) {
 				ImPlusRaiManager.convert(tt.getData(), tt.getAxesOrderString()).show();
