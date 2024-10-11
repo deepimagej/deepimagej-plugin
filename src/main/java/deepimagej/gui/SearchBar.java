@@ -28,9 +28,9 @@ public class SearchBar extends JPanel {
     private long parentHeight;
     private long parentWidth;
     private static final double H_RATIO = 1;
-    private static final double V_RATIO = 0.1;
+    private static final double V_RATIO = 0.05;
     private static final double ICON_VRATIO = 1.0;
-    private static final double ICON_HRATIO = 0.1; 
+    private static final double ICON_HRATIO = 0.05; 
     private static final double SEARCH_VRATIO = 1.0;
     private static final double SEARCH_HRATIO = 0.2; 
     protected static final String SEARCH_ICON_PATH = "dij_imgs/search_logo.png";

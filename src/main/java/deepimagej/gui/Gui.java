@@ -51,6 +51,7 @@ public class Gui extends PlugInFrame {
     private JPanel modelCarouselPanel;
     private JPanel titlePanel;
     private JPanel footerPanel;
+    private Layout layout = Layout.createVertical(LAYOUT_WEIGHTS);
 
     private JLabel exampleImageLabel;
     private JTextArea modelInfoArea;
@@ -63,6 +64,7 @@ public class Gui extends PlugInFrame {
     private static final double TITLE_LOGO_HRATIO = 1.0 / 7;
     private static final double MODEL_VRATIO = 0.4;
     private static final double FOOTER_VRATIO = 0.1;
+    private static final double[] LAYOUT_WEIGHTS = new double[] {0.1, 0.05, 0.75, 0.1};
 
     protected static final String LOADING_STR = "loading...";
     protected static final String LOADING_GIF_PATH = "loading...";
@@ -75,7 +77,7 @@ public class Gui extends PlugInFrame {
         super("DeepImageJ Plugin");
         setDefaultCardsData();
         setSize(800, 900);
-        setLayout(new BorderLayout());
+        setLayout(layout);
 
         // Initialize UI components
         initTitlePanel();
@@ -90,7 +92,7 @@ public class Gui extends PlugInFrame {
         super("DeepImageJ Plugin");
     	this.models = models;
         setSize(800, 900);
-        setLayout(new BorderLayout());
+        setLayout(layout);
 
         // Initialize UI components
         initTitlePanel();
@@ -198,13 +200,13 @@ public class Gui extends PlugInFrame {
         titlePanel.add(wrapperPanel, wrapperGbc);
 
         // Add the title panel to the frame's NORTH section
-        add(titlePanel, BorderLayout.NORTH);
+        add(titlePanel, layout.get(0));
     }
 
     private void initSearchBar() {
         // Set up the title panel
         searchBar = new SearchBar(this.getWidth(), this.getHeight());
-        add(searchBar);
+        add(searchBar, layout.get(1));
     }
 
     private void initMainContentPanel() {
@@ -218,7 +220,7 @@ public class Gui extends PlugInFrame {
         mainContentPanel.add(initContentPanel());
 
         // Add the main content panel to the frame's CENTER region
-        add(mainContentPanel, BorderLayout.CENTER);
+        add(mainContentPanel, layout.get(2));
     }
 
     private JPanel initModelSelectionPanel() {
@@ -341,7 +343,7 @@ public class Gui extends PlugInFrame {
         footerPanel.add(runButtonPanel, BorderLayout.CENTER);
         footerPanel.add(copyrightLabel, BorderLayout.SOUTH);
 
-        add(footerPanel, BorderLayout.SOUTH);
+        add(footerPanel, layout.get(3));
     }
 
     private void updateCarousel(int direction) {
