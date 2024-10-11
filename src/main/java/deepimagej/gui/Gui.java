@@ -46,6 +46,7 @@ public class Gui extends PlugInFrame {
     private ModelCard prevModelPanel;
     private ModelCard selectedModelPanel;
     private ModelCard nextModelPanel;
+    private SearchBar searchBar;
     private JPanel modelSelectionPanel;
     private JPanel modelCarouselPanel;
     private JPanel titlePanel;
@@ -78,6 +79,7 @@ public class Gui extends PlugInFrame {
 
         // Initialize UI components
         initTitlePanel();
+        initSearchBar();
         initMainContentPanel();
         initFooterPanel();
 
@@ -92,6 +94,7 @@ public class Gui extends PlugInFrame {
 
         // Initialize UI components
         initTitlePanel();
+        initSearchBar();
         initMainContentPanel();
         initFooterPanel();
     	setCardsData();
@@ -196,6 +199,12 @@ public class Gui extends PlugInFrame {
 
         // Add the title panel to the frame's NORTH section
         add(titlePanel, BorderLayout.NORTH);
+    }
+
+    private void initSearchBar() {
+        // Set up the title panel
+        searchBar = new SearchBar(this.getWidth(), this.getHeight());
+        add(searchBar);
     }
 
     private void initMainContentPanel() {

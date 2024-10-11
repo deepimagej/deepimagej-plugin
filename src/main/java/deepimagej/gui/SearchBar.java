@@ -10,6 +10,7 @@ import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
+import java.net.URL;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -20,24 +21,37 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
-public class ModernSearchBar extends JPanel {
+public class SearchBar extends JPanel {
     private static final long serialVersionUID = -1741389221668683293L;
 	private JTextField searchField;
     private JButton searchButton;
-    private static final int ICON_SIZE = 60; // Define the icon size
+    private long parentHeight;
+    private long parentWidth;
+    private static final double H_RATIO = 1;
+    private static final double V_RATIO = 0.1;
+    private static final double ICON_VRATIO = 1.0;
+    private static final double ICON_HRATIO = 0.1; 
+    private static final double SEARCH_VRATIO = 1.0;
+    private static final double SEARCH_HRATIO = 0.2; 
     protected static final String SEARCH_ICON_PATH = "dij_imgs/search_logo.png";
+    
 
-    public ModernSearchBar() {
+    protected SearchBar(long parentWidth, long parentHeight) {
+    	this.parentHeight = parentHeight;
+    	this.parentWidth = parentWidth;
         setLayout(new BorderLayout());
-        setPreferredSize(new Dimension(600, 80));
+        setPreferredSize(new Dimension((int) (parentWidth * H_RATIO), (int) (parentHeight * V_RATIO)));
         setBackground(Color.WHITE);
         setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true));
 
         // Create the search icon
-        ImageIcon originalIcon = new ImageIcon(getClass().getClassLoader().getResource(SEARCH_ICON_PATH)); // Replace with your icon path
-        Image scaledImage = getScaledImage(originalIcon.getImage(), ICON_SIZE, ICON_SIZE);
-        JLabel iconLabel = new JLabel(new ImageIcon(scaledImage));
-        iconLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
+        URL iconPath = getClass().getClassLoader().getResource(SEARCH_ICON_PATH);
+        int iconH = (int) (parentHeight * V_RATIO * ICON_VRATIO);
+        int iconW = (int) (parentWidth * H_RATIO * ICON_HRATIO);
+        ImageIcon scaledImage = Gui.createScaledIcon(iconPath, iconW, iconH);
+        //Image scaledImage = getScaledImage(originalIcon.getImage(), (int) (parentWidth * H_RATIO), ICON_SIZE);
+        JLabel iconLabel = new JLabel(scaledImage);
+        iconLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 
         // Create the search field
         searchField = new JTextField();
@@ -46,7 +60,9 @@ public class ModernSearchBar extends JPanel {
 
         // Create the search button
         searchButton = new JButton("Search");
-        searchButton.setPreferredSize(new Dimension(80, 30));
+        int searchH = (int) (parentHeight * V_RATIO * SEARCH_VRATIO);
+        int searchW = (int) (parentWidth * H_RATIO * SEARCH_HRATIO);
+        searchButton.setPreferredSize(new Dimension(searchW, searchH));
         searchButton.setBackground(new Color(0, 120, 215));
         searchButton.setForeground(Color.WHITE);
         searchButton.setFocusPainted(false);
@@ -66,15 +82,6 @@ public class ModernSearchBar extends JPanel {
         });
     }
 
-    private Image getScaledImage(Image srcImg, int width, int height) {
-        BufferedImage resizedImg = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = resizedImg.createGraphics();
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g2.drawImage(srcImg, 0, 0, width, height, null);
-        g2.dispose();
-        return resizedImg;
-    }
-
     private void performSearch() {
         String searchText = searchField.getText();
         // Implement your search logic here
@@ -87,7 +94,7 @@ public class ModernSearchBar extends JPanel {
             public void run() {
                 JFrame frame = new JFrame("Modern Search Bar");
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                frame.getContentPane().add(new ModernSearchBar());
+                frame.getContentPane().add(new SearchBar(600, 800));
                 frame.pack();
                 frame.setLocationRelativeTo(null);
                 frame.setVisible(true);
