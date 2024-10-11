@@ -49,7 +49,7 @@ public class Gui extends PlugInFrame {
     private SearchBar searchBar;
     private JPanel modelSelectionPanel;
     private JPanel modelCarouselPanel;
-    private JPanel titlePanel;
+    private Header3 titlePanel;
     private JPanel footerPanel;
     private Layout layout = Layout.createVertical(LAYOUT_WEIGHTS);
 
@@ -139,67 +139,7 @@ public class Gui extends PlugInFrame {
     }
 
     private void initTitlePanel() {
-        // Set up the title panel
-        titlePanel = new JPanel(new GridBagLayout());
-        titlePanel.setBackground(Color.GRAY);
-        titlePanel.setBorder(new LineBorder(Color.BLACK, 5, true));
-        titlePanel.setSize(new Dimension(this.getWidth(), (int) (this.getHeight() * TITLE_VRATIO)));
-
-        // Calculate dimensions for the logo based on the main interface size
-        int logoHeight = (int) (getHeight() * TITLE_LOGO_VRATIO);
-        int logoWidth = (int) (getWidth() * TITLE_LOGO_HRATIO);
-
-        // Create logo label with the specified size
-        ImageIcon logoIcon = createScaledIcon(getClass().getClassLoader().getResource(DIJ_ICON_PATH), logoWidth, logoHeight);
-        JLabel logoLabel = new JLabel(logoIcon);
-
-        // Title label
-        JLabel titleLabel = new JLabel("deepImageJ");
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 36));
-        titleLabel.setForeground(Color.WHITE);
-        titleLabel.setAlignmentX(CENTER_ALIGNMENT);
-
-        // Subtitle label
-        JLabel subtitleLabel = new JLabel("The Fiji/ImageJ Plugin for AI");
-        subtitleLabel.setFont(new Font("SansSerif", Font.PLAIN, 18));
-        subtitleLabel.setForeground(Color.WHITE);
-        subtitleLabel.setAlignmentX(CENTER_ALIGNMENT);
-
-        // Panel for title and subtitle
-        JPanel textPanel = new JPanel();
-        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
-        textPanel.setOpaque(false);
-        textPanel.add(titleLabel);
-        textPanel.add(subtitleLabel);
-
-        // Create a wrapper panel to hold logo and textPanel inline
-        JPanel wrapperPanel = new JPanel(new GridBagLayout());
-        wrapperPanel.setOpaque(false);
-
-        // GridBagConstraints for the logo
-        GridBagConstraints logoGbc = new GridBagConstraints();
-        logoGbc.gridx = 0;
-        logoGbc.gridy = 0;
-        logoGbc.anchor = GridBagConstraints.WEST;
-        logoGbc.insets = new Insets(0, 0, 0, this.getWidth() / 80);
-        wrapperPanel.add(logoLabel, logoGbc);
-
-        // GridBagConstraints for the text panel
-        GridBagConstraints textGbc = new GridBagConstraints();
-        textGbc.gridx = 1;
-        textGbc.gridy = 0;
-        textGbc.anchor = GridBagConstraints.WEST;
-        wrapperPanel.add(textPanel, textGbc);
-
-        // Add the wrapperPanel to the titlePanel with custom constraints
-        GridBagConstraints wrapperGbc = new GridBagConstraints();
-        wrapperGbc.gridx = 0;
-        wrapperGbc.gridy = 0;
-        wrapperGbc.anchor = GridBagConstraints.CENTER;
-        wrapperGbc.insets = new Insets(0, -logoWidth, 0, 0);
-        titlePanel.add(wrapperPanel, wrapperGbc);
-
-        // Add the title panel to the frame's NORTH section
+    	titlePanel = new Header3("deepImageJ", "The Fiji/ImageJ Plugin for AI", this.getWidth(), this.getHeight());
         add(titlePanel, layout.get(0));
     }
 
