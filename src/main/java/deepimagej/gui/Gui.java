@@ -47,6 +47,7 @@ public class Gui extends PlugInFrame {
     private ModelCard selectedModelPanel;
     private ModelCard nextModelPanel;
     private SearchBar searchBar;
+    private ContentPanel contentPanel;
     private JPanel modelSelectionPanel;
     private JPanel modelCarouselPanel;
     private Header titlePanel;
@@ -59,9 +60,6 @@ public class Gui extends PlugInFrame {
     private static final double CARR_VRATIO = 0.34;
     private static final double SELECTION_PANE_VRATIO = 0.35;
     private static final double ARROWS_VRATIO = 0.1;
-    private static final double TITLE_VRATIO = 0.15;
-    private static final double TITLE_LOGO_VRATIO = 0.1;
-    private static final double TITLE_LOGO_HRATIO = 1.0 / 7;
     private static final double MODEL_VRATIO = 0.4;
     private static final double FOOTER_VRATIO = 0.1;
     private static final double[] LAYOUT_WEIGHTS = new double[] {0.1, 0.05, 0.75, 0.1};
@@ -157,7 +155,8 @@ public class Gui extends PlugInFrame {
 
         // Add the model selection panel and content panel to the main content panel
         mainContentPanel.add(initModelSelectionPanel());
-        mainContentPanel.add(initContentPanel());
+        contentPanel = new ContentPanel(this.getWidth(), this.getHeight());
+        mainContentPanel.add(contentPanel);
 
         // Add the main content panel to the frame's CENTER region
         add(mainContentPanel, layout.get(2));
@@ -167,7 +166,8 @@ public class Gui extends PlugInFrame {
         modelSelectionPanel = new JPanel();
         modelSelectionPanel.setLayout(new BoxLayout(modelSelectionPanel, BoxLayout.Y_AXIS));
         modelSelectionPanel.setBackground(new Color(236, 240, 241));
-        Border lineBorder = BorderFactory.createLineBorder(Color.gray, 2, true); // 2-pixel thick line border
+        Border lineBorder = BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.gray, 2, true), 
+        													"Bioimage.io online repository");
         Border paddingBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5); // 10-pixel padding around the content
         modelSelectionPanel.setBorder(BorderFactory.createCompoundBorder(paddingBorder,lineBorder));
         modelSelectionPanel.setSize(new Dimension(getWidth(), (int) (getHeight() * SELECTION_PANE_VRATIO)));
@@ -209,51 +209,6 @@ public class Gui extends PlugInFrame {
 
         // Return the modelSelectionPanel
         return modelSelectionPanel;
-    }
-
-    private JPanel initContentPanel() {
-        JPanel contentPanel = new JPanel(new GridLayout(1, 2, 20, 0));
-        contentPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
-        contentPanel.setBackground(Color.WHITE);
-        contentPanel.setSize(new Dimension(this.getWidth(), (int) (this.getHeight() * MODEL_VRATIO)));
-
-        // Example Image Panel
-        JPanel exampleImagePanel = new JPanel(new BorderLayout());
-        exampleImagePanel.setBackground(Color.WHITE);
-
-        JLabel exampleTitleLabel = new JLabel("Example Image", JLabel.CENTER);
-        exampleTitleLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
-
-        // Calculate dimensions for the logo based on the main interface size
-        int logoHeight = (int) (getHeight() * 0.3);
-        int logoWidth = getWidth() / 3;
-        ImageIcon logoIcon = createScaledIcon(getClass().getClassLoader().getResource(DIJ_ICON_PATH), logoWidth, logoHeight);
-        exampleImageLabel = new JLabel(logoIcon, JLabel.CENTER);
-        exampleImagePanel.add(exampleTitleLabel, BorderLayout.NORTH);
-        exampleImagePanel.add(exampleImageLabel, BorderLayout.CENTER);
-
-        // Model Info Panel
-        JPanel modelInfoPanel = new JPanel(new BorderLayout());
-        modelInfoPanel.setBackground(Color.WHITE);
-
-        JLabel infoTitleLabel = new JLabel("Model Information", JLabel.CENTER);
-        infoTitleLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
-
-        modelInfoArea = new JTextArea("Detailed model description...");
-        modelInfoArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        modelInfoArea.setLineWrap(true);
-        modelInfoArea.setWrapStyleWord(true);
-        modelInfoArea.setEditable(false);
-        JScrollPane infoScrollPane = new JScrollPane(modelInfoArea);
-
-        modelInfoPanel.add(infoTitleLabel, BorderLayout.NORTH);
-        modelInfoPanel.add(infoScrollPane, BorderLayout.CENTER);
-
-        contentPanel.add(exampleImagePanel);
-        contentPanel.add(modelInfoPanel);
-
-        // Return the contentPanel
-        return contentPanel;
     }
 
     private void initFooterPanel() {

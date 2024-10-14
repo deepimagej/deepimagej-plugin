@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.net.URL;
@@ -21,14 +22,17 @@ public class SearchBar extends JPanel {
     private static final long serialVersionUID = -1741389221668683293L;
 	private JTextField searchField;
     private JButton searchButton;
+    private JButton switchButton;
     private long parentHeight;
     private long parentWidth;
     private static final double H_RATIO = 1;
     private static final double V_RATIO = 0.05;
     private static final double ICON_VRATIO = 1.0;
-    private static final double ICON_HRATIO = 0.05; 
+    private static final double ICON_HRATIO = 0.05;
     private static final double SEARCH_VRATIO = 1.0;
-    private static final double SEARCH_HRATIO = 0.2; 
+    private static final double SEARCH_HRATIO = 0.2;
+    private static final double SWITCH_VRATIO = 1.0;
+    private static final double SWITCH_HRATIO = 0.2;
     protected static final String SEARCH_ICON_PATH = "dij_imgs/search_logo.png";
     
 
@@ -45,7 +49,6 @@ public class SearchBar extends JPanel {
         int iconH = (int) (parentHeight * V_RATIO * ICON_VRATIO);
         int iconW = (int) (parentWidth * H_RATIO * ICON_HRATIO);
         ImageIcon scaledImage = Gui.createScaledIcon(iconPath, iconW, iconH);
-        //Image scaledImage = getScaledImage(originalIcon.getImage(), (int) (parentWidth * H_RATIO), ICON_SIZE);
         JLabel iconLabel = new JLabel(scaledImage);
         iconLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 
@@ -64,10 +67,25 @@ public class SearchBar extends JPanel {
         searchButton.setFocusPainted(false);
         searchButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
 
+        // Create the switch button
+        switchButton = new JButton("<html>Switch to<br>Bioimage.io</html>");
+        int switchH = (int) (parentHeight * V_RATIO * SWITCH_VRATIO);
+        int switchW = (int) (parentWidth * H_RATIO * SWITCH_HRATIO);
+        switchButton.setPreferredSize(new Dimension(switchW, switchH));
+        switchButton.setBackground(new Color(255, 140, 0));
+        switchButton.setForeground(Color.BLACK);
+        switchButton.setFocusPainted(false);
+        switchButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        
+        JPanel wrapperPanel = new JPanel(new GridLayout(1, 2));
+        wrapperPanel.add(searchButton);
+        wrapperPanel.add(switchButton);
+
         // Add components to the panel
         add(iconLabel, BorderLayout.WEST);
         add(searchField, BorderLayout.CENTER);
-        add(searchButton, BorderLayout.EAST);
+        //add(searchButton, BorderLayout.EAST);
+        add(wrapperPanel, BorderLayout.EAST);
 
         // Add action listener to the search button
         searchButton.addActionListener(new ActionListener() {
