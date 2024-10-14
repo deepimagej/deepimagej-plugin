@@ -44,7 +44,7 @@ public class Header extends JPanel {
 		this.subtitle = subtitle;
         this.setBackground(Color.GRAY);
         this.setBorder(new LineBorder(Color.BLACK, 5, true));
-        this.setSize(new Dimension(parentWidth, (int) (parentHeight * TITLE_VRATIO)));
+        this.setPreferredSize(new Dimension(parentWidth, (int) (parentHeight * TITLE_VRATIO)));
 
         // Calculate dimensions for the logo based on the main interface size
         int logoHeight = (int) (parentHeight * TITLE_VRATIO * LOGO_VRATIO);

@@ -49,7 +49,7 @@ public class Gui extends PlugInFrame {
     private Layout layout = Layout.createVertical(LAYOUT_WEIGHTS);
 
     private static final double FOOTER_VRATIO = 0.1;
-    private static final double[] LAYOUT_WEIGHTS = new double[] {0.1, 0.05, 0.75, 0.1};
+    private static final double[] LAYOUT_WEIGHTS = new double[] {0.1, 0.05, 0.8, 0.05};
 
     protected static final String LOADING_STR = "loading...";
     protected static final String LOADING_GIF_PATH = "loading...";
@@ -68,6 +68,7 @@ public class Gui extends PlugInFrame {
         initMainContentPanel();
         initFooterPanel();
 
+        this.pack();
         setVisible(true);
     }
     
@@ -82,8 +83,9 @@ public class Gui extends PlugInFrame {
         initSearchBar();
         initMainContentPanel();
         initFooterPanel();
-    	setCardsData();
+    	// TODO setCardsData();
 
+        this.pack();
         setVisible(true);
     }
     
@@ -110,14 +112,15 @@ public class Gui extends PlugInFrame {
     private void initMainContentPanel() {
         // Create a main content panel with vertical BoxLayout
         JPanel mainContentPanel = new JPanel();
-        mainContentPanel.setLayout(new BoxLayout(mainContentPanel, BoxLayout.Y_AXIS));
+        Layout mainPanelLayout = Layout.createVertical(new double[] {0.45, 0.55});
+        mainContentPanel.setLayout(mainPanelLayout);
         mainContentPanel.setBackground(Color.WHITE);
 
         // Add the model selection panel and content panel to the main content panel
         this.modelSelectionPanel = new ModelSelectionPanel(this.getWidth(), this.getHeight());
-        mainContentPanel.add(this.modelSelectionPanel);
+        mainContentPanel.add(this.modelSelectionPanel, mainPanelLayout.get(0));
         contentPanel = new ContentPanel(this.getWidth(), this.getHeight());
-        mainContentPanel.add(contentPanel);
+        mainContentPanel.add(contentPanel, mainPanelLayout.get(1));
 
         // Add the main content panel to the frame's CENTER region
         add(mainContentPanel, layout.get(2));
@@ -127,7 +130,7 @@ public class Gui extends PlugInFrame {
         footerPanel = new JPanel(new BorderLayout());
         footerPanel.setBackground(new Color(45, 62, 80));
         footerPanel.setBorder(new EmptyBorder(10, 20, 10, 20));
-        footerPanel.setSize(new Dimension(this.getWidth(), (int) (this.getHeight() * FOOTER_VRATIO)));
+        footerPanel.setPreferredSize(new Dimension(this.getWidth(), (int) (this.getHeight() * FOOTER_VRATIO)));
 
         JPanel runButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         runButtonPanel.setBackground(new Color(45, 62, 80));
@@ -159,7 +162,8 @@ public class Gui extends PlugInFrame {
     
     private <T extends RealType<T> & NativeType<T>> void runModelOnTestImage() {
     	if (runner == null || runner.isClosed()) {
-    		runner = Runner.create(this.models.get(currentIndex));
+    		// TODO runner = Runner.create(this.models.get(currentIndex));
+    		runner = Runner.create(this.models.get(0));
     	}
     	try {
     		if (!runner.isLoaded())
@@ -191,7 +195,6 @@ public class Gui extends PlugInFrame {
     }
     
     private List<JPanel> generateLoadingCards() {
-    	double[] cardSizes = new double[] {SECOND_CARD_RT, MAIN_CARD_RT, SECOND_CARD_RT};
     	List<JPanel> cards = new ArrayList<JPanel>();
     	//for (double size : cardSizes)
     		//cards.add(ModelCard.createModelCard(LOADING_STR, Gui.class.getResource(LOADING_GIF_PATH), LOADING_STR, size));
