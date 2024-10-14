@@ -94,22 +94,20 @@ public class Header extends JPanel {
         JPanel progressPanel = createProgressBar();
 
         // Add the wrapperPanel to the titlePanel with custom constraints
-        GridBagConstraints wrapperGbc = new GridBagConstraints();
-        wrapperGbc.gridx = 0;
-        wrapperGbc.gridy = 0;
-        wrapperGbc.weightx = 3;
-        wrapperGbc.weighty = 1;
-        wrapperGbc.anchor = GridBagConstraints.CENTER;
-        wrapperGbc.insets = new Insets(0, (int) (-logoWidth + progressPanel.getPreferredSize().getWidth()), 0, 0);
-        this.add(wrapperPanel, wrapperGbc);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 3;
+        gbc.weighty = 1;
+        //gbc.anchor = GridBagConstraints.CENTER;
+        gbc.insets = new Insets(0, (int) (-logoWidth + progressPanel.getPreferredSize().getWidth()), 0, 0);
+        this.add(wrapperPanel, gbc);
         
-        GridBagConstraints progressGbc = new GridBagConstraints();
-        progressGbc.gridx = 1;
-        progressGbc.gridy = 0;
-        wrapperGbc.weightx = 1;
-        wrapperGbc.weighty = 1;
-        progressGbc.insets = new Insets(20, 0, 10, 10);
-        this.add(progressPanel, progressGbc);
+        gbc.gridx = 1;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(20, 0, 5, 15);
+        this.add(progressPanel, gbc);
 	}
 	
 	private JPanel createProgressBar() {
@@ -130,17 +128,17 @@ public class Header extends JPanel {
         JPanel progressPanel = new JPanel(new GridBagLayout());
         progressPanel.setOpaque(false);
 
-        GridBagConstraints progressLabelGbc = new GridBagConstraints();
-        progressLabelGbc.gridx = 0;
-        progressLabelGbc.gridy = 0;
-        progressLabelGbc.anchor = GridBagConstraints.CENTER;
-        progressPanel.add(progressLabel, progressLabelGbc);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+        gbc.fill = GridBagConstraints.BOTH;
+        progressPanel.add(progressLabel, gbc);
 
-        GridBagConstraints progressBarGbc = new GridBagConstraints();
-        progressBarGbc.gridx = 0;
-        progressBarGbc.gridy = 1;
-        progressBarGbc.anchor = GridBagConstraints.CENTER;
-        progressPanel.add(progressBar, progressBarGbc);
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        progressPanel.add(progressBar, gbc);
         
         return progressPanel;
 	}
