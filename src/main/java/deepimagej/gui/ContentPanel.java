@@ -4,12 +4,15 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.border.EmptyBorder;
@@ -18,6 +21,8 @@ public class ContentPanel extends JPanel {
 	
 	private JLabel exampleImageLabel;
     private JTextArea modelInfoArea;
+    private JProgressBar progressBar;
+	private JLabel progressInfoLabel;
     private final long parentHeight;
     private final long parentWidth;
 
@@ -64,6 +69,7 @@ public class ContentPanel extends JPanel {
 
         modelInfoPanel.add(infoTitleLabel, BorderLayout.NORTH);
         modelInfoPanel.add(infoScrollPane, BorderLayout.CENTER);
+        modelInfoPanel.add(createProgressBar(), BorderLayout.SOUTH);
 
         this.add(exampleImagePanel);
         this.add(modelInfoPanel);
@@ -75,5 +81,38 @@ public class ContentPanel extends JPanel {
 	
 	protected void setInfo(String text) {
 		this.modelInfoArea.setText(text);
+	}
+	
+	private JPanel createProgressBar() {
+        // Create progress bar
+        progressBar = new JProgressBar(0, 100);
+        progressBar.setStringPainted(false);
+        progressBar.setPreferredSize(new Dimension((int) parentWidth, 30));
+        progressBar.setBackground(Color.LIGHT_GRAY);
+        progressBar.setVisible(true);
+        progressBar.setForeground(new Color(46, 204, 113)); // Modern green color
+
+        // Create progress label
+        progressInfoLabel = new JLabel("Processing...");
+        progressInfoLabel.setForeground(Color.WHITE);
+        progressInfoLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+
+        // Panel to hold progress bar and label
+        JPanel progressPanel = new JPanel(new GridBagLayout());
+        progressPanel.setOpaque(false);
+
+        GridBagConstraints progressBarGbc = new GridBagConstraints();
+        progressBarGbc.gridx = 0;
+        progressBarGbc.gridy = 0;
+        progressBarGbc.anchor = GridBagConstraints.CENTER;
+        progressPanel.add(progressBar, progressBarGbc);
+
+        GridBagConstraints progressLabelGbc = new GridBagConstraints();
+        progressLabelGbc.gridx = 0;
+        progressLabelGbc.gridy = 1;
+        progressLabelGbc.anchor = GridBagConstraints.CENTER;
+        progressPanel.add(progressInfoLabel, progressLabelGbc);
+        
+        return progressPanel;
 	}
 }
