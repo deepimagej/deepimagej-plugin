@@ -49,7 +49,7 @@ public class Gui extends PlugInFrame {
     private SearchBar searchBar;
     private JPanel modelSelectionPanel;
     private JPanel modelCarouselPanel;
-    private Header3 titlePanel;
+    private Header titlePanel;
     private JPanel footerPanel;
     private Layout layout = Layout.createVertical(LAYOUT_WEIGHTS);
 
@@ -139,7 +139,7 @@ public class Gui extends PlugInFrame {
     }
 
     private void initTitlePanel() {
-    	titlePanel = new Header3("deepImageJ", "The Fiji/ImageJ Plugin for AI", this.getWidth(), this.getHeight());
+    	titlePanel = new Header("deepImageJ", "The Fiji/ImageJ Plugin for AI", this.getWidth(), this.getHeight());
         add(titlePanel, layout.get(0));
     }
 

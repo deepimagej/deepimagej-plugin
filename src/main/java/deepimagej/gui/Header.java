@@ -11,6 +11,7 @@ import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.border.LineBorder;
 
 public class Header extends JPanel {
@@ -22,16 +23,23 @@ public class Header extends JPanel {
 	private JLabel subtitleLabel;
 	private JPanel textPanel;
 	private JPanel wrapperPanel;
+    private JProgressBar progressBar;
+    private JLabel progressLabel;
+    private final long parentHeight;
+    private final long parentWidth;
 
 	private final static double TITLE_VRATIO = 0.1;
 	private final static double TITLE_HRATIO = 1;
 	private final static double LOGO_VRATIO = 1;
 	private final static double LOGO_HRATIO = 1.0 / 7;
+    private final static double PROGRESS_BAR_WIDTH_RATIO = 0.25;
 	
 	private static final long serialVersionUID = -7691139174208436363L;
 
 	protected Header(String title, String subtitle, int parentWidth, int parentHeight) {
         super(new GridBagLayout());
+        this.parentWidth = parentWidth;
+        this.parentHeight= parentHeight;
 		this.title = title;
 		this.subtitle = subtitle;
         this.setBackground(Color.GRAY);
@@ -83,14 +91,58 @@ public class Header extends JPanel {
         textGbc.gridy = 0;
         textGbc.anchor = GridBagConstraints.WEST;
         wrapperPanel.add(textPanel, textGbc);
+        JPanel progressPanel = createProgressBar();
 
         // Add the wrapperPanel to the titlePanel with custom constraints
         GridBagConstraints wrapperGbc = new GridBagConstraints();
         wrapperGbc.gridx = 0;
         wrapperGbc.gridy = 0;
+        wrapperGbc.weightx = 3;
+        wrapperGbc.weighty = 1;
         wrapperGbc.anchor = GridBagConstraints.CENTER;
-        wrapperGbc.insets = new Insets(0, -logoWidth, 0, 0);
+        wrapperGbc.insets = new Insets(0, (int) (-logoWidth + progressPanel.getPreferredSize().getWidth()), 0, 0);
         this.add(wrapperPanel, wrapperGbc);
+        
+        GridBagConstraints progressGbc = new GridBagConstraints();
+        progressGbc.gridx = 1;
+        progressGbc.gridy = 0;
+        wrapperGbc.weightx = 1;
+        wrapperGbc.weighty = 1;
+        progressGbc.insets = new Insets(20, 0, 10, 10);
+        this.add(progressPanel, progressGbc);
+	}
+	
+	private JPanel createProgressBar() {
+        // Create progress bar
+        progressBar = new JProgressBar(0, 100);
+        progressBar.setStringPainted(false);
+        progressBar.setPreferredSize(new Dimension((int)(parentWidth * PROGRESS_BAR_WIDTH_RATIO), 30));
+        progressBar.setBackground(Color.LIGHT_GRAY);
+        progressBar.setVisible(true);
+        progressBar.setForeground(new Color(46, 204, 113)); // Modern green color
+
+        // Create progress label
+        progressLabel = new JLabel("Processing...");
+        progressLabel.setForeground(Color.WHITE);
+        progressLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+
+        // Panel to hold progress bar and label
+        JPanel progressPanel = new JPanel(new GridBagLayout());
+        progressPanel.setOpaque(false);
+
+        GridBagConstraints progressLabelGbc = new GridBagConstraints();
+        progressLabelGbc.gridx = 0;
+        progressLabelGbc.gridy = 0;
+        progressLabelGbc.anchor = GridBagConstraints.CENTER;
+        progressPanel.add(progressLabel, progressLabelGbc);
+
+        GridBagConstraints progressBarGbc = new GridBagConstraints();
+        progressBarGbc.gridx = 0;
+        progressBarGbc.gridy = 1;
+        progressBarGbc.anchor = GridBagConstraints.CENTER;
+        progressPanel.add(progressBar, progressBarGbc);
+        
+        return progressPanel;
 	}
 
 }
