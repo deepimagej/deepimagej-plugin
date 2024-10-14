@@ -19,6 +19,7 @@ import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
 
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
@@ -116,10 +117,6 @@ public class ModelSelectionPanel extends JPanel {
         gbc.weighty = 0;
         this.add(navigationPanel, gbc);
 	}
-	
-	protected void setModels(List<ModelDescriptor> models) {
-		this.models = models;
-	}
     
     private void setCardsData() {
     	this.modelNames = models.stream().map(mm -> mm.getName()).collect(Collectors.toList());
@@ -139,11 +136,14 @@ public class ModelSelectionPanel extends JPanel {
     	}).collect(Collectors.toList());
     }
     
-    public void updateCards(List<ModelDescriptor> models) {
+    public void setModels(List<ModelDescriptor> models) {
     	this.models = models;
     	setCardsData();
     	currentIndex = 0;
-        redrawModelCards();
+    	if (SwingUtilities.isEventDispatchThread())
+    		redrawModelCards();
+    	else
+    		SwingUtilities.invokeLater(() -> redrawModelCards());
     }
 
     private void updateCarousel(int direction) {

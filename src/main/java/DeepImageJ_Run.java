@@ -44,6 +44,7 @@
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.SwingUtilities;
 
@@ -51,6 +52,8 @@ import deepimagej.gui.Gui;
 import ij.plugin.PlugIn;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
+import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
+import io.bioimage.modelrunner.engine.installation.EngineInstall;
 
 /**
  * 
@@ -82,11 +85,38 @@ public class DeepImageJ_Run implements PlugIn {
 		File modelsDir = new File("models");
 		if (!modelsDir.isDirectory() && !modelsDir.mkdir())
 			throw new RuntimeException("Unable to create 'models' folder inside ImageJ/Fiji directory. Please create it yourself.");
-			
-		
-		List<ModelDescriptor> models = ModelDescriptorFactory.getModelsAtLocalRepo(modelsDir.getAbsolutePath());
-		
-		SwingUtilities.invokeLater(() -> new Gui(models));
+	    final Gui[] guiRef = new Gui[1];
+	    if (SwingUtilities.isEventDispatchThread())
+	    	guiRef[0] = new Gui();
+	    else
+		    SwingUtilities.invokeLater(() -> {
+		        guiRef[0] = new Gui();
+		    });
+
+	    new Thread(() -> {
+	        List<ModelDescriptor> models = ModelDescriptorFactory.getModelsAtLocalRepo(modelsDir.getAbsolutePath());
+            if (guiRef[0] != null)
+                guiRef[0].setModels(models);
+	    }).start();
+	    
+	    /**
+        EngineInstall installer = EngineInstall.createInstaller(arg);
+        installer.checkBasicEngineInstallation();
+        installer.basicEngineInstallation();
+        Map<String, TwoParameterConsumer<String, Double>> consumersMap = installer.getBasicEnginesProgress();
+        consumersMap.
+
+	    new Thread(() -> {
+	        EngineInstall installer = EngineInstall.createInstaller(arg);
+	        installer.checkBasicEngineInstallation();
+	        installer.basicEngineInstallation();
+	        SwingUtilities.invokeLater(() -> {
+	            if (guiRef[0] != null) {
+	                guiRef[0].setModels(models);
+	            }
+	        });
+	    }).start();
+	    */
 		
 	}
 

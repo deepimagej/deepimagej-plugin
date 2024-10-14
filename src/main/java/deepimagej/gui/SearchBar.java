@@ -68,7 +68,7 @@ public class SearchBar extends JPanel {
         searchButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
 
         // Create the switch button
-        switchButton = new JButton("<html>Switch to<br>Bioimage.io</html>");
+        switchButton = new JButton("Bioimage.io");
         int switchH = (int) (parentHeight * V_RATIO * SWITCH_VRATIO);
         int switchW = (int) (parentWidth * H_RATIO * SWITCH_HRATIO);
         switchButton.setPreferredSize(new Dimension(switchW, switchH));
