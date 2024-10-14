@@ -1,12 +1,12 @@
 package deepimagej.gui;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.Insets;
 
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
@@ -23,23 +23,26 @@ public class ContentPanel extends JPanel {
     private JTextArea modelInfoArea;
     private JProgressBar progressBar;
 	private JLabel progressInfoLabel;
+	private JScrollPane infoScrollPane;
     private final long parentHeight;
     private final long parentWidth;
 
 	private final static double MODEL_VRATIO = 0.4;
+	private final static double PROGRESS_VRATIO = 0.01;
+	private final static double PROGRESS_HRATIO = 0.5;
 	
 	private static final long serialVersionUID = -7691139174208436363L;
 
 	protected ContentPanel(int parentWidth, int parentHeight) {
-		super(new GridLayout(1, 2, 20, 0));
+		super(new GridLayout(1, 2));
         this.parentWidth = parentWidth;
         this.parentHeight= parentHeight;
-        this.setBorder(new EmptyBorder(20, 20, 20, 20));
+        this.setBorder(new EmptyBorder(5, 5, 5, 15));
         this.setBackground(Color.WHITE);
         this.setPreferredSize(new Dimension(parentWidth, (int) (parentHeight * MODEL_VRATIO)));
 
         // Example Image Panel
-        JPanel exampleImagePanel = new JPanel(new BorderLayout());
+        JPanel exampleImagePanel = new JPanel(new GridBagLayout());
         exampleImagePanel.setBackground(Color.WHITE);
 
         JLabel exampleTitleLabel = new JLabel("Example Image", JLabel.CENTER);
@@ -50,11 +53,20 @@ public class ContentPanel extends JPanel {
         int logoWidth = parentWidth / 3;
         ImageIcon logoIcon = Gui.createScaledIcon(getClass().getClassLoader().getResource(Gui.DIJ_ICON_PATH), logoWidth, logoHeight);
         exampleImageLabel = new JLabel(logoIcon, JLabel.CENTER);
-        exampleImagePanel.add(exampleTitleLabel, BorderLayout.NORTH);
-        exampleImagePanel.add(exampleImageLabel, BorderLayout.CENTER);
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1;
+        exampleImagePanel.add(exampleTitleLabel, gbc);
+        gbc.gridy = 1;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 10;
+        exampleImagePanel.add(exampleImageLabel, gbc);
 
         // Model Info Panel
-        JPanel modelInfoPanel = new JPanel(new BorderLayout());
+        JPanel modelInfoPanel = new JPanel(new GridBagLayout());
         modelInfoPanel.setBackground(Color.WHITE);
 
         JLabel infoTitleLabel = new JLabel("Model Information", JLabel.CENTER);
@@ -65,11 +77,23 @@ public class ContentPanel extends JPanel {
         modelInfoArea.setLineWrap(true);
         modelInfoArea.setWrapStyleWord(true);
         modelInfoArea.setEditable(false);
-        JScrollPane infoScrollPane = new JScrollPane(modelInfoArea);
+        infoScrollPane = new JScrollPane(modelInfoArea);
+        infoScrollPane.setPreferredSize(new Dimension((int) (this.parentWidth * 0.5), (int) (this.parentHeight * 0.3)));
 
-        modelInfoPanel.add(infoTitleLabel, BorderLayout.NORTH);
-        modelInfoPanel.add(infoScrollPane, BorderLayout.CENTER);
-        modelInfoPanel.add(createProgressBar(), BorderLayout.SOUTH);
+        gbc.gridx = 0;
+        gbc.weightx = 1.0;
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.fill = GridBagConstraints.BOTH;
+        
+        gbc.gridy = 0;
+        gbc.weighty = 1;
+        modelInfoPanel.add(infoTitleLabel, gbc);
+        gbc.gridy = 1;
+        gbc.weighty = 10;
+        modelInfoPanel.add(infoScrollPane, gbc);
+        gbc.gridy = 2;
+        gbc.weighty = 2;
+        modelInfoPanel.add(createProgressBar(), gbc);
 
         this.add(exampleImagePanel);
         this.add(modelInfoPanel);
@@ -87,7 +111,8 @@ public class ContentPanel extends JPanel {
         // Create progress bar
         progressBar = new JProgressBar(0, 100);
         progressBar.setStringPainted(false);
-        progressBar.setPreferredSize(new Dimension((int) parentWidth, 30));
+        progressBar.setPreferredSize(new Dimension((int) infoScrollPane.getPreferredSize().getWidth(), 
+        											(int) (parentHeight * PROGRESS_VRATIO)));
         progressBar.setBackground(Color.LIGHT_GRAY);
         progressBar.setVisible(true);
         progressBar.setForeground(new Color(46, 204, 113)); // Modern green color
@@ -103,15 +128,17 @@ public class ContentPanel extends JPanel {
 
         GridBagConstraints progressBarGbc = new GridBagConstraints();
         progressBarGbc.gridx = 0;
-        progressBarGbc.gridy = 0;
-        progressBarGbc.anchor = GridBagConstraints.CENTER;
-        progressPanel.add(progressBar, progressBarGbc);
+        progressBarGbc.weightx = 1;
+        progressBarGbc.insets = new Insets(2, 2, 2, 2);
+        progressBarGbc.fill = GridBagConstraints.BOTH;
+        
 
-        GridBagConstraints progressLabelGbc = new GridBagConstraints();
-        progressLabelGbc.gridx = 0;
-        progressLabelGbc.gridy = 1;
-        progressLabelGbc.anchor = GridBagConstraints.CENTER;
-        progressPanel.add(progressInfoLabel, progressLabelGbc);
+        progressBarGbc.gridy = 0;
+        progressPanel.add(progressBar, progressBarGbc);
+        
+
+        progressBarGbc.gridy = 1;
+        progressPanel.add(progressInfoLabel, progressBarGbc);
         
         return progressPanel;
 	}

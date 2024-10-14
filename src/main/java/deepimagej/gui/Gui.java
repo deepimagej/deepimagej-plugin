@@ -162,7 +162,7 @@ public class Gui extends PlugInFrame {
         modelSelectionPanel.setLayout(new BoxLayout(modelSelectionPanel, BoxLayout.Y_AXIS));
         modelSelectionPanel.setBackground(new Color(236, 240, 241));
         Border lineBorder = BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.gray, 2, true), 
-        													"Bioimage.io online repository");
+        													"Local");
         Border paddingBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5); // 10-pixel padding around the content
         modelSelectionPanel.setBorder(BorderFactory.createCompoundBorder(paddingBorder,lineBorder));
         modelSelectionPanel.setSize(new Dimension(getWidth(), (int) (getHeight() * SELECTION_PANE_VRATIO)));
