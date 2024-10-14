@@ -54,13 +54,9 @@ public class Gui extends PlugInFrame {
     private JPanel footerPanel;
     private Layout layout = Layout.createVertical(LAYOUT_WEIGHTS);
 
-    private JLabel exampleImageLabel;
-    private JTextArea modelInfoArea;
-
     private static final double CARR_VRATIO = 0.34;
     private static final double SELECTION_PANE_VRATIO = 0.35;
     private static final double ARROWS_VRATIO = 0.1;
-    private static final double MODEL_VRATIO = 0.4;
     private static final double FOOTER_VRATIO = 0.1;
     private static final double[] LAYOUT_WEIGHTS = new double[] {0.1, 0.05, 0.75, 0.1};
 
@@ -250,8 +246,8 @@ public class Gui extends PlugInFrame {
         int logoHeight = (int) (getHeight() * 0.3);
         int logoWidth = getWidth() / 3;
         ImageIcon logoIcon = createScaledIcon(modelImagePaths.get(currentIndex), logoWidth, logoHeight);
-        exampleImageLabel.setIcon(logoIcon);
-        modelInfoArea.setText("Detailed information for " + modelNames.get(currentIndex));
+        contentPanel.setIcon(logoIcon);
+        contentPanel.setInfo("Detailed information for " + modelNames.get(currentIndex));
     }
     
     private void redrawModelCards() {

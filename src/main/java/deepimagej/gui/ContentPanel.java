@@ -4,20 +4,15 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.GridLayout;
-import java.awt.Insets;
 
-import javax.swing.BoxLayout;
+import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
 
 public class ContentPanel extends JPanel {
 	
@@ -72,5 +67,13 @@ public class ContentPanel extends JPanel {
 
         this.add(exampleImagePanel);
         this.add(modelInfoPanel);
+	}
+	
+	protected void setIcon(Icon icon) {
+		this.exampleImageLabel.setIcon(icon);
+	}
+	
+	protected void setInfo(String text) {
+		this.modelInfoArea.setText(text);
 	}
 }
