@@ -48,7 +48,7 @@ public class Gui extends PlugInFrame {
     private JPanel footerPanel;
     private Layout layout = Layout.createVertical(LAYOUT_WEIGHTS);
 
-    private static final double FOOTER_VRATIO = 0.1;
+    private static final double FOOTER_VRATIO = 0.06;
     private static final double[] LAYOUT_WEIGHTS = new double[] {0.1, 0.05, 0.8, 0.05};
 
     protected static final String LOADING_STR = "loading...";
@@ -129,7 +129,7 @@ public class Gui extends PlugInFrame {
     private void initFooterPanel() {
         footerPanel = new JPanel(new BorderLayout());
         footerPanel.setBackground(new Color(45, 62, 80));
-        footerPanel.setBorder(new EmptyBorder(10, 20, 10, 20));
+        footerPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
         footerPanel.setPreferredSize(new Dimension(this.getWidth(), (int) (this.getHeight() * FOOTER_VRATIO)));
 
         JPanel runButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
@@ -150,8 +150,8 @@ public class Gui extends PlugInFrame {
         copyrightLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
         copyrightLabel.setForeground(Color.WHITE);
 
-        footerPanel.add(runButtonPanel, BorderLayout.CENTER);
-        footerPanel.add(copyrightLabel, BorderLayout.SOUTH);
+        footerPanel.add(runButtonPanel, BorderLayout.EAST);
+        footerPanel.add(copyrightLabel, BorderLayout.WEST);
 
         add(footerPanel, layout.get(3));
     }

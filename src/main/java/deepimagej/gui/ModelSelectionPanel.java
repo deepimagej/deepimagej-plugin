@@ -41,11 +41,11 @@ public class ModelSelectionPanel extends JPanel {
     private List<URL> modelImagePaths;
     private List<ModelDescriptor> models;
 
-    private static final double CARD_VRATIO = 0.9;
-    private static final double CARD_HRATIO = 0.3;
+    private static final double CARD_VRATIO = 0.8;
+    private static final double CARD_HRATIO = 0.33;
     private static final double CARR_VRATIO = 0.95;
     private static final double SELECTION_PANE_VRATIO = 0.35;
-    private static final double ARROWS_VRATIO = 0.02;
+    private static final double ARROWS_VRATIO = 0.05;
     protected static final double MAIN_CARD_RT = 1;
     protected static final double SECOND_CARD_RT = 0.8;
 
@@ -59,11 +59,11 @@ public class ModelSelectionPanel extends JPanel {
         this.setBackground(new Color(236, 240, 241));
         Border lineBorder = BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.gray, 2, true), 
         		LOCAL_STR);
-        Border paddingBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5); // 10-pixel padding around the content
+        Border paddingBorder = BorderFactory.createEmptyBorder(2, 2, 2, 2);
         this.setBorder(BorderFactory.createCompoundBorder(paddingBorder,lineBorder));
         this.setPreferredSize(new Dimension(parentWidth, (int) (parentHeight * SELECTION_PANE_VRATIO)));
 
-        modelCarouselPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 5));
+        modelCarouselPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
         modelCarouselPanel.setBackground(new Color(236, 240, 241));
         modelCarouselPanel.setPreferredSize(new Dimension(parentWidth, (int) (parentHeight * SELECTION_PANE_VRATIO * CARR_VRATIO)));
         
@@ -80,12 +80,12 @@ public class ModelSelectionPanel extends JPanel {
         int btnWidth = (int) (this.parentWidth / 2);
         int btnHeight = (int) (this.parentHeight * SELECTION_PANE_VRATIO * ARROWS_VRATIO);
         JButton prevButton = new JButton("◀");
-        prevButton.setFont(new Font("SansSerif", Font.BOLD, 16));
+        prevButton.setFont(new Font("SansSerif", Font.BOLD, 10));
         prevButton.addActionListener(e -> updateCarousel(-1));
         prevButton.setPreferredSize(new Dimension(btnWidth, btnHeight));
 
         JButton nextButton = new JButton("▶");
-        nextButton.setFont(new Font("SansSerif", Font.BOLD, 16));
+        nextButton.setFont(new Font("SansSerif", Font.BOLD, 10));
         nextButton.addActionListener(e -> updateCarousel(1));
         nextButton.setPreferredSize(new Dimension(btnWidth, btnHeight));
 
@@ -94,7 +94,7 @@ public class ModelSelectionPanel extends JPanel {
         gbcb.gridy = 0;
         gbcb.weightx = 1;
         gbcb.weighty = 1;
-        gbcb.fill = GridBagConstraints.BOTH;
+        gbcb.fill = GridBagConstraints.HORIZONTAL;
         
         navigationPanel.setPreferredSize(new Dimension(parentWidth, btnHeight));
         navigationPanel.setBackground(new Color(236, 240, 241));
@@ -107,12 +107,13 @@ public class ModelSelectionPanel extends JPanel {
         gbc.gridx = 0;
         gbc.weightx = 1;
         gbc.fill = GridBagConstraints.BOTH;
+        gbc.ipady = 10;
         
         gbc.gridy = 0;
         gbc.weighty = 20;
         this.add(modelCarouselPanel, gbc);
         gbc.gridy = 1;
-        gbc.weighty = 1;
+        gbc.weighty = 0;
         this.add(navigationPanel, gbc);
 	}
 	
