@@ -93,6 +93,7 @@ public class Gui extends PlugInFrame {
         // Set up the title panel
         searchBar = new SearchBar(this.getWidth(), this.getHeight());
         add(searchBar, layout.get(1));
+        searchBar.switchButton.addActionListener(ee -> clickedBMZ());
     }
 
     private void initMainContentPanel() {
@@ -213,22 +214,32 @@ public class Gui extends PlugInFrame {
     	boolean isEdt = SwingUtilities.isEventDispatchThread();
     	setModels(newModels);
     	
-    	new Thread(() -> {
-        	int nModels = searchBar.countBMZModels(true);
+    	Thread finderThread = new Thread(() -> {
+    		// This line initiates the read of the bioimage.io collection
+        	searchBar.countBMZModels(true);
         	this.searchBar.findBMZModels();
-    	}).start();
+    	});
     	
-    	new Thread(() -> {
+    	Thread updaterThread = new Thread(() -> {
     		while (searchBar.countBMZModels(false) == 0) {
     			try {
 					Thread.sleep(100);
 				} catch (InterruptedException e) {
 					return;
 				}
-            	ArrayList<ModelDescriptor> bmzModels = createArrayOfNulls(searchBar.countBMZModels(false));
-            	searchBar.getBMZModels();
     		}
-    	}).start();
+    		while (finderThread.isAlive()) {
+    			int nModels = searchBar.countBMZModels(false);
+            	List<ModelDescriptor> foundModels = searchBar.getBMZModels();
+            	foundModels.addAll(createArrayOfNulls(nModels - foundModels.size()));
+            	SwingUtilities.invokeLater(() -> setModels(foundModels));
+    		}
+        	List<ModelDescriptor> foundModels = searchBar.getBMZModels();
+        	SwingUtilities.invokeLater(() -> setModels(foundModels));
+    	});
+    	
+    	finderThread.start();
+    	updaterThread.start();
     }
     
     private static ArrayList<ModelDescriptor> createArrayOfNulls(int n) {

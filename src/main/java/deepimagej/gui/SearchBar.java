@@ -127,7 +127,7 @@ public class SearchBar extends JPanel {
     		ModelDescriptor descriptor = BioimageioRepo.retreiveDescriptorFromURL(BioimageioRepo.getModelURL(url));
     		bmzModels.add(descriptor);
     	}
-    	return null;
+    	return bmzModels;
     }
     
     protected List<ModelDescriptor> getBMZModels(){
