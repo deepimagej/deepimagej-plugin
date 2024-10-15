@@ -1,5 +1,6 @@
 package deepimagej.gui;
 
+import ij.ImagePlus;
 import ij.plugin.frame.PlugInFrame;
 import io.bioimage.modelrunner.bioimageio.BioimageioRepo;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
@@ -39,7 +40,6 @@ import java.util.Map;
 public class Gui extends PlugInFrame {
 
     private static final long serialVersionUID = 1081914206026104187L;
-    private List<ModelDescriptor> models;
     private Runner runner;
 	private int currentIndex = 1;
 
@@ -67,22 +67,6 @@ public class Gui extends PlugInFrame {
 
     public Gui() {
         super("DeepImageJ Plugin");
-        setSize(800, 900);
-        setLayout(layout);
-
-        // Initialize UI components
-        initTitlePanel();
-        initSearchBar();
-        initMainContentPanel();
-        initFooterPanel();
-
-        this.pack();
-        setVisible(true);
-    }
-    
-    public Gui(List<ModelDescriptor> models) {
-        super("DeepImageJ Plugin");
-    	this.models = models;
         setSize(800, 900);
         setLayout(layout);
 
@@ -171,20 +155,29 @@ public class Gui extends PlugInFrame {
     }
     
     private <T extends RealType<T> & NativeType<T>> void runModelOnTestImage() {
-    	if (runner == null || runner.isClosed()) {
-    		runner = Runner.create(this.models.get(currentIndex));
-    		runner = Runner.create(this.models.get(0));
-    	}
-    	try {
-    		if (!runner.isLoaded())
-    			runner.load();
-			List<Tensor<T>> outs = runner.runOnTestImages();
-			for (Tensor<T> tt : outs) {
-				ImPlusRaiManager.convert(tt.getData(), tt.getAxesOrderString()).show();
-			}
-		} catch (ModelSpecsException | RunModelException | IOException | LoadModelException e) {
-			e.printStackTrace();
-		}
+    	Thread runninThread = new Thread(() -> {
+        	if (runner == null || runner.isClosed()) {
+        		runner = Runner.create(this.modelSelectionPanel.getModels().get(currentIndex));
+        	}
+        	try {
+        		if (!runner.isLoaded() && GuiUtils.isEDTAlive())
+        			runner.load();
+        		else if (!GuiUtils.isEDTAlive())
+        			return;
+    			List<Tensor<T>> outs = runner.runOnTestImages();
+    			for (Tensor<T> tt : outs) {
+    				if (!GuiUtils.isEDTAlive())
+            			return;
+    				ImagePlus im = ImPlusRaiManager.convert(tt.getData(), tt.getAxesOrderString());
+    				if (!GuiUtils.isEDTAlive())
+            			return;
+    				SwingUtilities.invokeLater(() -> im.show());
+    			}
+    		} catch (ModelSpecsException | RunModelException | IOException | LoadModelException e) {
+    			e.printStackTrace();
+    		}
+    	});
+    	runninThread.start();
     		
     }
 

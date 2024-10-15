@@ -163,6 +163,8 @@ public class ModelSelectionPanel extends JPanel {
     
     protected void setBorderLabel(String text) {
     	lineBorder.setTitle(text);
+    	this.validate();
+    	this.repaint();
     }
     
     protected void setArrowsEnabled(boolean enabled) {

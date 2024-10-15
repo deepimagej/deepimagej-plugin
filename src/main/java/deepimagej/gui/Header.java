@@ -175,7 +175,7 @@ public class Header extends JPanel {
     	double total = consumersMap.entrySet().stream()
 				.map(ee -> ee.getValue().get().get("total" + EngineInstall.NBYTES_SUFFIX))
 				.filter(Objects::nonNull).mapToDouble(value -> (Double) value).sum();
-    	while (isEDTAlive()) {
+    	while (GuiUtils.isEDTAlive()) {
     		try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
@@ -206,7 +206,7 @@ public class Header extends JPanel {
     
     private static boolean checkDownloadStarted(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
 		boolean startedDownload = false;
-    	while (!startedDownload && isEDTAlive()) {
+    	while (!startedDownload && GuiUtils.isEDTAlive()) {
     		try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
@@ -216,20 +216,6 @@ public class Header extends JPanel {
     				.filter(ee -> ee.getValue().get().get("total") != null).findAny().orElse(null) != null;
     	}
     	return startedDownload;
-    }
-    
-    private static boolean isEDTAlive() {
-    	Thread[] threads = new Thread[Thread.activeCount()];
-    	Thread.enumerate(threads);
-
-    	for (Thread thread : threads) {
-    	    if (thread.getName().startsWith("AWT-EventQueue")) {
-    	        if (thread.isAlive()) {
-    	            return true;
-    	        }
-    	    }
-    	}
-    	return false;
     }
 
 }
