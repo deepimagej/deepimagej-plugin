@@ -210,6 +210,8 @@ public class Gui extends PlugInFrame {
     
     public void setModels(List<ModelDescriptor> models) {
     	currentIndex = 0;
+    	if (models.size() == 0)
+    		models = createArrayOfNulls(1);
     	this.modelSelectionPanel.setModels(models);
         // Update example image and model info
         int logoHeight = (int) (getHeight() * 0.3);
