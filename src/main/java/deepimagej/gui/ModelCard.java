@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.net.URL;
 
 import javax.swing.BorderFactory;
@@ -12,6 +13,8 @@ import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+
+import deepimagej.gui.ImageLoader.ImageLoadCallback;
 
 public class ModelCard extends JPanel {
     
@@ -64,11 +67,28 @@ public class ModelCard extends JPanel {
     protected void updateCard(String name, String nickname, URL imagePath) {
     	this.nameLabel.setText(name);
     	this.nicknameLabel.setText(nickname);
-        ImageIcon logoIcon = Gui.createScaledIcon(imagePath, 
-        		(int) (CARD_ICON_HRATIO * this.cardWidth * scale), (int) (this.cardHeight * CARD_ICON_VRATIO * scale));
-        imageLabel.setIcon(logoIcon);
-        this.revalidate();
-        this.repaint();
+    	int iconW = (int) (CARD_ICON_HRATIO * this.cardWidth * scale);
+    	int iconH = (int) (this.cardHeight * CARD_ICON_VRATIO * scale);
+    	boolean isFile = false;
+    	try {
+    		isFile = new File(imagePath.toURI()).isFile();
+    	} catch (Exception ex) {}
+    	
+    	if (isFile) {
+            ImageIcon logoIcon = Gui.createScaledIcon(imagePath, iconW, iconH);
+            imageLabel.setIcon(logoIcon);
+            this.revalidate();
+            this.repaint();
+    	} else {
+    		ImageLoader.loadImageIconFromURL(imagePath, iconW, iconH, new ImageLoadCallback() {
+                @Override
+                public void onImageLoaded(ImageIcon icon) {
+                	imageLabel.setIcon(icon);
+                    ModelCard.this.revalidate();
+                    ModelCard.this.repaint();
+                }
+            });
+    	}
     }
     
     private static ImageIcon createEmptyIcon(int width, int height) {

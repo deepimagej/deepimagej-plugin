@@ -120,8 +120,14 @@ public class ModelSelectionPanel extends JPanel {
     		if (mm == null || mm.getCovers() == null || mm.getCovers().size() == 0) 
     			return this.getClass().getClassLoader().getResource(Gui.DIJ_ICON_PATH);
     		File imFile = new File(mm.getCovers().get(0));
-    		if (!imFile.exists())
+    		if (!imFile.exists() && mm.getModelPath() != null)
     			imFile = new File(mm.getModelPath() + File.separator + mm.getCovers().get(0));
+    		else if (mm.getModelPath() == null) {
+    			try {
+					return new URL(mm.getModelURL() + mm.getCovers().get(0));
+				} catch (MalformedURLException e) {
+				}
+    		}
     		if (!imFile.exists()) 
     			return this.getClass().getClassLoader().getResource(Gui.DIJ_ICON_PATH);
     		try {
