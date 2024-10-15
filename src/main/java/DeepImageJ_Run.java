@@ -95,7 +95,6 @@ public class DeepImageJ_Run implements PlugIn {
 		        guiRef[0] = new Gui();
 		    });
 	    }
-	    Thread parentThread = Thread.currentThread();
 
 	    new Thread(() -> {
 	        List<ModelDescriptor> models = ModelDescriptorFactory.getModelsAtLocalRepo(modelsDir.getAbsolutePath());

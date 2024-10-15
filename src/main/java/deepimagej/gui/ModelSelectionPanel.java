@@ -6,7 +6,6 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.GridLayout;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -14,9 +13,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -30,11 +26,12 @@ public class ModelSelectionPanel extends JPanel {
 	
     private final long parentHeight;
     private final long parentWidth;
-	private int currentIndex = 1;
     private JPanel modelCarouselPanel;
     private ModelCard prevModelPanel;
     private ModelCard selectedModelPanel;
     private ModelCard nextModelPanel;
+    protected JButton nextButton;
+    protected JButton prevButton;
     
 
     private List<String> modelNames;
@@ -80,14 +77,12 @@ public class ModelSelectionPanel extends JPanel {
 
         int btnWidth = (int) (this.parentWidth / 2);
         int btnHeight = (int) (this.parentHeight * SELECTION_PANE_VRATIO * ARROWS_VRATIO);
-        JButton prevButton = new JButton("◀");
+        prevButton = new JButton("◀");
         prevButton.setFont(new Font("SansSerif", Font.BOLD, 10));
-        prevButton.addActionListener(e -> updateCarousel(-1));
         prevButton.setPreferredSize(new Dimension(btnWidth, btnHeight));
 
-        JButton nextButton = new JButton("▶");
+        nextButton = new JButton("▶");
         nextButton.setFont(new Font("SansSerif", Font.BOLD, 10));
-        nextButton.addActionListener(e -> updateCarousel(1));
         nextButton.setPreferredSize(new Dimension(btnWidth, btnHeight));
 
         JPanel navigationPanel = new JPanel(new GridBagLayout());
@@ -136,30 +131,16 @@ public class ModelSelectionPanel extends JPanel {
     	}).collect(Collectors.toList());
     }
     
-    public void setModels(List<ModelDescriptor> models) {
+    protected void setModels(List<ModelDescriptor> models) {
     	this.models = models;
     	setCardsData();
-    	currentIndex = 0;
     	if (SwingUtilities.isEventDispatchThread())
-    		redrawModelCards();
+    		redrawModelCards(0);
     	else
-    		SwingUtilities.invokeLater(() -> redrawModelCards());
-    }
-
-    private void updateCarousel(int direction) {
-        currentIndex = getWrappedIndex(currentIndex + direction);
-
-        redrawModelCards();
-        
-        // Update example image and model info
-        int logoHeight = (int) (getHeight() * 0.3);
-        int logoWidth = getWidth() / 3;
-        ImageIcon logoIcon = Gui.createScaledIcon(modelImagePaths.get(currentIndex), logoWidth, logoHeight);
-        // TODO contentPanel.setIcon(logoIcon);
-        // TODO contentPanel.setInfo("Detailed information for " + modelNames.get(currentIndex));
+    		SwingUtilities.invokeLater(() -> redrawModelCards(0));
     }
     
-    private void redrawModelCards() {
+    protected void redrawModelCards(int currentIndex) {
         prevModelPanel.updateCard(modelNames.get(getWrappedIndex(currentIndex - 1)),
                 modelNicknames.get(getWrappedIndex(currentIndex - 1)),
                 modelImagePaths.get(getWrappedIndex(currentIndex - 1)));
@@ -175,7 +156,19 @@ public class ModelSelectionPanel extends JPanel {
     }
 
     private int getWrappedIndex(int index) {
-        int size = modelNames.size();
+        int size = getModelNames().size();
         return (index % size + size) % size;
+    }
+    
+    public List<String> getModelNames() {
+    	return this.modelNames;
+    }
+    
+    public List<String> getModelNicknames() {
+    	return this.modelNicknames;
+    }
+    
+    public List<URL> getCoverPaths() {
+    	return this.modelImagePaths;
     }
 }

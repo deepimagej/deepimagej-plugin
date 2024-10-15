@@ -36,6 +36,7 @@ public class Gui extends PlugInFrame {
     private static final long serialVersionUID = 1081914206026104187L;
     private List<ModelDescriptor> models;
     private Runner runner;
+	private int currentIndex = 1;
 
     private SearchBar searchBar;
     private ContentPanel contentPanel;
@@ -78,7 +79,6 @@ public class Gui extends PlugInFrame {
         initSearchBar();
         initMainContentPanel();
         initFooterPanel();
-    	// TODO setCardsData();
 
         this.pack();
         setVisible(true);
@@ -110,6 +110,9 @@ public class Gui extends PlugInFrame {
 
         // Add the main content panel to the frame's CENTER region
         add(mainContentPanel, layout.get(2));
+        
+        modelSelectionPanel.prevButton.addActionListener(e -> updateCarousel(-1));
+        modelSelectionPanel.nextButton.addActionListener(e -> updateCarousel(1));
     }
 
     private void initFooterPanel() {
@@ -148,7 +151,7 @@ public class Gui extends PlugInFrame {
     
     private <T extends RealType<T> & NativeType<T>> void runModelOnTestImage() {
     	if (runner == null || runner.isClosed()) {
-    		// TODO runner = Runner.create(this.models.get(currentIndex));
+    		runner = Runner.create(this.models.get(currentIndex));
     		runner = Runner.create(this.models.get(0));
     	}
     	try {
@@ -164,6 +167,24 @@ public class Gui extends PlugInFrame {
     		
     }
 
+    private void updateCarousel(int direction) {
+        currentIndex = getWrappedIndex(currentIndex + direction);
+
+        this.modelSelectionPanel.redrawModelCards(currentIndex);
+        
+        // Update example image and model info
+        int logoHeight = (int) (getHeight() * 0.3);
+        int logoWidth = getWidth() / 3;
+        ImageIcon logoIcon = Gui.createScaledIcon(modelSelectionPanel.getCoverPaths().get(currentIndex), logoWidth, logoHeight);
+        this.contentPanel.setIcon(logoIcon);
+        this.contentPanel.setInfo("Detailed information for " + modelSelectionPanel.getModelNames().get(currentIndex));
+    }
+
+    private int getWrappedIndex(int index) {
+        int size = modelSelectionPanel.getModelNames().size();
+        return (index % size + size) % size;
+    }
+
     private void styleButton(JButton button) {
         button.setFont(new Font("SansSerif", Font.BOLD, 14));
         button.setBackground(new Color(52, 152, 219));
@@ -173,7 +194,14 @@ public class Gui extends PlugInFrame {
     }
     
     public void setModels(List<ModelDescriptor> models) {
+    	currentIndex = 0;
     	this.modelSelectionPanel.setModels(models);
+        // Update example image and model info
+        int logoHeight = (int) (getHeight() * 0.3);
+        int logoWidth = getWidth() / 3;
+        ImageIcon logoIcon = Gui.createScaledIcon(modelSelectionPanel.getCoverPaths().get(currentIndex), logoWidth, logoHeight);
+        this.contentPanel.setIcon(logoIcon);
+        this.contentPanel.setInfo("Detailed information for " + modelSelectionPanel.getModelNames().get(currentIndex));
     }
     
     public void trackEngineInstallation(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {

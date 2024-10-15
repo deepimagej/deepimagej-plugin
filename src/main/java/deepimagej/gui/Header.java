@@ -132,6 +132,7 @@ public class Header extends JPanel {
 
         // Panel to hold progress bar and label
         JPanel progressPanel = new JPanel(new GridBagLayout());
+        progressPanel.setPreferredSize(new Dimension((int)(parentWidth * PROGRESS_BAR_WIDTH_RATIO), 60));
         progressPanel.setOpaque(false);
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -152,7 +153,10 @@ public class Header extends JPanel {
 	}
     
     public void trackEngineInstallation(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
+    	if (consumersMap.keySet().size() == 0)
+    		return;
     	SwingUtilities.invokeLater(() -> {
+            progressBar.setStringPainted(true);
     		progressBar.setString("0%");
     		progressBar.setValue(0);
     		progressLabel.setText("Preparing engines download...");
