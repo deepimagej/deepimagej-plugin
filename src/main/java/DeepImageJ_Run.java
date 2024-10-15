@@ -62,7 +62,7 @@ import io.bioimage.modelrunner.engine.installation.EngineInstall;
  */
 public class DeepImageJ_Run implements PlugIn {
 	
-	private static final String MODELS_DIR = new File("models").getAbsolutePath();
+	private static final String MODELS_DIR = new File("engines").getAbsolutePath();
 	/**
 	 * Message containing the references to the plugin
 	 */
@@ -95,6 +95,7 @@ public class DeepImageJ_Run implements PlugIn {
 		        guiRef[0] = new Gui();
 		    });
 	    }
+	    Thread parentThread = Thread.currentThread();
 
 	    new Thread(() -> {
 	        List<ModelDescriptor> models = ModelDescriptorFactory.getModelsAtLocalRepo(modelsDir.getAbsolutePath());
@@ -112,7 +113,7 @@ public class DeepImageJ_Run implements PlugIn {
 	    }).start();
 	    
 	    new Thread(() -> {
-	    	while (guiRef[0] != null) {
+	    	while (guiRef[0] == null) {
 	    		try {
 					Thread.sleep(100);
 				} catch (InterruptedException e) {

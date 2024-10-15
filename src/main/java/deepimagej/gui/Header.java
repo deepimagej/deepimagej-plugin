@@ -7,16 +7,18 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Objects;
 
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.SwingUtilities;
 import javax.swing.border.LineBorder;
 
 import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
+import io.bioimage.modelrunner.engine.installation.EngineInstall;
 
 public class Header extends JPanel {
 	
@@ -36,7 +38,7 @@ public class Header extends JPanel {
 	private final static double TITLE_HRATIO = 1;
 	private final static double LOGO_VRATIO = 1;
 	private final static double LOGO_HRATIO = 1.0 / 7;
-    private final static double PROGRESS_BAR_WIDTH_RATIO = 0.25;
+    private final static double PROGRESS_BAR_WIDTH_RATIO = 0.15;
 	
 	private static final long serialVersionUID = -7691139174208436363L;
 
@@ -143,25 +145,86 @@ public class Header extends JPanel {
         gbc.gridx = 0;
         gbc.gridy = 1;
         progressPanel.add(progressBar, gbc);
+		progressBar.setVisible(false);
+		progressLabel.setVisible(false);
         
         return progressPanel;
 	}
     
     public void trackEngineInstallation(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
-    	for (Entry<String, TwoParameterConsumer<String, Double>> ee : consumersMap.entrySet()) {
-    		String aa = "";
-    	}
-    	new Thread(() -> {
-    		Map<String, TwoParameterConsumer<String, Double>> bb = consumersMap;
-        	while (true) {
-        		try {
-    				Thread.sleep(1500);
-    			} catch (InterruptedException e) {
-    				return;
-    			}
-        		Map<String, TwoParameterConsumer<String, Double>> aa = bb;
+    	SwingUtilities.invokeLater(() -> {
+    		progressBar.setString("0%");
+    		progressBar.setValue(0);
+    		progressLabel.setText("Preparing engines download...");
+    		progressBar.setVisible(true);
+    		progressLabel.setVisible(true);
+    	});
+		if (!checkDownloadStarted(consumersMap))
+			return;
+		SwingUtilities.invokeLater(() -> progressLabel.setText("Installing DL engines..."));
+		trackProgress(consumersMap);
+    	
+    }
+
+    private void trackProgress(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
+    	double total = consumersMap.entrySet().stream()
+				.map(ee -> ee.getValue().get().get("total" + EngineInstall.NBYTES_SUFFIX))
+				.filter(Objects::nonNull).mapToDouble(value -> (Double) value).sum();
+    	while (isEDTAlive()) {
+    		try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				return;
+			}
+        	double progress = consumersMap.entrySet().stream()
+    				.map(ee -> {
+    					Double totalPerc = ee.getValue().get().get("total");
+    					totalPerc = totalPerc == null ? 0 : totalPerc;
+    					return ee.getValue().get().get("total" + EngineInstall.NBYTES_SUFFIX) * totalPerc;
+    				})
+    				.filter(Objects::nonNull).mapToDouble(value -> (Double) value).sum();
+    		long perc = Math.round(100 * progress / total);
+        	SwingUtilities.invokeLater(() -> {
+        		progressBar.setString(perc + "%");
+        		progressBar.setValue((int) perc);
+        	});
+        	if (perc == 100) {
+            	SwingUtilities.invokeLater(() -> {
+            		progressBar.setVisible(false);
+            		progressLabel.setVisible(false);
+            	});
+        		return;
         	}
-    	}).start();;
+    	}
+    }
+    
+    
+    private static boolean checkDownloadStarted(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
+		boolean startedDownload = false;
+    	while (!startedDownload && isEDTAlive()) {
+    		try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				return false;
+			}
+    		startedDownload = consumersMap.entrySet().stream()
+    				.filter(ee -> ee.getValue().get().get("total") != null).findAny().orElse(null) != null;
+    	}
+    	return startedDownload;
+    }
+    
+    private static boolean isEDTAlive() {
+    	Thread[] threads = new Thread[Thread.activeCount()];
+    	Thread.enumerate(threads);
+
+    	for (Thread thread : threads) {
+    	    if (thread.getName().startsWith("AWT-EventQueue")) {
+    	        if (thread.isAlive()) {
+    	            return true;
+    	        }
+    	    }
+    	}
+    	return false;
     }
 
 }
