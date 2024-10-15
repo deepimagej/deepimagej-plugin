@@ -17,6 +17,7 @@ import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
+import javax.swing.border.TitledBorder;
 
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 
@@ -32,6 +33,7 @@ public class ModelSelectionPanel extends JPanel {
     private ModelCard nextModelPanel;
     protected JButton nextButton;
     protected JButton prevButton;
+    private TitledBorder lineBorder;
     
 
     private List<String> modelNames;
@@ -47,16 +49,13 @@ public class ModelSelectionPanel extends JPanel {
     protected static final double MAIN_CARD_RT = 1;
     protected static final double SECOND_CARD_RT = 0.8;
 
-    private static final String LOCAL_STR = "Local";
-    private static final String BMZ_STR = "Bioimage.io";
-
 	protected ModelSelectionPanel(int parentWidth, int parentHeight) {
         super(new GridBagLayout());
         this.parentWidth = parentWidth;
         this.parentHeight= parentHeight;
         this.setBackground(new Color(236, 240, 241));
-        Border lineBorder = BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.gray, 2, true), 
-        		LOCAL_STR);
+        lineBorder = BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.gray, 2, true), 
+        		Gui.LOCAL_STR);
         Border paddingBorder = BorderFactory.createEmptyBorder(2, 2, 2, 2);
         this.setBorder(BorderFactory.createCompoundBorder(paddingBorder,lineBorder));
         this.setPreferredSize(new Dimension(parentWidth, (int) (parentHeight * SELECTION_PANE_VRATIO)));
@@ -161,6 +160,19 @@ public class ModelSelectionPanel extends JPanel {
         modelCarouselPanel.revalidate();
         modelCarouselPanel.repaint();
     }
+    
+    protected void setBorderLabel(String text) {
+    	lineBorder.setTitle(text);
+    }
+    
+    protected void setLocalBorder() {
+    	setBorderLabel(Gui.LOCAL_STR);
+    }
+
+    
+    protected void setBMZBorder() {
+    	setBorderLabel(Gui.BIOIMAGEIO_STR);
+    }
 
     private int getWrappedIndex(int index) {
         int size = getModelNames().size();
@@ -177,5 +189,9 @@ public class ModelSelectionPanel extends JPanel {
     
     public List<URL> getCoverPaths() {
     	return this.modelImagePaths;
+    }
+    
+    public List<ModelDescriptor> getModels() {
+    	return this.models;
     }
 }

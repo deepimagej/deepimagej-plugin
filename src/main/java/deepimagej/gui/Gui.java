@@ -1,8 +1,10 @@
 package deepimagej.gui;
 
 import ij.plugin.frame.PlugInFrame;
+import io.bioimage.modelrunner.bioimageio.BioimageioRepo;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
+import io.bioimage.modelrunner.bioimageio.download.DownloadTracker;
 import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
 import io.bioimage.modelrunner.exceptions.RunModelException;
@@ -15,16 +17,8 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Image;
-import java.awt.geom.AffineTransform;
-import java.awt.image.AffineTransformOp;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.net.URL;
 
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.ImageInputStream;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -37,7 +31,6 @@ import deepimagej.Runner;
 import deepimagej.tools.ImPlusRaiManager;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -252,6 +245,7 @@ public class Gui extends PlugInFrame {
     	this.runButton.setVisible(false);
     	this.runOnTestButton.setText(INSTALL_STR);
     	this.runOnTestButton.setEnabled(false);
+    	this.modelSelectionPanel.setBMZBorder();
     	setModels(newModels);
     	
     	Thread finderThread = new Thread(() -> {
@@ -305,7 +299,31 @@ public class Gui extends PlugInFrame {
     }
     
     private void installSelectedModel() {
+    	ModelDescriptor selectedModel = modelSelectionPanel.getModels().get(this.currentIndex);
+    	TwoParameterConsumer<String, Double> progress = DownloadTracker.createConsumerProgress();
     	
+    	Thread dwnlThread = new Thread(() -> {
+        	try {
+    			BioimageioRepo.downloadModel(selectedModel, "models", progress);
+    		} catch (IOException | InterruptedException e) {
+    			e.printStackTrace();
+    			return;
+    		}
+    	});
+    	
+    	Thread reportThread = new Thread(() -> {
+    		while (dwnlThread.isAlive()) {
+    			try {
+					Thread.sleep(150);
+				} catch (InterruptedException e) {
+					return;
+				}
+    			long perc = Math.round(progress.get().get("total") * 100);
+    			SwingUtilities.invokeLater(() -> contentPanel.setDeterminatePorgress((int) perc));
+    		}
+    	});
+    	dwnlThread.start();
+    	reportThread.start();
     }
 
     public static void main(String[] args) {
