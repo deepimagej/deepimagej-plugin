@@ -56,7 +56,7 @@ public class SearchBar extends JPanel {
         URL iconPath = getClass().getClassLoader().getResource(SEARCH_ICON_PATH);
         int iconH = (int) (parentHeight * V_RATIO * ICON_VRATIO);
         int iconW = (int) (parentWidth * H_RATIO * ICON_HRATIO);
-        ImageIcon scaledImage = Gui.createScaledIcon(iconPath, iconW, iconH);
+        ImageIcon scaledImage = ImageLoader.createScaledIcon(iconPath, iconW, iconH);
         JLabel iconLabel = new JLabel(scaledImage);
         iconLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 
@@ -76,7 +76,7 @@ public class SearchBar extends JPanel {
         searchButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
 
         // Create the switch button
-        switchButton = new JButton("Bioimage.io");
+        switchButton = new JButton(Gui.BIOIMAGEIO_STR);
         int switchH = (int) (parentHeight * V_RATIO * SWITCH_VRATIO);
         int switchW = (int) (parentWidth * H_RATIO * SWITCH_HRATIO);
         switchButton.setPreferredSize(new Dimension(switchW, switchH));
@@ -137,6 +137,24 @@ public class SearchBar extends JPanel {
     
     protected boolean isBMZPArsingDone() {
     	return nModels == bmzModels.size();
+    }
+    
+    protected void changeButtonToLocal() {
+    	this.switchButton.setText(Gui.LOCAL_STR);
+    }
+    
+    protected void changeButtonToBMZ() {
+    	this.switchButton.setText(Gui.BIOIMAGEIO_STR);
+    }
+    
+    protected boolean isBarOnLocal() {
+    	return this.switchButton.getText().equals(Gui.BIOIMAGEIO_STR);
+    }
+    
+    protected void setBarEnabled(boolean enabled) {
+    	this.searchButton.setEnabled(enabled);
+    	this.switchButton.setEnabled(enabled);
+    	this.searchField.setEnabled(enabled);
     }
 
     public static void main(String[] args) {

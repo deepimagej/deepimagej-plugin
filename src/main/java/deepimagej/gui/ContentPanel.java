@@ -51,7 +51,7 @@ public class ContentPanel extends JPanel {
         // Calculate dimensions for the logo based on the main interface size
         int logoHeight = (int) (parentHeight * 0.3);
         int logoWidth = parentWidth / 3;
-        ImageIcon logoIcon = Gui.createScaledIcon(getClass().getClassLoader().getResource(Gui.DIJ_ICON_PATH), logoWidth, logoHeight);
+        ImageIcon logoIcon = ImageLoader.getDefaultIcon(logoWidth, logoHeight);
         exampleImageLabel = new JLabel(logoIcon, JLabel.CENTER);
         
         GridBagConstraints gbc = new GridBagConstraints();
@@ -118,7 +118,7 @@ public class ContentPanel extends JPanel {
         progressBar.setForeground(new Color(46, 204, 113)); // Modern green color
 
         // Create progress label
-        progressInfoLabel = new JLabel("Processing...");
+        progressInfoLabel = new JLabel("");
         progressInfoLabel.setForeground(Color.WHITE);
         progressInfoLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
 
@@ -141,5 +141,13 @@ public class ContentPanel extends JPanel {
         progressPanel.add(progressInfoLabel, progressBarGbc);
         
         return progressPanel;
+	}
+	
+	protected void setProgressIndeterminate(boolean indeterminate) {
+		this.progressBar.setIndeterminate(indeterminate);
+	}
+	
+	protected void setProgressText(String text) {
+		this.progressInfoLabel.setText(text);
 	}
 }

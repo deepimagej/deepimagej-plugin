@@ -1,8 +1,17 @@
 package deepimagej.gui;
 
+import java.awt.Image;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Iterator;
 
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -15,7 +24,7 @@ public class ImageLoader {
         SwingWorker<ImageIcon, Void> worker = new SwingWorker<ImageIcon, Void>() {
             @Override
             protected ImageIcon doInBackground() throws Exception {
-                return Gui.createScaledIcon(url, width, height);
+                return createScaledIcon(url, width, height);
             }
 
             @Override
@@ -71,5 +80,67 @@ public class ImageLoader {
                 }
             });
         });
+    }
+    
+    protected static ImageIcon createScaledIcon(URL imagePath, int logoWidth, int logoHeight) {
+        if (imagePath == null) {
+            return getDefaultIcon(logoWidth, logoHeight);
+        }
+        try (ImageInputStream iis = ImageIO.createImageInputStream(imagePath.openStream())) {
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
+            if (!readers.hasNext()) {
+                return getDefaultIcon(logoWidth, logoHeight);
+            }
+
+            ImageReader reader = readers.next();
+            reader.setInput(iis);
+            if (isAnimatedGif(reader)) {
+                return createScaledAnimatedGif(imagePath, logoWidth, logoHeight);
+            } else {
+                return createScaledStaticImage(imagePath, logoWidth, logoHeight);
+            }
+        } catch (IOException e) {
+            return getDefaultIcon(logoWidth, logoHeight);
+        }
+    }
+
+    private static boolean isAnimatedGif(ImageReader reader) throws IOException {
+        return reader.getFormatName().equalsIgnoreCase("gif") && reader.getNumImages(true) > 1;
+    }
+
+    private static ImageIcon createScaledAnimatedGif(URL imagePath, int width, int height) {
+        ImageIcon originalIcon = new ImageIcon(imagePath);
+        Image scaledImage = originalIcon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
+        return new ImageIcon(scaledImage);
+    }
+
+    private static ImageIcon createScaledStaticImage(URL imagePath, int width, int height) throws IOException {
+        BufferedImage originalImage = ImageIO.read(imagePath);
+        if (originalImage == null) {
+            return getDefaultIcon(width, height);
+        }
+        BufferedImage scaledImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        AffineTransform at = AffineTransform.getScaleInstance(
+                (double) width / originalImage.getWidth(), 
+                (double) height / originalImage.getHeight()
+        );
+        AffineTransformOp scaleOp = new AffineTransformOp(at, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+        scaleOp.filter(originalImage, scaledImage);
+        //Image scaledImage = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+        return new ImageIcon(scaledImage);
+    }
+
+    static ImageIcon getDefaultIcon(int width, int height) {
+        try {
+            URL defaultIconUrl = Gui.class.getResource(Gui.DIJ_ICON_PATH);
+            if (defaultIconUrl == null) {
+                return null;
+            }
+            BufferedImage defaultImage = ImageIO.read(defaultIconUrl);
+            Image scaledDefaultImage = defaultImage.getScaledInstance(width, height, Image.SCALE_FAST);
+            return new ImageIcon(scaledDefaultImage);
+        } catch (IOException e) {
+            return null;
+        }
     }
 }

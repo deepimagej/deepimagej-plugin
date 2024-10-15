@@ -84,6 +84,7 @@ public class DeepImageJ_Run implements PlugIn {
 	Map<String, TwoParameterConsumer<String, Double>> consumersMap;
 	@Override
 	public void run(String arg) {
+		long tt = System.currentTimeMillis();
 		File modelsDir = new File("models");
 		if (!modelsDir.isDirectory() && !modelsDir.mkdir())
 			throw new RuntimeException("Unable to create 'models' folder inside ImageJ/Fiji directory. Please create it yourself.");
@@ -100,6 +101,7 @@ public class DeepImageJ_Run implements PlugIn {
 	        List<ModelDescriptor> models = ModelDescriptorFactory.getModelsAtLocalRepo(modelsDir.getAbsolutePath());
             if (guiRef[0] != null)
                 guiRef[0].setModels(models);
+            System.out.println(System.currentTimeMillis() - tt);
 	    }).start();
 	    
 	    

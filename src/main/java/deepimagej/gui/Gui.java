@@ -10,7 +10,12 @@ import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Image;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
@@ -20,7 +25,12 @@ import java.net.URL;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
 import deepimagej.Runner;
@@ -43,6 +53,8 @@ public class Gui extends PlugInFrame {
     private ModelSelectionPanel modelSelectionPanel;
     private Header titlePanel;
     private JPanel footerPanel;
+    private JButton runButton;
+    private JButton runOnTestButton;
     private Layout layout = Layout.createVertical(LAYOUT_WEIGHTS);
 
     private static final double FOOTER_VRATIO = 0.06;
@@ -51,6 +63,11 @@ public class Gui extends PlugInFrame {
     protected static final String LOADING_STR = "loading...";
     protected static final String LOADING_GIF_PATH = "loading...";
     protected static final String DIJ_ICON_PATH = "dij_imgs/deepimagej_icon.png";
+    protected static final String LOCAL_STR = "Local";
+    protected static final String BIOIMAGEIO_STR = "Bioimage.io";
+    protected static final String RUN_STR = "Run";
+    protected static final String RUN_ON_TEST_STR = "Run on test";
+    protected static final String INSTALL_STR = "Install model";
     
 
     public Gui() {
@@ -93,7 +110,7 @@ public class Gui extends PlugInFrame {
         // Set up the title panel
         searchBar = new SearchBar(this.getWidth(), this.getHeight());
         add(searchBar, layout.get(1));
-        searchBar.switchButton.addActionListener(ee -> clickedBMZ());
+        searchBar.switchButton.addActionListener(ee -> switchBtnClicked());
     }
 
     private void initMainContentPanel() {
@@ -119,15 +136,15 @@ public class Gui extends PlugInFrame {
     private void initFooterPanel() {
         footerPanel = new JPanel(new BorderLayout());
         footerPanel.setBackground(new Color(45, 62, 80));
-        footerPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
+        footerPanel.setBorder(new EmptyBorder(10, 5, 10, 5));
         footerPanel.setPreferredSize(new Dimension(this.getWidth(), (int) (this.getHeight() * FOOTER_VRATIO)));
 
         JPanel runButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         runButtonPanel.setBackground(new Color(45, 62, 80));
 
-        JButton runOnTestButton = new JButton("Run on Test");
-        runOnTestButton.addActionListener(e -> runModelOnTestImage());
-        JButton runButton = new JButton("Run");
+        runOnTestButton = new JButton(RUN_ON_TEST_STR);
+        runOnTestButton.addActionListener(e -> runTestOrInstall());
+        runButton = new JButton(RUN_STR);
         runButton.addActionListener(e -> runModel());
 
         styleButton(runOnTestButton);
@@ -148,6 +165,14 @@ public class Gui extends PlugInFrame {
     
     private void runModel() {
     	
+    }
+    
+    private void runTestOrInstall() {
+    	if (this.runOnTestButton.getText().equals(INSTALL_STR)) {
+    		installSelectedModel();
+    	} else if (this.runOnTestButton.getText().equals(RUN_ON_TEST_STR)) {
+    		runModelOnTestImage();
+    	}
     }
     
     private <T extends RealType<T> & NativeType<T>> void runModelOnTestImage() {
@@ -176,7 +201,7 @@ public class Gui extends PlugInFrame {
         // Update example image and model info
         int logoHeight = (int) (getHeight() * 0.3);
         int logoWidth = getWidth() / 3;
-        ImageIcon logoIcon = Gui.createScaledIcon(modelSelectionPanel.getCoverPaths().get(currentIndex), logoWidth, logoHeight);
+        ImageIcon logoIcon = ImageLoader.createScaledIcon(modelSelectionPanel.getCoverPaths().get(currentIndex), logoWidth, logoHeight);
         this.contentPanel.setIcon(logoIcon);
         this.contentPanel.setInfo("Detailed information for " + modelSelectionPanel.getModelNames().get(currentIndex));
     }
@@ -200,7 +225,7 @@ public class Gui extends PlugInFrame {
         // Update example image and model info
         int logoHeight = (int) (getHeight() * 0.3);
         int logoWidth = getWidth() / 3;
-        ImageIcon logoIcon = Gui.createScaledIcon(modelSelectionPanel.getCoverPaths().get(currentIndex), logoWidth, logoHeight);
+        ImageIcon logoIcon = ImageLoader.createScaledIcon(modelSelectionPanel.getCoverPaths().get(currentIndex), logoWidth, logoHeight);
         this.contentPanel.setIcon(logoIcon);
         this.contentPanel.setInfo("Detailed information for " + modelSelectionPanel.getModelNames().get(currentIndex));
     }
@@ -209,9 +234,24 @@ public class Gui extends PlugInFrame {
     	this.titlePanel.trackEngineInstallation(consumersMap);
     }
     
+    protected void switchBtnClicked() {
+    	if (this.searchBar.isBarOnLocal()) {
+    		clickedBMZ();
+    	} else {
+    		clickedLocal();
+    	}
+    }
+    
     protected void clickedBMZ() {
     	ArrayList<ModelDescriptor> newModels = createArrayOfNulls(3);
     	boolean isEdt = SwingUtilities.isEventDispatchThread();
+    	this.searchBar.setBarEnabled(false);
+    	this.searchBar.changeButtonToLocal();
+    	this.contentPanel.setProgressIndeterminate(true);
+    	this.contentPanel.setProgressText("Getting Bioimage.io models...");
+    	this.runButton.setVisible(false);
+    	this.runOnTestButton.setText(INSTALL_STR);
+    	this.runOnTestButton.setEnabled(false);
     	setModels(newModels);
     	
     	Thread finderThread = new Thread(() -> {
@@ -240,7 +280,13 @@ public class Gui extends PlugInFrame {
             	SwingUtilities.invokeLater(() -> setModels(foundModels));
     		}
         	List<ModelDescriptor> foundModels = searchBar.getBMZModels();
-        	SwingUtilities.invokeLater(() -> setModels(foundModels));
+        	SwingUtilities.invokeLater(() -> {
+        		setModels(foundModels);
+            	this.contentPanel.setProgressIndeterminate(false);
+            	this.contentPanel.setProgressText("");
+            	this.searchBar.setBarEnabled(true);
+            	this.runOnTestButton.setEnabled(true);
+        	});
     	});
     	
     	finderThread.start();
@@ -258,66 +304,8 @@ public class Gui extends PlugInFrame {
     	
     }
     
-    protected static ImageIcon createScaledIcon(URL imagePath, int logoWidth, int logoHeight) {
-        if (imagePath == null) {
-            return getDefaultIcon(logoWidth, logoHeight);
-        }
-        try (ImageInputStream iis = ImageIO.createImageInputStream(imagePath.openStream())) {
-            Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
-            if (!readers.hasNext()) {
-                return getDefaultIcon(logoWidth, logoHeight);
-            }
-
-            ImageReader reader = readers.next();
-            reader.setInput(iis);
-            if (isAnimatedGif(reader)) {
-                return createScaledAnimatedGif(imagePath, logoWidth, logoHeight);
-            } else {
-                return createScaledStaticImage(imagePath, logoWidth, logoHeight);
-            }
-        } catch (IOException e) {
-            return getDefaultIcon(logoWidth, logoHeight);
-        }
-    }
-
-    private static boolean isAnimatedGif(ImageReader reader) throws IOException {
-        return reader.getFormatName().equalsIgnoreCase("gif") && reader.getNumImages(true) > 1;
-    }
-
-    private static ImageIcon createScaledAnimatedGif(URL imagePath, int width, int height) {
-        ImageIcon originalIcon = new ImageIcon(imagePath);
-        Image scaledImage = originalIcon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
-        return new ImageIcon(scaledImage);
-    }
-
-    private static ImageIcon createScaledStaticImage(URL imagePath, int width, int height) throws IOException {
-        BufferedImage originalImage = ImageIO.read(imagePath);
-        if (originalImage == null) {
-            return getDefaultIcon(width, height);
-        }
-        BufferedImage scaledImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        AffineTransform at = AffineTransform.getScaleInstance(
-                (double) width / originalImage.getWidth(), 
-                (double) height / originalImage.getHeight()
-        );
-        AffineTransformOp scaleOp = new AffineTransformOp(at, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
-        scaleOp.filter(originalImage, scaledImage);
-        //Image scaledImage = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
-        return new ImageIcon(scaledImage);
-    }
-
-    private static ImageIcon getDefaultIcon(int width, int height) {
-        try {
-            URL defaultIconUrl = Gui.class.getResource(DIJ_ICON_PATH);
-            if (defaultIconUrl == null) {
-                return null;
-            }
-            BufferedImage defaultImage = ImageIO.read(defaultIconUrl);
-            Image scaledDefaultImage = defaultImage.getScaledInstance(width, height, Image.SCALE_FAST);
-            return new ImageIcon(scaledDefaultImage);
-        } catch (IOException e) {
-            return null;
-        }
+    private void installSelectedModel() {
+    	
     }
 
     public static void main(String[] args) {

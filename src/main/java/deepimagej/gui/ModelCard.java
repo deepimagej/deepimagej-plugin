@@ -74,8 +74,8 @@ public class ModelCard extends JPanel {
     		isFile = new File(imagePath.toURI()).isFile();
     	} catch (Exception ex) {}
     	
-    	if (isFile) {
-            ImageIcon logoIcon = Gui.createScaledIcon(imagePath, iconW, iconH);
+    	if (false && isFile) {
+            ImageIcon logoIcon = ImageLoader.createScaledIcon(imagePath, iconW, iconH);
             imageLabel.setIcon(logoIcon);
             this.revalidate();
             this.repaint();

@@ -57,7 +57,7 @@ public class Header extends JPanel {
         int logoWidth = (int) (parentHeight * TITLE_HRATIO * LOGO_HRATIO);
 
         // Create logo label with the specified size
-        ImageIcon logoIcon = Gui.createScaledIcon(getClass().getClassLoader().getResource(Gui.DIJ_ICON_PATH), logoWidth, logoHeight);
+        ImageIcon logoIcon = ImageLoader.getDefaultIcon(logoWidth, logoHeight);
         logoLabel = new JLabel(logoIcon);
 
         // Title label
