@@ -165,6 +165,11 @@ public class ModelSelectionPanel extends JPanel {
     	lineBorder.setTitle(text);
     }
     
+    protected void setArrowsEnabled(boolean enabled) {
+    	nextButton.setEnabled(enabled);
+    	prevButton.setEnabled(enabled);
+    }
+    
     protected void setLocalBorder() {
     	setBorderLabel(Gui.LOCAL_STR);
     }

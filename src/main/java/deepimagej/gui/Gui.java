@@ -18,6 +18,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.io.IOException;
+import java.nio.file.Paths;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -246,6 +247,7 @@ public class Gui extends PlugInFrame {
     	this.runOnTestButton.setText(INSTALL_STR);
     	this.runOnTestButton.setEnabled(false);
     	this.modelSelectionPanel.setBMZBorder();
+    	this.modelSelectionPanel.setArrowsEnabled(false);
     	setModels(newModels);
     	
     	Thread finderThread = new Thread(() -> {
@@ -280,6 +282,7 @@ public class Gui extends PlugInFrame {
             	this.contentPanel.setProgressText("");
             	this.searchBar.setBarEnabled(true);
             	this.runOnTestButton.setEnabled(true);
+            	this.modelSelectionPanel.setArrowsEnabled(true);
         	});
     	});
     	
@@ -301,10 +304,14 @@ public class Gui extends PlugInFrame {
     private void installSelectedModel() {
     	ModelDescriptor selectedModel = modelSelectionPanel.getModels().get(this.currentIndex);
     	TwoParameterConsumer<String, Double> progress = DownloadTracker.createConsumerProgress();
+    	this.runOnTestButton.setEnabled(false);
+    	this.searchBar.setBarEnabled(false);
+    	this.modelSelectionPanel.setArrowsEnabled(false);
     	
     	Thread dwnlThread = new Thread(() -> {
         	try {
-    			BioimageioRepo.downloadModel(selectedModel, "models", progress);
+    			String modelFolder = BioimageioRepo.downloadModel(selectedModel, "models", progress);
+    			selectedModel.addModelPath(Paths.get(modelFolder));
     		} catch (IOException | InterruptedException e) {
     			e.printStackTrace();
     			return;
@@ -318,9 +325,18 @@ public class Gui extends PlugInFrame {
 				} catch (InterruptedException e) {
 					return;
 				}
-    			long perc = Math.round(progress.get().get("total") * 100);
+    			Double val = progress.get().get("total");
+    			long perc = Math.round((val == null ? 0.0 : val) * 100);
     			SwingUtilities.invokeLater(() -> contentPanel.setDeterminatePorgress((int) perc));
     		}
+			Double val = progress.get().get("total");
+			long perc = Math.round((val == null ? 0.0 : val) * 100);
+			SwingUtilities.invokeLater(() -> {
+				contentPanel.setDeterminatePorgress((int) perc);
+				runOnTestButton.setEnabled(true);
+		    	this.searchBar.setBarEnabled(true);
+		    	this.modelSelectionPanel.setArrowsEnabled(true);
+			});
     	});
     	dwnlThread.start();
     	reportThread.start();
