@@ -114,10 +114,11 @@ public class ModelSelectionPanel extends JPanel {
 	}
     
     private void setCardsData() {
-    	this.modelNames = models.stream().map(mm -> mm.getName()).collect(Collectors.toList());
-    	this.modelNicknames = models.stream().map(mm -> mm.getNickname()).collect(Collectors.toList());
+    	this.modelNames = models.stream().map(mm -> mm == null ? Gui.LOADING_STR : mm.getName()).collect(Collectors.toList());
+    	this.modelNicknames = models.stream().map(mm -> mm == null ? Gui.LOADING_STR : mm.getNickname()).collect(Collectors.toList());
     	this.modelImagePaths = models.stream().map(mm -> {
-    		if (mm.getCovers() == null || mm.getCovers().size() == 0) return this.getClass().getClassLoader().getResource(Gui.DIJ_ICON_PATH);
+    		if (mm == null || mm.getCovers() == null || mm.getCovers().size() == 0) 
+    			return this.getClass().getClassLoader().getResource(Gui.DIJ_ICON_PATH);
     		File imFile = new File(mm.getCovers().get(0));
     		if (!imFile.exists())
     			imFile = new File(mm.getModelPath() + File.separator + mm.getCovers().get(0));

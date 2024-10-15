@@ -208,26 +208,44 @@ public class Gui extends PlugInFrame {
     	this.titlePanel.trackEngineInstallation(consumersMap);
     }
     
-    public void setLoadingCards() {
-    	setCards(generateLoadingCards());
-    }
-    
-    public void setCards(List<JPanel> cards) {
+    protected void clickedBMZ() {
+    	ArrayList<ModelDescriptor> newModels = createArrayOfNulls(3);
+    	boolean isEdt = SwingUtilities.isEventDispatchThread();
+    	setModels(newModels);
     	
+    	new Thread(() -> {
+        	int nModels = searchBar.countBMZModels(true);
+        	this.searchBar.findBMZModels();
+    	}).start();
+    	
+    	new Thread(() -> {
+    		while (searchBar.countBMZModels(false) == 0) {
+    			try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					return;
+				}
+            	ArrayList<ModelDescriptor> bmzModels = createArrayOfNulls(searchBar.countBMZModels(false));
+            	searchBar.getBMZModels();
+    		}
+    	}).start();
     }
     
-    private List<JPanel> generateLoadingCards() {
-    	List<JPanel> cards = new ArrayList<JPanel>();
-    	//for (double size : cardSizes)
-    		//cards.add(ModelCard.createModelCard(LOADING_STR, Gui.class.getResource(LOADING_GIF_PATH), LOADING_STR, size));
-    	return cards;
+    private static ArrayList<ModelDescriptor> createArrayOfNulls(int n) {
+    	ArrayList<ModelDescriptor> newModels = new ArrayList<ModelDescriptor>();
+    	for (int i = 0; i < n; i++)
+    		newModels.add(null);
+    	return newModels;
+    }
+    
+    protected void clickedLocal() {
+    	
     }
     
     protected static ImageIcon createScaledIcon(URL imagePath, int logoWidth, int logoHeight) {
         if (imagePath == null) {
             return getDefaultIcon(logoWidth, logoHeight);
         }
-        long tt = System.currentTimeMillis();
         try (ImageInputStream iis = ImageIO.createImageInputStream(imagePath.openStream())) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
             if (!readers.hasNext()) {
@@ -236,14 +254,10 @@ public class Gui extends PlugInFrame {
 
             ImageReader reader = readers.next();
             reader.setInput(iis);
-            System.out.println("open image: " + (System.currentTimeMillis() - tt));
-            tt = System.currentTimeMillis();
             if (isAnimatedGif(reader)) {
                 return createScaledAnimatedGif(imagePath, logoWidth, logoHeight);
             } else {
-                ImageIcon aa = createScaledStaticImage(imagePath, logoWidth, logoHeight);
-                System.out.println("re escale image: " + (System.currentTimeMillis() - tt));
-                return aa;
+                return createScaledStaticImage(imagePath, logoWidth, logoHeight);
             }
         } catch (IOException e) {
             return getDefaultIcon(logoWidth, logoHeight);

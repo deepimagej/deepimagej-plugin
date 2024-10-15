@@ -8,6 +8,8 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -18,13 +20,18 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
+import io.bioimage.modelrunner.bioimageio.BioimageioRepo;
+import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
+
 public class SearchBar extends JPanel {
     private static final long serialVersionUID = -1741389221668683293L;
 	private JTextField searchField;
-    private JButton searchButton;
-    private JButton switchButton;
+	protected JButton searchButton;
+    protected JButton switchButton;
     private long parentHeight;
     private long parentWidth;
+    private List<ModelDescriptor> bmzModels;
+    private int nModels;
     private static final double H_RATIO = 1;
     private static final double V_RATIO = 0.05;
     private static final double ICON_VRATIO = 1.0;
@@ -100,6 +107,35 @@ public class SearchBar extends JPanel {
         String searchText = searchField.getText();
         // Implement your search logic here
         System.out.println("Searching for: " + searchText);
+    }
+    
+    protected int countBMZModels() {
+    	return countBMZModels(false);
+    }
+    
+    protected int countBMZModels(boolean recount) {
+    	if (!recount)
+    		return nModels;
+    	BioimageioRepo.connect();
+    	nModels = BioimageioRepo.getModelIDs().size();
+    	return nModels;
+    }
+    
+    protected List<ModelDescriptor> findBMZModels() {
+    	bmzModels = new ArrayList<ModelDescriptor>();
+    	for (String url : BioimageioRepo.getModelIDs()) {
+    		ModelDescriptor descriptor = BioimageioRepo.retreiveDescriptorFromURL(BioimageioRepo.getModelURL(url));
+    		bmzModels.add(descriptor);
+    	}
+    	return null;
+    }
+    
+    protected List<ModelDescriptor> getBMZModels(){
+    	return this.bmzModels;
+    }
+    
+    protected boolean isBMZPArsingDone() {
+    	return nModels == bmzModels.size();
     }
 
     public static void main(String[] args) {
