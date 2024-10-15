@@ -22,6 +22,7 @@ import javax.swing.SwingUtilities;
 
 import io.bioimage.modelrunner.bioimageio.BioimageioRepo;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
+import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
 import io.bioimage.modelrunner.utils.Constants;
 
 public class SearchBar extends JPanel {
@@ -129,6 +130,10 @@ public class SearchBar extends JPanel {
     		bmzModels.add(descriptor);
     	}
     	return bmzModels;
+    }
+    
+    protected void findLocalModels(String dir) {
+    	bmzModels = ModelDescriptorFactory.getModelsAtLocalRepo(dir);
     }
     
     protected List<ModelDescriptor> getBMZModels(){

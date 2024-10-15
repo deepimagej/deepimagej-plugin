@@ -17,6 +17,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 
@@ -298,7 +299,48 @@ public class Gui extends PlugInFrame {
     }
     
     protected void clickedLocal() {
+    	ArrayList<ModelDescriptor> newModels = createArrayOfNulls(3);
+    	boolean isEdt = SwingUtilities.isEventDispatchThread();
+    	this.searchBar.setBarEnabled(false);
+    	this.searchBar.changeButtonToBMZ();
+    	this.contentPanel.setProgressIndeterminate(true);
+    	this.contentPanel.setProgressText("Getting Bioimage.io models...");
+    	this.runButton.setVisible(true);
+    	this.runButton.setEnabled(false);
+    	this.runOnTestButton.setText(RUN_ON_TEST_STR);
+    	this.runOnTestButton.setEnabled(false);
+    	this.modelSelectionPanel.setLocalBorder();
+    	this.modelSelectionPanel.setArrowsEnabled(false);
+    	setModels(newModels);
     	
+    	Thread finderThread = new Thread(() -> {
+        	this.searchBar.findLocalModels(new File("models").getAbsolutePath());
+    	});
+    	
+    	Thread updaterThread = new Thread(() -> {
+    		while (finderThread.isAlive()) {
+    			try {
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+					return;
+				}
+            	List<ModelDescriptor> foundModels = new ArrayList<>(searchBar.getBMZModels());
+            	SwingUtilities.invokeLater(() -> setModels(foundModels));
+    		}
+        	List<ModelDescriptor> foundModels = searchBar.getBMZModels();
+        	SwingUtilities.invokeLater(() -> {
+        		setModels(foundModels);
+            	this.contentPanel.setProgressIndeterminate(false);
+            	this.contentPanel.setProgressText("");
+            	this.searchBar.setBarEnabled(true);
+            	this.runOnTestButton.setEnabled(true);
+            	this.modelSelectionPanel.setArrowsEnabled(true);
+            	this.runButton.setEnabled(true);
+        	});
+    	});
+    	
+    	finderThread.start();
+    	updaterThread.start();
     }
     
     private void installSelectedModel() {
