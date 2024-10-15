@@ -81,6 +81,7 @@ public class DeepImageJ_Run implements PlugIn {
 		new DeepImageJ_Run().run("");
 	}
 
+	Map<String, TwoParameterConsumer<String, Double>> consumersMap;
 	@Override
 	public void run(String arg) {
 		File modelsDir = new File("models");
@@ -106,9 +107,19 @@ public class DeepImageJ_Run implements PlugIn {
 	    new Thread(() -> {
 	        EngineInstall installer = EngineInstall.createInstaller(MODELS_DIR);
 	        installer.checkBasicEngineInstallation();
-	        Map<String, TwoParameterConsumer<String, Double>> consumersMap = installer.getBasicEnginesProgress();
-	        guiRef[0].trackEngineInstallation(consumersMap);
+	        consumersMap = installer.getBasicEnginesProgress();
 	        installer.basicEngineInstallation();
+	    }).start();
+	    
+	    new Thread(() -> {
+	    	while (guiRef[0] != null) {
+	    		try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					return;
+				}
+	    	}
+	        guiRef[0].trackEngineInstallation(consumersMap);
 	    }).start();
 	    
 		
