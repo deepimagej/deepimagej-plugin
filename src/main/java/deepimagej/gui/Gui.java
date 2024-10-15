@@ -3,6 +3,7 @@ package deepimagej.gui;
 import ij.plugin.frame.PlugInFrame;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
+import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
 import io.bioimage.modelrunner.exceptions.RunModelException;
 import io.bioimage.modelrunner.tensor.Tensor;
@@ -10,34 +11,29 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
 import java.awt.*;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 import javax.swing.*;
-import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 
 import deepimagej.Runner;
 import deepimagej.tools.ImPlusRaiManager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 public class Gui extends PlugInFrame {
 
     private static final long serialVersionUID = 1081914206026104187L;
-    private List<String> modelNames;
-    private List<String> modelNicknames;
-    private List<URL> modelImagePaths;
     private List<ModelDescriptor> models;
     private Runner runner;
 
@@ -58,7 +54,6 @@ public class Gui extends PlugInFrame {
 
     public Gui() {
         super("DeepImageJ Plugin");
-        setDefaultCardsData();
         setSize(800, 900);
         setLayout(layout);
 
@@ -87,15 +82,6 @@ public class Gui extends PlugInFrame {
 
         this.pack();
         setVisible(true);
-    }
-    
-    private void setDefaultCardsData() {
-        modelNames = Arrays.asList(LOADING_STR, LOADING_STR, LOADING_STR);
-        modelNicknames = Arrays.asList(LOADING_STR, LOADING_STR, LOADING_STR);
-        modelImagePaths = Arrays.asList(getClass().getClassLoader().getResource(DIJ_ICON_PATH), 
-    											    		getClass().getClassLoader().getResource(DIJ_ICON_PATH), 
-    											    		getClass().getClassLoader().getResource(DIJ_ICON_PATH));
-        models = new ArrayList<ModelDescriptor>();
     }
 
     private void initTitlePanel() {
@@ -186,6 +172,14 @@ public class Gui extends PlugInFrame {
         button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
     }
     
+    public void setModels(List<ModelDescriptor> models) {
+    	this.modelSelectionPanel.setModels(models);
+    }
+    
+    public void trackEngineInstallation(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
+    	this.titlePanel.trackEngineInstallation(consumersMap);
+    }
+    
     public void setLoadingCards() {
     	setCards(generateLoadingCards());
     }
@@ -205,7 +199,7 @@ public class Gui extends PlugInFrame {
         if (imagePath == null) {
             return getDefaultIcon(logoWidth, logoHeight);
         }
-
+        long tt = System.currentTimeMillis();
         try (ImageInputStream iis = ImageIO.createImageInputStream(imagePath.openStream())) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
             if (!readers.hasNext()) {
@@ -214,11 +208,14 @@ public class Gui extends PlugInFrame {
 
             ImageReader reader = readers.next();
             reader.setInput(iis);
-
+            System.out.println("open image: " + (System.currentTimeMillis() - tt));
+            tt = System.currentTimeMillis();
             if (isAnimatedGif(reader)) {
                 return createScaledAnimatedGif(imagePath, logoWidth, logoHeight);
             } else {
-                return createScaledStaticImage(imagePath, logoWidth, logoHeight);
+                ImageIcon aa = createScaledStaticImage(imagePath, logoWidth, logoHeight);
+                System.out.println("re escale image: " + (System.currentTimeMillis() - tt));
+                return aa;
             }
         } catch (IOException e) {
             return getDefaultIcon(logoWidth, logoHeight);
@@ -240,7 +237,14 @@ public class Gui extends PlugInFrame {
         if (originalImage == null) {
             return getDefaultIcon(width, height);
         }
-        Image scaledImage = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+        BufferedImage scaledImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        AffineTransform at = AffineTransform.getScaleInstance(
+                (double) width / originalImage.getWidth(), 
+                (double) height / originalImage.getHeight()
+        );
+        AffineTransformOp scaleOp = new AffineTransformOp(at, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+        scaleOp.filter(originalImage, scaledImage);
+        //Image scaledImage = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
         return new ImageIcon(scaledImage);
     }
 
@@ -251,7 +255,7 @@ public class Gui extends PlugInFrame {
                 return null;
             }
             BufferedImage defaultImage = ImageIO.read(defaultIconUrl);
-            Image scaledDefaultImage = defaultImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+            Image scaledDefaultImage = defaultImage.getScaledInstance(width, height, Image.SCALE_FAST);
             return new ImageIcon(scaledDefaultImage);
         } catch (IOException e) {
             return null;

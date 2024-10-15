@@ -6,6 +6,8 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -13,6 +15,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.border.LineBorder;
+
+import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
 
 public class Header extends JPanel {
 	
@@ -43,7 +47,7 @@ public class Header extends JPanel {
 		this.title = title;
 		this.subtitle = subtitle;
         this.setBackground(Color.GRAY);
-        this.setBorder(new LineBorder(Color.BLACK, 5, true));
+        this.setBorder(new LineBorder(Color.BLACK, 2, true));
         this.setPreferredSize(new Dimension(parentWidth, (int) (parentHeight * TITLE_VRATIO)));
 
         // Calculate dimensions for the logo based on the main interface size
@@ -142,5 +146,22 @@ public class Header extends JPanel {
         
         return progressPanel;
 	}
+    
+    public void trackEngineInstallation(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
+    	for (Entry<String, TwoParameterConsumer<String, Double>> ee : consumersMap.entrySet()) {
+    		String aa = "";
+    	}
+    	new Thread(() -> {
+    		Map<String, TwoParameterConsumer<String, Double>> bb = consumersMap;
+        	while (true) {
+        		try {
+    				Thread.sleep(1500);
+    			} catch (InterruptedException e) {
+    				return;
+    			}
+        		Map<String, TwoParameterConsumer<String, Double>> aa = bb;
+        	}
+    	}).start();;
+    }
 
 }

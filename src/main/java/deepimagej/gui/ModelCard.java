@@ -4,9 +4,11 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.image.BufferedImage;
 import java.net.URL;
 
 import javax.swing.BorderFactory;
+import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -37,9 +39,11 @@ public class ModelCard extends JPanel {
         this.setBackground(Color.WHITE);
         this.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-        URL imagePath = ModelCard.class.getClassLoader().getResource(Gui.DIJ_ICON_PATH);
+        /*URL imagePath = ModelCard.class.getClassLoader().getResource(Gui.DIJ_ICON_PATH);
         ImageIcon logoIcon = Gui.createScaledIcon(imagePath, 
         		(int) (CARD_ICON_HRATIO * cardWidth * scale), (int) (cardHeight * CARD_ICON_VRATIO * scale));
+        		*/
+        Icon logoIcon = createEmptyIcon((int) (CARD_ICON_HRATIO * cardWidth * scale), (int) (cardHeight * CARD_ICON_VRATIO * scale));
         this.imageLabel = new JLabel(logoIcon, JLabel.CENTER);
 
         this.nameLabel = new JLabel(Gui.LOADING_STR, JLabel.CENTER);
@@ -65,6 +69,14 @@ public class ModelCard extends JPanel {
         imageLabel.setIcon(logoIcon);
         this.revalidate();
         this.repaint();
+    }
+    
+    private static ImageIcon createEmptyIcon(int width, int height) {
+        // Create a transparent BufferedImage of the specified size
+        BufferedImage emptyImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        
+        // Create an ImageIcon from the empty image
+        return new ImageIcon(emptyImage);
     }
 
     /*

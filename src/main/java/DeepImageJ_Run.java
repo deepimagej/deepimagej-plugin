@@ -61,6 +61,8 @@ import io.bioimage.modelrunner.engine.installation.EngineInstall;
  *
  */
 public class DeepImageJ_Run implements PlugIn {
+	
+	private static final String MODELS_DIR = new File("models").getAbsolutePath();
 	/**
 	 * Message containing the references to the plugin
 	 */
@@ -81,17 +83,17 @@ public class DeepImageJ_Run implements PlugIn {
 
 	@Override
 	public void run(String arg) {
-		
 		File modelsDir = new File("models");
 		if (!modelsDir.isDirectory() && !modelsDir.mkdir())
 			throw new RuntimeException("Unable to create 'models' folder inside ImageJ/Fiji directory. Please create it yourself.");
 	    final Gui[] guiRef = new Gui[1];
 	    if (SwingUtilities.isEventDispatchThread())
 	    	guiRef[0] = new Gui();
-	    else
+	    else {
 		    SwingUtilities.invokeLater(() -> {
 		        guiRef[0] = new Gui();
 		    });
+	    }
 
 	    new Thread(() -> {
 	        List<ModelDescriptor> models = ModelDescriptorFactory.getModelsAtLocalRepo(modelsDir.getAbsolutePath());
@@ -99,24 +101,16 @@ public class DeepImageJ_Run implements PlugIn {
                 guiRef[0].setModels(models);
 	    }).start();
 	    
-	    /**
-        EngineInstall installer = EngineInstall.createInstaller(arg);
-        installer.checkBasicEngineInstallation();
-        installer.basicEngineInstallation();
-        Map<String, TwoParameterConsumer<String, Double>> consumersMap = installer.getBasicEnginesProgress();
-        consumersMap.
+	    
 
 	    new Thread(() -> {
-	        EngineInstall installer = EngineInstall.createInstaller(arg);
+	        EngineInstall installer = EngineInstall.createInstaller(MODELS_DIR);
 	        installer.checkBasicEngineInstallation();
+	        Map<String, TwoParameterConsumer<String, Double>> consumersMap = installer.getBasicEnginesProgress();
+	        guiRef[0].trackEngineInstallation(consumersMap);
 	        installer.basicEngineInstallation();
-	        SwingUtilities.invokeLater(() -> {
-	            if (guiRef[0] != null) {
-	                guiRef[0].setModels(models);
-	            }
-	        });
 	    }).start();
-	    */
+	    
 		
 	}
 
