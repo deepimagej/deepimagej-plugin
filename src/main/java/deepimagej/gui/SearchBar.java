@@ -22,6 +22,7 @@ import javax.swing.SwingUtilities;
 
 import io.bioimage.modelrunner.bioimageio.BioimageioRepo;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
+import io.bioimage.modelrunner.utils.Constants;
 
 public class SearchBar extends JPanel {
     private static final long serialVersionUID = -1741389221668683293L;
@@ -124,7 +125,7 @@ public class SearchBar extends JPanel {
     protected List<ModelDescriptor> findBMZModels() {
     	bmzModels = new ArrayList<ModelDescriptor>();
     	for (String url : BioimageioRepo.getModelIDs()) {
-    		ModelDescriptor descriptor = BioimageioRepo.retreiveDescriptorFromURL(BioimageioRepo.getModelURL(url));
+    		ModelDescriptor descriptor = BioimageioRepo.retreiveDescriptorFromURL(BioimageioRepo.getModelURL(url) + Constants.RDF_FNAME);
     		bmzModels.add(descriptor);
     	}
     	return bmzModels;

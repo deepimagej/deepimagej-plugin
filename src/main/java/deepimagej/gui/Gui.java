@@ -229,8 +229,13 @@ public class Gui extends PlugInFrame {
 				}
     		}
     		while (finderThread.isAlive()) {
+    			try {
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+					return;
+				}
     			int nModels = searchBar.countBMZModels(false);
-            	List<ModelDescriptor> foundModels = searchBar.getBMZModels();
+            	List<ModelDescriptor> foundModels = new ArrayList<>(searchBar.getBMZModels());
             	foundModels.addAll(createArrayOfNulls(nModels - foundModels.size()));
             	SwingUtilities.invokeLater(() -> setModels(foundModels));
     		}
