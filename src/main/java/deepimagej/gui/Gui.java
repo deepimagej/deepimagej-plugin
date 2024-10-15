@@ -182,6 +182,7 @@ public class Gui extends PlugInFrame {
     }
 
     private void updateCarousel(int direction) {
+    	closeModelWhenChanging();
         currentIndex = getWrappedIndex(currentIndex + direction);
 
         this.modelSelectionPanel.redrawModelCards(currentIndex);
@@ -223,10 +224,21 @@ public class Gui extends PlugInFrame {
     }
     
     protected void switchBtnClicked() {
+    	closeModelWhenChanging();
     	if (this.searchBar.isBarOnLocal()) {
     		clickedBMZ();
     	} else {
     		clickedLocal();
+    	}
+    }
+    
+    private void closeModelWhenChanging() {
+    	if (runner != null && !runner.isClosed()) {
+			try {
+				runner.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
     	}
     }
     

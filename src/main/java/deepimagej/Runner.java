@@ -114,7 +114,7 @@ public class Runner implements Closeable {
 	public <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
 	List<Tensor<R>> runOnTestImages() throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
 		LinkedHashMap<TensorSpec, String> testInputs = getTestInputs();
-		LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>> inputRais = displayTestOutputs(testInputs);
+		LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>> inputRais = displayTestInputs(testInputs);
 		List<Tensor<T>> inputTensors = createTestTensorList(inputRais);
 		return model.runBMZ(inputTensors);
 	}
@@ -127,14 +127,15 @@ public class Runner implements Closeable {
 	}
 	
 	private <T extends RealType<T> & NativeType<T>>
-	LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>> displayTestOutputs(LinkedHashMap<TensorSpec, String> testInputs) {
+	LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>> displayTestInputs(LinkedHashMap<TensorSpec, String> testInputs) {
 		LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>> inputRais = new LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>>();
 		for (Entry<TensorSpec, String> input : testInputs.entrySet()) {
 			RandomAccessibleInterval<T> rai;
 			if (input.getValue().endsWith(".npy")) {
 				try {
 					rai = DecodeNumpy.loadNpy(input.getValue());
-					SwingUtilities.invokeLater(() -> ImPlusRaiManager.convert(rai, input.getKey().getAxesOrder()).show()); 
+					ImagePlus image = ImPlusRaiManager.convert(rai, input.getKey().getAxesOrder());
+					SwingUtilities.invokeLater(() -> image.show()); 
 				} catch (IOException e) {
 					throw new RuntimeException("Unexpected error reading .npy file.");
 				}
