@@ -19,6 +19,8 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -115,7 +117,15 @@ public class Gui extends PlugInFrame {
         searchBar = new SearchBar(this.getWidth(), this.getHeight());
         add(searchBar, layout.get(1));
         searchBar.switchButton.addActionListener(ee -> switchBtnClicked());
-        searchBar.searchButton.addActionListener(ee -> searchModels());    }
+        searchBar.searchButton.addActionListener(ee -> searchModels());
+        searchBar.searchField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER)
+                	searchModels();
+            }
+        });
+    }
 
     private void initMainContentPanel() {
         // Create a main content panel with vertical BoxLayout
@@ -257,6 +267,8 @@ public class Gui extends PlugInFrame {
     
     private void searchModels() {
     	List<ModelDescriptor> models = this.searchBar.performSearch();
+    	if (models.size() == 0)
+    		models = createArrayOfNulls(1);
     	this.setModelsInGui(models);
     }
     

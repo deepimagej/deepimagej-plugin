@@ -29,7 +29,7 @@ import io.bioimage.modelrunner.utils.Constants;
 
 public class SearchBar extends JPanel {
     private static final long serialVersionUID = -1741389221668683293L;
-	private JTextField searchField;
+    protected JTextField searchField;
 	protected JButton searchButton;
     protected JButton switchButton;
     private long parentHeight;
