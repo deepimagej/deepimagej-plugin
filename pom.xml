@@ -152,4 +152,19 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		    <version>imglib2-ij-2.0.1</version>
 		</dependency>
 	</dependencies>
+	<build>
+  		<resources>
+    		<resource>
+      			<directory>src/main/resources</directory>
+      			<filtering>false</filtering>
+    		</resource>
+    		<resource>
+      			<directory>src/main/resources</directory>
+      			<filtering>true</filtering>
+      			<includes>
+        			<include>.deepimagej_properties</include>
+      			</includes>
+    		</resource>
+  		</resources>
+	</build>
 </project>

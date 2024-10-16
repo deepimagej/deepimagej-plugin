@@ -44,11 +44,24 @@
 
 package deepimagej;
 
+import java.io.InputStream;
+import java.util.Properties;
+
+
 public class Constants {
 
 	public static String url = "https://deepimagej.github.io/deepimagej/";
-	public static String version = "3.0.4";
-	public static int width = 120;
-	public static String name = "deepImageJ";
+	public static String DIJ_VERSION = getVersion();
+	public static String DIJ_NAME = "deepImageJ";
+	
+    private static String getVersion() {
+        try (InputStream input = Constants.class.getResourceAsStream("/.deepimagej_properties")) {
+            Properties prop = new Properties();
+            prop.load(input);
+            return prop.getProperty("version");
+        } catch (Exception | Error ex) {
+            return "unknown";
+        }
+    }
 	
 }

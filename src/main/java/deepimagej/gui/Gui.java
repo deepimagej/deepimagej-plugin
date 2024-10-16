@@ -33,6 +33,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
+import deepimagej.Constants;
 import deepimagej.Runner;
 import deepimagej.tools.ImPlusRaiManager;
 
@@ -78,7 +79,7 @@ public class Gui extends PlugInFrame {
     }
 
     public Gui(String modelsDir, String enginesDir) {
-        super("DeepImageJ Plugin");
+        super(Constants.DIJ_NAME + "-" + Constants.DIJ_VERSION);
         this.modelsDir = modelsDir != null ? modelsDir : new File(MODELS_DEAFULT).getAbsolutePath();
         this.enginesDir = enginesDir != null ? enginesDir : new File(ENGINES_DEAFULT).getAbsolutePath();
         loadLocalModels();
@@ -168,7 +169,7 @@ public class Gui extends PlugInFrame {
         runButtonPanel.add(runOnTestButton);
         runButtonPanel.add(runButton);
 
-        JLabel copyrightLabel = new JLabel("© 2024 deepImageJ - Version 1.0");
+        JLabel copyrightLabel = new JLabel("© 2024 " + Constants.DIJ_NAME + " and JDLL");
         copyrightLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
         copyrightLabel.setForeground(Color.WHITE);
 
@@ -269,6 +270,7 @@ public class Gui extends PlugInFrame {
     public void setModels(List<ModelDescriptor> models) {
     	if (models.size() == 0)
     		models = createArrayOfNulls(1);
+    	this.modelSelectionPanel.setNotFound();
     	this.searchBar.setModels(models);
     	setModelsInGui(models);
     }
