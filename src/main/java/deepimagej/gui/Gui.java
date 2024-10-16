@@ -356,7 +356,7 @@ public class Gui extends PlugInFrame {
     	setModelsInGui(newModels);
     	
     	Thread finderThread = new Thread(() -> {
-        	this.searchBar.findLocalModels(new File("models").getAbsolutePath());
+        	this.searchBar.findLocalModels(new File(this.modelsDir).getAbsolutePath());
     	});
     	
     	Thread updaterThread = new Thread(() -> {
@@ -394,7 +394,7 @@ public class Gui extends PlugInFrame {
     	
     	Thread dwnlThread = new Thread(() -> {
         	try {
-    			String modelFolder = BioimageioRepo.downloadModel(selectedModel, "models", progress);
+    			String modelFolder = BioimageioRepo.downloadModel(selectedModel, new File(modelsDir).getAbsolutePath(), progress);
     			selectedModel.addModelPath(Paths.get(modelFolder));
     		} catch (IOException | InterruptedException e) {
     			e.printStackTrace();

@@ -43,15 +43,12 @@
  */
 
 import java.io.File;
-import java.util.List;
 import java.util.Map;
 
 import javax.swing.SwingUtilities;
 
 import deepimagej.gui.Gui;
 import ij.plugin.PlugIn;
-import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
-import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
 import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
 import io.bioimage.modelrunner.engine.installation.EngineInstall;
 
