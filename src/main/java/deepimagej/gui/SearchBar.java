@@ -5,8 +5,8 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +21,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
+import deepimagej.tools.WebBrowser;
 import io.bioimage.modelrunner.bioimageio.BioimageioRepo;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
@@ -60,6 +61,16 @@ public class SearchBar extends JPanel {
         int iconW = (int) (parentWidth * H_RATIO * ICON_HRATIO);
         ImageIcon scaledImage = ImageLoader.createScaledIcon(iconPath, iconW, iconH);
         JLabel iconLabel = new JLabel(scaledImage);
+        iconLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                try {
+                    WebBrowser.open("https://www.bioimage.io");
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
         iconLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 
         // Create the search field
