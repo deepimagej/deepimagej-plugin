@@ -90,7 +90,7 @@ public class Gui extends PlugInFrame {
         searchBar = new SearchBar(this.getWidth(), this.getHeight());
         add(searchBar, layout.get(1));
         searchBar.switchButton.addActionListener(ee -> switchBtnClicked());
-    }
+        searchBar.searchButton.addActionListener(ee -> searchModels());    }
 
     private void initMainContentPanel() {
         // Create a main content panel with vertical BoxLayout
@@ -223,6 +223,11 @@ public class Gui extends PlugInFrame {
     
     public void trackEngineInstallation(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
     	this.titlePanel.trackEngineInstallation(consumersMap);
+    }
+    
+    private void searchModels() {
+    	List<ModelDescriptor> models = this.searchBar.performSearch();
+    	this.setModels(models);
     }
     
     protected void switchBtnClicked() {

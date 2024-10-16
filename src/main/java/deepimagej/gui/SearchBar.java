@@ -10,6 +10,7 @@ import java.awt.event.ActionListener;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -96,19 +97,14 @@ public class SearchBar extends JPanel {
         //add(searchButton, BorderLayout.EAST);
         add(wrapperPanel, BorderLayout.EAST);
 
-        // Add action listener to the search button
-        searchButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                performSearch();
-            }
-        });
     }
 
-    private void performSearch() {
-        String searchText = searchField.getText();
-        // Implement your search logic here
-        System.out.println("Searching for: " + searchText);
+    protected List<ModelDescriptor> performSearch() {
+        String searchText = searchField.getText().trim();
+        return this.bmzModels.stream().filter(mm -> {
+        	return mm.getName().contains(searchText) || mm.getDescription().contains(searchText)
+        			|| mm.getNickname().contains(searchText) || mm.getTags().contains(searchText);
+        }).collect(Collectors.toList());
     }
     
     protected int countBMZModels() {
