@@ -96,16 +96,16 @@ public class DeepImageJ_Run implements PlugIn {
 		        guiRef[0] = new Gui();
 		    });
 	    }
-
+	    /**
 	    new Thread(() -> {
 	        List<ModelDescriptor> models = ModelDescriptorFactory.getModelsAtLocalRepo(modelsDir.getAbsolutePath());
             if (guiRef[0] != null)
                 guiRef[0].setModels(models);
             System.out.println(System.currentTimeMillis() - tt);
 	    }).start();
+	    */
 	    
 	    
-
 	    new Thread(() -> {
 	        EngineInstall installer = EngineInstall.createInstaller(MODELS_DIR);
 	        installer.checkBasicEngineInstallation();

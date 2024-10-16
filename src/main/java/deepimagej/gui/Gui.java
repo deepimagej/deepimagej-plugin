@@ -4,6 +4,7 @@ import ij.ImagePlus;
 import ij.plugin.frame.PlugInFrame;
 import io.bioimage.modelrunner.bioimageio.BioimageioRepo;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
+import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
 import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
 import io.bioimage.modelrunner.bioimageio.download.DownloadTracker;
 import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
@@ -42,6 +43,8 @@ public class Gui extends PlugInFrame {
     private static final long serialVersionUID = 1081914206026104187L;
     private Runner runner;
 	private int currentIndex = 1;
+	private final String modelsDir;
+	private final String enginesDir;
 
     private SearchBar searchBar;
     private ContentPanel contentPanel;
@@ -63,10 +66,19 @@ public class Gui extends PlugInFrame {
     protected static final String RUN_STR = "Run";
     protected static final String RUN_ON_TEST_STR = "Run on test";
     protected static final String INSTALL_STR = "Install model";
-    
+    private static final String MODELS_DEAFULT = "models";
+    private static final String ENGINES_DEAFULT = "engines";
+
 
     public Gui() {
+    	this(null, null);
+    }
+
+    public Gui(String modelsDir, String enginesDir) {
         super("DeepImageJ Plugin");
+        this.modelsDir = modelsDir != null ? modelsDir : new File(MODELS_DEAFULT).getAbsolutePath();
+        this.enginesDir = enginesDir != null ? enginesDir : new File(ENGINES_DEAFULT).getAbsolutePath();
+        loadLocalModels();
         setSize(800, 900);
         setLayout(layout);
 
@@ -78,6 +90,19 @@ public class Gui extends PlugInFrame {
 
         this.pack();
         setVisible(true);
+    }
+    
+    private void loadLocalModels() {
+	    new Thread(() -> {
+	        List<ModelDescriptor> models = ModelDescriptorFactory.getModelsAtLocalRepo(new File(modelsDir).getAbsolutePath());
+	        while (contentPanel == null) {
+	        	try {
+					Thread.sleep(150);
+				} catch (InterruptedException e) {
+				}
+	        }
+            this.setModels(models);
+	    }).start();
     }
 
     private void initTitlePanel() {
