@@ -209,9 +209,14 @@ public class Gui extends PlugInFrame {
     }
     
     public void setModels(List<ModelDescriptor> models) {
-    	currentIndex = 0;
     	if (models.size() == 0)
     		models = createArrayOfNulls(1);
+    	this.searchBar.setModels(models);
+    	setModelsInGui(models);
+    }
+    
+    protected void setModelsInGui(List<ModelDescriptor> models) {
+    	currentIndex = 0;
     	this.modelSelectionPanel.setModels(models);
         // Update example image and model info
         int logoHeight = (int) (getHeight() * 0.3);
@@ -227,7 +232,7 @@ public class Gui extends PlugInFrame {
     
     private void searchModels() {
     	List<ModelDescriptor> models = this.searchBar.performSearch();
-    	this.setModels(models);
+    	this.setModelsInGui(models);
     }
     
     protected void switchBtnClicked() {
@@ -261,7 +266,7 @@ public class Gui extends PlugInFrame {
     	this.runOnTestButton.setEnabled(false);
     	this.modelSelectionPanel.setBMZBorder();
     	this.modelSelectionPanel.setArrowsEnabled(false);
-    	setModels(newModels);
+    	setModelsInGui(newModels);
     	
     	Thread finderThread = new Thread(() -> {
     		// This line initiates the read of the bioimage.io collection
@@ -286,11 +291,11 @@ public class Gui extends PlugInFrame {
     			int nModels = searchBar.countBMZModels(false);
             	List<ModelDescriptor> foundModels = new ArrayList<>(searchBar.getBMZModels());
             	foundModels.addAll(createArrayOfNulls(nModels - foundModels.size()));
-            	SwingUtilities.invokeLater(() -> setModels(foundModels));
+            	SwingUtilities.invokeLater(() -> setModelsInGui(foundModels));
     		}
         	List<ModelDescriptor> foundModels = searchBar.getBMZModels();
         	SwingUtilities.invokeLater(() -> {
-        		setModels(foundModels);
+        		setModelsInGui(foundModels);
             	this.contentPanel.setProgressIndeterminate(false);
             	this.contentPanel.setProgressText("");
             	this.searchBar.setBarEnabled(true);
@@ -323,7 +328,7 @@ public class Gui extends PlugInFrame {
     	this.runOnTestButton.setEnabled(false);
     	this.modelSelectionPanel.setLocalBorder();
     	this.modelSelectionPanel.setArrowsEnabled(false);
-    	setModels(newModels);
+    	setModelsInGui(newModels);
     	
     	Thread finderThread = new Thread(() -> {
         	this.searchBar.findLocalModels(new File("models").getAbsolutePath());
@@ -337,11 +342,11 @@ public class Gui extends PlugInFrame {
 					return;
 				}
             	List<ModelDescriptor> foundModels = new ArrayList<>(searchBar.getBMZModels());
-            	SwingUtilities.invokeLater(() -> setModels(foundModels));
+            	SwingUtilities.invokeLater(() -> setModelsInGui(foundModels));
     		}
         	List<ModelDescriptor> foundModels = searchBar.getBMZModels();
         	SwingUtilities.invokeLater(() -> {
-        		setModels(foundModels);
+        		setModelsInGui(foundModels);
             	this.contentPanel.setProgressIndeterminate(false);
             	this.contentPanel.setProgressText("");
             	this.searchBar.setBarEnabled(true);

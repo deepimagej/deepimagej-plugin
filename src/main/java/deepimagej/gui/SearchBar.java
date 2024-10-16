@@ -136,6 +136,10 @@ public class SearchBar extends JPanel {
     	return this.bmzModels;
     }
     
+    protected void setModels(List<ModelDescriptor> models) {
+    	this.bmzModels = models;
+    }
+    
     protected boolean isBMZPArsingDone() {
     	return nModels == bmzModels.size();
     }
