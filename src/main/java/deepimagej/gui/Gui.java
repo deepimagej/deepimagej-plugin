@@ -61,6 +61,7 @@ public class Gui extends PlugInFrame {
     private static final double[] LAYOUT_WEIGHTS = new double[] {0.1, 0.05, 0.8, 0.05};
 
     protected static final String LOADING_STR = "loading...";
+    protected static final String NOT_FOUND_STR = "not found";
     protected static final String LOADING_GIF_PATH = "loading...";
     protected static final String DIJ_ICON_PATH = "dij_imgs/deepimagej_icon.png";
     protected static final String LOCAL_STR = "Local";
@@ -267,8 +268,10 @@ public class Gui extends PlugInFrame {
     
     private void searchModels() {
     	List<ModelDescriptor> models = this.searchBar.performSearch();
-    	if (models.size() == 0)
+    	if (models.size() == 0) {
+    		modelSelectionPanel.setNotFound();
     		models = createArrayOfNulls(1);
+    	}
     	this.setModelsInGui(models);
     }
     
@@ -292,6 +295,7 @@ public class Gui extends PlugInFrame {
     }
     
     protected void clickedBMZ() {
+    	modelSelectionPanel.setLoading();
     	ArrayList<ModelDescriptor> newModels = createArrayOfNulls(3);
     	boolean isEdt = SwingUtilities.isEventDispatchThread();
     	this.searchBar.setBarEnabled(false);
@@ -353,6 +357,7 @@ public class Gui extends PlugInFrame {
     }
     
     protected void clickedLocal() {
+    	modelSelectionPanel.setLoading();
     	ArrayList<ModelDescriptor> newModels = createArrayOfNulls(3);
     	boolean isEdt = SwingUtilities.isEventDispatchThread();
     	this.searchBar.setBarEnabled(false);

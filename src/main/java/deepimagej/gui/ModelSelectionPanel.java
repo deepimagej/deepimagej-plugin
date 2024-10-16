@@ -27,6 +27,7 @@ public class ModelSelectionPanel extends JPanel {
 	
     private final long parentHeight;
     private final long parentWidth;
+    private String defaultString = Gui.LOADING_STR;
     private JPanel modelCarouselPanel;
     private ModelCard prevModelPanel;
     private ModelCard selectedModelPanel;
@@ -113,8 +114,8 @@ public class ModelSelectionPanel extends JPanel {
 	}
     
     private void setCardsData() {
-    	this.modelNames = models.stream().map(mm -> mm == null ? Gui.LOADING_STR : mm.getName()).collect(Collectors.toList());
-    	this.modelNicknames = models.stream().map(mm -> mm == null ? Gui.LOADING_STR : mm.getNickname()).collect(Collectors.toList());
+    	this.modelNames = models.stream().map(mm -> mm == null ? defaultString : mm.getName()).collect(Collectors.toList());
+    	this.modelNicknames = models.stream().map(mm -> mm == null ? defaultString : mm.getNickname()).collect(Collectors.toList());
     	this.modelImagePaths = models.stream().map(mm -> {
     		if (mm == null || mm.getCovers() == null || mm.getCovers().size() == 0) 
     			return this.getClass().getClassLoader().getResource(Gui.DIJ_ICON_PATH);
@@ -200,5 +201,13 @@ public class ModelSelectionPanel extends JPanel {
     
     public List<ModelDescriptor> getModels() {
     	return this.models;
+    }
+    
+    protected void setLoading() {
+    	defaultString = Gui.LOADING_STR;
+    }
+    
+    protected void setNotFound() {
+    	defaultString = Gui.NOT_FOUND_STR;
     }
 }
