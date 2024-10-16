@@ -154,6 +154,14 @@ public class ContentPanel extends JPanel {
 	}
 	
 	protected void setProgressText(String text) {
-		this.progressInfoLabel.setText(text);
+		this.progressBar.setString(text);
+	}
+	
+	protected int getProgress() {
+		return this.progressBar.getValue();
+	}
+	
+	protected String getProgressText() {
+		return this.progressBar.getString();
 	}
 }

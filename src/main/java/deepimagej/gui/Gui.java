@@ -220,6 +220,7 @@ public class Gui extends PlugInFrame {
     private void updateCarousel(int direction) {
     	closeModelWhenChanging();
         currentIndex = getWrappedIndex(currentIndex + direction);
+    	updateProgressBar();
 
         this.modelSelectionPanel.redrawModelCards(currentIndex);
         
@@ -229,6 +230,27 @@ public class Gui extends PlugInFrame {
         ImageIcon logoIcon = ImageLoader.createScaledIcon(modelSelectionPanel.getCoverPaths().get(currentIndex), logoWidth, logoHeight);
         this.contentPanel.setIcon(logoIcon);
         this.contentPanel.setInfo("Detailed information for " + modelSelectionPanel.getModelNames().get(currentIndex));
+    }
+    
+    private void updateProgressBar() {
+    	if (this.searchBar.isBarOnLocal() && this.contentPanel.getProgress() != 0) {
+    		contentPanel.setProgressText("");
+    		contentPanel.setDeterminatePorgress(0);
+    	} else if(!searchBar.isBarOnLocal() && this.contentPanel.getProgress() != 100 
+    			&& modelSelectionPanel.getModels().get(currentIndex).isModelInLocalRepo()) {
+    		contentPanel.setProgressText("100%");
+    		contentPanel.setDeterminatePorgress(100);
+    	} else if(!searchBar.isBarOnLocal() && this.contentPanel.getProgress() != 0 
+    			&& !modelSelectionPanel.getModels().get(currentIndex).isModelInLocalRepo()) {
+    		contentPanel.setProgressText("");
+    		contentPanel.setDeterminatePorgress(0);
+    	}
+    	if (searchBar.isBarOnLocal() 
+    			|| (!searchBar.isBarOnLocal() 
+    					&& !modelSelectionPanel.getModels().get(currentIndex).isModelInLocalRepo() 
+    					&& !contentPanel.getProgressText().equals(""))) {
+    		contentPanel.setProgressText("");
+    	}
     }
 
     private int getWrappedIndex(int index) {
