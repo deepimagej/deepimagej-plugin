@@ -59,13 +59,13 @@ import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-import deepimagej.components.BorderLabel;
 import deepimagej.tools.NumFormat;
 import deepimagej.tools.SystemUsage;
 import ij.gui.GUI;
 
 public class RunnerProgress extends JDialog implements ActionListener {
 
+	/*
 	private BorderLabel			title		= new BorderLabel("Name ........");
 	private BorderLabel			patches		= new BorderLabel("Patch not set");
 	private BorderLabel			memory		= new BorderLabel("Memory........");
@@ -183,12 +183,13 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		layout.setConstraints(comp, constraint);
 		panel.add(comp);
 	}
+	*/
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		stop();
+		//stop();
 	}
-	
+	/*
 	public void allowStopping(boolean allow) {
 		this.allowStopping = allow;
 		if (isStopped())
@@ -224,7 +225,9 @@ public class RunnerProgress extends JDialog implements ActionListener {
 			service.shutdownNow();
 		stop = true;
 	}
+	*/
  
+	/*
 	public void info() {
 		title.setText(name);
 		double mem = SystemUsage.getHeapUsed();
@@ -262,18 +265,18 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		
 		
 	}
+	*/
 	
 	/*
 	 * Get maximum memory used to run the model
-	 */
 	public double getPeakmem() {
 		return this.peakmem;
 	}
+	 */
 	
 	/*
 	 * Get time that it has taken to run the model (pre-processing,
 	 * inference and postprocessing)
-	 */
 	public String getRuntime() {
 		double time = (System.currentTimeMillis() - startTime) / 1000.0;
 		String timeStr = "" + time;
@@ -288,9 +291,9 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		}
 	}
 	
+	 */
 	/*
 	 * Stop the RunnerProgress window and close the thread
-	 */
 	public static void stopRunnerProgress(ExecutorService thread, RunnerProgress rp) {
 		thread.shutdown();
 		if (!rp.isStopped()) {
@@ -299,5 +302,6 @@ public class RunnerProgress extends JDialog implements ActionListener {
 		}
 		rp.dispose();
 	}
+	 */
 
 }

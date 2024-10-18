@@ -45,11 +45,10 @@
 package deepimagej;
 
 
-import deepimagej.tools.DijTensor;
-import deepimagej.tools.Index;
 
 public class DeepLearningModel {
 
+	/*
 	public static int nChannelsOrSlices(DijTensor tensor, String channelsOrSlices) {
 		// Find the number of channels or slices in the corresponding tensor
 		String letter = "";
@@ -112,6 +111,7 @@ public class DeepLearningModel {
 		}
 		return inBatch;
 	}
+	*/
 	
 	// TODO group Tf and Pytorch methods regarding versions
 	/*

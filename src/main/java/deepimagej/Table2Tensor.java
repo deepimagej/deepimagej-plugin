@@ -49,7 +49,6 @@ import java.util.Arrays;
 
 import deepimagej.exceptions.BatchSizeBiggerThanOne;
 import deepimagej.exceptions.IncorrectNumberOfDimensions;
-import deepimagej.tools.Index;
 import ij.IJ;
 import ij.measure.ResultsTable;
 import io.bioimage.modelrunner.tensor.Tensor;
@@ -122,16 +121,15 @@ public class Table2Tensor {
 	
 	/*
 	 * Convert NDArrays into results table
-	 */
 	public static < T extends RealType< T > & NativeType< T > > ResultsTable 
 			tensorToTable(Tensor<T> tensor) throws IncorrectNumberOfDimensions, BatchSizeBiggerThanOne {
 		return imgLib2ToTable(tensor.getData(), tensor.getAxesOrderString(), tensor.getName());
 	}
+	 */
 
 	
 	/*
 	 * Convert NDArrays into results table
-	 */
 	public static < T extends RealType< T > & NativeType< T > > ResultsTable 
 			imgLib2ToTable(RandomAccessibleInterval<T> data, String axes, String name) throws IncorrectNumberOfDimensions, BatchSizeBiggerThanOne {
 
@@ -177,6 +175,7 @@ public class Table2Tensor {
 	 	
 		return flatArrayToTable(flatArray, shape, axes);
 	}
+	 */
 	
 	/*
 	 * find occurences of the number 1 in an array
@@ -284,7 +283,6 @@ public class Table2Tensor {
 	/*
 	 * Method to infer automatically which dimension corresponds to rows and 
 	 * which to columns. 
-	 */
 	public static String findTableForm(long[] ogShape, String name) {
 		String form = null;
 		int[] shape = new int[ogShape.length];
@@ -315,6 +313,7 @@ public class Table2Tensor {
 		}
 		return form;
 	}
+	 */
 	
 	
 	public static void main(String[] ags) {
