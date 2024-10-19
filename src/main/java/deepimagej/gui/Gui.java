@@ -230,7 +230,8 @@ public class Gui extends PlugInFrame {
         int logoWidth = getWidth() / 3;
         ImageIcon logoIcon = ImageLoader.createScaledIcon(modelSelectionPanel.getCoverPaths().get(currentIndex), logoWidth, logoHeight);
         this.contentPanel.setIcon(logoIcon);
-        this.contentPanel.setInfo("Detailed information for " + modelSelectionPanel.getModelNames().get(currentIndex));
+        ModelDescriptor model = modelSelectionPanel.getModels().get(currentIndex);
+        this.contentPanel.setInfo(model == null ? "Detailed model description..." : model.buildInfo());
     }
     
     private void updateProgressBar() {
@@ -283,7 +284,8 @@ public class Gui extends PlugInFrame {
         int logoWidth = getWidth() / 3;
         ImageIcon logoIcon = ImageLoader.createScaledIcon(modelSelectionPanel.getCoverPaths().get(currentIndex), logoWidth, logoHeight);
         this.contentPanel.setIcon(logoIcon);
-        this.contentPanel.setInfo("Detailed information for " + modelSelectionPanel.getModelNames().get(currentIndex));
+        ModelDescriptor model = modelSelectionPanel.getModels().get(currentIndex);
+        this.contentPanel.setInfo(model == null ? "Detailed model description..." : model.buildInfo());
     }
     
     public void trackEngineInstallation(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {

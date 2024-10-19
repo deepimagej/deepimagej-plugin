@@ -152,9 +152,9 @@ public class Runner implements Closeable {
 	private LinkedHashMap<TensorSpec, String> getTestInputs() {
 		LinkedHashMap<TensorSpec, String> testInputs = new LinkedHashMap<TensorSpec, String>();
 		for (TensorSpec tt : this.descriptor.getInputTensors()) {
-			String sampleFile = tt.getSampleTensorName();
+			String sampleFile = tt.getTestTensorName();
 			if (sampleFile == null)
-				sampleFile = tt.getTestTensorName();
+				sampleFile = tt.getSampleTensorName();
 			if (sampleFile == null)
 				throw new RuntimeException("Sample/Test files for input tensor '" + tt.getName() + "' are missing, please download them.");
 			File ff = new File(sampleFile);
