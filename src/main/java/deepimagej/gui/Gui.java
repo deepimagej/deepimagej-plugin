@@ -192,8 +192,10 @@ public class Gui extends PlugInFrame {
     }
     
     private <T extends RealType<T> & NativeType<T>> void runModelOnTestImage() {
+    	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressIndeterminate(true));
     	Thread runninThread = new Thread(() -> {
         	if (runner == null || runner.isClosed()) {
+            	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressLabelText("Loading model..."));
         		runner = Runner.create(this.modelSelectionPanel.getModels().get(currentIndex));
         	}
         	try {
@@ -201,6 +203,7 @@ public class Gui extends PlugInFrame {
         			runner.load();
         		else if (!GuiUtils.isEDTAlive())
         			return;
+            	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressLabelText("Running the model..."));
     			List<Tensor<T>> outs = runner.runOnTestImages();
     			for (Tensor<T> tt : outs) {
     				if (!GuiUtils.isEDTAlive())
@@ -213,6 +216,10 @@ public class Gui extends PlugInFrame {
     		} catch (ModelSpecsException | RunModelException | IOException | LoadModelException e) {
     			e.printStackTrace();
     		}
+        	SwingUtilities.invokeLater(() -> {
+        		this.contentPanel.setProgressLabelText("");
+        		this.contentPanel.setProgressIndeterminate(false);
+        	});
     	});
     	runninThread.start();
     		
@@ -236,22 +243,22 @@ public class Gui extends PlugInFrame {
     
     private void updateProgressBar() {
     	if (this.searchBar.isBarOnLocal() && this.contentPanel.getProgress() != 0) {
-    		contentPanel.setProgressText("");
+    		contentPanel.setProgressBarText("");
     		contentPanel.setDeterminatePorgress(0);
     	} else if(!searchBar.isBarOnLocal() && this.contentPanel.getProgress() != 100 
     			&& modelSelectionPanel.getModels().get(currentIndex).isModelInLocalRepo()) {
-    		contentPanel.setProgressText("100%");
+    		contentPanel.setProgressBarText("100%");
     		contentPanel.setDeterminatePorgress(100);
     	} else if(!searchBar.isBarOnLocal() && this.contentPanel.getProgress() != 0 
     			&& !modelSelectionPanel.getModels().get(currentIndex).isModelInLocalRepo()) {
-    		contentPanel.setProgressText("");
+    		contentPanel.setProgressBarText("");
     		contentPanel.setDeterminatePorgress(0);
     	}
     	if (searchBar.isBarOnLocal() 
     			|| (!searchBar.isBarOnLocal() 
     					&& !modelSelectionPanel.getModels().get(currentIndex).isModelInLocalRepo() 
-    					&& !contentPanel.getProgressText().equals(""))) {
-    		contentPanel.setProgressText("");
+    					&& !contentPanel.getProgressBarText().equals(""))) {
+    		contentPanel.setProgressBarText("");
     	}
     }
 
@@ -327,12 +334,13 @@ public class Gui extends PlugInFrame {
     	this.searchBar.setBarEnabled(false);
     	this.searchBar.changeButtonToLocal();
     	this.contentPanel.setProgressIndeterminate(true);
-    	this.contentPanel.setProgressText("Getting Bioimage.io models...");
+    	this.contentPanel.setProgressBarText("");
     	this.runButton.setVisible(false);
     	this.runOnTestButton.setText(INSTALL_STR);
     	this.runOnTestButton.setEnabled(false);
     	this.modelSelectionPanel.setBMZBorder();
     	this.modelSelectionPanel.setArrowsEnabled(false);
+    	this.contentPanel.setProgressLabelText("Looking for models at Bioimage.io");
     	setModelsInGui(newModels);
     	
     	Thread finderThread = new Thread(() -> {
@@ -364,10 +372,10 @@ public class Gui extends PlugInFrame {
         	SwingUtilities.invokeLater(() -> {
         		setModelsInGui(foundModels);
             	this.contentPanel.setProgressIndeterminate(false);
-            	this.contentPanel.setProgressText("");
             	this.searchBar.setBarEnabled(true);
             	this.runOnTestButton.setEnabled(true);
             	this.modelSelectionPanel.setArrowsEnabled(true);
+            	this.contentPanel.setProgressLabelText("");
         	});
     	});
     	
@@ -389,7 +397,8 @@ public class Gui extends PlugInFrame {
     	this.searchBar.setBarEnabled(false);
     	this.searchBar.changeButtonToBMZ();
     	this.contentPanel.setProgressIndeterminate(true);
-    	this.contentPanel.setProgressText("Getting Bioimage.io models...");
+    	this.contentPanel.setProgressBarText("");
+    	this.contentPanel.setProgressLabelText("Looking for models locally");
     	this.runButton.setVisible(true);
     	this.runButton.setEnabled(false);
     	this.runOnTestButton.setText(RUN_ON_TEST_STR);
@@ -416,7 +425,9 @@ public class Gui extends PlugInFrame {
         	SwingUtilities.invokeLater(() -> {
         		setModelsInGui(foundModels);
             	this.contentPanel.setProgressIndeterminate(false);
-            	this.contentPanel.setProgressText("");
+            	this.contentPanel.setDeterminatePorgress(0);
+            	this.contentPanel.setProgressBarText("");
+            	this.contentPanel.setProgressLabelText("");
             	this.searchBar.setBarEnabled(true);
             	this.runOnTestButton.setEnabled(true);
             	this.modelSelectionPanel.setArrowsEnabled(true);
@@ -434,6 +445,7 @@ public class Gui extends PlugInFrame {
     	this.runOnTestButton.setEnabled(false);
     	this.searchBar.setBarEnabled(false);
     	this.modelSelectionPanel.setArrowsEnabled(false);
+    	this.contentPanel.setProgressLabelText("Installing ...");
     	
     	Thread dwnlThread = new Thread(() -> {
         	try {
@@ -463,6 +475,7 @@ public class Gui extends PlugInFrame {
 				runOnTestButton.setEnabled(true);
 		    	this.searchBar.setBarEnabled(true);
 		    	this.modelSelectionPanel.setArrowsEnabled(true);
+		    	this.contentPanel.setProgressLabelText("");
 			});
     	});
     	dwnlThread.start();
