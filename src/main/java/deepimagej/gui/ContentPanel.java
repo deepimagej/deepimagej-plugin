@@ -1,6 +1,8 @@
 package deepimagej.gui;
 
+import java.awt.CardLayout;
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -10,20 +12,25 @@ import java.awt.Insets;
 
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
+import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 
 public class ContentPanel extends JPanel {
 	
 	private JLabel exampleImageLabel;
-    private JTextArea modelInfoArea;
+    private JEditorPane modelInfoArea;
     private JProgressBar progressBar;
 	private JLabel progressInfoLabel;
+	private JPanel progressLabelPanel;
+	private JPanel progressPanel;
 	private JScrollPane infoScrollPane;
+	private CardLayout progressLabelLayout;
     private final long parentHeight;
     private final long parentWidth;
 
@@ -45,7 +52,7 @@ public class ContentPanel extends JPanel {
         JPanel exampleImagePanel = new JPanel(new GridBagLayout());
         exampleImagePanel.setBackground(Color.WHITE);
 
-        JLabel exampleTitleLabel = new JLabel("Example Image", JLabel.CENTER);
+        JLabel exampleTitleLabel = new JLabel("Cover Image", JLabel.CENTER);
         exampleTitleLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
 
         // Calculate dimensions for the logo based on the main interface size
@@ -72,11 +79,19 @@ public class ContentPanel extends JPanel {
         JLabel infoTitleLabel = new JLabel("Model Information", JLabel.CENTER);
         infoTitleLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
 
-        modelInfoArea = new JTextArea("Detailed model description...");
-        modelInfoArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        modelInfoArea.setLineWrap(true);
-        modelInfoArea.setWrapStyleWord(true);
+        modelInfoArea = new JEditorPane("text/html", "Detailed model description...");
         modelInfoArea.setEditable(false);
+        modelInfoArea.addHyperlinkListener(new HyperlinkListener() {
+            public void hyperlinkUpdate(HyperlinkEvent e) {
+                if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                    try {
+                        Desktop.getDesktop().browse(e.getURL().toURI());
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+        });
         infoScrollPane = new JScrollPane(modelInfoArea);
         infoScrollPane.setPreferredSize(new Dimension((int) (this.parentWidth * 0.5), (int) (this.parentHeight * 0.3)));
 
@@ -93,7 +108,8 @@ public class ContentPanel extends JPanel {
         modelInfoPanel.add(infoScrollPane, gbc);
         gbc.gridy = 2;
         gbc.weighty = 2;
-        modelInfoPanel.add(createProgressBar(), gbc);
+        createProgressBar();
+        modelInfoPanel.add(progressPanel, gbc);
 
         this.add(exampleImagePanel);
         this.add(modelInfoPanel);
@@ -105,9 +121,10 @@ public class ContentPanel extends JPanel {
 	
 	protected void setInfo(String text) {
 		this.modelInfoArea.setText(text);
+		modelInfoArea.setCaretPosition(0);
 	}
 	
-	private JPanel createProgressBar() {
+	private void createProgressBar() {
         // Create progress bar
         progressBar = new JProgressBar(0, 100);
         progressBar.setStringPainted(false);
@@ -118,12 +135,12 @@ public class ContentPanel extends JPanel {
         progressBar.setForeground(new Color(46, 204, 113)); // Modern green color
 
         // Create progress label
-        progressInfoLabel = new JLabel("");
-        progressInfoLabel.setForeground(Color.WHITE);
-        progressInfoLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        progressInfoLabel = new JLabel("Example text");
+        progressInfoLabel.setForeground(Color.black);
+        progressInfoLabel.setFont(new Font("SansSerif", Font.ITALIC, 14));
 
         // Panel to hold progress bar and label
-        JPanel progressPanel = new JPanel(new GridBagLayout());
+        progressPanel = new JPanel(new GridBagLayout());
         progressPanel.setOpaque(false);
 
         GridBagConstraints progressBarGbc = new GridBagConstraints();
@@ -138,9 +155,13 @@ public class ContentPanel extends JPanel {
         
 
         progressBarGbc.gridy = 1;
-        progressPanel.add(progressInfoLabel, progressBarGbc);
-        
-        return progressPanel;
+        progressLabelPanel = new JPanel();
+        progressLabelLayout = new CardLayout();
+        progressLabelPanel.setLayout(progressLabelLayout);
+        progressLabelPanel.add(progressInfoLabel, "visible");
+        progressLabelPanel.add(new JPanel(), "invisible");
+        progressLabelLayout.show(progressLabelPanel, "invisible");
+        progressPanel.add(progressLabelPanel, progressBarGbc);
 	}
 	
 	protected void setDeterminatePorgress(int progress) {
@@ -153,7 +174,7 @@ public class ContentPanel extends JPanel {
 		this.progressBar.setIndeterminate(indeterminate);
 	}
 	
-	protected void setProgressText(String text) {
+	protected void setProgressBarText(String text) {
 		this.progressBar.setString(text);
 	}
 	
@@ -161,7 +182,16 @@ public class ContentPanel extends JPanel {
 		return this.progressBar.getValue();
 	}
 	
-	protected String getProgressText() {
+	protected String getProgressBarText() {
 		return this.progressBar.getString();
+	}
+	
+	protected void setProgressLabelText(String text) {
+		if (text == null || text.equals("")) {
+			progressLabelLayout.show(progressLabelPanel, "invisible");
+			return;
+		}
+		this.progressInfoLabel.setText(text);
+		progressLabelLayout.show(progressLabelPanel, "visible");
 	}
 }

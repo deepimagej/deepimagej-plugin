@@ -56,6 +56,7 @@ public class Gui extends PlugInFrame {
     private JPanel footerPanel;
     private JButton runButton;
     private JButton runOnTestButton;
+    private JButton cancelButton;
     private Layout layout = Layout.createVertical(LAYOUT_WEIGHTS);
 
     private static final double FOOTER_VRATIO = 0.06;
@@ -68,6 +69,7 @@ public class Gui extends PlugInFrame {
     protected static final String LOCAL_STR = "Local";
     protected static final String BIOIMAGEIO_STR = "Bioimage.io";
     protected static final String RUN_STR = "Run";
+    protected static final String CANCEL_STR = "Cancel";
     protected static final String RUN_ON_TEST_STR = "Run on test";
     protected static final String INSTALL_STR = "Install model";
     private static final String MODELS_DEAFULT = "models";
@@ -162,10 +164,14 @@ public class Gui extends PlugInFrame {
         runOnTestButton.addActionListener(e -> runTestOrInstall());
         runButton = new JButton(RUN_STR);
         runButton.addActionListener(e -> runModel());
+        cancelButton = new JButton(CANCEL_STR);
+        cancelButton.addActionListener(e -> cancel());
 
-        styleButton(runOnTestButton);
-        styleButton(runButton);
+        styleButton(runOnTestButton, "blue");
+        styleButton(runButton, "blue");
+        styleButton(cancelButton, "red");
 
+        runButtonPanel.add(cancelButton);
         runButtonPanel.add(runOnTestButton);
         runButtonPanel.add(runButton);
 
@@ -177,6 +183,10 @@ public class Gui extends PlugInFrame {
         footerPanel.add(copyrightLabel, BorderLayout.WEST);
 
         add(footerPanel, layout.get(3));
+    }
+    
+    private void cancel() {
+    	
     }
     
     private void runModel() {
@@ -267,9 +277,13 @@ public class Gui extends PlugInFrame {
         return (index % size + size) % size;
     }
 
-    private void styleButton(JButton button) {
+    private void styleButton(JButton button, String color) {
         button.setFont(new Font("SansSerif", Font.BOLD, 14));
-        button.setBackground(new Color(52, 152, 219));
+        if (color.equals("red")) {
+            button.setBackground(new Color(255, 20, 20));
+        } else {
+            button.setBackground(new Color(52, 152, 219));
+        }
         button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
