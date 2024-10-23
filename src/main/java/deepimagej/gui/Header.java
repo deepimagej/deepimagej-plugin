@@ -183,7 +183,7 @@ public class Header extends JPanel {
             progressBar.setStringPainted(true);
     		progressBar.setString("0%");
     		progressBar.setValue(0);
-    		progressLabel.setText("Preparing engines download...");
+    		progressLabel.setText("Preparing download...");
     		cardLayout.show(progressPanelCard, "visible");
 
     	});
@@ -191,7 +191,6 @@ public class Header extends JPanel {
 			return;
 		SwingUtilities.invokeLater(() -> progressLabel.setText("Installing DL engines..."));
 		trackProgress(consumersMap);
-		SwingUtilities.invokeLater(() -> cardLayout.show(progressPanelCard, "invisible"));
     }
 
     private void trackProgress(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
@@ -217,10 +216,7 @@ public class Header extends JPanel {
         		progressBar.setValue((int) perc);
         	});
         	if (perc == 100) {
-            	SwingUtilities.invokeLater(() -> {
-            		progressBar.setVisible(false);
-            		progressLabel.setVisible(false);
-            	});
+            	SwingUtilities.invokeLater(() -> cardLayout.show(progressPanelCard, "invisible"));
         		return;
         	}
     	}
