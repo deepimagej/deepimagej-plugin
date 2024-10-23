@@ -21,6 +21,8 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -48,6 +50,11 @@ public class Gui extends PlugInFrame {
 	private int currentIndex = 1;
 	private final String modelsDir;
 	private final String enginesDir;
+	
+	Thread dwnlThread;
+	Thread runninThread;
+	Thread finderThread;
+	Thread localModelsThread;
 
     private SearchBar searchBar;
     private ContentPanel contentPanel;
@@ -93,13 +100,20 @@ public class Gui extends PlugInFrame {
         initSearchBar();
         initMainContentPanel();
         initFooterPanel();
+        
+        this.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                onClose();
+            }
+        });
 
         this.pack();
         setVisible(true);
     }
     
     private void loadLocalModels() {
-	    new Thread(() -> {
+	    localModelsThread = new Thread(() -> {
 	        List<ModelDescriptor> models = ModelDescriptorFactory.getModelsAtLocalRepo(new File(modelsDir).getAbsolutePath());
 	        while (contentPanel == null) {
 	        	try {
@@ -108,7 +122,8 @@ public class Gui extends PlugInFrame {
 				}
 	        }
             this.setModels(models);
-	    }).start();
+	    });
+	    localModelsThread.start();
     }
 
     private void initTitlePanel() {
@@ -186,7 +201,7 @@ public class Gui extends PlugInFrame {
     }
     
     private void cancel() {
-    	
+    	this.dispose();
     }
     
     private void runModel() {
@@ -203,7 +218,7 @@ public class Gui extends PlugInFrame {
     
     private <T extends RealType<T> & NativeType<T>> void runModelOnTestImage() {
     	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressIndeterminate(true));
-    	Thread runninThread = new Thread(() -> {
+    	runninThread = new Thread(() -> {
         	if (runner == null || runner.isClosed()) {
             	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressLabelText("Loading model..."));
         		runner = Runner.create(this.modelSelectionPanel.getModels().get(currentIndex));
@@ -357,14 +372,14 @@ public class Gui extends PlugInFrame {
     	this.contentPanel.setProgressLabelText("Looking for models at Bioimage.io");
     	setModelsInGui(newModels);
     	
-    	Thread finderThread = new Thread(() -> {
+    	finderThread = new Thread(() -> {
     		// This line initiates the read of the bioimage.io collection
         	searchBar.countBMZModels(true);
         	this.searchBar.findBMZModels();
     	});
     	
     	Thread updaterThread = new Thread(() -> {
-    		while (searchBar.countBMZModels(false) == 0) {
+    		while (searchBar.countBMZModels(false) == 0 && finderThread.isAlive()) {
     			try {
 					Thread.sleep(100);
 				} catch (InterruptedException e) {
@@ -461,7 +476,7 @@ public class Gui extends PlugInFrame {
     	this.modelSelectionPanel.setArrowsEnabled(false);
     	this.contentPanel.setProgressLabelText("Installing ...");
     	
-    	Thread dwnlThread = new Thread(() -> {
+    	dwnlThread = new Thread(() -> {
         	try {
     			String modelFolder = BioimageioRepo.downloadModel(selectedModel, new File(modelsDir).getAbsolutePath(), progress);
     			selectedModel.addModelPath(Paths.get(modelFolder));
@@ -494,6 +509,22 @@ public class Gui extends PlugInFrame {
     	});
     	dwnlThread.start();
     	reportThread.start();
+    }
+    
+    private void onClose() {
+    	if (dwnlThread != null && this.dwnlThread.isAlive())
+    		this.dwnlThread.interrupt();
+    	if (finderThread != null && this.finderThread.isAlive())
+    		this.finderThread.interrupt();
+    	if (runninThread != null && this.runninThread.isAlive() && runner != null) {
+			try {
+				runner.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+    	}
+    	if (runninThread != null && this.runninThread.isAlive())
+    		this.runninThread.interrupt();
     }
 
     public static void main(String[] args) {
