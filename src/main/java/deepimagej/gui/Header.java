@@ -148,6 +148,10 @@ public class Header extends JPanel {
         //progressLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
         progressLabel.setBackground(Color.gray);
         progressLabel.setOpaque(true);
+        progressLabel.setMinimumSize(new Dimension((int) (100), progressLabel.getPreferredSize().height));
+        progressLabel.setPreferredSize(new Dimension((int) (100), progressLabel.getPreferredSize().height));
+        progressLabel.setMaximumSize(new Dimension((int) (100), progressLabel.getPreferredSize().height));
+        progressLabel.setHorizontalAlignment(JLabel.CENTER);
 
         // Panel to hold progress bar and label
         JPanel progressPanel = new JPanel(new GridBagLayout());
@@ -156,13 +160,17 @@ public class Header extends JPanel {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.weightx = 1;
-        gbc.weighty = 1;
         gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 0; // Prevent horizontal expansion
+        gbc.weighty = 0;
+        gbc.fill = GridBagConstraints.NONE; // Do not fill space
         progressPanel.add(progressLabel, gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 1;
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL; // Allow horizontal fill
         progressPanel.add(progressBar, gbc);
         
         return progressPanel;
