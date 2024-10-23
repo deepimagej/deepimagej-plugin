@@ -35,8 +35,8 @@ public class ContentPanel extends JPanel {
     private final long parentWidth;
 
 	private final static double MODEL_VRATIO = 0.4;
-	private final static double PROGRESS_VRATIO = 0.01;
-	private final static double PROGRESS_HRATIO = 0.5;
+	private final static double PROGRESS_VRATIO = 0.2;
+	private final static double INFO_VRATIO = 0.7;
 	
 	private static final long serialVersionUID = -7691139174208436363L;
 
@@ -92,7 +92,9 @@ public class ContentPanel extends JPanel {
                 }
             }
         });
+        modelInfoArea.setPreferredSize(new Dimension(0, (int) (INFO_VRATIO * MODEL_VRATIO * this.parentHeight)));
         infoScrollPane = new JScrollPane(modelInfoArea);
+        infoScrollPane.setMinimumSize(new Dimension(0, (int) (INFO_VRATIO * MODEL_VRATIO * this.parentHeight)));
 
         gbc.gridx = 0;
         gbc.weightx = 1.0;
@@ -104,9 +106,11 @@ public class ContentPanel extends JPanel {
         modelInfoPanel.add(infoTitleLabel, gbc);
         gbc.gridy = 1;
         gbc.weighty = 10;
+        gbc.fill = GridBagConstraints.BOTH;
         modelInfoPanel.add(infoScrollPane, gbc);
         gbc.gridy = 2;
-        gbc.weighty = 2;
+        gbc.weighty = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         createProgressBar();
         modelInfoPanel.add(progressPanel, gbc);
 
