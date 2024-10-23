@@ -93,7 +93,6 @@ public class ContentPanel extends JPanel {
             }
         });
         infoScrollPane = new JScrollPane(modelInfoArea);
-        infoScrollPane.setPreferredSize(new Dimension((int) (this.parentWidth * 0.5), (int) (this.parentHeight * 0.3)));
 
         gbc.gridx = 0;
         gbc.weightx = 1.0;
