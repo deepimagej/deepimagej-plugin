@@ -1,5 +1,6 @@
 package deepimagej.gui;
 
+import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -24,13 +25,10 @@ public class Header extends JPanel {
 	
 	private final String title;
 	private final String subtitle;
-	private JLabel logoLabel;
-	private JLabel titleLabel;
-	private JLabel subtitleLabel;
-	private JPanel textPanel;
-	private JPanel wrapperPanel;
     private JProgressBar progressBar;
     private JLabel progressLabel;
+    private JPanel progressPanelCard;
+    private CardLayout cardLayout;
     private final long parentHeight;
     private final long parentWidth;
 
@@ -38,16 +36,16 @@ public class Header extends JPanel {
 	private final static double TITLE_HRATIO = 1;
 	private final static double LOGO_VRATIO = 1;
 	private final static double LOGO_HRATIO = 1.0 / 7;
-    private final static double PROGRESS_BAR_WIDTH_RATIO = 0.15;
+    private final static double PROGRESS_BAR_WIDTH_RATIO = 0.25;
 	
 	private static final long serialVersionUID = -7691139174208436363L;
 
 	protected Header(String title, String subtitle, int parentWidth, int parentHeight) {
         super(new GridBagLayout());
         this.parentWidth = parentWidth;
-        this.parentHeight= parentHeight;
-		this.title = title;
-		this.subtitle = subtitle;
+        this.parentHeight = parentHeight;
+        this.title = title;
+        this.subtitle = subtitle;
         this.setBackground(Color.GRAY);
         this.setBorder(new LineBorder(Color.BLACK, 2, true));
         this.setPreferredSize(new Dimension(parentWidth, (int) (parentHeight * TITLE_VRATIO)));
@@ -58,30 +56,29 @@ public class Header extends JPanel {
 
         // Create logo label with the specified size
         ImageIcon logoIcon = ImageLoader.getDefaultIcon(logoWidth, logoHeight);
-        //ImageIcon logoIcon = ImageLoader.createScaledIcon(getClass().getClassLoader().getResource(Gui.DIJ_ICON_PATH), logoWidth, logoHeight);
-        logoLabel = new JLabel(logoIcon);
+        JLabel logoLabel = new JLabel(logoIcon);
 
         // Title label
-        titleLabel = new JLabel(this.title);
+        JLabel titleLabel = new JLabel(this.title);
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 36));
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setAlignmentX(CENTER_ALIGNMENT);
 
         // Subtitle label
-        subtitleLabel = new JLabel(this.subtitle);
+        JLabel subtitleLabel = new JLabel(this.subtitle);
         subtitleLabel.setFont(new Font("SansSerif", Font.PLAIN, 18));
         subtitleLabel.setForeground(Color.WHITE);
         subtitleLabel.setAlignmentX(CENTER_ALIGNMENT);
 
         // Panel for title and subtitle
-        textPanel = new JPanel();
+        JPanel textPanel = new JPanel();
         textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
         textPanel.setOpaque(false);
         textPanel.add(titleLabel);
         textPanel.add(subtitleLabel);
 
         // Create a wrapper panel to hold logo and textPanel inline
-        wrapperPanel = new JPanel(new GridBagLayout());
+        JPanel wrapperPanel = new JPanel(new GridBagLayout());
         wrapperPanel.setOpaque(false);
 
         // GridBagConstraints for the logo
@@ -98,42 +95,62 @@ public class Header extends JPanel {
         textGbc.gridy = 0;
         textGbc.anchor = GridBagConstraints.WEST;
         wrapperPanel.add(textPanel, textGbc);
-        JPanel progressPanel = createProgressBar();
 
-        // Add the wrapperPanel to the titlePanel with custom constraints
+        // Create progress panel
+        JPanel progressPanel = createProgressBar();
+        progressPanelCard = new JPanel();
+        cardLayout = new CardLayout();
+        progressPanelCard.setLayout(cardLayout);
+        progressPanelCard.add(progressPanel, "visible");
+        progressPanelCard.add(new JPanel() {{ setOpaque(false); }}, "invisible");
+        cardLayout.show(progressPanelCard, "invisible");
+        progressPanel.setPreferredSize(new Dimension((int)(this.parentWidth * PROGRESS_BAR_WIDTH_RATIO), (int) this.parentHeight));
+        progressPanelCard.setOpaque(false);
+        
+        // Add components to the main panel with modified constraints
         GridBagConstraints gbc = new GridBagConstraints();
+        // Empty space on the left to balance the progress panel
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.weightx = 3;
-        gbc.weighty = 1;
-        //gbc.anchor = GridBagConstraints.CENTER;
-        gbc.insets = new Insets(0, (int) (-logoWidth + progressPanel.getPreferredSize().getWidth()), 0, 0);
+        gbc.weightx = PROGRESS_BAR_WIDTH_RATIO;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        this.add(new JPanel() {{ setOpaque(false); }}, gbc);
+        
+        // Wrapper panel (logo + text) in center
+        gbc.gridx = 1;
+        gbc.weightx = 0.0;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.CENTER;
         this.add(wrapperPanel, gbc);
         
-        gbc.gridx = 1;
-        gbc.weightx = 1;
+        // Progress panel on right
+        gbc.gridx = 2;
+        gbc.weightx = PROGRESS_BAR_WIDTH_RATIO;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(20, 0, 5, 15);
-        this.add(progressPanel, gbc);
+        gbc.anchor = GridBagConstraints.EAST;
+        gbc.insets = new Insets(5, 20, 5, 20);
+        this.add(progressPanelCard, gbc);
 	}
 	
 	private JPanel createProgressBar() {
         // Create progress bar
         progressBar = new JProgressBar(0, 100);
         progressBar.setStringPainted(false);
-        progressBar.setPreferredSize(new Dimension((int)(parentWidth * PROGRESS_BAR_WIDTH_RATIO), 30));
         progressBar.setBackground(Color.LIGHT_GRAY);
-        progressBar.setVisible(true);
         progressBar.setForeground(new Color(46, 204, 113)); // Modern green color
+        progressBar.setPreferredSize(new Dimension(
+                (int)(parentWidth * PROGRESS_BAR_WIDTH_RATIO), 25)); 
 
         // Create progress label
         progressLabel = new JLabel("Processing...");
-        progressLabel.setForeground(Color.WHITE);
-        progressLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        //progressLabel.setForeground(Color.WHITE);
+        //progressLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        progressLabel.setBackground(Color.gray);
+        progressLabel.setOpaque(true);
 
         // Panel to hold progress bar and label
         JPanel progressPanel = new JPanel(new GridBagLayout());
-        progressPanel.setPreferredSize(new Dimension((int)(parentWidth * PROGRESS_BAR_WIDTH_RATIO), 60));
         progressPanel.setOpaque(false);
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -147,8 +164,6 @@ public class Header extends JPanel {
         gbc.gridx = 0;
         gbc.gridy = 1;
         progressPanel.add(progressBar, gbc);
-		progressBar.setVisible(false);
-		progressLabel.setVisible(false);
         
         return progressPanel;
 	}
@@ -161,14 +176,14 @@ public class Header extends JPanel {
     		progressBar.setString("0%");
     		progressBar.setValue(0);
     		progressLabel.setText("Preparing engines download...");
-    		progressBar.setVisible(true);
-    		progressLabel.setVisible(true);
+    		cardLayout.show(progressPanelCard, "visible");
+
     	});
 		if (!checkDownloadStarted(consumersMap))
 			return;
 		SwingUtilities.invokeLater(() -> progressLabel.setText("Installing DL engines..."));
 		trackProgress(consumersMap);
-    	
+		SwingUtilities.invokeLater(() -> cardLayout.show(progressPanelCard, "invisible"));
     }
 
     private void trackProgress(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
