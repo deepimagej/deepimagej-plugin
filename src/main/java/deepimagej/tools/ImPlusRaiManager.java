@@ -34,6 +34,15 @@ public class ImPlusRaiManager {
 		rai = transposeToAxesOrder(rai, newImAxesOrder, axesOrder);
 		return rai;
 	}
+
+	public static <T extends RealType<T> & NativeType<T>>
+	RandomAccessibleInterval<T> permute(RandomAccessibleInterval<T> rai, String ogAxesOrder, String targetAxesOrder) {
+		String newImAxesOrder = addExtraDims(rai, ogAxesOrder, targetAxesOrder);
+		for (int i = 0; i < newImAxesOrder.length() - ogAxesOrder.length(); i ++)
+			rai = Views.addDimension(rai, 0, 0);
+		
+		return transposeToAxesOrder(rai, ogAxesOrder, targetAxesOrder);
+	}
 	
 	private static <T extends RealType<T> & NativeType<T>>
 	String removeExtraDims(RandomAccessibleInterval<T> rai, String ogAxes, String targetAxes) {
