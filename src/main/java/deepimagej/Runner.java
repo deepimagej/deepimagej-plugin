@@ -91,6 +91,14 @@ public class Runner implements Closeable {
 		}
 	}
 	
+	/**
+	 * 
+	 * @return the model descriptor
+	 */
+	public ModelDescriptor getDescriptor() {
+		return this.descriptor;
+	}
+	
 	public static Runner create(ModelDescriptor descriptor) {
 		return new Runner(descriptor);
 	}

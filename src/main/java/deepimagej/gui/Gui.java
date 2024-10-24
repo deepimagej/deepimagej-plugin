@@ -223,8 +223,7 @@ public class Gui extends PlugInFrame {
         		else if (!GuiUtils.isEDTAlive())
         			return;
             	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressLabelText("Running the model..."));
-            	List<Tensor<T>> list = Arrays.asList(imAdapter.getCurrentTensor());
-    			List<Tensor<T>> outs = runner.run(list);
+    			List<Tensor<T>> outs = runner.run(imAdapter.getInputTensors(runner.));
     			for (Tensor<T> tt : outs) {
     				if (!GuiUtils.isEDTAlive())
             			return;
