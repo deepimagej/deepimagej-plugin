@@ -47,6 +47,7 @@ import java.util.Map;
 
 import javax.swing.SwingUtilities;
 
+import deepimagej.IjAdapter;
 import deepimagej.gui.Gui;
 import ij.plugin.PlugIn;
 import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
@@ -87,10 +88,10 @@ public class DeepImageJ_Run implements PlugIn {
 			throw new RuntimeException("Unable to create 'models' folder inside ImageJ/Fiji directory. Please create it yourself.");
 	    final Gui[] guiRef = new Gui[1];
 	    if (SwingUtilities.isEventDispatchThread())
-	    	guiRef[0] = new Gui();
+	    	guiRef[0] = new Gui(new IjAdapter());
 	    else {
 		    SwingUtilities.invokeLater(() -> {
-		        guiRef[0] = new Gui();
+		        guiRef[0] = new Gui(new IjAdapter());
 		    });
 	    }
 	    /**

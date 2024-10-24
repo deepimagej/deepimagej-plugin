@@ -1,5 +1,6 @@
 package deepimagej.gui;
 
+import ij.IJ;
 import ij.ImagePlus;
 import ij.plugin.frame.PlugInFrame;
 import io.bioimage.modelrunner.bioimageio.BioimageioRepo;
@@ -37,9 +38,11 @@ import javax.swing.border.EmptyBorder;
 
 import deepimagej.Constants;
 import deepimagej.Runner;
+import deepimagej.adapter.gui.ImageAdapter;
 import deepimagej.tools.ImPlusRaiManager;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -50,6 +53,7 @@ public class Gui extends PlugInFrame {
 	private int currentIndex = 1;
 	private final String modelsDir;
 	private final String enginesDir;
+	private final ImageAdapter imAdapter;
 	
 	Thread dwnlThread;
 	Thread runninThread;
@@ -84,12 +88,13 @@ public class Gui extends PlugInFrame {
     private static final String ENGINES_DEAFULT = "engines";
 
 
-    public Gui() {
-    	this(null, null);
+    public Gui(ImageAdapter imAdapter) {
+    	this(imAdapter, null, null);
     }
 
-    public Gui(String modelsDir, String enginesDir) {
+    public Gui(ImageAdapter imAdapter, String modelsDir, String enginesDir) {
         super(Constants.DIJ_NAME + "-" + Constants.DIJ_VERSION);
+        this.imAdapter = imAdapter;
         this.modelsDir = modelsDir != null ? modelsDir : new File(MODELS_DEAFULT).getAbsolutePath();
         this.enginesDir = enginesDir != null ? enginesDir : new File(ENGINES_DEAFULT).getAbsolutePath();
         loadLocalModels();
@@ -205,8 +210,38 @@ public class Gui extends PlugInFrame {
     	this.dispose();
     }
     
-    private void runModel() {
-    	
+    private <T extends RealType<T> & NativeType<T>> void runModel() {
+    	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressIndeterminate(true));
+    	runninThread = new Thread(() -> {
+        	if (runner == null || runner.isClosed()) {
+            	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressLabelText("Loading model..."));
+        		runner = Runner.create(this.modelSelectionPanel.getModels().get(currentIndex));
+        	}
+        	try {
+        		if (!runner.isLoaded() && GuiUtils.isEDTAlive())
+        			runner.load();
+        		else if (!GuiUtils.isEDTAlive())
+        			return;
+            	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressLabelText("Running the model..."));
+            	List<Tensor<T>> list = Arrays.asList(imAdapter.getCurrentTensor());
+    			List<Tensor<T>> outs = runner.run(list);
+    			for (Tensor<T> tt : outs) {
+    				if (!GuiUtils.isEDTAlive())
+            			return;
+    				ImagePlus im = ImPlusRaiManager.convert(tt.getData(), tt.getAxesOrderString());
+    				if (!GuiUtils.isEDTAlive())
+            			return;
+    				SwingUtilities.invokeLater(() -> im.show());
+    			}
+    		} catch (ModelSpecsException | RunModelException | IOException | LoadModelException e) {
+    			e.printStackTrace();
+    		}
+        	SwingUtilities.invokeLater(() -> {
+        		this.contentPanel.setProgressLabelText("");
+        		this.contentPanel.setProgressIndeterminate(false);
+        	});
+    	});
+    	runninThread.start();
     }
     
     private void runTestOrInstall() {
@@ -535,9 +570,5 @@ public class Gui extends PlugInFrame {
     	}
     	if (runninThread != null && this.runninThread.isAlive())
     		this.runninThread.interrupt();
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new Gui());
     }
 }
