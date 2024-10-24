@@ -41,7 +41,7 @@ public class ImPlusRaiManager {
 		for (int i = 0; i < newImAxesOrder.length() - ogAxesOrder.length(); i ++)
 			rai = Views.addDimension(rai, 0, 0);
 		
-		return transposeToAxesOrder(rai, ogAxesOrder, targetAxesOrder);
+		return transposeToAxesOrder(rai, newImAxesOrder, targetAxesOrder);
 	}
 	
 	private static <T extends RealType<T> & NativeType<T>>

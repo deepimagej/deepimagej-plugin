@@ -189,7 +189,6 @@ public class Runner implements Closeable {
 	public void close() throws IOException {
 		model.close();
 		closed = true;
-		loaded = false;
-		
+		loaded = false;		
 	}
 }

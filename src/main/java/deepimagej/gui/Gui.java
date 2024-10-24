@@ -1,16 +1,12 @@
 package deepimagej.gui;
 
-import ij.IJ;
 import ij.ImagePlus;
 import ij.plugin.frame.PlugInFrame;
 import io.bioimage.modelrunner.bioimageio.BioimageioRepo;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
-import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
 import io.bioimage.modelrunner.bioimageio.download.DownloadTracker;
 import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
-import io.bioimage.modelrunner.exceptions.LoadModelException;
-import io.bioimage.modelrunner.exceptions.RunModelException;
 import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -42,7 +38,6 @@ import deepimagej.adapter.gui.ImageAdapter;
 import deepimagej.tools.ImPlusRaiManager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -233,7 +228,7 @@ public class Gui extends PlugInFrame {
             			return;
     				SwingUtilities.invokeLater(() -> im.show());
     			}
-    		} catch (ModelSpecsException | RunModelException | IOException | LoadModelException e) {
+    		} catch (Exception e) {
     			e.printStackTrace();
     		}
         	SwingUtilities.invokeLater(() -> {
@@ -274,7 +269,7 @@ public class Gui extends PlugInFrame {
             			return;
     				SwingUtilities.invokeLater(() -> im.show());
     			}
-    		} catch (ModelSpecsException | RunModelException | IOException | LoadModelException e) {
+    		} catch (Exception e) {
     			e.printStackTrace();
     		}
         	SwingUtilities.invokeLater(() -> {
@@ -561,9 +556,10 @@ public class Gui extends PlugInFrame {
     		this.finderThread.interrupt();
     	if (updaterThread != null && this.updaterThread.isAlive())
     		this.updaterThread.interrupt();
-    	if (runninThread != null && this.runninThread.isAlive() && runner != null) {
+    	if (runninThread != null && runner != null) {
 			try {
 				runner.close();
+				runner = null;
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

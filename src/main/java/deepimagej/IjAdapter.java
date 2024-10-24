@@ -28,7 +28,9 @@ public class IjAdapter implements ImageAdapter {
 		if (imp.getNFrames() != 1)
 			axesOrder += "b";
 		RandomAccessibleInterval<T> nRai = ImPlusRaiManager.permute(rai, axesOrder, descriptor.getInputTensors().get(0).getAxesOrder());
-		List<Tensor<T>> list = Arrays.asList(Tensor.build("imput_0", axesOrder, rai));
+		List<Tensor<T>> list = Arrays.asList(Tensor.build(descriptor.getInputTensors().get(0).getName(), 
+															descriptor.getInputTensors().get(0).getAxesOrder(), 
+															nRai));
 		return list;
 	}
 
