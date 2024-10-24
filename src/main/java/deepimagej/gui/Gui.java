@@ -54,6 +54,7 @@ public class Gui extends PlugInFrame {
 	Thread dwnlThread;
 	Thread runninThread;
 	Thread finderThread;
+	Thread updaterThread;
 	Thread localModelsThread;
 
     private SearchBar searchBar;
@@ -382,7 +383,7 @@ public class Gui extends PlugInFrame {
 			}
     	});
     	
-    	Thread updaterThread = new Thread(() -> {
+    	updaterThread = new Thread(() -> {
 			try {
 	    		while (searchBar.countBMZModels(false) == 0 && finderThread.isAlive()) {
 						Thread.sleep(100);
@@ -402,6 +403,8 @@ public class Gui extends PlugInFrame {
             	foundModels.addAll(createArrayOfNulls(nModels - foundModels.size()));
             	SwingUtilities.invokeLater(() -> setModelsInGui(foundModels));
     		}
+    		if (Thread.currentThread().isInterrupted())
+    			return;
         	List<ModelDescriptor> foundModels = searchBar.getBMZModels();
         	SwingUtilities.invokeLater(() -> {
         		setModelsInGui(foundModels);
@@ -521,6 +524,8 @@ public class Gui extends PlugInFrame {
     		this.dwnlThread.interrupt();
     	if (finderThread != null && this.finderThread.isAlive())
     		this.finderThread.interrupt();
+    	if (updaterThread != null && this.updaterThread.isAlive())
+    		this.updaterThread.interrupt();
     	if (runninThread != null && this.runninThread.isAlive() && runner != null) {
 			try {
 				runner.close();
