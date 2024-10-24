@@ -118,11 +118,11 @@ public class SearchBar extends JPanel {
         }).collect(Collectors.toList());
     }
     
-    protected int countBMZModels() {
+    protected int countBMZModels() throws InterruptedException {
     	return countBMZModels(false);
     }
     
-    protected int countBMZModels(boolean recount) {
+    protected int countBMZModels(boolean recount) throws InterruptedException {
     	if (!recount)
     		return nModels;
     	BioimageioRepo.connect();
@@ -130,7 +130,7 @@ public class SearchBar extends JPanel {
     	return nModels;
     }
     
-    protected List<ModelDescriptor> findBMZModels() {
+    protected List<ModelDescriptor> findBMZModels() throws InterruptedException {
     	bmzModels = new ArrayList<ModelDescriptor>();
     	for (String url : BioimageioRepo.getModelIDs()) {
     		ModelDescriptor descriptor = BioimageioRepo.retreiveDescriptorFromURL(BioimageioRepo.getModelURL(url) + Constants.RDF_FNAME);

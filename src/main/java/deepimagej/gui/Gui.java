@@ -374,25 +374,30 @@ public class Gui extends PlugInFrame {
     	
     	finderThread = new Thread(() -> {
     		// This line initiates the read of the bioimage.io collection
-        	searchBar.countBMZModels(true);
-        	this.searchBar.findBMZModels();
+    		try {
+	        	searchBar.countBMZModels(true);
+	        	this.searchBar.findBMZModels();
+			} catch (InterruptedException e) {
+				return;
+			}
     	});
     	
     	Thread updaterThread = new Thread(() -> {
-    		while (searchBar.countBMZModels(false) == 0 && finderThread.isAlive()) {
-    			try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					return;
-				}
-    		}
+			try {
+	    		while (searchBar.countBMZModels(false) == 0 && finderThread.isAlive()) {
+						Thread.sleep(100);
+	    		}
+			} catch (InterruptedException e) {
+				return;
+			}
     		while (finderThread.isAlive()) {
+    			int nModels;
     			try {
 					Thread.sleep(500);
+	    			nModels = searchBar.countBMZModels(false);
 				} catch (InterruptedException e) {
 					return;
 				}
-    			int nModels = searchBar.countBMZModels(false);
             	List<ModelDescriptor> foundModels = new ArrayList<>(searchBar.getBMZModels());
             	foundModels.addAll(createArrayOfNulls(nModels - foundModels.size()));
             	SwingUtilities.invokeLater(() -> setModelsInGui(foundModels));
