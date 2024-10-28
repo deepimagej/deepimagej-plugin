@@ -34,7 +34,7 @@ import javax.swing.border.EmptyBorder;
 
 import deepimagej.Constants;
 import deepimagej.Runner;
-import deepimagej.adapter.gui.ImageAdapter;
+import deepimagej.gui.adapter.ImageAdapter;
 import deepimagej.tools.ImPlusRaiManager;
 
 import java.util.ArrayList;

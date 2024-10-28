@@ -3,7 +3,7 @@ package deepimagej;
 import java.util.Arrays;
 import java.util.List;
 
-import deepimagej.adapter.gui.ImageAdapter;
+import deepimagej.gui.adapter.ImageAdapter;
 import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
 import ij.ImagePlus;

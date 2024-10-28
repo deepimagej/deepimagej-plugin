@@ -1,4 +1,4 @@
-package deepimagej.adapter.gui;
+package deepimagej.gui.adapter;
 
 import java.util.List;
 
