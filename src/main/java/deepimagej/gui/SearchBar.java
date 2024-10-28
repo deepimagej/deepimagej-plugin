@@ -113,6 +113,7 @@ public class SearchBar extends JPanel {
     protected List<ModelDescriptor> performSearch() {
         String searchText = searchField.getText().trim();
         return this.bmzModels.stream().filter(mm -> {
+        	if (mm == null) return false;
         	return mm.getName().contains(searchText) || mm.getDescription().contains(searchText)
         			|| mm.getNickname().contains(searchText) || mm.getTags().contains(searchText);
         }).collect(Collectors.toList());
