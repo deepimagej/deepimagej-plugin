@@ -1,4 +1,4 @@
-package deepimagej.adapter;
+package deepimagej.gui.adapter;
 
 public interface ColorAdapter {
 
