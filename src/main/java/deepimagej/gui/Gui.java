@@ -7,6 +7,7 @@ import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
 import io.bioimage.modelrunner.bioimageio.download.DownloadTracker;
 import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
+import io.bioimage.modelrunner.engine.installation.EngineInstall;
 import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -50,6 +51,7 @@ public class Gui extends PlugInFrame {
 	private final String enginesDir;
 	private final ImageAdapter imAdapter;
 	
+	Thread engineInstallThread;
 	Thread dwnlThread;
 	Thread runninThread;
 	Thread finderThread;
@@ -65,6 +67,7 @@ public class Gui extends PlugInFrame {
     private JButton runOnTestButton;
     private JButton cancelButton;
     private Layout layout = Layout.createVertical(LAYOUT_WEIGHTS);
+	private Map<String, TwoParameterConsumer<String, Double>> consumersMap;
 
     private static final double FOOTER_VRATIO = 0.06;
     private static final double[] LAYOUT_WEIGHTS = new double[] {0.1, 0.05, 0.8, 0.05};
@@ -93,6 +96,7 @@ public class Gui extends PlugInFrame {
         this.modelsDir = modelsDir != null ? modelsDir : new File(MODELS_DEAFULT).getAbsolutePath();
         this.enginesDir = enginesDir != null ? enginesDir : new File(ENGINES_DEAFULT).getAbsolutePath();
         loadLocalModels();
+        installEnginesIfNeeded();
         setSize(800, 900);
         setLayout(layout);
 
@@ -111,6 +115,27 @@ public class Gui extends PlugInFrame {
 
         this.pack();
         setVisible(true);
+    }
+    
+    private void installEnginesIfNeeded() {
+    	engineInstallThread = new Thread(() -> {
+	        EngineInstall installer = EngineInstall.createInstaller(this.enginesDir);
+	        installer.checkBasicEngineInstallation();
+	        consumersMap = installer.getBasicEnginesProgress();
+	        installer.basicEngineInstallation();
+	    });
+    	engineInstallThread.start();
+	    
+	    new Thread(() -> {
+	    	while (consumersMap == null) {
+	    		try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					return;
+				}
+	    	}
+	        this.trackEngineInstallation(consumersMap);
+	    }).start();
     }
     
     private void loadLocalModels() {
@@ -552,6 +577,8 @@ public class Gui extends PlugInFrame {
     private void onClose() {
     	if (dwnlThread != null && this.dwnlThread.isAlive())
     		this.dwnlThread.interrupt();
+    	if (engineInstallThread != null && this.engineInstallThread.isAlive())
+    		this.engineInstallThread.interrupt();
     	if (finderThread != null && this.finderThread.isAlive())
     		this.finderThread.interrupt();
     	if (updaterThread != null && this.updaterThread.isAlive())
