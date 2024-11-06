@@ -52,6 +52,7 @@ import javax.swing.SwingUtilities;
 import deepimagej.IjAdapter;
 import deepimagej.Runner;
 import deepimagej.gui.Gui;
+import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.Macro;
@@ -142,6 +143,11 @@ public class DeepImageJ_Run implements PlugIn {
 				ImagePlus imp = WindowManager.getCurrentImage();
 				List<Tensor<T>> inputList = adapter.convertToInputTensors(null, model);
 				List<Tensor<R>> res = runner.run(inputList);
+				for (Tensor<R> rr : res) {
+					ImagePlus im = ImPlusRaiManager.convert(rr.getData(), rr.getAxesOrderString());
+					im.setTitle(imp.getShortTitle() + "_" + rr.getName());
+					SwingUtilities.invokeLater(() -> im.show());
+				}
 			}
 		} catch (ModelSpecsException | IOException | LoadModelException | RunModelException e) {
 			e.printStackTrace();
