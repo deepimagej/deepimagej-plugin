@@ -119,11 +119,21 @@ public class Gui extends PlugInFrame {
     }
     
     private void installEnginesIfNeeded() {
+    	SwingUtilities.invokeLater(() -> {
+    		this.searchBar.switchButton.setEnabled(false);
+    		this.runButton.setEnabled(false);
+    		this.runOnTestButton.setEnabled(false);
+    	});
     	engineInstallThread = new Thread(() -> {
 	        EngineInstall installer = EngineInstall.createInstaller(this.enginesDir);
 	        installer.checkBasicEngineInstallation();
 	        consumersMap = installer.getBasicEnginesProgress();
 	        installer.basicEngineInstallation();
+	    	SwingUtilities.invokeLater(() -> {
+	    		this.searchBar.switchButton.setEnabled(true);
+	    		this.runButton.setEnabled(true);
+	    		this.runOnTestButton.setEnabled(true);
+	    	});
 	    });
     	engineInstallThread.start();
 	    
