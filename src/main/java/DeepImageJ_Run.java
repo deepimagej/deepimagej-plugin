@@ -122,8 +122,9 @@ public class DeepImageJ_Run implements PlugIn {
 	 * Macro:
 	 * "DeepImageJ Run"
 	 */
-	private <T extends RealType<T> & NativeType<T>> void runMacro() {
+	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>  void runMacro() {
 		parseCommand();
+		IjAdapter adapter = new IjAdapter();
 		Runner runner;
 		try {
 			ModelDescriptor model = ModelDescriptorFactory.readFromLocalFile(modelFolder + File.separator + Constants.RDF_FNAME);
@@ -134,11 +135,13 @@ public class DeepImageJ_Run implements PlugIn {
 			else if (this.inputFolder != null) {
 				for (File ff : new File(this.inputFolder).listFiles()) {
 					ImagePlus imp = IJ.openImage(ff.getAbsolutePath());
-					List<Tensor<T>> res = runner.run(null);
+					List<Tensor<T>> inputList = adapter.convertToInputTensors(null, model);
+					List<Tensor<T>> res = runner.run(inputList);
 				}
 			} else {
 				ImagePlus imp = WindowManager.getCurrentImage();
-				List<Tensor<T>> res = runner.run(null);
+				List<Tensor<T>> inputList = adapter.convertToInputTensors(null, model);
+				List<Tensor<R>> res = runner.run(inputList);
 			}
 		} catch (ModelSpecsException | IOException | LoadModelException | RunModelException e) {
 			e.printStackTrace();
