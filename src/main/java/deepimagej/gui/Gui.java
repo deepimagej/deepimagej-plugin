@@ -50,8 +50,9 @@ public class Gui extends PlugInFrame {
 	private final String modelsDir;
 	private final String enginesDir;
 	private final ImageAdapter imAdapter;
-	
+
 	Thread engineInstallThread;
+	Thread trackEngineInstallThread;
 	Thread dwnlThread;
 	Thread runninThread;
 	Thread finderThread;
@@ -126,7 +127,7 @@ public class Gui extends PlugInFrame {
 	    });
     	engineInstallThread.start();
 	    
-	    new Thread(() -> {
+    	trackEngineInstallThread = new Thread(() -> {
 	    	while (consumersMap == null) {
 	    		try {
 					Thread.sleep(30);
@@ -135,7 +136,8 @@ public class Gui extends PlugInFrame {
 				}
 	    	}
 	        this.trackEngineInstallation(consumersMap);
-	    }).start();
+	    });
+    	trackEngineInstallThread.start();
     }
     
     private void loadLocalModels() {
@@ -579,6 +581,8 @@ public class Gui extends PlugInFrame {
     		this.dwnlThread.interrupt();
     	if (engineInstallThread != null && this.engineInstallThread.isAlive())
     		this.engineInstallThread.interrupt();
+    	if (trackEngineInstallThread != null && this.trackEngineInstallThread.isAlive())
+    		this.trackEngineInstallThread.interrupt();
     	if (finderThread != null && this.finderThread.isAlive())
     		this.finderThread.interrupt();
     	if (updaterThread != null && this.updaterThread.isAlive())
