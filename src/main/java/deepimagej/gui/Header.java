@@ -7,7 +7,10 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.io.File;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 
 import javax.swing.BoxLayout;
@@ -212,18 +215,23 @@ public class Header extends JPanel {
     					return ee.getValue().get().get("total" + EngineInstall.NBYTES_SUFFIX) * totalPerc;
     				})
     				.filter(Objects::nonNull).mapToDouble(value -> (Double) value).sum();
+        	Entry<String, TwoParameterConsumer<String, Double>> entry = consumersMap.entrySet()
+        			.stream().filter(ee -> ee.getValue().get().get("total") != null 
+        								&& ee.getValue().get().get("total") != 0 && ee.getValue().get().get("total") != 1)
+        			.findFirst().orElse(null);
     		long perc = Math.round(100 * progress / total);
         	SwingUtilities.invokeLater(() -> {
         		progressBar.setString(perc + "%");
         		progressBar.setValue((int) perc);
+        		if (entry != null)
+        			this.progressLabel.setText("Installing " + new File(entry.getKey()).getName());
         	});
         	if (perc == 100) {
             	SwingUtilities.invokeLater(() -> cardLayout.show(progressPanelCard, "invisible"));
         		return;
         	}
     	}
-    }
-    
+    } 
     
     private static boolean checkDownloadStarted(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
 		boolean startedDownload = false;
