@@ -42,16 +42,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import java.awt.GraphicsEnvironment;
 import java.io.File;
-import java.util.Map;
+import java.io.IOException;
+import java.util.List;
 
 import javax.swing.SwingUtilities;
 
 import deepimagej.IjAdapter;
+import deepimagej.Runner;
 import deepimagej.gui.Gui;
+import ij.IJ;
+import ij.ImagePlus;
+import ij.Macro;
+import ij.WindowManager;
 import ij.plugin.PlugIn;
-import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
-import io.bioimage.modelrunner.engine.installation.EngineInstall;
+import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
+import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
+import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
+import io.bioimage.modelrunner.exceptions.LoadModelException;
+import io.bioimage.modelrunner.exceptions.RunModelException;
+import io.bioimage.modelrunner.tensor.Tensor;
+import io.bioimage.modelrunner.utils.Constants;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
 
 /**
  * 
@@ -59,34 +73,42 @@ import io.bioimage.modelrunner.engine.installation.EngineInstall;
  *
  */
 public class DeepImageJ_Run implements PlugIn {
+
+	private String modelFolder;
+	private String inputFolder;
+	private String outputFolder;
 	
-	private static final String ENGINES_DIR = new File("engines").getAbsolutePath();
 	/**
-	 * Message containing the references to the plugin
+	 * Keys required to run deepImageJ with a macro
 	 */
-	private static final String REF_MSG = "References: Please cite the model developer and";
+	final static String[] macroKeys = new String[] {"modelFolder="};
 	/**
-	 * Message containing the references to the plugin
+	 * Optional keys to run deepImageJ with a macro or in headless mode
 	 */
-	private static final String REF_1 = "[1] E. Gómez de Mariscal, DeepImageJ, Nature Methods, 2021";
-	/**
-	 * Message containing the references to the plugin
-	 */
-	private static final String REF_2 = "[2] C. García López de Haro, JDLL, arXiv, 2023";
+	final static String[] macroOptionalKeys = new String[] {"inputFolder=", "saveOuputFolder="};
 	
 	
 	static public void main(String args[]) {
 		new DeepImageJ_Run().run("");
 	}
-
-	Map<String, TwoParameterConsumer<String, Double>> consumersMap;
 	@Override
 	public void run(String arg) {
-		long tt = System.currentTimeMillis();
 		File modelsDir = new File("models");
 		if (!modelsDir.isDirectory() && !modelsDir.mkdir())
 			throw new RuntimeException("Unable to create 'models' folder inside ImageJ/Fiji directory. Please create it yourself.");
-	    final Gui[] guiRef = new Gui[1];
+	    boolean isMacro = IJ.isMacro();
+	    boolean isHeadless = GraphicsEnvironment.isHeadless();
+	    if (!isMacro) {
+	    	runGUI();
+	    } else if (isMacro && !isHeadless) {
+	    	runMacro();
+	    } else if (isHeadless) {
+	    	runHeadless();
+	    }
+	}
+	
+	private void runGUI() {
+		final Gui[] guiRef = new Gui[1];
 	    if (SwingUtilities.isEventDispatchThread())
 	    	guiRef[0] = new Gui(new IjAdapter());
 	    else {
@@ -94,8 +116,69 @@ public class DeepImageJ_Run implements PlugIn {
 		        guiRef[0] = new Gui(new IjAdapter());
 		    });
 	    }
-	    
+	}
+	
+	/**
+	 * Macro:
+	 * "DeepImageJ Run"
+	 */
+	private <T extends RealType<T> & NativeType<T>> void runMacro() {
+		parseCommand();
+		Runner runner;
+		try {
+			ModelDescriptor model = ModelDescriptorFactory.readFromLocalFile(modelFolder + File.separator + Constants.RDF_FNAME);
+			runner = Runner.create(model);
+			runner.load();
+			if (this.inputFolder != null && !(new File(this.inputFolder).isDirectory()))
+				throw new IllegalArgumentException("The provided input folder does not exist: " + this.inputFolder);
+			else if (this.inputFolder != null) {
+				for (File ff : new File(this.inputFolder).listFiles()) {
+					ImagePlus imp = IJ.openImage(ff.getAbsolutePath());
+					List<Tensor<T>> res = runner.run(null);
+				}
+			} else {
+				ImagePlus imp = WindowManager.getCurrentImage();
+				List<Tensor<T>> res = runner.run(null);
+			}
+		} catch (ModelSpecsException | IOException | LoadModelException | RunModelException e) {
+			e.printStackTrace();
+			return;
+		}
+	}
+	
+	
+	private void runHeadless() {
 		
+	}
+	
+	private void parseCommand() {
+		String macroArg = Macro.getOptions();
+
+		// macroArg = "modelFolder=NucleiSegmentationBoundaryModel";
+		// macroArg = "modelFolder=NucleiSegmentationBoundaryModel saveOutputFolder=null";
+		// macroArg = "modelFolder=[StarDist H&E Nuclei Segmentation] inputFolder=null saveOuputFolder=null";
+
+		modelFolder = parseArg(macroArg, macroKeys[0], true);
+		inputFolder = parseArg(macroArg, macroOptionalKeys[0], false);
+		outputFolder = parseArg(macroArg, macroOptionalKeys[1], false);
+	}
+	
+	private static String parseArg(String macroArg, String arg, boolean required) {
+		int modelFolderInd = macroArg.indexOf(arg);
+		if (modelFolderInd == -1 && required)
+			throw new IllegalArgumentException("DeepImageJ macro requires to set the variable '" + arg + "'.");
+		else if (modelFolderInd == -1)
+			return null;
+		int modelFolderInd2 = macroArg.indexOf(arg + "[");
+		int endInd = macroArg.indexOf(" ", modelFolderInd);
+		String value;
+		if (modelFolderInd2 != -1) {
+			endInd = macroArg.indexOf("] ", modelFolderInd2);
+			value = macroArg.substring(modelFolderInd2 + arg.length() + 1, endInd);
+		} else {
+			value = macroArg.substring(modelFolderInd + arg.length(), endInd);
+		}
+		return value;
 	}
 
 }
