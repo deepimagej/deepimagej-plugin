@@ -163,7 +163,6 @@ public class Header extends JPanel {
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 0; // Prevent horizontal expansion
         gbc.weighty = 0;
-        gbc.fill = GridBagConstraints.NONE; // Do not fill space
         progressPanel.add(progressLabel, gbc);
 
         gbc.gridx = 0;
@@ -180,16 +179,19 @@ public class Header extends JPanel {
     	if (consumersMap.keySet().size() == 0)
     		return;
     	SwingUtilities.invokeLater(() -> {
+    		progressBar.setIndeterminate(true);
             progressBar.setStringPainted(true);
     		progressBar.setString("0%");
-    		progressBar.setValue(0);
-    		progressLabel.setText("Preparing download...");
+    		progressLabel.setText("Preparing installation...");
     		cardLayout.show(progressPanelCard, "visible");
 
     	});
 		if (!checkDownloadStarted(consumersMap))
 			return;
-		SwingUtilities.invokeLater(() -> progressLabel.setText("Installing DL engines..."));
+		SwingUtilities.invokeLater(() -> {
+    		progressBar.setIndeterminate(false);
+    		progressLabel.setText("Installing DL engines...");
+		});
 		trackProgress(consumersMap);
     }
 

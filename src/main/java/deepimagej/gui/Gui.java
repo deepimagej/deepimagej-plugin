@@ -129,7 +129,7 @@ public class Gui extends PlugInFrame {
 	    new Thread(() -> {
 	    	while (consumersMap == null) {
 	    		try {
-					Thread.sleep(100);
+					Thread.sleep(30);
 				} catch (InterruptedException e) {
 					return;
 				}
