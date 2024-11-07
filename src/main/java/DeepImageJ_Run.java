@@ -151,7 +151,7 @@ public class DeepImageJ_Run implements PlugIn {
 	
 	
 	private void runHeadless() {
-		
+		// TODO not ready yet
 	}
 	
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
