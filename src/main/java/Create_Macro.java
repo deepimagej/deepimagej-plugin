@@ -4,10 +4,10 @@
  * https://deepimagej.github.io/deepimagej/
  * 
  * Reference: DeepImageJ: A user-friendly environment to run deep learning models in ImageJ
- * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, W. Ouyang, L. Donati, M. Unser, E. Lundberg, A. Munoz-Barrutia, D. Sage. 
+ * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, W. Ouyang, L. Donati, M. Unser, E. Lundberg, A. Munoz-Barrutia, D. Sage.
  * Submitted 2021.
  * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
- * Biomedical Imaging Group, Ecole polytechnique federale de Lausanne (EPFL), Switzerland
+ * Biomedical Imaging Group, Ecole polytechnique fédérale de Lausanne (EPFL), Switzerland
  * Science for Life Laboratory, School of Engineering Sciences in Chemistry, Biotechnology and Health, KTH - Royal Institute of Technology, Sweden
  * 
  * Authors: Carlos Garcia-Lopez-de-Haro and Estibaliz Gomez-de-Mariscal
@@ -42,24 +42,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-
-import javax.swing.ButtonGroup;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JRadioButton;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
 
 import deepimagej.Constants;
 
@@ -71,10 +56,12 @@ public class Create_Macro extends JFrame {
     private JRadioButton currentImageRadioButton;
     private JRadioButton pathToImageFolderRadioButton;
     private JTextField pathTextField;
+    private JButton browseImageButton;
     private JCheckBox displayOutputCheckBox;
     private JTextField periodTextField;
     private JCheckBox outputFolderCheckBox;
     private JTextField outputFolderTextField;
+    private JButton browseOutputButton;
     private JTextArea codeTextArea;
     private JButton cancelButton;
     private JButton saveAsButton;
@@ -91,34 +78,31 @@ public class Create_Macro extends JFrame {
     private void initComponents() {
         // Set the layout manager for the content pane
         getContentPane().setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5,5,5,5); // Padding
 
         // Initialize components
         labelModel = new JLabel("Model:");
         modelComboBox = new JComboBox<>(new String[]{"Model1", "Model2", "Model3"});
-        addQuestionMark(labelModel, "Select the model you want to use.");
 
         currentImageRadioButton = new JRadioButton("Current Image");
         pathToImageFolderRadioButton = new JRadioButton("Path to Image Folder");
         ButtonGroup imageOptionGroup = new ButtonGroup();
         imageOptionGroup.add(currentImageRadioButton);
         imageOptionGroup.add(pathToImageFolderRadioButton);
-        addQuestionMark(currentImageRadioButton, "Process the currently open image.");
-        addQuestionMark(pathToImageFolderRadioButton, "Provide a path to a folder with images.");
 
         pathTextField = new JTextField(20);
         pathTextField.setEnabled(false); // Initially disabled
+        browseImageButton = new JButton("Browse");
+        browseImageButton.setEnabled(false); // Initially disabled
 
         displayOutputCheckBox = new JCheckBox("Display Output");
         periodTextField = new JTextField(5);
         periodTextField.setEnabled(false); // Initially disabled
-        addQuestionMark(displayOutputCheckBox, "Toggle the display of output images.");
 
         outputFolderCheckBox = new JCheckBox("Output Folder");
         outputFolderTextField = new JTextField(20);
         outputFolderTextField.setEnabled(false); // Initially disabled
-        addQuestionMark(outputFolderCheckBox, "Specify an output folder for the results.");
+        browseOutputButton = new JButton("Browse");
+        browseOutputButton.setEnabled(false); // Initially disabled
 
         codeTextArea = new JTextArea(5, 30); // Make it taller
         codeTextArea.setLineWrap(true);
@@ -128,71 +112,64 @@ public class Create_Macro extends JFrame {
         cancelButton = new JButton("Cancel");
         saveAsButton = new JButton("Save As");
 
-        // Action listeners to enable/disable text fields
-        pathToImageFolderRadioButton.addActionListener(e -> pathTextField.setEnabled(pathToImageFolderRadioButton.isSelected()));
-        currentImageRadioButton.addActionListener(e -> pathTextField.setEnabled(pathToImageFolderRadioButton.isSelected()));
+        // Action listeners to enable/disable text fields and buttons
+        pathToImageFolderRadioButton.addActionListener(e -> {
+            boolean selected = pathToImageFolderRadioButton.isSelected();
+            pathTextField.setEnabled(selected);
+            browseImageButton.setEnabled(selected);
+        });
+        currentImageRadioButton.addActionListener(e -> {
+            boolean selected = pathToImageFolderRadioButton.isSelected();
+            pathTextField.setEnabled(selected);
+            browseImageButton.setEnabled(selected);
+        });
         displayOutputCheckBox.addActionListener(e -> periodTextField.setEnabled(displayOutputCheckBox.isSelected()));
-        outputFolderCheckBox.addActionListener(e -> outputFolderTextField.setEnabled(outputFolderCheckBox.isSelected()));
+        outputFolderCheckBox.addActionListener(e -> {
+            boolean selected = outputFolderCheckBox.isSelected();
+            outputFolderTextField.setEnabled(selected);
+            browseOutputButton.setEnabled(selected);
+        });
 
         // Set default selections
         currentImageRadioButton.setSelected(true);
 
-        // Row 1: Model label and combo box
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.WEST;
-        getContentPane().add(labelModel, gbc);
+        // Adjust label alignment and spacing
+        int gridy = 0;
 
-        gbc.gridx = 1;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        getContentPane().add(modelComboBox, gbc);
+        // Row 1: Question mark, Model label and combo box
+        addRowComponents(gridy++, "Select the model you want to use.", labelModel, modelComboBox, true);
 
-        // Row 2: Radio buttons and path text field
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.gridwidth = 1;
-        gbc.fill = GridBagConstraints.NONE;
-        getContentPane().add(currentImageRadioButton, gbc);
+        // Row 2: Question mark, Radio buttons vertically
+        JPanel radioPanel = new JPanel(new GridLayout(2, 1));
+        radioPanel.add(currentImageRadioButton);
+        radioPanel.add(pathToImageFolderRadioButton);
 
-        gbc.gridx = 1;
-        gbc.gridy = 1;
-        getContentPane().add(pathToImageFolderRadioButton, gbc);
+        // Panel for path text field and browse button
+        JPanel pathPanel = new JPanel(new BorderLayout(5, 0));
+        pathPanel.add(pathTextField, BorderLayout.CENTER);
+        pathPanel.add(browseImageButton, BorderLayout.EAST);
 
-        gbc.gridx = 2;
-        gbc.gridy = 1;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        getContentPane().add(pathTextField, gbc);
+        addRowComponents(gridy++, "Select the image source.", radioPanel, pathPanel, true);
 
-        // Row 3: Display output checkbox and period text field
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.fill = GridBagConstraints.NONE;
-        getContentPane().add(displayOutputCheckBox, gbc);
+        // Row 3: Question mark, Display output checkbox and period text field
+        addRowComponents(gridy++, "Toggle the display of output images.", displayOutputCheckBox, periodTextField, false);
 
-        gbc.gridx = 1;
-        gbc.gridy = 2;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        getContentPane().add(periodTextField, gbc);
+        // Row 4: Question mark, Output folder checkbox and text field with browse button
+        JPanel outputFolderPanel = new JPanel(new BorderLayout(5, 0));
+        outputFolderPanel.add(outputFolderTextField, BorderLayout.CENTER);
+        outputFolderPanel.add(browseOutputButton, BorderLayout.EAST);
 
-        // Row 4: Output folder checkbox and text field
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.fill = GridBagConstraints.NONE;
-        getContentPane().add(outputFolderCheckBox, gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 3;
-        gbc.gridwidth = 2;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        getContentPane().add(outputFolderTextField, gbc);
+        addRowComponents(gridy++, "Specify an output folder for the results.", outputFolderCheckBox, outputFolderPanel, true);
 
         // Row 5: Code text area with scroll pane spanning the whole width
+        GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
-        gbc.gridy = 4;
-        gbc.gridwidth = 3;
+        gbc.gridy = gridy++;
+        gbc.gridwidth = 4; // Span all columns
+        gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
         getContentPane().add(codeScrollPane, gbc);
 
         // Row 6: Buttons aligned to the right
@@ -201,36 +178,50 @@ public class Create_Macro extends JFrame {
         buttonPanel.add(saveAsButton);
 
         gbc.gridx = 0;
-        gbc.gridy = 5;
-        gbc.gridwidth = 3;
+        gbc.gridy = gridy;
+        gbc.gridwidth = 4;
         gbc.anchor = GridBagConstraints.EAST;
         gbc.fill = GridBagConstraints.NONE;
+        gbc.weightx = 0;
+        gbc.weighty = 0;
         getContentPane().add(buttonPanel, gbc);
     }
 
-    // Method to add a question mark label with tooltip next to a component
-    private void addQuestionMark(JComponent component, String tooltipText) {
-        JLabel questionMark = new JLabel("?");
-        questionMark.setToolTipText(tooltipText);
-        questionMark.setForeground(java.awt.Color.BLUE);
-
-        // Add the question mark label next to the component in the layout
+    private void addRowComponents(int gridy, String tooltipText, JComponent leftComponent, JComponent rightComponent, boolean expandRightComponent) {
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5,0,5,5);
+
+        // Question mark icon
+        gbc.gridx = 0;
+        gbc.gridy = gridy;
+        gbc.insets = new Insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
-
-        // Get the layout manager of the content pane
-        GridBagLayout layout = (GridBagLayout) getContentPane().getLayout();
-
-        // Get the constraints of the original component
-        GridBagConstraints origGbc = layout.getConstraints(component);
-
-        // Set the position next to the original component
-        gbc.gridx = origGbc.gridx + 1;
-        gbc.gridy = origGbc.gridy;
-
-        // Add the question mark label to the content pane
+        Icon questionIcon = UIManager.getIcon("OptionPane.questionIcon");
+        if (questionIcon == null) {
+            questionIcon = UIManager.getIcon("OptionPane.informationIcon");
+        }
+        JLabel questionMark = new JLabel(questionIcon);
+        questionMark.setToolTipText(tooltipText);
         getContentPane().add(questionMark, gbc);
+
+        // Left component (label or checkbox)
+        gbc.gridx = 1;
+        gbc.weightx = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        getContentPane().add(leftComponent, gbc);
+
+        // Right component (input field or panel)
+        gbc.gridx = 2;
+        if (expandRightComponent) {
+            gbc.gridwidth = 2;
+            gbc.weightx = 1.0;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+        } else {
+            gbc.gridwidth = 1;
+            gbc.weightx = 0;
+            gbc.fill = GridBagConstraints.NONE;
+        }
+        gbc.anchor = GridBagConstraints.WEST;
+        getContentPane().add(rightComponent, gbc);
     }
 
     // Main method to run the GUI
