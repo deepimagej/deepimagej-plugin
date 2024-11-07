@@ -44,6 +44,7 @@
 
 import java.awt.GraphicsEnvironment;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 
@@ -125,29 +126,22 @@ public class DeepImageJ_Run implements PlugIn {
 	 */
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>  void runMacro() {
 		parseCommand();
+
+		if (this.inputFolder != null && !(new File(this.inputFolder).isDirectory()))
+			throw new IllegalArgumentException("The provided input folder does not exist: " + this.inputFolder);
+		if (this.outputFolder != null && !(new File(this.outputFolder).isDirectory()) && !(new File(outputFolder).mkdirs()))
+			throw new IllegalArgumentException("The provided output folder does not exist and cannot be created: " + this.inputFolder);
+		
 		IjAdapter adapter = new IjAdapter();
 		Runner runner;
 		try {
 			ModelDescriptor model = ModelDescriptorFactory.readFromLocalFile(modelFolder + File.separator + Constants.RDF_FNAME);
 			runner = Runner.create(model);
 			runner.load();
-			if (this.inputFolder != null && !(new File(this.inputFolder).isDirectory()))
-				throw new IllegalArgumentException("The provided input folder does not exist: " + this.inputFolder);
-			else if (this.inputFolder != null) {
-				for (File ff : new File(this.inputFolder).listFiles()) {
-					ImagePlus imp = IJ.openImage(ff.getAbsolutePath());
-					List<Tensor<T>> inputList = adapter.convertToInputTensors(null, model);
-					List<Tensor<T>> res = runner.run(inputList);
-				}
+			if (this.inputFolder != null) {
+				executeOnFolder(model, runner, adapter);
 			} else {
-				ImagePlus imp = WindowManager.getCurrentImage();
-				List<Tensor<T>> inputList = adapter.convertToInputTensors(null, model);
-				List<Tensor<R>> res = runner.run(inputList);
-				for (Tensor<R> rr : res) {
-					ImagePlus im = ImPlusRaiManager.convert(rr.getData(), rr.getAxesOrderString());
-					im.setTitle(imp.getShortTitle() + "_" + rr.getName());
-					SwingUtilities.invokeLater(() -> im.show());
-				}
+				executeOnImagePlus(model, runner, adapter);
 			}
 		} catch (ModelSpecsException | IOException | LoadModelException | RunModelException e) {
 			e.printStackTrace();
@@ -158,6 +152,40 @@ public class DeepImageJ_Run implements PlugIn {
 	
 	private void runHeadless() {
 		
+	}
+	
+	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
+	void executeOnFolder(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
+		for (File ff : new File(this.inputFolder).listFiles()) {
+			ImagePlus imp = IJ.openImage(ff.getAbsolutePath());
+			List<Tensor<T>> inputList = adapter.convertToInputTensors(null, model);
+			List<Tensor<R>> res = runner.run(inputList);
+			for (Tensor<R> rr : res) {
+				ImagePlus im = ImPlusRaiManager.convert(rr.getData(), rr.getAxesOrderString());
+				im.setTitle(imp.getShortTitle() + "_" + rr.getName());
+				if (this.outputFolder != null) {
+					IJ.saveAsTiff(im, this.outputFolder + File.separator + im.getTitle());
+				} else {
+					SwingUtilities.invokeLater(() -> im.show());
+				}
+			}
+		}
+		
+	}
+	
+	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
+	void executeOnImagePlus(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
+		ImagePlus imp = WindowManager.getCurrentImage();
+		List<Tensor<T>> inputList = adapter.convertToInputTensors(null, model);
+		List<Tensor<R>> res = runner.run(inputList);
+		for (Tensor<R> rr : res) {
+			ImagePlus im = ImPlusRaiManager.convert(rr.getData(), rr.getAxesOrderString());
+			im.setTitle(imp.getShortTitle() + "_" + rr.getName());
+			SwingUtilities.invokeLater(() -> im.show());
+			if (this.outputFolder != null) {
+				IJ.saveAsTiff(im, this.outputFolder + File.separator + im.getTitle());
+			}
+		}
 	}
 	
 	private void parseCommand() {
@@ -187,6 +215,8 @@ public class DeepImageJ_Run implements PlugIn {
 		} else {
 			value = macroArg.substring(modelFolderInd + arg.length(), endInd);
 		}
+		if (value.equals("null") || value.equals(""))
+			value = null;
 		return value;
 	}
 
