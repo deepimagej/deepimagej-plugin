@@ -42,13 +42,37 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
+
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Insets;
+
+import javax.swing.ButtonGroup;
+import javax.swing.Icon;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 
 import deepimagej.Constants;
+import ij.plugin.frame.PlugInFrame;
 
-public class Create_Macro extends JFrame {
+/**
+ * 
+ * @author Carlos Javier Garcia Lopez de Haro
+ */
+public class Create_Macro extends PlugInFrame {
     private static final long serialVersionUID = 5648984831136983153L;
     // Components
     private JLabel labelModel;
@@ -67,8 +91,7 @@ public class Create_Macro extends JFrame {
     private JButton saveAsButton;
 
     public Create_Macro() {
-        setTitle("deepImageJ " + Constants.DIJ_VERSION + " - Create Macro");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // Frame is closeable
+        super("deepImageJ " + Constants.DIJ_VERSION + " - Create Macro");
         initComponents();
         pack();
         setLocationRelativeTo(null); // Center the frame
@@ -77,7 +100,7 @@ public class Create_Macro extends JFrame {
 
     private void initComponents() {
         // Set the layout manager for the content pane
-        getContentPane().setLayout(new GridBagLayout());
+        this.setLayout(new GridBagLayout());
 
         // Initialize components
         labelModel = new JLabel("Model:");
@@ -170,7 +193,7 @@ public class Create_Macro extends JFrame {
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 1.0;
         gbc.weighty = 1.0;
-        getContentPane().add(codeScrollPane, gbc);
+        this.add(codeScrollPane, gbc);
 
         // Row 6: Buttons aligned to the right
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -184,7 +207,7 @@ public class Create_Macro extends JFrame {
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0;
         gbc.weighty = 0;
-        getContentPane().add(buttonPanel, gbc);
+        this.add(buttonPanel, gbc);
     }
 
     private void addRowComponents(int gridy, String tooltipText, JComponent leftComponent, JComponent rightComponent, boolean expandRightComponent) {
@@ -201,13 +224,13 @@ public class Create_Macro extends JFrame {
         }
         JLabel questionMark = new JLabel(questionIcon);
         questionMark.setToolTipText(tooltipText);
-        getContentPane().add(questionMark, gbc);
+        this.add(questionMark, gbc);
 
         // Left component (label or checkbox)
         gbc.gridx = 1;
         gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.WEST;
-        getContentPane().add(leftComponent, gbc);
+        this.add(leftComponent, gbc);
 
         // Right component (input field or panel)
         gbc.gridx = 2;
@@ -221,7 +244,7 @@ public class Create_Macro extends JFrame {
             gbc.fill = GridBagConstraints.NONE;
         }
         gbc.anchor = GridBagConstraints.WEST;
-        getContentPane().add(rightComponent, gbc);
+        this.add(rightComponent, gbc);
     }
 
     // Main method to run the GUI
