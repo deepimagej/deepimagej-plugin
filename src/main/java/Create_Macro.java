@@ -49,6 +49,10 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.io.File;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.swing.ButtonGroup;
 import javax.swing.Icon;
@@ -64,6 +68,8 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import deepimagej.Constants;
 import ij.plugin.frame.PlugInFrame;
@@ -90,12 +96,35 @@ public class Create_Macro extends PlugInFrame {
     private JButton cancelButton;
     private JButton saveAsButton;
 
+    private static final String NO_MODELS_STR = "No models installed";
+    
+    private static final String MACRO_FORMAT = "run(\"DeepImageJ Run\", \"modelPath=%s inputPath=%s outputFolder=% displayOutput=%\")"; 
+
     public Create_Macro() {
         super("deepImageJ " + Constants.DIJ_VERSION + " - Create Macro");
         initComponents();
         pack();
         setLocationRelativeTo(null); // Center the frame
         setVisible(true);
+    }
+    
+    private void createModelComboBox() {
+    	File modelsFolder = new File("models");
+    	if (!modelsFolder.isDirectory()) {
+    		modelComboBox = new JComboBox<>(new String[]{NO_MODELS_STR});
+    		return;
+    	}
+		List<File> modelFiles = Arrays.stream(modelsFolder.listFiles())
+				.filter(ff -> Arrays.asList(ff.list()).contains(io.bioimage.modelrunner.utils.Constants.RDF_FNAME))
+				.collect(Collectors.toList());
+		if (modelFiles.size() == 0) {
+    		modelComboBox = new JComboBox<>(new String[]{NO_MODELS_STR});
+    		return;
+		}
+		String[] arr = new String[modelFiles.size()];
+		modelFiles.stream().map(f -> f.getName()).collect(Collectors.toList()).toArray(arr);
+		modelComboBox = new JComboBox<>(arr);
+		modelComboBox.setSelectedIndex(1);
     }
 
     private void initComponents() {
@@ -104,7 +133,8 @@ public class Create_Macro extends PlugInFrame {
 
         // Initialize components
         labelModel = new JLabel("Model:");
-        modelComboBox = new JComboBox<>(new String[]{"Model1", "Model2", "Model3"});
+        createModelComboBox();
+        modelComboBox.addActionListener(e -> updateCodeTextArea()); // Listener for model selection
 
         currentImageRadioButton = new JRadioButton("Current Image");
         pathToImageFolderRadioButton = new JRadioButton("Path to Image Folder");
@@ -114,22 +144,66 @@ public class Create_Macro extends PlugInFrame {
 
         pathTextField = new JTextField(20);
         pathTextField.setEnabled(false); // Initially disabled
+        pathTextField.getDocument().addDocumentListener(new DocumentListener() { // Listener for path text field
+            public void changedUpdate(DocumentEvent e) {
+                updateCodeTextArea();
+            }
+            public void removeUpdate(DocumentEvent e) {
+                updateCodeTextArea();
+            }
+            public void insertUpdate(DocumentEvent e) {
+                updateCodeTextArea();
+            }
+        });
         browseImageButton = new JButton("Browse");
         browseImageButton.setEnabled(false); // Initially disabled
 
         displayOutputCheckBox = new JCheckBox("Display Output");
+        displayOutputCheckBox.addActionListener(e -> {
+            periodTextField.setEnabled(displayOutputCheckBox.isSelected());
+            updateCodeTextArea();
+        });
         periodTextField = new JTextField(5);
         periodTextField.setEnabled(false); // Initially disabled
+        periodTextField.getDocument().addDocumentListener(new DocumentListener() { // Listener for period text field
+            public void changedUpdate(DocumentEvent e) {
+                updateCodeTextArea();
+            }
+            public void removeUpdate(DocumentEvent e) {
+                updateCodeTextArea();
+            }
+            public void insertUpdate(DocumentEvent e) {
+                updateCodeTextArea();
+            }
+        });
 
         outputFolderCheckBox = new JCheckBox("Output Folder");
+        outputFolderCheckBox.addActionListener(e -> {
+            boolean selected = outputFolderCheckBox.isSelected();
+            outputFolderTextField.setEnabled(selected);
+            browseOutputButton.setEnabled(selected);
+            updateCodeTextArea();
+        });
         outputFolderTextField = new JTextField(20);
         outputFolderTextField.setEnabled(false); // Initially disabled
+        outputFolderTextField.getDocument().addDocumentListener(new DocumentListener() { // Listener for output folder text field
+            public void changedUpdate(DocumentEvent e) {
+                updateCodeTextArea();
+            }
+            public void removeUpdate(DocumentEvent e) {
+                updateCodeTextArea();
+            }
+            public void insertUpdate(DocumentEvent e) {
+                updateCodeTextArea();
+            }
+        });
         browseOutputButton = new JButton("Browse");
         browseOutputButton.setEnabled(false); // Initially disabled
 
         codeTextArea = new JTextArea(5, 30); // Make it taller
         codeTextArea.setLineWrap(true);
         codeTextArea.setWrapStyleWord(true);
+        codeTextArea.setEditable(false);
         JScrollPane codeScrollPane = new JScrollPane(codeTextArea);
 
         cancelButton = new JButton("Cancel");
@@ -140,18 +214,28 @@ public class Create_Macro extends PlugInFrame {
             boolean selected = pathToImageFolderRadioButton.isSelected();
             pathTextField.setEnabled(selected);
             browseImageButton.setEnabled(selected);
+            updateCodeTextArea();
         });
         currentImageRadioButton.addActionListener(e -> {
-            boolean selected = pathToImageFolderRadioButton.isSelected();
-            pathTextField.setEnabled(selected);
-            browseImageButton.setEnabled(selected);
+            boolean selected = currentImageRadioButton.isSelected();
+            pathTextField.setEnabled(!selected);
+            browseImageButton.setEnabled(!selected);
+            updateCodeTextArea();
         });
-        displayOutputCheckBox.addActionListener(e -> periodTextField.setEnabled(displayOutputCheckBox.isSelected()));
+        displayOutputCheckBox.addActionListener(e -> {
+            periodTextField.setEnabled(displayOutputCheckBox.isSelected());
+            updateCodeTextArea();
+        });
         outputFolderCheckBox.addActionListener(e -> {
             boolean selected = outputFolderCheckBox.isSelected();
             outputFolderTextField.setEnabled(selected);
             browseOutputButton.setEnabled(selected);
+            updateCodeTextArea();
         });
+
+        // Listeners for radio buttons
+        currentImageRadioButton.addActionListener(e -> updateCodeTextArea());
+        pathToImageFolderRadioButton.addActionListener(e -> updateCodeTextArea());
 
         // Set default selections
         currentImageRadioButton.setSelected(true);
@@ -208,6 +292,9 @@ public class Create_Macro extends PlugInFrame {
         gbc.weightx = 0;
         gbc.weighty = 0;
         this.add(buttonPanel, gbc);
+
+        // Initial update of the code text area
+        updateCodeTextArea();
     }
 
     private void addRowComponents(int gridy, String tooltipText, JComponent leftComponent, JComponent rightComponent, boolean expandRightComponent) {
@@ -247,8 +334,43 @@ public class Create_Macro extends PlugInFrame {
         this.add(rightComponent, gbc);
     }
 
-    // Main method to run the GUI
+    private void updateCodeTextArea() {
+        StringBuilder codeBuilder = new StringBuilder();
+
+        // Get the selected model
+        String selectedModel = (String) modelComboBox.getSelectedItem();
+        if (NO_MODELS_STR.equals(selectedModel)) {
+            codeBuilder.append("// No model selected");
+            return;
+        }
+        
+        String modelFolder = (String) this.modelComboBox.getSelectedItem();
+        boolean applyOnCurrent = currentImageRadioButton.isSelected();
+        boolean displayOutput = this.displayOutputCheckBox.isSelected();
+        boolean saveOutput = this.outputFolderCheckBox.isSelected();
+
+        String inputStr;
+        String outputStr;
+        String nDisplayedStr;
+
+        if (applyOnCurrent)
+        	inputStr = "null";
+        else
+        	inputStr = this.pathTextField.getText();
+        if (!displayOutput)
+        	nDisplayedStr = "" + 0;
+        else
+        	nDisplayedStr = this.periodTextField.getText();
+        if (!saveOutput)
+        	outputStr = "null";
+    	else
+    		outputStr = this.outputFolderTextField.getText();
+        	
+
+        codeTextArea.setText(String.format(MACRO_FORMAT, modelFolder, inputStr, nDisplayedStr, outputStr));
+    }
+    
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(Create_Macro::new);
+    	SwingUtilities.invokeLater(() -> new Create_Macro());
     }
 }
