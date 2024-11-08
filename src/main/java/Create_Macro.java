@@ -49,6 +49,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
@@ -72,6 +74,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 import deepimagej.Constants;
+import ij.IJ;
 import ij.plugin.frame.PlugInFrame;
 
 /**
@@ -161,10 +164,12 @@ public class Create_Macro extends PlugInFrame {
         displayOutputCheckBox = new JCheckBox("Display Output");
         displayOutputCheckBox.addActionListener(e -> {
             periodTextField.setEnabled(displayOutputCheckBox.isSelected());
+    		SwingUtilities.invokeLater(() -> periodTextField.requestFocusInWindow());
             updateCodeTextArea();
         });
         periodTextField = new JTextField(5);
         periodTextField.setEnabled(false); // Initially disabled
+        periodTextField.setText("all");
         periodTextField.getDocument().addDocumentListener(new DocumentListener() { // Listener for period text field
             public void changedUpdate(DocumentEvent e) {
                 updateCodeTextArea();
@@ -174,6 +179,26 @@ public class Create_Macro extends PlugInFrame {
             }
             public void insertUpdate(DocumentEvent e) {
                 updateCodeTextArea();
+            }
+        });
+        periodTextField.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+            	if (!displayOutputCheckBox.isSelected()) return;
+            	if (periodTextField.getText().equals("all")) return;
+            	if (periodTextField.getText().equals("")) return;
+            	if (periodTextField.getText().equals("null")) return;
+            	try {
+            		Integer.parseInt(periodTextField.getText());
+            		return;
+            	} catch (Exception ex) {
+            	}
+        		IJ.error("Invalid value", "Only valid options are integers bigger or equal than 0 or 'all'.");
+        		SwingUtilities.invokeLater(() -> periodTextField.requestFocusInWindow());
             }
         });
 
