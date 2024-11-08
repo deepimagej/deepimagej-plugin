@@ -98,7 +98,7 @@ public class Create_Macro extends PlugInFrame {
 
     private static final String NO_MODELS_STR = "No models installed";
     
-    private static final String MACRO_FORMAT = "run(\"DeepImageJ Run\", \"modelPath=%s inputPath=%s outputFolder=% displayOutput=%\")"; 
+    private static final String MACRO_FORMAT = "run(\"DeepImageJ Run\", \"modelPath=%s inputPath=%s outputFolder=%s displayOutput=%s\")"; 
 
     public Create_Macro() {
         super("deepImageJ " + Constants.DIJ_VERSION + " - Create Macro");
@@ -355,14 +355,20 @@ public class Create_Macro extends PlugInFrame {
 
         if (applyOnCurrent)
         	inputStr = "null";
+        else if (this.pathTextField.getText().equals(""))
+        	inputStr = "null";
         else
         	inputStr = this.pathTextField.getText();
         if (!displayOutput)
         	nDisplayedStr = "" + 0;
+        else if (this.periodTextField.getText().equals(""))
+        	nDisplayedStr = "null";
         else
         	nDisplayedStr = this.periodTextField.getText();
         if (!saveOutput)
         	outputStr = "null";
+    	else if (this.outputFolderTextField.getText().equals(""))
+    		outputStr = "null";
     	else
     		outputStr = this.outputFolderTextField.getText();
         	
