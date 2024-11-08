@@ -49,6 +49,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.io.File;
@@ -62,6 +64,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
@@ -160,6 +163,17 @@ public class Create_Macro extends PlugInFrame {
         });
         browseImageButton = new JButton("Browse");
         browseImageButton.setEnabled(false); // Initially disabled
+        browseImageButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser fileChooser = new JFileChooser();
+                int option = fileChooser.showOpenDialog(Create_Macro.this);
+                if (option == JFileChooser.APPROVE_OPTION) {
+                    File selectedDirectory = fileChooser.getSelectedFile();
+                    pathTextField.setText(selectedDirectory.getAbsolutePath());
+                }
+            }
+        });
 
         displayOutputCheckBox = new JCheckBox("Display Output");
         displayOutputCheckBox.addActionListener(e -> {
@@ -224,6 +238,18 @@ public class Create_Macro extends PlugInFrame {
         });
         browseOutputButton = new JButton("Browse");
         browseOutputButton.setEnabled(false); // Initially disabled
+        browseOutputButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                int option = fileChooser.showOpenDialog(Create_Macro.this);
+                if (option == JFileChooser.APPROVE_OPTION) {
+                    File selectedDirectory = fileChooser.getSelectedFile();
+                    outputFolderTextField.setText(selectedDirectory.getAbsolutePath());
+                }
+            }
+        });
 
         codeTextArea = new JTextArea(5, 30); // Make it taller
         codeTextArea.setLineWrap(true);
