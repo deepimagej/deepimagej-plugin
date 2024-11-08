@@ -424,7 +424,7 @@ public class Create_Macro extends PlugInFrame {
     		outputStr = this.outputFolderTextField.getText();
         	
 
-        codeTextArea.setText(String.format(MACRO_FORMAT, modelFolder, inputStr, nDisplayedStr, outputStr));
+        codeTextArea.setText(String.format(MACRO_FORMAT, modelFolder, inputStr, outputStr, nDisplayedStr));
     }
     
     public static void main(String[] args) {
