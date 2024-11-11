@@ -201,7 +201,7 @@ public class DeepImageJ_Run implements PlugIn {
 			if (this.outputFolder != null) {
 				IJ.saveAsTiff(im, this.outputFolder + File.separator + im.getTitle());
 			} 
-			if (this.display.equals("all")) {
+			if (display != null && this.display.equals("all")) {
 				SwingUtilities.invokeLater(() -> im.show());
 			}
 		}
