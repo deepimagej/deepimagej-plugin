@@ -1,6 +1,7 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -13,6 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import javax.swing.JOptionPane;
 
 import org.junit.Test;
 
@@ -62,18 +65,18 @@ public class TestRunEveryFramework {
 		FIJI_URL.put(PlatformDetection.OS_LINUX, "https://downloads.imagej.net/fiji/latest/fiji-linux64.zip");
 		FIJI_URL.put(PlatformDetection.OS_OSX, "https://downloads.imagej.net/fiji/latest/fiji-macosx.zip");
 	}
+	
+	@Test
+	public void checkTestResults() {
+		
+	}
 
     @BeforeAll
     public void setUp() throws InterruptedException, IOException, ModelSpecsException {
     	downloadAndTrackFiji();
     	installEngines();
     	installModels();
-    	compileAndCopyToPlugins();
-    	runModels();
-    }
-    
-    private void compileAndCopyToPlugins() {
-    	// TODO method that executes mvn build in subprocess and copies jar to fiji plugins folder
+    	createMacros();
     }
     
     private static void downloadAndTrackFiji() throws InterruptedException, IOException {
@@ -132,14 +135,16 @@ public class TestRunEveryFramework {
     	}
     }
     
-    private void runModels() throws FileNotFoundException, ModelSpecsException, IOException {
+    private void createMacros() throws FileNotFoundException, ModelSpecsException, IOException {
     	for (String mm : modelPaths) {
     		ModelDescriptor model = ModelDescriptorFactory.readFromLocalFile(mm + File.separator + Constants.RDF_FNAME);
     		String modelPath = model.getModelPath();
     		String samplePath = modelPath + File.separator +  model.getInputTensors().get(0).getSampleTensorName();
     		String macro = String.format(MACRO_FORMAT, modelPath, samplePath, modelPath);
-    		String runModelCommand = "command that runs macros in headless mode";
-    		new ProcessBuilder().command(runModelCommand).start();
+    		try (FileWriter writer = new FileWriter(selectedFile)) {
+                writer.write(macro);
+                writer.close();
+            }
     	}
     }
     
