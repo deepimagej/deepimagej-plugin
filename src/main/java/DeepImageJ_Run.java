@@ -58,7 +58,6 @@ import deepimagej.Runner;
 import deepimagej.gui.Gui;
 import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
-import ij.ImageJ;
 import ij.ImagePlus;
 import ij.Macro;
 import ij.WindowManager;
@@ -85,6 +84,8 @@ public class DeepImageJ_Run implements PlugIn {
 	private String outputFolder;
 	private String display;
 	
+	private ModelDescriptor model;
+	
 	/**
 	 * Keys required to run deepImageJ with a macro
 	 */
@@ -94,15 +95,9 @@ public class DeepImageJ_Run implements PlugIn {
 	 */
 	final static String[] macroOptionalKeys = new String[] {"inputPath=", "outputFolder=", "displayOutput="};
 	
-	private static final String MACRO_EXAMPLE = "run(\"DeepImageJ Run\", \"modelPath=LiveCellSegmentationBou "
-			+ "inputPath=/home/carlos/git/deepimagej-plugin/models/LiveCellSegmentationBou/sample_input_0.tif "
-			+ "outputFolder=/home/carlos/git/deepimagej-plugin/models/LiveCellSegmentationBou/ displayOutput=all\")";
-	
 	
 	static public void main(String args[]) {
-		//new DeepImageJ_Run().run("");
-		new ImageJ();
-		IJ.runMacro(MACRO_EXAMPLE);
+		new DeepImageJ_Run().run("");
 	}
 	@Override
 	public void run(String arg) {
@@ -113,7 +108,7 @@ public class DeepImageJ_Run implements PlugIn {
 	    boolean isHeadless = GraphicsEnvironment.isHeadless();
 	    if (!isMacro) {
 	    	runGUI();
-	    } else if (isMacro && !isHeadless) {
+	    } else if (isMacro ) { //&& !isHeadless) {
 	    	runMacro();
 	    } else if (isHeadless) {
 	    	runHeadless();
@@ -132,8 +127,11 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	/**
-	 * Macro:
-	 * "DeepImageJ Run"
+	 * Macro example:
+	 * run("DeepImageJ Run", "modelPath=/path/to/model/LiveCellSegmentationBou 
+	 *  inputPath=/path/to/image/sample_input_0.tif 
+	 *  outputFolder=/path/to/ouput/folder
+	 *  displayOutput=null")
 	 */
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>  void runMacro() {
 		parseCommand();
@@ -144,23 +142,30 @@ public class DeepImageJ_Run implements PlugIn {
 			throw new IllegalArgumentException("The provided output folder does not exist and cannot be created: " + this.inputFolder);
 		
 		IjAdapter adapter = new IjAdapter();
-		Runner runner;
+
 		try {
-			ModelDescriptor model = ModelDescriptorFactory.readFromLocalFile(modelFolder + File.separator + Constants.RDF_FNAME);
-			if (model.getInputTensors().size() > 1)
-				throw new IllegalArgumentException("Selected model requires more than one input, currently only models with 1 input"
-						+ " are supported.");
-			runner = Runner.create(model);
-			runner.load();
-			if (this.inputFolder != null) {
-				executeOnPath(model, runner, adapter);
-			} else {
-				executeOnImagePlus(model, runner, adapter);
-			}
-		} catch (ModelSpecsException | IOException | LoadModelException | RunModelException e) {
+			loadDescriptor();
+		} catch (ModelSpecsException | IOException e) {
 			e.printStackTrace();
 			return;
 		}
+		try (Runner runner = Runner.create(model)) {
+			runner.load();
+			if (this.inputFolder != null) {
+				executeOnPath(runner, adapter);
+			} else {
+				executeOnImagePlus(runner, adapter);
+			}
+		} catch (ModelSpecsException | IOException | LoadModelException | RunModelException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void loadDescriptor() throws FileNotFoundException, ModelSpecsException, IOException {
+		model = ModelDescriptorFactory.readFromLocalFile(modelFolder + File.separator + Constants.RDF_FNAME);
+		if (model.getInputTensors().size() > 1)
+			throw new IllegalArgumentException("Selected model requires more than one input, currently only models with 1 input"
+					+ " are supported.");
 	}
 	
 	
@@ -169,7 +174,7 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	void executeOnPath(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
+	void executeOnPath(Runner runner, IjAdapter adapter) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
 		File ff = new File(this.inputFolder);
 		if (ff.isDirectory())
 			this.executeOnFolder(model, runner, adapter);
@@ -216,7 +221,7 @@ public class DeepImageJ_Run implements PlugIn {
 				if (this.outputFolder != null) {
 					IJ.saveAsTiff(im, this.outputFolder + File.separator + im.getTitle());
 				} 
-				if (this.display.equals("all")) {
+				if (display != null && this.display.equals("all")) {
 					SwingUtilities.invokeLater(() -> im.show());
 				}
 			}
@@ -225,7 +230,7 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	void executeOnImagePlus(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
+	void executeOnImagePlus(Runner runner, IjAdapter adapter) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
 		ImagePlus imp = WindowManager.getCurrentImage();
 		List<Tensor<T>> inputList = adapter.convertToInputTensors(null, model);
 		List<Tensor<R>> res = runner.run(inputList);

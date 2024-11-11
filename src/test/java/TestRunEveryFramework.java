@@ -2,25 +2,34 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.junit.Test;
 
+import io.bioimage.modelrunner.bioimageio.BioimageioRepo;
 import io.bioimage.modelrunner.bioimageio.download.DownloadModel;
+import io.bioimage.modelrunner.engine.installation.EngineInstall;
 import io.bioimage.modelrunner.engine.installation.FileDownloader;
 import io.bioimage.modelrunner.system.PlatformDetection;
 import io.bioimage.modelrunner.utils.CommonUtils;
+import io.bioimage.modelrunner.utils.ZipUtils;
 
 public class TestRunEveryFramework {
 	
+	private List<String> modelPaths;
+	
 	private static final File FIJI_DIR = new File("fiji");
+	private static final File ENGINES_DIR = new File(FIJI_DIR.getAbsolutePath(), "engines");
+	private static final File MODELS_DIR = new File(FIJI_DIR.getAbsolutePath(), "models");
 	
 	private static final Map<String, String> MODELS;
 	
@@ -41,15 +50,19 @@ public class TestRunEveryFramework {
 	}
 
     @Test
-    public void testRun() {
+    public void testRun() throws InterruptedException, IOException {
+    	downloadAndTrackFiji();
+    	installEngines();
+    	installModels();
+    	//runModels();
     }
     
-    private static void downloadAndTrackFiji() throws MalformedURLException {
+    private static void downloadAndTrackFiji() throws InterruptedException, IOException {
     	String url = FIJI_URL.get(PlatformDetection.getOs());
     	URL website = new URL(url);
-    	DownloadModel.getFileSize(website);
+    	long fijiSize = DownloadModel.getFileSize(website);
 		Path filePath = Paths.get(website.getPath()).getFileName();
-    	File targetFile = new File(FIJI_DIR.getAbsoluteFile(), filePath.toString());
+    	File targetFile = new File(FIJI_DIR.getAbsolutePath(), filePath.toString());
     	
     	Thread parentThread = Thread.currentThread();
     	Thread dnwldthread = new Thread(() -> {
@@ -60,6 +73,15 @@ public class TestRunEveryFramework {
 			}
     	});
     	dnwldthread.start();
+    	
+    	while (dnwldthread.isAlive()) {
+    		Thread.sleep(300);
+    		System.out.println("Download progress: " + (targetFile.length() / (double) fijiSize) + "%");
+    	}
+    	
+    	if (targetFile.length() != fijiSize)
+    		throw new RuntimeException("Size of downloaded Fiji zip is different than the expected.");
+    	ZipUtils.unzipFolder(targetFile.getAbsolutePath(), FIJI_DIR.getAbsolutePath());
     	
     }
     
@@ -74,4 +96,22 @@ public class TestRunEveryFramework {
 		}
 		conn.disconnect();
     }
+    
+    private static void installEngines() {
+    	EngineInstall installer = EngineInstall.createInstaller(ENGINES_DIR.getAbsolutePath());
+    	installer.basicEngineInstallation();
+    }
+    
+    private void installModels() throws IOException, InterruptedException {
+    	modelPaths = new ArrayList<String>();
+    	List<String> dwnldModels = MODELS.entrySet().stream().map(ee -> ee.getValue()).collect(Collectors.toList());
+    	
+    	BioimageioRepo br = BioimageioRepo.connect();
+    	for (String mm : dwnldModels) {
+    		String path = br.downloadModelByID(mm, MODELS_DIR.getAbsolutePath());
+    		modelPaths.add(path);
+    	}
+    	
+    }
+    
 }
