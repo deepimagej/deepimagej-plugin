@@ -47,7 +47,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.SwingUtilities;
 
@@ -145,6 +147,9 @@ public class DeepImageJ_Run implements PlugIn {
 		Runner runner;
 		try {
 			ModelDescriptor model = ModelDescriptorFactory.readFromLocalFile(modelFolder + File.separator + Constants.RDF_FNAME);
+			if (model.getInputTensors().size() > 1)
+				throw new IllegalArgumentException("Selected model requires more than one input, currently only models with 1 input"
+						+ " are supported.");
 			runner = Runner.create(model);
 			runner.load();
 			if (this.inputFolder != null) {
@@ -177,7 +182,9 @@ public class DeepImageJ_Run implements PlugIn {
 			throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
 		List<ImagePlus> outList = new ArrayList<ImagePlus>();
 		ImagePlus imp = IJ.openImage(ff.getAbsolutePath());
-		List<Tensor<T>> inputList = adapter.convertToInputTensors(null, model);
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put(model.getInputTensors().get(0).getName(), imp);
+		List<Tensor<T>> inputList = adapter.convertToInputTensors(map, model);
 		List<Tensor<R>> res = runner.run(inputList);
 		for (Tensor<R> rr : res) {
 			ImagePlus im = ImPlusRaiManager.convert(rr.getData(), rr.getAxesOrderString());
@@ -235,9 +242,9 @@ public class DeepImageJ_Run implements PlugIn {
 	private void parseCommand() {
 		String macroArg = Macro.getOptions();
 
-		// macroArg = "modelFolder=NucleiSegmentationBoundaryModel";
-		// macroArg = "modelFolder=NucleiSegmentationBoundaryModel saveOutputFolder=null";
-		// macroArg = "modelFolder=[StarDist H&E Nuclei Segmentation] inputFolder=null saveOuputFolder=null";
+		// macroArg = "modelPath=NucleiSegmentationBoundaryModel";
+		// macroArg = "modelPath=NucleiSegmentationBoundaryModel outputFolder=null";
+		// macroArg = "modelPath=[StarDist H&E Nuclei Segmentation] inputPath=null outputFolder=null";
 
 		modelFolder = parseArg(macroArg, macroKeys[0], true);
 		if (!(new File(modelFolder).isAbsolute()))
