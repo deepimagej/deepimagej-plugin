@@ -46,6 +46,7 @@ import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.SwingUtilities;
@@ -55,6 +56,7 @@ import deepimagej.Runner;
 import deepimagej.gui.Gui;
 import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
+import ij.ImageJ;
 import ij.ImagePlus;
 import ij.Macro;
 import ij.WindowManager;
@@ -79,19 +81,26 @@ public class DeepImageJ_Run implements PlugIn {
 	private String modelFolder;
 	private String inputFolder;
 	private String outputFolder;
+	private String display;
 	
 	/**
 	 * Keys required to run deepImageJ with a macro
 	 */
-	final static String[] macroKeys = new String[] {"modelFolder="};
+	final static String[] macroKeys = new String[] {"modelPath="};
 	/**
 	 * Optional keys to run deepImageJ with a macro or in headless mode
 	 */
-	final static String[] macroOptionalKeys = new String[] {"inputFolder=", "saveOuputFolder="};
+	final static String[] macroOptionalKeys = new String[] {"inputPath=", "outputFolder=", "displayOutput="};
+	
+	private static final String MACRO_EXAMPLE = "run(\"DeepImageJ Run\", \"modelPath=LiveCellSegmentationBou "
+			+ "inputPath=/home/carlos/git/deepimagej-plugin/models/LiveCellSegmentationBou/sample_input_0.tif "
+			+ "outputFolder=/home/carlos/git/deepimagej-plugin/models/LiveCellSegmentationBou/ displayOutput=all\")";
 	
 	
 	static public void main(String args[]) {
-		new DeepImageJ_Run().run("");
+		//new DeepImageJ_Run().run("");
+		new ImageJ();
+		IJ.runMacro(MACRO_EXAMPLE);
 	}
 	@Override
 	public void run(String arg) {
@@ -139,7 +148,7 @@ public class DeepImageJ_Run implements PlugIn {
 			runner = Runner.create(model);
 			runner.load();
 			if (this.inputFolder != null) {
-				executeOnFolder(model, runner, adapter);
+				executeOnPath(model, runner, adapter);
 			} else {
 				executeOnImagePlus(model, runner, adapter);
 			}
@@ -155,17 +164,52 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
+	void executeOnPath(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
+		File ff = new File(this.inputFolder);
+		if (ff.isDirectory())
+			this.executeOnFolder(model, runner, adapter);
+		else
+			this.executeOnFile(model, runner, adapter);
+	}
+	
+	private static <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
+	List<ImagePlus> executeOnFile(File ff, ModelDescriptor model, Runner runner, IjAdapter adapter) 
+			throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
+		List<ImagePlus> outList = new ArrayList<ImagePlus>();
+		ImagePlus imp = IJ.openImage(ff.getAbsolutePath());
+		List<Tensor<T>> inputList = adapter.convertToInputTensors(null, model);
+		List<Tensor<R>> res = runner.run(inputList);
+		for (Tensor<R> rr : res) {
+			ImagePlus im = ImPlusRaiManager.convert(rr.getData(), rr.getAxesOrderString());
+			im.setTitle(imp.getShortTitle() + "_" + rr.getName());
+			outList.add(im);
+		}
+		return outList;
+	}
+	
+	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
+	void executeOnFile(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
+		List<ImagePlus> outs = executeOnFile(new File(this.inputFolder), model, runner, adapter);
+		for (ImagePlus im : outs) {
+			if (this.outputFolder != null) {
+				IJ.saveAsTiff(im, this.outputFolder + File.separator + im.getTitle());
+			} 
+			if (this.display.equals("all")) {
+				SwingUtilities.invokeLater(() -> im.show());
+			}
+		}
+	}
+	
+	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
 	void executeOnFolder(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
 		for (File ff : new File(this.inputFolder).listFiles()) {
-			ImagePlus imp = IJ.openImage(ff.getAbsolutePath());
-			List<Tensor<T>> inputList = adapter.convertToInputTensors(null, model);
-			List<Tensor<R>> res = runner.run(inputList);
-			for (Tensor<R> rr : res) {
-				ImagePlus im = ImPlusRaiManager.convert(rr.getData(), rr.getAxesOrderString());
-				im.setTitle(imp.getShortTitle() + "_" + rr.getName());
+			List<ImagePlus> outs = executeOnFile(ff, model, runner, adapter);
+			
+			for (ImagePlus im : outs) {
 				if (this.outputFolder != null) {
 					IJ.saveAsTiff(im, this.outputFolder + File.separator + im.getTitle());
-				} else {
+				} 
+				if (this.display.equals("all")) {
 					SwingUtilities.invokeLater(() -> im.show());
 				}
 			}
@@ -198,6 +242,7 @@ public class DeepImageJ_Run implements PlugIn {
 		modelFolder = parseArg(macroArg, macroKeys[0], true);
 		inputFolder = parseArg(macroArg, macroOptionalKeys[0], false);
 		outputFolder = parseArg(macroArg, macroOptionalKeys[1], false);
+		display = parseArg(macroArg, macroOptionalKeys[2], false);
 	}
 	
 	private static String parseArg(String macroArg, String arg, boolean required) {
