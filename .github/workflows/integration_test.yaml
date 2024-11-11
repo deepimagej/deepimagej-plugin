@@ -1,0 +1,49 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  integration-tests:
+    runs-on: [ubuntu-latest, windows-latest, macos-13]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'zulu'
+
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2-
+
+      - name: Build Plugin
+        run: mvn clean package
+
+      - name: Copy Plugin to Fiji
+        run: cp target/your-plugin.jar fiji/Fiji.app/plugins/
+
+      - name: Run Integration Tests
+        env:
+          CI: true
+        run: mvn verify -Pintegration-tests
+
+      - name: Run Fiji Headless
+        run: |
+          chmod +x fiji/Fiji.app/ImageJ-linux64
+          fiji/Fiji.app/ImageJ-linux64 --headless --console --run your_macro.ijm
+
+      - name: Verify Outputs
+        run: |
+          # Add commands or scripts to verify that the outputs are as expected
