@@ -105,6 +105,24 @@ public class Create_Macro extends PlugInFrame {
     private JTextArea codeTextArea;
     private JButton cancelButton;
     private JButton saveAsButton;
+    
+    private static final String MODEL_INFO = ""
+    		+ "Select the name of the folder containing the model of interest.";
+    
+    private static final String INPUT_INFO = "<html>"
+    		+ "Choose whether to run the model on the current in-focus image or on the image(s) at<br>"
+    		+ "the specified path. If a path is provided, it can point to either a single image file<br>"
+    		+ "or a folder containing multiple images.</html>";
+    
+    private static final String DISPLAY_INFO = "<html>"
+    		+ "Choose if you would like to display the output results. If you opt to display them,<br>"
+    		+ "and you're running the model on multiple images within a folder, you can select to<br>"
+    		+ "show either every output ('all') or just a specific subset. To display only a subset,<br>"
+    		+ "specify the number of outputs you want to see; the remaining outputs will be hidden.<br>"
+    		+ "This feature can be useful for debugging when processing large batches of images.</html>";
+    
+    private static final String OUTPUT_INFO = ""
+    		+ "Whether to save the model output or not. If you want to save it, please specify a folder.";
 
     private static final String NO_MODELS_STR = "No models installed";
     
@@ -147,7 +165,7 @@ public class Create_Macro extends PlugInFrame {
         modelComboBox.addActionListener(e -> updateCodeTextArea()); // Listener for model selection
 
         currentImageRadioButton = new JRadioButton("Current Image");
-        pathToImageFolderRadioButton = new JRadioButton("Path to Image Folder");
+        pathToImageFolderRadioButton = new JRadioButton("Path to Image/Folder");
         ButtonGroup imageOptionGroup = new ButtonGroup();
         imageOptionGroup.add(currentImageRadioButton);
         imageOptionGroup.add(pathToImageFolderRadioButton);
@@ -307,7 +325,7 @@ public class Create_Macro extends PlugInFrame {
         int gridy = 0;
 
         // Row 1: Question mark, Model label and combo box
-        addRowComponents(gridy++, "Select the model you want to use.", labelModel, modelComboBox, true);
+        addRowComponents(gridy++, MODEL_INFO, labelModel, modelComboBox, true);
 
         // Row 2: Question mark, Radio buttons vertically
         JPanel radioPanel = new JPanel(new GridLayout(2, 1));
@@ -319,17 +337,17 @@ public class Create_Macro extends PlugInFrame {
         pathPanel.add(pathTextField, BorderLayout.CENTER);
         pathPanel.add(browseImageButton, BorderLayout.EAST);
 
-        addRowComponents(gridy++, "Select the image source.", radioPanel, pathPanel, true);
+        addRowComponents(gridy++, INPUT_INFO, radioPanel, pathPanel, true);
 
         // Row 3: Question mark, Display output checkbox and period text field
-        addRowComponents(gridy++, "Toggle the display of output images.", displayOutputCheckBox, periodTextField, false);
+        addRowComponents(gridy++, DISPLAY_INFO, displayOutputCheckBox, periodTextField, false);
 
         // Row 4: Question mark, Output folder checkbox and text field with browse button
         JPanel outputFolderPanel = new JPanel(new BorderLayout(5, 0));
         outputFolderPanel.add(outputFolderTextField, BorderLayout.CENTER);
         outputFolderPanel.add(browseOutputButton, BorderLayout.EAST);
 
-        addRowComponents(gridy++, "Specify an output folder for the results.", outputFolderCheckBox, outputFolderPanel, true);
+        addRowComponents(gridy++, OUTPUT_INFO, outputFolderCheckBox, outputFolderPanel, true);
 
         // Row 5: Code text area with scroll pane spanning the whole width
         GridBagConstraints gbc = new GridBagConstraints();
