@@ -136,7 +136,7 @@ public class DeepImageJ_Run implements PlugIn {
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>  void runMacro() {
 		parseCommand();
 
-		if (this.inputFolder != null && !(new File(this.inputFolder).isDirectory()))
+		if (this.inputFolder != null && !(new File(this.inputFolder).exists()))
 			throw new IllegalArgumentException("The provided input folder does not exist: " + this.inputFolder);
 		if (this.outputFolder != null && !(new File(this.outputFolder).isDirectory()) && !(new File(outputFolder).mkdirs()))
 			throw new IllegalArgumentException("The provided output folder does not exist and cannot be created: " + this.inputFolder);
@@ -240,6 +240,8 @@ public class DeepImageJ_Run implements PlugIn {
 		// macroArg = "modelFolder=[StarDist H&E Nuclei Segmentation] inputFolder=null saveOuputFolder=null";
 
 		modelFolder = parseArg(macroArg, macroKeys[0], true);
+		if (!(new File(modelFolder).isAbsolute()))
+			modelFolder = new File("models", modelFolder).getAbsolutePath();
 		inputFolder = parseArg(macroArg, macroOptionalKeys[0], false);
 		outputFolder = parseArg(macroArg, macroOptionalKeys[1], false);
 		display = parseArg(macroArg, macroOptionalKeys[2], false);
