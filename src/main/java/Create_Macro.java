@@ -54,6 +54,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -66,6 +68,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
@@ -75,6 +78,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import deepimagej.Constants;
 import ij.IJ;
@@ -138,7 +142,7 @@ public class Create_Macro extends PlugInFrame {
         this.setLayout(new GridBagLayout());
 
         // Initialize components
-        labelModel = new JLabel("Model:");
+        labelModel = new JLabel("Model folder:");
         createModelComboBox();
         modelComboBox.addActionListener(e -> updateCodeTextArea()); // Listener for model selection
 
@@ -167,6 +171,7 @@ public class Create_Macro extends PlugInFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
                 int option = fileChooser.showOpenDialog(Create_Macro.this);
                 if (option == JFileChooser.APPROVE_OPTION) {
                     File selectedDirectory = fileChooser.getSelectedFile();
@@ -258,7 +263,14 @@ public class Create_Macro extends PlugInFrame {
         JScrollPane codeScrollPane = new JScrollPane(codeTextArea);
 
         cancelButton = new JButton("Cancel");
+        cancelButton.addActionListener(e -> this.dispose());
         saveAsButton = new JButton("Save As");
+        saveAsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	saveMacro();
+            }
+        });
 
         // Action listeners to enable/disable text fields and buttons
         pathToImageFolderRadioButton.addActionListener(e -> {
@@ -425,6 +437,55 @@ public class Create_Macro extends PlugInFrame {
         	
 
         codeTextArea.setText(String.format(MACRO_FORMAT, modelFolder, inputStr, outputStr, nDisplayedStr));
+    }
+    
+    private void saveMacro() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save Macro As");
+        FileNameExtensionFilter macroFilter = new FileNameExtensionFilter(
+            "Macro files (*.ijm)", "macro");
+        fileChooser.setFileFilter(macroFilter);
+        
+        int option = fileChooser.showSaveDialog(Create_Macro.this);
+        if (option == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            
+            // Add .macro extension if not present
+            if (!selectedFile.getName().contains(".")) {
+                selectedFile = new File(selectedFile.getAbsolutePath() + ".ijm");
+            }
+            
+            // Check if file already exists
+            if (selectedFile.exists()) {
+                int response = JOptionPane.showConfirmDialog(Create_Macro.this,
+                    "The file already exists. Do you want to replace it?",
+                    "Confirm Overwrite",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
+                    
+                if (response != JOptionPane.YES_OPTION) {
+                    return;
+                }
+            }
+
+            try {
+                FileWriter writer = new FileWriter(selectedFile);
+                writer.write(this.codeTextArea.getText());
+                writer.close();
+                
+                JOptionPane.showMessageDialog(Create_Macro.this,
+                    "File saved successfully!",
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE);
+                    
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(Create_Macro.this,
+                    "Error saving file: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
+        }
     }
     
     public static void main(String[] args) {
