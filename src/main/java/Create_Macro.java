@@ -486,8 +486,7 @@ public class Create_Macro extends PlugInFrame {
                 }
             }
 
-            try {
-                FileWriter writer = new FileWriter(selectedFile);
+            try (FileWriter writer = new FileWriter(selectedFile)) {
                 writer.write(this.codeTextArea.getText());
                 writer.close();
                 
