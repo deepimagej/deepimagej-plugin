@@ -1,6 +1,7 @@
+import org.junit.Test;
 
 
-public class TestRunOnnx {
+public class TestRunTensorflow1 {
 
     @Test
     public void testAbsolute() {

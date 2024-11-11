@@ -1,4 +1,4 @@
-
+import org.junit.Test;
 
 public class TestRunOnnx {
 

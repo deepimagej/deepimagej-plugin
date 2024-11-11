@@ -1,6 +1,6 @@
+import org.junit.Test;
 
-
-public class TestRunOnnx {
+public class TestRunPytorch1 {
 
     @Test
     public void testAbsolute() {
