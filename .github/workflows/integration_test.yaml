@@ -8,7 +8,7 @@ on:
 
 jobs:
   integration-tests:
-    runs-on: [ubuntu-latest, windows-latest, macos-13]
+    runs-on: [ubuntu-latest, macos-13, macos-latest, windows-latest]
 
     steps:
       - name: Checkout code
@@ -28,22 +28,43 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-m2-
 
+      - name: Cache Fiji
+        id: cache-fiji
+        uses: actions/cache@v4
+        with:
+          path: ./fiji
+          key: ${{ runner.os }}-fiji
+
+      - name: Set up Fiji
+        if: steps.cache-fiji.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p fiji
+          wget -q https://downloads.imagej.net/fiji/latest/fiji-linux64.zip -O fiji.zip
+          unzip fiji.zip -d fiji
+
       - name: Build Plugin
         run: mvn clean package
 
       - name: Copy Plugin to Fiji
         run: cp target/your-plugin.jar fiji/Fiji.app/plugins/
 
-      - name: Run Integration Tests
-        env:
-          CI: true
-        run: mvn verify -Pintegration-tests
-
-      - name: Run Fiji Headless
+      - name: Set up engine using Jython script and Fiji headless
         run: |
           chmod +x fiji/Fiji.app/ImageJ-linux64
-          fiji/Fiji.app/ImageJ-linux64 --headless --console --run your_macro.ijm
+          fiji/Fiji.app/ImageJ-linux64 --headless --console setup_engines.py
 
-      - name: Verify Outputs
+      - name: Set up the wanted models to test
         run: |
-          # Add commands or scripts to verify that the outputs are as expected
+          fiji/Fiji.app/ImageJ-linux64 --headless --console download_models.py
+
+      - name: Create macros
+        run: |
+          # TODO bash script that creates the macros, 4 macros are created or maybe one that runs the 4 models in the same run?
+
+      - name: Run macros
+        run: |
+          # TODO run the for macros one after another, maybe create a single macro??
+
+      - name: Check that the expected result has been produced
+        run: |
+          # TODO check that the expected files have been created and that they have the expected size
