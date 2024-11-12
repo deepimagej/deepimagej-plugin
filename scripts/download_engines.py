@@ -21,6 +21,9 @@ from io.bioimage.modelrunner.engine.installation import EngineInstall
 
 import os
 import argparse
+import sys
+
+print(f"All arguments (including script name): {sys.argv}")
 
 # Create the argument parser
 parser = argparse.ArgumentParser()
