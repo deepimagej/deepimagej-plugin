@@ -29,6 +29,11 @@ jobs:
           - ImageJ-win64.exe
           - ImageJ-macosx
           - ImageJ-macosx
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-14
+          - macos-13
         include:
           - name: ubuntu
             os: ubuntu-latest
