@@ -14,26 +14,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name:
-          - ubuntu
-          - windows
-          - macos-arm64
-          - macos-x86_64
-        url_file_name:
-          - fiji-linux64.zip
-          - fiji-win64.zip
-          - fiji-macosx.zip
-          - fiji-macosx.zip
-        fiji_executable:
-          - ImageJ-linux64
-          - ImageJ-win64.exe
-          - ImageJ-macosx
-          - ImageJ-macosx
-        os:
-          - ubuntu-latest
-          - windows-latest
-          - macos-14
-          - macos-13
         include:
           - name: ubuntu
             os: ubuntu-latest
