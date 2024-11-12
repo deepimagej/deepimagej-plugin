@@ -74,6 +74,7 @@ jobs:
         run: mvn clean package
 
       - name: Get plugin name and version
+        shell: bash
         run: |
           MVN_VERSION=$(mvn -q \
             -Dexec.executable=echo \
@@ -90,22 +91,27 @@ jobs:
         id: mvn_info
 
       - name: Copy Plugin to Fiji
+        shell: bash
         run: cp target/${{steps.mvn_info.outputs.name}}-${{steps.mvn_info.outputs.version}}.jar fiji/Fiji.app/plugins/
 
       - name: Download dependencies
+        shell: bash
         run: |
-          wget -q -P fiji/Fiji.app/jars/ https://maven.scijava.org/content/groups/public/io/bioimage/dl-modelrunner/0.5.10-SNAPSHOT/dl-modelrunner-0.5.10-20241111.153028-64.jar
+          wget -q -P fiji/Fiji.app/jars/ https://maven.scijava.org/content/groups/public/io/bioimage/dl-modelrunner/0.5.10-SNAPSHOT/dl-modelrunner-0.5.10-20241112.235152-66.jar
           wget -q -P fiji/Fiji.app/jars/ https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.13.0/jna-platform-5.13.0.jar
 
       - name: Set up engine using Jython script and Fiji headless
+        shell: bash
         run: |
           fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console scripts/download_engines.py -engines_path fiji/Fiji.app/engines
 
       - name: Set up the wanted models to test and create macro
+        shell: bash
         run: |
           fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/create_macro.py -model_nicknames "${{ env.MODELS }}" -models_dir fiji/Fiji.app/models -macro_path macro.ijm
 
       - name: Run macros
+        shell: bash
         run: |
           fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console macro.ijm
 
