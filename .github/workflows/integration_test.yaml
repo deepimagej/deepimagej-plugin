@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ master ]
 
+		MODELS.put("pytorch1", "hiding-tiger");
+		MODELS.put("pytorch2", "hiding-tiger");
+		MODELS.put("tensorflow1", "chatty-frog");
+		MODELS.put("tensorflow2", "placid-llama");
+		MODELS.put("onnx", "polite-pig");
 jobs:
   integration-tests:
     strategy:
@@ -34,6 +39,8 @@ jobs:
             url_file_name: fiji-macosx.zip
             fiji_executable: ImageJ-macosx
     runs-on: ${{ matrix.os }}
+    env:
+      MODELS: "polite-pig, placid-llama, chatty-frog, hiding-tiger, laid-back-lobster"
 
     steps:
       - name: Checkout code
@@ -75,11 +82,11 @@ jobs:
 
       - name: Set up engine using Jython script and Fiji headless
         run: |
-          fiji/Fiji.app/${{fiji_executable}} --headless --console setup_engines.py
+          fiji/Fiji.app/${{fiji_executable}} --headless --console scripts/download_engines.py '-engines_path fiji/Fiji.app/engines'
 
       - name: Set up the wanted models to test and create macro
         run: |
-          fiji/Fiji.app/${{fiji_executable}} --headless --console .github/create_macro.py
+          fiji/Fiji.app/${{fiji_executable}} --headless --console .github/create_macro.py '-model_nicknames -models_dir fiji/Fiji.app/models -macro_path macro.ijm'
 
       - name: Run macros
         run: |
