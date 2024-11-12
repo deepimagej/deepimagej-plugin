@@ -42,7 +42,7 @@ parser.add_argument('-macro_path', type=str, required=True,
 args = parser.parse_args()
 
 # Helper function to parse the model path(s)
-def parse_model_paths(models: str):
+def parse_model_paths(models):
     if ',' in models:
         return models.split(',')
     else:
