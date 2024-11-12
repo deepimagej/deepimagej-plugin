@@ -102,7 +102,7 @@ jobs:
 
       - name: Set up the wanted models to test and create macro
         run: |
-          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/create_macro.py -model_nicknames -models_dir fiji/Fiji.app/models -macro_path macro.ijm
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/create_macro.py -model_nicknames ${{ MODELS }} -models_dir fiji/Fiji.app/models -macro_path macro.ijm
 
       - name: Run macros
         run: |
