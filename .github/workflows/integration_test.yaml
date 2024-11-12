@@ -6,11 +6,6 @@ on:
   pull_request:
     branches: [ master ]
 
-		MODELS.put("pytorch1", "hiding-tiger");
-		MODELS.put("pytorch2", "hiding-tiger");
-		MODELS.put("tensorflow1", "chatty-frog");
-		MODELS.put("tensorflow2", "placid-llama");
-		MODELS.put("onnx", "polite-pig");
 jobs:
   integration-tests:
     strategy:
