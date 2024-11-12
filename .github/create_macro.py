@@ -63,7 +63,7 @@ br = BioimageioRepo.connect()
 models_full_path = []
 for model in model_nicknames:
     print("Downloading the Bioimage.io model: " + model.strip())
-    model_dir = br.downloadByName(model.strip(), models_dir)
+    model_dir = br.downloadModelByID(model.strip(), models_dir)
     models_full_path.append(model_dir)
 
 ## Create macros
