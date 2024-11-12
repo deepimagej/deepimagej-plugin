@@ -60,6 +60,7 @@ jobs:
 
       - name: Set up Fiji
         if: steps.cache-fiji.outputs.cache-hit != 'true'
+        shell: bash
         run: |
           mkdir -p fiji
           if [[ "$RUNNER_OS" == "Windows" ]]; then
