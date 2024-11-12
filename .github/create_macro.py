@@ -19,9 +19,13 @@ creates a macro to run the model(s) downloaded on the sample input with deepimag
 """
 
 from io.bioimage.modelrunner.bioimageio import BioimageioRepo
-import sys
+from io.bioimage.modelrunner.bioimageio.description import ModelDescriptorFactory
+from io.bioimage.modelrunner.utils import Constants
+
 import os
 import argparse
+
+MACRO_STR = "run(\"DeepImageJ Run\", \"modelPath={modelPath} inputPath={inputPath} outputFolder={outputFolder} displayOutput=null\")"
 
 # Create the argument parser
 parser = argparse.ArgumentParser()
@@ -31,8 +35,8 @@ parser.add_argument('-model_nicknames', type=str, required=True,
                     help='Nickname of the models to be downloaded and used by the macros')
 parser.add_argument('-models_dir', type=str, required=True, 
                     help='Path to the directory where models are installed')
-parser.add_argument('-macros_path', type=str, required=True, 
-                    help='Directory where the macros are going to be created into')
+parser.add_argument('-macro_path', type=str, required=True, 
+                    help='Path to the macro file that is going to be created')
 
 # Parse the arguments
 args = parser.parse_args()
@@ -47,22 +51,27 @@ def parse_model_paths(models: str):
 # Access the argument values
 model_nicknames = parse_model_paths(args.model_nicknames)
 models_dir = args.models_dir
-macros_dir = args.macros_path
+macro_path = args.macro_path
 
-
-full_path = os.path.join(os. getcwd(), "models")
-bmzModelName = "B. Sutilist bacteria segmentation - Widefield microscopy - 2D UNet"
 
 if not os.path.exists(models_dir) or not os.path.isdir(models_dir):
     os.makedirs(models_dir)
-if not os.path.exists(macros_dir) or not os.path.isdir(macros_dir):
-    os.makedirs(macros_dir)
+
     
 print("Connecting to the Bioimage.io repository")
 br = BioimageioRepo.connect()
-model_dirs = []
+models_full_path = []
 for model in model_nicknames:
     print("Downloading the Bioimage.io model: " + model)
     model_dir = br.downloadByName(model, models_dir)
-    model_dirs.append(model_dir)
+    models_full_path.append(model_dir)
+
+## Create macros
+with open(macro_path, "a") as file:
+
+    for mfp in models_full_path:
+        descriptor = ModelDescriptorFactory.readFromLocalFile(os.path.join(mfp, Constants.RDF_NAME))
+        sample_name = descriptor.getInputTensors().get(0).getSampleTensorName()
+        macro = MACRO_STR.format(model_path=mfp, input_path=os.path.join(mfp, Constants.sample_name), outputFolder=mfp)
+        file.write(macro + os.linesep)
 
