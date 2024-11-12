@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  MODELS: "polite-pig, placid-llama, chatty-frog, hiding-tiger, laid-back-lobster"
+
 jobs:
   integration-tests:
     strategy:
@@ -44,8 +47,6 @@ jobs:
             url_file_name: fiji-macosx.zip
             fiji_executable: ImageJ-macosx
     runs-on: ${{ matrix.os }}
-    env:
-      MODELS: "polite-pig, placid-llama, chatty-frog, hiding-tiger, laid-back-lobster"
 
     steps:
       - name: Checkout code
