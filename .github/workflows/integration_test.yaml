@@ -8,7 +8,33 @@ on:
 
 jobs:
   integration-tests:
-    runs-on: [ubuntu-latest, macos-13, macos-latest, windows-latest]
+    runs-on:
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+          - ubuntu
+          - windows
+          - macos-arm64
+          - macos-x86_64
+        include:
+          - name: ubuntu
+            os: ubuntu-latest
+            url_file_name: fiji-linux64.zip
+            fiji_executable: ImageJ-linux64
+          - name: windows
+            os: windows-latest
+            url_file_name: fiji-win64.zip
+            fiji_executable: ImageJ-win64.exe
+          - name: macos-arm64
+            os: macos-14
+            url_file_name: fiji-macosx.zip
+            fiji_executable: ImageJ-macosx
+          - name: macos-x86_64
+            os: macos-13
+            url_file_name: fiji-macosx.zip
+            fiji_executable: ImageJ-macosx
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
@@ -39,7 +65,7 @@ jobs:
         if: steps.cache-fiji.outputs.cache-hit != 'true'
         run: |
           mkdir -p fiji
-          wget -q https://downloads.imagej.net/fiji/latest/fiji-linux64.zip -O fiji.zip
+          wget -q https://downloads.imagej.net/fiji/latest/${{url_file_name}} -O fiji.zip
           unzip fiji.zip -d fiji
 
       - name: Build Plugin
@@ -50,20 +76,15 @@ jobs:
 
       - name: Set up engine using Jython script and Fiji headless
         run: |
-          chmod +x fiji/Fiji.app/ImageJ-linux64
-          fiji/Fiji.app/ImageJ-linux64 --headless --console setup_engines.py
+          fiji/Fiji.app/${{fiji_executable}} --headless --console setup_engines.py
 
-      - name: Set up the wanted models to test
+      - name: Set up the wanted models to test and create macro
         run: |
-          fiji/Fiji.app/ImageJ-linux64 --headless --console download_models.py
-
-      - name: Create macros
-        run: |
-          # TODO bash script that creates the macros, 4 macros are created or maybe one that runs the 4 models in the same run?
+          fiji/Fiji.app/${{fiji_executable}} --headless --console .github/create_macro.py
 
       - name: Run macros
         run: |
-          # TODO run the for macros one after another, maybe create a single macro??
+          fiji/Fiji.app/${{fiji_executable}} --headless --console macro.ijm
 
       - name: Check that the expected result has been produced
         run: |
