@@ -62,7 +62,11 @@ jobs:
         if: steps.cache-fiji.outputs.cache-hit != 'true'
         run: |
           mkdir -p fiji
-          wget -q https://downloads.imagej.net/fiji/latest/${{ matrix.url_file_name }} -O fiji.zip
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            powershell -command "Invoke-WebRequest -Uri https://downloads.imagej.net/fiji/latest/${{ matrix.url_file_name }} -OutFile fiji.zip"
+          else
+            wget -q https://downloads.imagej.net/fiji/latest/${{ matrix.url_file_name }} -O fiji.zip
+          fi
           unzip fiji.zip -d fiji
 
       - name: Build Plugin
