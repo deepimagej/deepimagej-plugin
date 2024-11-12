@@ -26,7 +26,7 @@ import argparse
 parser = argparse.ArgumentParser()
 
 # Add the arguments
-parser.add_argument('-engines_path', type=str, default="engines", equired=False,
+parser.add_argument('-engines_path', type=str, default="engines", required=False,
                     help='Path where the engines are going to be installed')
 
 
