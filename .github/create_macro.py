@@ -21,11 +21,25 @@ creates a macro to run the model(s) downloaded on the sample input with deepimag
 from io.bioimage.modelrunner.bioimageio import BioimageioRepo
 from io.bioimage.modelrunner.bioimageio.description import ModelDescriptorFactory
 from io.bioimage.modelrunner.utils import Constants
+from io.bioimage.modelrunner.numpy import DecodeNumpy
+
+from deepimagej.tools import ImPlusRaiManager
+
+from ij import IJ
 
 import os
 import argparse
 
 MACRO_STR = "run(\"DeepImageJ Run\", \"modelPath={model_path} inputPath={input_path} outputFolder={output_folder} displayOutput=null\")"
+CREATED_SAMPLE_NAME = "sample_input_0.tif"
+
+
+def convert_npy_to_tif(folder_path, test_name, axesOrder):
+    rai = DecodeNumpy.loadNpy(os.path.join(folder_path, test_name))
+    imp = ImPlusRaiManager.convert(rai, axesOrder)
+    out_path = os.path.join(folder_path, CREATED_SAMPLE_NAME)
+    IJ.saveAsTiff(imp, out_path)
+
 
 # Create the argument parser
 parser = argparse.ArgumentParser()
@@ -73,6 +87,12 @@ with open(macro_path, "a") as file:
         print(mfp)
         descriptor = ModelDescriptorFactory.readFromLocalFile(os.path.join(mfp, Constants.RDF_FNAME))
         sample_name = descriptor.getInputTensors().get(0).getSampleTensorName()
+        if sample_name is None:
+            test_name = descriptor.getInputTensors().get(0).getTestTensorName()
+            if test_name is None:
+                continue
+            convert_npy_to_tif(mfp, test_name, descriptor.getInputTensors().get(0).getAxesOrder())
+            sample_name = CREATED_SAMPLE_NAME
         macro = MACRO_STR.format(model_path=mfp, input_path=os.path.join(mfp, sample_name), output_folder=mfp)
         file.write(macro + os.linesep)
 

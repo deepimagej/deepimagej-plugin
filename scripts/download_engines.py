@@ -23,7 +23,6 @@ import os
 import argparse
 import sys
 
-print("All arguments (including script name): {}".format(sys.argv))
 
 # Create the argument parser
 parser = argparse.ArgumentParser()
