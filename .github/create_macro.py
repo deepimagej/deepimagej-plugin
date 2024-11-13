@@ -110,7 +110,7 @@ with open(macro_path, "a") as file:
                 continue
             convert_npy_to_tif(mfp, test_name, descriptor.getInputTensors().get(0).getAxesOrder())
             sample_name = CREATED_SAMPLE_NAME
-        if mfp.contains(" "):
+        if " " in mfp:
             macro = MACRO_STR.format(model_path="[" + mfp + "]", input_path="[" + os.path.join(mfp, sample_name) + "]", output_folder="[" + mfp + "]")
         else:
             macro = MACRO_STR.format(model_path=mfp, input_path=os.path.join(mfp, sample_name), output_folder=mfp)
