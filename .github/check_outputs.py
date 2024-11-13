@@ -31,15 +31,16 @@ def main(expected_files_path):
         file_path = item['path']
         min_size = item.get('min_size', 1)
         if not os.path.isfile(file_path):
-            print("Error: Expected file '{file_path}' not found.".format(file_path))
+            print("Error: Expected file '{file_path}' not found.".format(file_path=file_path))
             all_passed = False
             continue
         actual_size = os.path.getsize(file_path)
         if actual_size < min_size:
-            print("Error: File '{file_path}' size {actual_size} bytes is less than expected {min_size} bytes.".format(file_path, actual_size, min_size))
+            print("Error: File '{file_path}' size {actual_size} bytes is less than expected {min_size} bytes.".format(file_path=file_path, 
+                                                                                                                      actual_size=actual_size, min_size=min_size))
             all_passed = False
         else:
-            print("File '{file_path}' exists with size {actual_size} bytes.".format(file_path, actual_size))
+            print("File '{file_path}' exists with size {actual_size} bytes.".format(file_path=file_path, actual_size=actual_size))
 
     if not all_passed:
         sys.exit(1)
