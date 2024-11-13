@@ -89,7 +89,7 @@ jobs:
       - name: Set up the wanted models to test and create macro
         shell: bash
         run: |
-          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/create_macro.py -model_nicknames "${{ env.MODELS }}" -models_dir fiji/Fiji.app/models -macro_path macro.ijm -json_fpath ${{ JSON_FPATH }}
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/create_macro.py -model_nicknames "${{ env.MODELS }}" -models_dir fiji/Fiji.app/models -macro_path macro.ijm -json_fpath ${{ env.JSON_FPATH }}
 
       - name: Run macros
         shell: bash
@@ -99,4 +99,4 @@ jobs:
       - name: Check that the expected result has been produced
         shell: bash
         run: |
-          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/check_outputs.py -json_fpath ${{ JSON_FPATH }}
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/check_outputs.py -json_fpath ${{ env.JSON_FPATH }}
