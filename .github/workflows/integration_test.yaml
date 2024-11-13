@@ -47,11 +47,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p fiji
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            curl -L -o fiji.zip https://downloads.imagej.net/fiji/latest/${{ matrix.url_file_name }}
-          else
-            wget -q https://downloads.imagej.net/fiji/latest/${{ matrix.url_file_name }} -O fiji.zip
-          fi
+          curl -L -o fiji.zip https://downloads.imagej.net/fiji/latest/${{ matrix.url_file_name }}
           unzip fiji.zip -d fiji
 
       - name: Build Plugin
@@ -81,8 +77,8 @@ jobs:
       - name: Download dependencies
         shell: bash
         run: |
-          wget -q -P fiji/Fiji.app/jars/ https://maven.scijava.org/content/groups/public/io/bioimage/dl-modelrunner/0.5.10-SNAPSHOT/dl-modelrunner-0.5.10-20241112.235152-66.jar
-          wget -q -P fiji/Fiji.app/jars/ https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.13.0/jna-platform-5.13.0.jar
+          curl -L --output-dir fiji/Fiji.app/jars/ -O "https://maven.scijava.org/content/groups/public/io/bioimage/dl-modelrunner/0.5.10-SNAPSHOT/dl-modelrunner-0.5.10-20241112.235152-66.jar"
+          curl -L --output-dir fiji/Fiji.app/jars/ -O "https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.13.0/jna-platform-5.13.0.jar"
 
       - name: Set up engine using Jython script and Fiji headless
         shell: bash
