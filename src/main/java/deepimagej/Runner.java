@@ -86,6 +86,7 @@ public class Runner implements Closeable {
 		try {
 			this.model = Model.createBioimageioModel(new File(descriptor.getModelPath()).getAbsolutePath());
 		} catch (ModelSpecsException | LoadEngineException | IOException e) {
+			e.printStackTrace();
 			throw new IllegalArgumentException("Something has happened, the model wanted does not "
 					+ "seem to exist anymore or it has been moved.");
 		}

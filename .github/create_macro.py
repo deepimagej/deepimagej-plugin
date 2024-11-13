@@ -39,7 +39,6 @@ CREATED_SAMPLE_NAME = "sample_input_0.tif"
 def is_model_supported_on_os(descriptor):
     modelWeights = descriptor.getWeights().gettAllSupportedWeightObjects()
     for ww in modelWeights:
-        print(ww.getFramework(), ww.getTrainingVersion())
         isAvailable = AvailableEngines.isEngineSupportedInOS(ww.getFramework(), ww.getTrainingVersion(), None, None)
         if isAvailable:
             return True
@@ -115,7 +114,6 @@ with open(macro_path, "a") as file:
         else:
             macro = MACRO_STR.format(model_path=mfp, input_path=os.path.join(mfp, sample_name), output_folder=mfp)
         file.write(macro + os.linesep)
-        print(macro)
 
         name_without_extension = sample_name[:sample_name.rfind(".")]
         for out in descriptor.getOutputTensors():
