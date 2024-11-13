@@ -48,7 +48,7 @@ jobs:
         run: |
           mkdir -p fiji
           if [ "$RUNNER_OS" == "Windows" ]; then
-            C:/Windows/System32/wget.exe -q https://downloads.imagej.net/fiji/latest/${{ matrix.url_file_name }} -O fiji.zip
+            curl -L -o fiji.zip https://downloads.imagej.net/fiji/latest/${{ matrix.url_file_name }}
           else
             wget -q https://downloads.imagej.net/fiji/latest/${{ matrix.url_file_name }} -O fiji.zip
           fi
