@@ -39,6 +39,7 @@ CREATED_SAMPLE_NAME = "sample_input_0.tif"
 def is_model_supported_on_os(descriptor):
     modelWeights = descriptor.getWeights().gettAllSupportedWeightObjects()
     for ww in modelWeights:
+        print(ww.getFramework(), ww.getTrainingVersion())
         isAvailable = AvailableEngines.isEngineSupportedInOS(ww.getFramework(), ww.getTrainingVersion(), None, None)
         if isAvailable:
             return True
@@ -90,7 +91,7 @@ models_full_path = []
 for model in model_nicknames:
     print("Downloading the Bioimage.io model: " + model.strip())
     model_dir = br.downloadModelByID(model.strip(), models_dir)
-    models_full_path.append(model_dir)
+    models_full_path.append(os.path.abspath(model_dir))
 
 ## Create macros
 
@@ -109,7 +110,10 @@ with open(macro_path, "a") as file:
                 continue
             convert_npy_to_tif(mfp, test_name, descriptor.getInputTensors().get(0).getAxesOrder())
             sample_name = CREATED_SAMPLE_NAME
-        macro = MACRO_STR.format(model_path=mfp, input_path=os.path.join(mfp, sample_name), output_folder=mfp)
+        if mfp.contains(" "):
+            macro = MACRO_STR.format(model_path="[" + mfp + "]", input_path="[" + os.path.join(mfp, sample_name) + "]", output_folder="[" + mfp + "]")
+        else:
+            macro = MACRO_STR.format(model_path=mfp, input_path=os.path.join(mfp, sample_name), output_folder=mfp)
         file.write(macro + os.linesep)
 
         name_without_extension = sample_name[:sample_name.rfind(".")]
