@@ -44,11 +44,14 @@ jobs:
           distribution: 'zulu'
 
       - name: Set up Fiji
-        if: steps.cache-fiji.outputs.cache-hit != 'true'
         shell: bash
         run: |
           mkdir -p fiji
-          wget -q https://downloads.imagej.net/fiji/latest/${{ matrix.url_file_name }} -O fiji.zip
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            C:/Windows/System32/wget.exe -q https://downloads.imagej.net/fiji/latest/${{ matrix.url_file_name }} -O fiji.zip
+          else
+            wget -q https://downloads.imagej.net/fiji/latest/${{ matrix.url_file_name }} -O fiji.zip
+          fi
           unzip fiji.zip -d fiji
 
       - name: Build Plugin
