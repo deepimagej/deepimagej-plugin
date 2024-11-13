@@ -266,6 +266,7 @@ public class DeepImageJ_Run implements PlugIn {
 	
 	private void parseCommand() {
 		String macroArg = Macro.getOptions();
+		System.out.println(macroArg);
 
 		// macroArg = "modelPath=NucleiSegmentationBoundaryModel";
 		// macroArg = "modelPath=NucleiSegmentationBoundaryModel outputFolder=null";

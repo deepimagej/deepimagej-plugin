@@ -114,6 +114,7 @@ with open(macro_path, "a") as file:
         else:
             macro = MACRO_STR.format(model_path=mfp, input_path=os.path.join(mfp, sample_name), output_folder=mfp)
         file.write(macro + os.linesep)
+        print(macro)
 
         name_without_extension = sample_name[:sample_name.rfind(".")]
         for out in descriptor.getOutputTensors():
