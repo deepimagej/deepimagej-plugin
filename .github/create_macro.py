@@ -94,7 +94,7 @@ for model in model_nicknames:
 
 ## Create macros
 
-expected_files = {}
+expected_files = []
 with open(macro_path, "a") as file:
 
     for mfp in models_full_path:
@@ -114,9 +114,11 @@ with open(macro_path, "a") as file:
 
         name_without_extension = sample_name[:sample_name.rfind(".")]
         for out in descriptor.getOutputTensors():
-            expected_files['path'] = os.path.join(mfp, name_without_extension + "_" + out.getName() + ".tif")
-            print(expected_files['path'])
-            expected_files['min_size'] = 1
+            out_dic = {}
+            out_dic['path'] = os.path.join(mfp, name_without_extension + "_" + out.getName() + ".tif")
+            print(out_dic['path'])
+            out_dic['min_size'] = 1
+            expected_files.append(out_dic)
 
 with open(json_fpath, 'w') as f:
     json.dump(expected_files, f)
