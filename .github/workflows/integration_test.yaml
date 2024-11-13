@@ -79,7 +79,7 @@ jobs:
       - name: Download dependencies
         shell: bash
         run: |
-          curl -L --output-dir fiji/Fiji.app/jars/ -O "https://maven.scijava.org/content/groups/public/io/bioimage/dl-modelrunner/0.5.10-SNAPSHOT/dl-modelrunner-0.5.10-20241113.153150-68.jar"
+          curl -L --output-dir fiji/Fiji.app/jars/ -O "https://maven.scijava.org/content/groups/public/io/bioimage/dl-modelrunner/0.5.10-SNAPSHOT/dl-modelrunner-0.5.10-20241113.165548-69.jar"
           curl -L --output-dir fiji/Fiji.app/jars/ -O "https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.13.0/jna-platform-5.13.0.jar"
 
       - name: Set up engine using Jython script and Fiji headless
