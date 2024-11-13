@@ -29,6 +29,7 @@ from ij import IJ
 
 import os
 import argparse
+import json
 
 MACRO_STR = "run(\"DeepImageJ Run\", \"modelPath={model_path} inputPath={input_path} outputFolder={output_folder} displayOutput=null\")"
 CREATED_SAMPLE_NAME = "sample_input_0.tif"
@@ -51,6 +52,8 @@ parser.add_argument('-models_dir', type=str, required=True,
                     help='Path to the directory where models are installed')
 parser.add_argument('-macro_path', type=str, required=True, 
                     help='Path to the macro file that is going to be created')
+parser.add_argument('-json_fpath', type=str, required=True,
+                    help='Path to the json file that contains the files to check')
 
 # Parse the arguments
 args = parser.parse_args()
@@ -66,6 +69,7 @@ def parse_model_paths(models):
 model_nicknames = parse_model_paths(args.model_nicknames)
 models_dir = args.models_dir
 macro_path = args.macro_path
+json_fpath = args.json_fpath
 
 
 if not os.path.exists(models_dir) or not os.path.isdir(models_dir):
@@ -81,6 +85,8 @@ for model in model_nicknames:
     models_full_path.append(model_dir)
 
 ## Create macros
+
+expected_files = []
 with open(macro_path, "a") as file:
 
     for mfp in models_full_path:
@@ -96,3 +102,11 @@ with open(macro_path, "a") as file:
         macro = MACRO_STR.format(model_path=mfp, input_path=os.path.join(mfp, sample_name), output_folder=mfp)
         file.write(macro + os.linesep)
 
+        name_without_extension = sample_name[:sample_name.rfind(".")]
+        for out in descriptor.getOutputTensors():
+            expected_files['path'] = os.path.join(mfp, name_without_extension + "_" + out.getName() + ".tif")
+            print(expected_files['path'])
+            expected_files['min_size'] = 1
+
+with open(json_fpath, 'w') as f:
+    json.dump(expected_files, f)

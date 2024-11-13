@@ -21,7 +21,6 @@ from io.bioimage.modelrunner.engine.installation import EngineInstall
 
 import os
 import argparse
-import sys
 
 
 # Create the argument parser
