@@ -27,11 +27,11 @@ jobs:
           - name: macos-arm64
             os: macos-14
             url_file_name: fiji-macosx.zip
-            fiji_executable: ImageJ-macosx
+            fiji_executable: Contents/MacOS/ImageJ-macosx
           - name: macos-x86_64
             os: macos-13
             url_file_name: fiji-macosx.zip
-            fiji_executable: ImageJ-macosx
+            fiji_executable: Contents/MacOS/ImageJ-macosx
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -80,10 +80,6 @@ jobs:
         run: |
           curl -L --output-dir fiji/Fiji.app/jars/ -O "https://maven.scijava.org/content/groups/public/io/bioimage/dl-modelrunner/0.5.10-SNAPSHOT/dl-modelrunner-0.5.10-20241112.235152-66.jar"
           curl -L --output-dir fiji/Fiji.app/jars/ -O "https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.13.0/jna-platform-5.13.0.jar"
-
-      - name: see contents
-        shell: bash
-        run: ls fiji/Fiji.app
 
       - name: Set up engine using Jython script and Fiji headless
         shell: bash
