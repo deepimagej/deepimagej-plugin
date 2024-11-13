@@ -113,6 +113,7 @@ with open(macro_path, "a") as file:
             macro = MACRO_STR.format(model_path="[" + mfp + "]", input_path="[" + os.path.join(mfp, sample_name) + "]", output_folder="[" + mfp + "]")
         else:
             macro = MACRO_STR.format(model_path=mfp, input_path=os.path.join(mfp, sample_name), output_folder=mfp)
+        macro = macro.replace(os.sep, os.sep + os.sep)
         file.write(macro + os.linesep)
         print(macro)
 

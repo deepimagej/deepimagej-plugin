@@ -97,6 +97,7 @@ jobs:
             -json_fpath ${{ env.JSON_FPATH }}
 
       - name: Run macros
+        shell: bash
         run: |
           fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console --debug -macro ${{ env.MACRO_FPATH }}
 
