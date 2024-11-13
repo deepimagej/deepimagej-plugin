@@ -93,6 +93,18 @@ public class Runner implements Closeable {
 					+ Types.stackTrace(e));
 		}
 	}
+
+	private Runner(ModelDescriptor descriptor, String enginesPath) {
+		this.descriptor = descriptor;
+		try {
+			this.model = Model.createBioimageioModel(new File(descriptor.getModelPath()).getAbsolutePath(), enginesPath);
+		} catch (ModelSpecsException | LoadEngineException | IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("Something has happened, the model wanted does not "
+					+ "seem to exist anymore or it has been moved." + System.lineSeparator()
+					+ Types.stackTrace(e));
+		}
+	}
 	
 	/**
 	 * 
@@ -104,6 +116,10 @@ public class Runner implements Closeable {
 	
 	public static Runner create(ModelDescriptor descriptor) {
 		return new Runner(descriptor);
+	}
+	
+	public static Runner create(ModelDescriptor descriptor, String enginesPath) {
+		return new Runner(descriptor, enginesPath);
 	}
 	
 	public void load() throws LoadModelException {

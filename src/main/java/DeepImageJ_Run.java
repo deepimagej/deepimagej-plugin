@@ -67,6 +67,7 @@ import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
 import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
 import io.bioimage.modelrunner.exceptions.RunModelException;
+import io.bioimage.modelrunner.system.PlatformDetection;
 import io.bioimage.modelrunner.tensor.Tensor;
 import io.bioimage.modelrunner.utils.Constants;
 import net.imglib2.type.NativeType;
@@ -101,14 +102,6 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	@Override
 	public void run(String arg) {
-		System.out.println(System.getProperty("java.vm.name"));
-		System.out.println(System.getProperty("java.home"));
-		System.out.println(System.getProperty("java.vendor"));
-		System.out.println(System.getProperty("java.version"));
-		System.out.println(System.getProperty("java.specification.vendor"));
-		File modelsDir = new File("models");
-		if (!modelsDir.isDirectory() && !modelsDir.mkdir())
-			throw new RuntimeException("Unable to create 'models' folder inside ImageJ/Fiji directory. Please create it yourself.");
 	    boolean isMacro = IJ.isMacro();
 	    boolean isHeadless = GraphicsEnvironment.isHeadless();
 	    if (!isMacro) {
@@ -121,6 +114,9 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	private void runGUI() {
+		File modelsDir = new File("models");
+		if (!modelsDir.isDirectory() && !modelsDir.mkdir())
+			throw new RuntimeException("Unable to create 'models' folder inside ImageJ/Fiji directory. Please create it yourself.");
 		final Gui[] guiRef = new Gui[1];
 	    if (SwingUtilities.isEventDispatchThread())
 	    	guiRef[0] = new Gui(new IjAdapter());
@@ -129,6 +125,25 @@ public class DeepImageJ_Run implements PlugIn {
 		        guiRef[0] = new Gui(new IjAdapter());
 		    });
 	    }
+	}
+	
+	private static String getFijiFolder() {
+		File jvmFolder = new File(System.getProperty("java.home"));
+		String imageJExecutable;
+		if (PlatformDetection.isWindows())
+			imageJExecutable = "ImageJ-win64.exe";
+		else if (PlatformDetection.isLinux())
+			imageJExecutable = "ImageJ-linux64";
+		else if (PlatformDetection.isMacOS())
+			imageJExecutable = "Contents/MacOS/ImageJ-macosx";
+		else
+			throw new IllegalArgumentException("Unsupported Operating System");
+		while (true && jvmFolder != null) {
+			jvmFolder = jvmFolder.getParentFile();
+			if (new File(jvmFolder + File.separator + imageJExecutable).isFile())
+				return jvmFolder.getAbsolutePath();
+		}
+		throw new RuntimeException("Unable to find the path to the ImageJ/Fiji being used.");
 	}
 	
 	/**
@@ -154,7 +169,7 @@ public class DeepImageJ_Run implements PlugIn {
 			e.printStackTrace();
 			return;
 		}
-		try (Runner runner = Runner.create(model)) {
+		try (Runner runner = Runner.create(model, getFijiFolder() + File.separator + "engines")) {
 			runner.load();
 			if (this.inputFolder != null) {
 				executeOnPath(runner, adapter);
@@ -258,7 +273,7 @@ public class DeepImageJ_Run implements PlugIn {
 
 		modelFolder = parseArg(macroArg, macroKeys[0], true);
 		if (!(new File(modelFolder).isAbsolute()))
-			modelFolder = new File("models", modelFolder).getAbsolutePath();
+			modelFolder = new File(getFijiFolder() + File.separator + "models", modelFolder).getAbsolutePath();
 		inputFolder = parseArg(macroArg, macroOptionalKeys[0], false);
 		outputFolder = parseArg(macroArg, macroOptionalKeys[1], false);
 		display = parseArg(macroArg, macroOptionalKeys[2], false);
