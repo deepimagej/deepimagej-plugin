@@ -42,3 +42,6 @@ if not os.path.exists(engines_path) or not os.path.isdir(engines_path):
 
 installer = EngineInstall.createInstaller(engines_path)
 installer.basicEngineInstallation()
+
+print(os.path.abspath(engines_path))
+print(os.listdir(os.path.abspath(engines_path)))

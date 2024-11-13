@@ -58,6 +58,7 @@ import javax.swing.SwingUtilities;
 import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
 import ij.ImagePlus;
+import io.bioimage.modelrunner.apposed.appose.Types;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.TensorSpec;
 import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
@@ -88,7 +89,8 @@ public class Runner implements Closeable {
 		} catch (ModelSpecsException | LoadEngineException | IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Something has happened, the model wanted does not "
-					+ "seem to exist anymore or it has been moved.");
+					+ "seem to exist anymore or it has been moved." + System.lineSeparator()
+					+ Types.stackTrace(e));
 		}
 	}
 	
