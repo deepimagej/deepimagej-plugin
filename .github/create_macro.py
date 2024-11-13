@@ -22,6 +22,7 @@ from io.bioimage.modelrunner.bioimageio import BioimageioRepo
 from io.bioimage.modelrunner.bioimageio.description import ModelDescriptorFactory
 from io.bioimage.modelrunner.utils import Constants
 from io.bioimage.modelrunner.numpy import DecodeNumpy
+from io.bioimage.modelrunner.versionmanagement import AvailableEngines
 
 from deepimagej.tools import ImPlusRaiManager
 
@@ -34,6 +35,14 @@ import json
 MACRO_STR = "run(\"DeepImageJ Run\", \"modelPath={model_path} inputPath={input_path} outputFolder={output_folder} displayOutput=null\")"
 CREATED_SAMPLE_NAME = "sample_input_0.tif"
 
+
+def is_model_supported_on_os(descriptor):
+    modelWeights = descriptor.getWeights().gettAllSupportedWeightObjects()
+    for ww in modelWeights:
+        isAvailable = AvailableEngines.isEngineSupportedInOS(ww.getFramework(), ww.getTrainingVersion(), None, None)
+        if isAvailable:
+            return True
+    return False
 
 def convert_npy_to_tif(folder_path, test_name, axesOrder):
     rai = DecodeNumpy.loadNpy(os.path.join(folder_path, test_name))
@@ -63,7 +72,7 @@ def parse_model_paths(models):
     if ',' in models:
         return models.split(',')
     else:
-        return models
+        return [models]
 
 # Access the argument values
 model_nicknames = parse_model_paths(args.model_nicknames)
@@ -76,7 +85,6 @@ if not os.path.exists(models_dir) or not os.path.isdir(models_dir):
     os.makedirs(models_dir)
 
     
-print("Connecting to the Bioimage.io repository")
 br = BioimageioRepo.connect()
 models_full_path = []
 for model in model_nicknames:
@@ -86,12 +94,14 @@ for model in model_nicknames:
 
 ## Create macros
 
-expected_files = []
+expected_files = {}
 with open(macro_path, "a") as file:
 
     for mfp in models_full_path:
-        print(mfp)
         descriptor = ModelDescriptorFactory.readFromLocalFile(os.path.join(mfp, Constants.RDF_FNAME))
+        if is_model_supported_on_os(descriptor):
+            print("Model skipped: " + mfp)
+            continue
         sample_name = descriptor.getInputTensors().get(0).getSampleTensorName()
         if sample_name is None:
             test_name = descriptor.getInputTensors().get(0).getTestTensorName()
