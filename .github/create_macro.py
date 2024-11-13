@@ -99,7 +99,7 @@ with open(macro_path, "a") as file:
 
     for mfp in models_full_path:
         descriptor = ModelDescriptorFactory.readFromLocalFile(os.path.join(mfp, Constants.RDF_FNAME))
-        if is_model_supported_on_os(descriptor):
+        if not is_model_supported_on_os(descriptor):
             print("Model skipped: " + mfp)
             continue
         sample_name = descriptor.getInputTensors().get(0).getSampleTensorName()
