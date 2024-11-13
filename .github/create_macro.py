@@ -70,7 +70,7 @@ for model in model_nicknames:
 with open(macro_path, "a") as file:
 
     for mfp in models_full_path:
-        descriptor = ModelDescriptorFactory.readFromLocalFile(os.path.join(mfp, Constants.RDF_NAME))
+        descriptor = ModelDescriptorFactory.readFromLocalFile(os.path.join(mfp, Constants.RDF_FNAME))
         sample_name = descriptor.getInputTensors().get(0).getSampleTensorName()
         macro = MACRO_STR.format(model_path=mfp, input_path=os.path.join(mfp, Constants.sample_name), outputFolder=mfp)
         file.write(macro + os.linesep)
