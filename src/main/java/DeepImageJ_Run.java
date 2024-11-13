@@ -101,6 +101,11 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	@Override
 	public void run(String arg) {
+		System.out.println(System.getProperty("java.vm.name"));
+		System.out.println(System.getProperty("java.home"));
+		System.out.println(System.getProperty("java.vendor"));
+		System.out.println(System.getProperty("java.version"));
+		System.out.println(System.getProperty("java.specification.vendor"));
 		File modelsDir = new File("models");
 		if (!modelsDir.isDirectory() && !modelsDir.mkdir())
 			throw new RuntimeException("Unable to create 'models' folder inside ImageJ/Fiji directory. Please create it yourself.");
