@@ -25,7 +25,7 @@ from io.bioimage.modelrunner.utils import Constants
 import os
 import argparse
 
-MACRO_STR = "run(\"DeepImageJ Run\", \"modelPath={modelPath} inputPath={inputPath} outputFolder={outputFolder} displayOutput=null\")"
+MACRO_STR = "run(\"DeepImageJ Run\", \"modelPath={model_path} inputPath={input_path} outputFolder={output_folder} displayOutput=null\")"
 
 # Create the argument parser
 parser = argparse.ArgumentParser()
@@ -73,6 +73,6 @@ with open(macro_path, "a") as file:
         print(mfp)
         descriptor = ModelDescriptorFactory.readFromLocalFile(os.path.join(mfp, Constants.RDF_FNAME))
         sample_name = descriptor.getInputTensors().get(0).getSampleTensorName()
-        macro = MACRO_STR.format(model_path=mfp, input_path=os.path.join(mfp, sample_name), outputFolder=mfp)
+        macro = MACRO_STR.format(model_path=mfp, input_path=os.path.join(mfp, sample_name), output_folder=mfp)
         file.write(macro + os.linesep)
 
