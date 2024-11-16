@@ -23,7 +23,7 @@ public class DefaultIcon {
     protected static final String DIJ_ICON_PATH = "dij_imgs/deepimagej_icon.png";
     
     private static final Map<Dimension, CompletableFuture<ImageIcon>> PENDING_ICONS = new ConcurrentHashMap<>();
-    private static Map<Dimension, ImageIcon> ICONS_CACHE;
+    private static Map<Dimension, ImageIcon> ICONS_CACHE = new ConcurrentHashMap<>();
     private static final ExecutorService scaleExecutor = Executors.newFixedThreadPool(2);
     // Approach 2: Cache single BufferedImage
     private static final BufferedImage MASTER_IMAGE;
