@@ -134,4 +134,9 @@ public class DefaultIcon {
         // Return immediate result
         callback.accept(immediate);
     }
+    
+    public static void closeThreads() {
+    	if (scaleExecutor != null)
+    		scaleExecutor.shutdown();
+    }
 }

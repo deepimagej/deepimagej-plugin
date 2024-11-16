@@ -27,7 +27,6 @@ import java.net.URL;
 import java.nio.file.Paths;
 
 import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -36,7 +35,6 @@ import javax.swing.border.EmptyBorder;
 
 import deepimagej.Constants;
 import deepimagej.Runner;
-import deepimagej.gui.ImageLoader.ImageLoadCallback;
 import deepimagej.gui.adapter.ImageAdapter;
 import deepimagej.tools.ImPlusRaiManager;
 
@@ -655,6 +653,7 @@ public class Gui extends PlugInFrame {
     }
     
     private void onClose() {
+    	DefaultIcon.closeThreads();
     	if (dwnlThread != null && this.dwnlThread.isAlive())
     		this.dwnlThread.interrupt();
     	if (engineInstallThread != null && this.engineInstallThread.isAlive())
