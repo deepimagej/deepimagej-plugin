@@ -69,18 +69,14 @@ public class ModelCard extends JPanel {
     	this.nicknameLabel.setText(nickname);
     	int iconW = (int) (CARD_ICON_HRATIO * this.cardWidth * scale);
     	int iconH = (int) (this.cardHeight * CARD_ICON_VRATIO * scale);
-    	boolean isFile = false;
-    	try {
-    		isFile = new File(imagePath.toURI()).isFile();
-    	} catch (Exception ex) {}
     	
-    	if (false && isFile) {
-            ImageIcon logoIcon = ImageLoader.createScaledIcon(imagePath, iconW, iconH);
-            imageLabel.setIcon(logoIcon);
-            this.revalidate();
-            this.repaint();
-    	} else {
-    		ImageLoader.loadImageIconFromURL(imagePath, iconW, iconH, new ImageLoadCallback() {
+    	DefaultIcon.getLoadingIconWithCallback(iconW, iconH, icon -> {
+    		imageLabel.setIcon(icon);
+            revalidate();
+            repaint();
+        });
+    	
+    	ImageLoader.loadImageIconFromURL(imagePath, iconW, iconH, new ImageLoadCallback() {
                 @Override
                 public void onImageLoaded(ImageIcon icon) {
                 	imageLabel.setIcon(icon);
@@ -88,7 +84,6 @@ public class ModelCard extends JPanel {
                     ModelCard.this.repaint();
                 }
             });
-    	}
     }
     
     private static ImageIcon createEmptyIcon(int width, int height) {
@@ -98,32 +93,4 @@ public class ModelCard extends JPanel {
         // Create an ImageIcon from the empty image
         return new ImageIcon(emptyImage);
     }
-
-    /*
-    protected static ModelCard createModelCarwd(String modelName, URL imagePath, String modelNickname, double scale) {
-    	ModelCard modelCardPanel = new ModelCard(new BorderLayout());
-        int cardHeight = (int) (getHeight() * CARR_VRATIO * 0.9);
-        int cardWidth = getWidth() / 3;
-        modelCardPanel.setPreferredSize(new Dimension((int) (cardWidth * scale), (int) (cardHeight * scale)));
-        modelCardPanel.setBackground(Color.WHITE);
-        modelCardPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
-
-        // Calculate dimensions for the logo based on the main interface size
-        int logoHeight = (int) (getHeight() * CARR_VRATIO / 3);
-        int logoWidth = getWidth() / 4;
-        ImageIcon logoIcon = createScaledIcon(imagePath, logoWidth, logoHeight);
-        JLabel modelImageLabel = new JLabel(logoIcon, JLabel.CENTER);
-
-        JLabel modelNameLabel = new JLabel(modelName, JLabel.CENTER);
-        modelNameLabel.setFont(new Font("SansSerif", Font.BOLD, (int) (16 * scale)));
-        JLabel modelNicknameLabel = new JLabel(modelNickname, JLabel.CENTER);
-        modelNicknameLabel.setFont(new Font("SansSerif", Font.ITALIC, (int) (14 * scale)));
-
-        modelCardPanel.add(modelImageLabel, BorderLayout.CENTER);
-        modelCardPanel.add(modelNameLabel, BorderLayout.NORTH);
-        modelCardPanel.add(modelNicknameLabel, BorderLayout.SOUTH);
-
-        return modelCardPanel;
-    }
-    */
 }

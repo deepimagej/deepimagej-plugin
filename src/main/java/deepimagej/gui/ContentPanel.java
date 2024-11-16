@@ -9,6 +9,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.net.URL;
 
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
@@ -20,6 +21,9 @@ import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
+
+import deepimagej.gui.ImageLoader.ImageLoadCallback;
+import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 
 public class ContentPanel extends JPanel {
 	
@@ -58,7 +62,7 @@ public class ContentPanel extends JPanel {
         // Calculate dimensions for the logo based on the main interface size
         int logoHeight = (int) (parentHeight * 0.3);
         int logoWidth = parentWidth / 3;
-        ImageIcon logoIcon = ImageLoader.getDefaultIcon(logoWidth, logoHeight);
+        ImageIcon logoIcon = DefaultIcon.getDefaultIcon(logoWidth, logoHeight);
         exampleImageLabel = new JLabel(logoIcon, JLabel.CENTER);
         
         GridBagConstraints gbc = new GridBagConstraints();
@@ -196,5 +200,23 @@ public class ContentPanel extends JPanel {
 		}
 		this.progressInfoLabel.setText(text);
 		progressLabelLayout.show(progressLabelPanel, "visible");
+	}
+
+	protected void update(ModelDescriptor modelDescriptor, URL path, int logoWidth, int logoHeight) {
+    	DefaultIcon.getLoadingIconWithCallback(logoWidth, logoHeight, icon -> {
+    		setIcon(icon);
+            revalidate();
+            repaint();
+        });
+        ModelInfoWorker worker = new ModelInfoWorker(modelDescriptor, this);
+        worker.execute();
+    	ImageLoader.loadImageIconFromURL(path, logoWidth, logoHeight, new ImageLoadCallback() {
+            @Override
+            public void onImageLoaded(ImageIcon icon) {
+            	setIcon(icon);
+            	revalidate();
+            	repaint();
+            }
+        });
 	}
 }

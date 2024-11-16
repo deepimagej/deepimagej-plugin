@@ -23,6 +23,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Paths;
 
 import javax.swing.BorderFactory;
@@ -35,6 +36,7 @@ import javax.swing.border.EmptyBorder;
 
 import deepimagej.Constants;
 import deepimagej.Runner;
+import deepimagej.gui.ImageLoader.ImageLoadCallback;
 import deepimagej.gui.adapter.ImageAdapter;
 import deepimagej.tools.ImPlusRaiManager;
 
@@ -76,7 +78,6 @@ public class Gui extends PlugInFrame {
     protected static final String LOADING_STR = "loading...";
     protected static final String NOT_FOUND_STR = "not found";
     protected static final String LOADING_GIF_PATH = "loading...";
-    protected static final String DIJ_ICON_PATH = "dij_imgs/deepimagej_icon.png";
     protected static final String LOCAL_STR = "Local";
     protected static final String BIOIMAGEIO_STR = "Bioimage.io";
     protected static final String RUN_STR = "Run";
@@ -328,10 +329,8 @@ public class Gui extends PlugInFrame {
         // Update example image and model info
         int logoHeight = (int) (getHeight() * 0.3);
         int logoWidth = getWidth() / 3;
-        ImageIcon logoIcon = ImageLoader.createScaledIcon(modelSelectionPanel.getCoverPaths().get(currentIndex), logoWidth, logoHeight);
-        this.contentPanel.setIcon(logoIcon);
-        ModelDescriptor model = modelSelectionPanel.getModels().get(currentIndex);
-        this.contentPanel.setInfo(model == null ? "Detailed model description..." : model.buildInfo());
+    	URL coverPath = modelSelectionPanel.getCoverPaths().get(currentIndex);
+        contentPanel.update(modelSelectionPanel.getModels().get(currentIndex), coverPath, logoWidth, logoHeight);
     }
     
     private void updateProgressBar() {
@@ -383,13 +382,12 @@ public class Gui extends PlugInFrame {
     protected void setModelsInGui(List<ModelDescriptor> models) {
     	currentIndex = 0;
     	this.modelSelectionPanel.setModels(models);
+
         // Update example image and model info
         int logoHeight = (int) (getHeight() * 0.3);
         int logoWidth = getWidth() / 3;
-        ImageIcon logoIcon = ImageLoader.createScaledIcon(modelSelectionPanel.getCoverPaths().get(currentIndex), logoWidth, logoHeight);
-        this.contentPanel.setIcon(logoIcon);
-        ModelDescriptor model = modelSelectionPanel.getModels().get(currentIndex);
-        this.contentPanel.setInfo(model == null ? "Detailed model description..." : model.buildInfo());
+    	URL coverPath = modelSelectionPanel.getCoverPaths().get(currentIndex);
+        contentPanel.update(modelSelectionPanel.getModels().get(currentIndex), coverPath, logoWidth, logoHeight);
     }
     
     public void trackEngineInstallation(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
@@ -424,10 +422,81 @@ public class Gui extends PlugInFrame {
     	}
     }
     
+    
+    private int nParsedModels;
     protected void clickedBMZ() {
     	modelSelectionPanel.setLoading();
     	ArrayList<ModelDescriptor> newModels = createArrayOfNulls(3);
-    	boolean isEdt = SwingUtilities.isEventDispatchThread();
+    	this.searchBar.setBarEnabled(false);
+    	this.searchBar.changeButtonToLocal();
+    	this.contentPanel.setProgressIndeterminate(true);
+    	this.contentPanel.setProgressBarText("");
+    	this.runButton.setVisible(false);
+    	this.runOnTestButton.setText(INSTALL_STR);
+    	this.runOnTestButton.setEnabled(false);
+    	this.modelSelectionPanel.setBMZBorder();
+    	this.modelSelectionPanel.setArrowsEnabled(false);
+    	this.contentPanel.setProgressLabelText("Looking for models at Bioimage.io");
+    	setModelsInGui(newModels);
+    	
+    	finderThread = new Thread(() -> {
+    		// This line initiates the read of the bioimage.io collection
+    		try {
+	        	searchBar.countBMZModels(true);
+	        	this.searchBar.findBMZModels();
+			} catch (InterruptedException e) {
+				return;
+			}
+    	});
+    	
+    	updaterThread = new Thread(() -> {
+    		nParsedModels = 0;
+			try {
+	    		while (searchBar.countBMZModels(false) == 0 && finderThread.isAlive()) {
+						Thread.sleep(100);
+	    		}
+			} catch (InterruptedException e) {
+				return;
+			}
+    		while (finderThread.isAlive()) {
+    			int nModels;
+    			try {
+					Thread.sleep(100);
+	    			nModels = searchBar.countBMZModels(false);
+				} catch (InterruptedException e) {
+					return;
+				}
+            	List<ModelDescriptor> foundModels = new ArrayList<>(searchBar.getBMZModels());
+            	if (foundModels.size() < nParsedModels + 5)
+            		continue;
+            	nParsedModels = foundModels.size();
+            	// TODO create card for 5 models without image 
+            	// TODO launch thread that caches the images for those 5 models, once ready draw them
+            	foundModels.addAll(createArrayOfNulls(nModels - foundModels.size()));
+            	SwingUtilities.invokeLater(() -> setModelsInGui(foundModels));
+            	
+            	
+    		}
+    		if (Thread.currentThread().isInterrupted())
+    			return;
+        	List<ModelDescriptor> foundModels = searchBar.getBMZModels();
+        	SwingUtilities.invokeLater(() -> {
+        		setModelsInGui(foundModels);
+            	this.contentPanel.setProgressIndeterminate(false);
+            	this.searchBar.setBarEnabled(true);
+            	this.runOnTestButton.setEnabled(true);
+            	this.modelSelectionPanel.setArrowsEnabled(true);
+            	this.contentPanel.setProgressLabelText("");
+        	});
+    	});
+    	
+    	finderThread.start();
+    	updaterThread.start();
+    }
+    
+    protected void clickedBMZ2() {
+    	modelSelectionPanel.setLoading();
+    	ArrayList<ModelDescriptor> newModels = createArrayOfNulls(3);
     	this.searchBar.setBarEnabled(false);
     	this.searchBar.changeButtonToLocal();
     	this.contentPanel.setProgressIndeterminate(true);
@@ -497,7 +566,6 @@ public class Gui extends PlugInFrame {
     protected void clickedLocal() {
     	modelSelectionPanel.setLoading();
     	ArrayList<ModelDescriptor> newModels = createArrayOfNulls(3);
-    	boolean isEdt = SwingUtilities.isEventDispatchThread();
     	this.searchBar.setBarEnabled(false);
     	this.searchBar.changeButtonToBMZ();
     	this.contentPanel.setProgressIndeterminate(true);
