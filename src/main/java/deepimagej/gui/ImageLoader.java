@@ -84,12 +84,12 @@ public class ImageLoader {
     
     protected static ImageIcon createScaledIcon(URL imagePath, int logoWidth, int logoHeight) {
         if (imagePath == null) {
-            return getDefaultIcon(logoWidth, logoHeight);
+            return DefaultIcon.getDefaultIcon(logoWidth, logoHeight);
         }
         try (ImageInputStream iis = ImageIO.createImageInputStream(imagePath.openStream())) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
             if (!readers.hasNext()) {
-                return getDefaultIcon(logoWidth, logoHeight);
+                return DefaultIcon.getDefaultIcon(logoWidth, logoHeight);
             }
 
             ImageReader reader = readers.next();
@@ -100,7 +100,7 @@ public class ImageLoader {
                 return createScaledStaticImage(imagePath, logoWidth, logoHeight);
             }
         } catch (IOException e) {
-            return getDefaultIcon(logoWidth, logoHeight);
+            return DefaultIcon.getDefaultIcon(logoWidth, logoHeight);
         }
     }
 
@@ -117,7 +117,7 @@ public class ImageLoader {
     private static ImageIcon createScaledStaticImage(URL imagePath, int width, int height) throws IOException {
         BufferedImage originalImage = ImageIO.read(imagePath);
         if (originalImage == null) {
-            return getDefaultIcon(width, height);
+            return DefaultIcon.getDefaultIcon(width, height);
         }
         BufferedImage scaledImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         AffineTransform at = AffineTransform.getScaleInstance(
@@ -128,19 +128,5 @@ public class ImageLoader {
         scaleOp.filter(originalImage, scaledImage);
         //Image scaledImage = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
         return new ImageIcon(scaledImage);
-    }
-
-    static ImageIcon getDefaultIcon(int width, int height) {
-        try {
-            URL defaultIconUrl = Gui.class.getClassLoader().getResource(Gui.DIJ_ICON_PATH);
-            if (defaultIconUrl == null) {
-                return null;
-            }
-            BufferedImage defaultImage = ImageIO.read(defaultIconUrl);
-            Image scaledDefaultImage = defaultImage.getScaledInstance(width, height, Image.SCALE_FAST);
-            return new ImageIcon(scaledDefaultImage);
-        } catch (IOException e) {
-            return null;
-        }
     }
 }

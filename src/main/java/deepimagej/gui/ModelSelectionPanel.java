@@ -118,7 +118,7 @@ public class ModelSelectionPanel extends JPanel {
     	this.modelNicknames = models.stream().map(mm -> mm == null ? defaultString : mm.getNickname()).collect(Collectors.toList());
     	this.modelImagePaths = models.stream().map(mm -> {
     		if (mm == null || mm.getCovers() == null || mm.getCovers().size() == 0) 
-    			return this.getClass().getClassLoader().getResource(Gui.DIJ_ICON_PATH);
+    			return this.getClass().getClassLoader().getResource(DefaultIcon.DIJ_ICON_PATH);
     		File imFile = new File(mm.getCovers().get(0));
     		if (!imFile.exists() && mm.getModelPath() != null)
     			imFile = new File(mm.getModelPath() + File.separator + mm.getCovers().get(0));
@@ -129,11 +129,11 @@ public class ModelSelectionPanel extends JPanel {
 				}
     		}
     		if (!imFile.exists()) 
-    			return this.getClass().getClassLoader().getResource(Gui.DIJ_ICON_PATH);
+    			return this.getClass().getClassLoader().getResource(DefaultIcon.DIJ_ICON_PATH);
     		try {
 				return imFile.toURI().toURL();
 			} catch (MalformedURLException e) {
-				return this.getClass().getClassLoader().getResource(Gui.DIJ_ICON_PATH);
+				return this.getClass().getClassLoader().getResource(DefaultIcon.DIJ_ICON_PATH);
 			}
     	}).collect(Collectors.toList());
     }
