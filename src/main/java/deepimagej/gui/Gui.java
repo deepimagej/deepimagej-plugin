@@ -448,97 +448,39 @@ public class Gui extends PlugInFrame {
     	});
     	
     	updaterThread = new Thread(() -> {
-    		nParsedModels = 0;
-			try {
-	    		while (searchBar.countBMZModels(false) == 0 && finderThread.isAlive()) {
-						Thread.sleep(100);
-	    		}
-			} catch (InterruptedException e) {
-				return;
-			}
-    		while (finderThread.isAlive()) {
-    			int nModels;
-    			try {
-					Thread.sleep(100);
-	    			nModels = searchBar.countBMZModels(false);
-				} catch (InterruptedException e) {
-					return;
-				}
-            	List<ModelDescriptor> foundModels = new ArrayList<>(searchBar.getBMZModels());
-            	if (foundModels.size() < nParsedModels + 5)
-            		continue;
-            	nParsedModels = foundModels.size();
-            	// TODO create card for 5 models without image 
-            	// TODO launch thread that caches the images for those 5 models, once ready draw them
-            	foundModels.addAll(createArrayOfNulls(nModels - foundModels.size()));
-            	SwingUtilities.invokeLater(() -> setModelsInGui(foundModels));
-            	
-            	
-    		}
-    		if (Thread.currentThread().isInterrupted())
-    			return;
-        	List<ModelDescriptor> foundModels = searchBar.getBMZModels();
-        	SwingUtilities.invokeLater(() -> {
-        		setModelsInGui(foundModels);
-            	this.contentPanel.setProgressIndeterminate(false);
-            	this.searchBar.setBarEnabled(true);
-            	this.runOnTestButton.setEnabled(true);
-            	this.modelSelectionPanel.setArrowsEnabled(true);
-            	this.contentPanel.setProgressLabelText("");
-        	});
-    	});
-    	
-    	finderThread.start();
-    	updaterThread.start();
-    }
-    
-    protected void clickedBMZ2() {
-    	modelSelectionPanel.setLoading();
-    	ArrayList<ModelDescriptor> newModels = createArrayOfNulls(3);
-    	this.searchBar.setBarEnabled(false);
-    	this.searchBar.changeButtonToLocal();
-    	this.contentPanel.setProgressIndeterminate(true);
-    	this.contentPanel.setProgressBarText("");
-    	this.runButton.setVisible(false);
-    	this.runOnTestButton.setText(INSTALL_STR);
-    	this.runOnTestButton.setEnabled(false);
-    	this.modelSelectionPanel.setBMZBorder();
-    	this.modelSelectionPanel.setArrowsEnabled(false);
-    	this.contentPanel.setProgressLabelText("Looking for models at Bioimage.io");
-    	setModelsInGui(newModels);
-    	
-    	finderThread = new Thread(() -> {
-    		// This line initiates the read of the bioimage.io collection
     		try {
-	        	searchBar.countBMZModels(true);
-	        	this.searchBar.findBMZModels();
-			} catch (InterruptedException e) {
-				return;
-			}
-    	});
-    	
-    	updaterThread = new Thread(() -> {
-			try {
+        		nParsedModels = 0;
 	    		while (searchBar.countBMZModels(false) == 0 && finderThread.isAlive()) {
 						Thread.sleep(100);
 	    		}
-			} catch (InterruptedException e) {
+	    		ArrayList<ModelDescriptor> modelsList = createArrayOfNulls(searchBar.countBMZModels(false));
+				if (finderThread.isAlive())
+					SwingUtilities.invokeLater(() -> setModelsInGui(modelsList));
+	    		while (finderThread.isAlive()) {
+	    			int nModels;
+	    			try {
+						Thread.sleep(100);
+		    			nModels = searchBar.countBMZModels(false);
+					} catch (InterruptedException e) {
+						return;
+					}
+	            	List<ModelDescriptor> foundModels = new ArrayList<>(searchBar.getBMZModels());
+	            	if (foundModels.size() < nParsedModels + 5)
+	            		continue;
+	            	nParsedModels = foundModels.size();
+	            	// TODO create card for 5 models without image 
+	            	// TODO launch thread that caches the images for those 5 models, once ready draw them
+	            	SwingUtilities.invokeLater(() -> setModelsInGui(foundModels));
+	            	
+	    		}
+	    		if (Thread.currentThread().isInterrupted())
+	    			return;
+    		} catch (InterruptedException e) {
 				return;
 			}
-    		while (finderThread.isAlive()) {
-    			int nModels;
-    			try {
-					Thread.sleep(500);
-	    			nModels = searchBar.countBMZModels(false);
-				} catch (InterruptedException e) {
-					return;
-				}
-            	List<ModelDescriptor> foundModels = new ArrayList<>(searchBar.getBMZModels());
-            	foundModels.addAll(createArrayOfNulls(nModels - foundModels.size()));
-            	SwingUtilities.invokeLater(() -> setModelsInGui(foundModels));
-    		}
-    		if (Thread.currentThread().isInterrupted())
-    			return;
+    		
+    		
+    		
         	List<ModelDescriptor> foundModels = searchBar.getBMZModels();
         	SwingUtilities.invokeLater(() -> {
         		setModelsInGui(foundModels);
