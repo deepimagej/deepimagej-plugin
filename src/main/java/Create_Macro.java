@@ -143,7 +143,7 @@ public class Create_Macro extends PlugInFrame {
     		return;
     	}
 		List<File> modelFiles = Arrays.stream(modelsFolder.listFiles())
-				.filter(ff -> Arrays.asList(ff.list()).contains(io.bioimage.modelrunner.utils.Constants.RDF_FNAME))
+				.filter(ff -> ff.list() != null && Arrays.asList(ff.list()).contains(io.bioimage.modelrunner.utils.Constants.RDF_FNAME))
 				.collect(Collectors.toList());
 		if (modelFiles.size() == 0) {
     		modelComboBox = new JComboBox<>(new String[]{NO_MODELS_STR});
@@ -152,7 +152,7 @@ public class Create_Macro extends PlugInFrame {
 		String[] arr = new String[modelFiles.size()];
 		modelFiles.stream().map(f -> f.getName()).collect(Collectors.toList()).toArray(arr);
 		modelComboBox = new JComboBox<>(arr);
-		modelComboBox.setSelectedIndex(1);
+		modelComboBox.setSelectedIndex(0);
     }
 
     private void initComponents() {
