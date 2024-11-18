@@ -398,7 +398,7 @@ public class Gui extends PlugInFrame {
     	synchronized (lock) {
             if (currentIndex  == pos || currentIndex == pos + 1 || currentIndex == pos - 1
             		|| getWrappedIndex(pos + 1) == currentIndex ) {
-            	updateCarousel(0);
+            	SwingUtilities.invokeLater(() -> updateCarousel(0));
             }
         }
     }
@@ -438,7 +438,6 @@ public class Gui extends PlugInFrame {
     
     private int nParsedModels;
     protected void clickedBMZ() {
-    	modelSelectionPanel.setLoading();
     	ArrayList<ModelDescriptor> newModels = createArrayOfNulls(3);
     	this.searchBar.setBarEnabled(false);
     	this.searchBar.changeButtonToLocal();
@@ -448,7 +447,6 @@ public class Gui extends PlugInFrame {
     	this.runOnTestButton.setText(INSTALL_STR);
     	this.runOnTestButton.setEnabled(false);
     	this.modelSelectionPanel.setBMZBorder();
-    	// TODO remove this.modelSelectionPanel.setArrowsEnabled(false);
     	this.contentPanel.setProgressLabelText("Looking for models at Bioimage.io");
     	setModelsInGui(newModels);
     	List<ModelDescriptor> oldModels = new ArrayList<>(searchBar.getBMZModels());
@@ -477,12 +475,10 @@ public class Gui extends PlugInFrame {
 	            	List<ModelDescriptor> foundModels = new ArrayList<>(searchBar.getBMZModels());
 	            	if (foundModels.size() < nParsedModels + 5)
 	            		continue;
-	            	SwingUtilities.invokeLater(() -> {
-		            	for (int i = nParsedModels; i < foundModels.size(); i ++) {
-		            		setModelInGuiAt(foundModels.get(i), i);
-		            	}
-		            	nParsedModels = foundModels.size();
-	            	});
+	            	for (int i = nParsedModels; i < foundModels.size(); i ++) {
+	            		setModelInGuiAt(foundModels.get(i), i);
+	            	}
+	            	nParsedModels = foundModels.size();
 	            	
 	    		}
 	    		if (Thread.currentThread().isInterrupted())
@@ -499,11 +495,9 @@ public class Gui extends PlugInFrame {
             	SwingUtilities.invokeLater(() -> setModelInGuiAt(foundModels.get(j), j));
         	}
         	SwingUtilities.invokeLater(() -> {
-        		// TODO remove setModelsInGui(foundModels);
             	this.contentPanel.setProgressIndeterminate(false);
             	this.searchBar.setBarEnabled(true);
             	this.runOnTestButton.setEnabled(true);
-            	// TODO remove this.modelSelectionPanel.setArrowsEnabled(true);
             	this.contentPanel.setProgressLabelText("");
         	});
     	});

@@ -144,7 +144,7 @@ public class SearchBar extends JPanel {
     	bmzModels = ModelDescriptorFactory.getModelsAtLocalRepo(dir);
     }
     
-    protected List<ModelDescriptor> getBMZModels(){
+    protected List<ModelDescriptor> getBMZModels() {
     	return this.bmzModels;
     }
     
