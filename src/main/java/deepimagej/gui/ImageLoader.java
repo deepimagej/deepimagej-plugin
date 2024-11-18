@@ -49,38 +49,6 @@ public class ImageLoader {
             System.err.println("Failed to load image: " + e.getMessage());
         }
     }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("Internet Image");
-            JLabel label = new JLabel("Loading...");
-            frame.add(label);
-            frame.setSize(300, 300);
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setVisible(true);
-
-            URL imageUrl;
-			try {
-				imageUrl = new URL("https://example.com/path/to/image.jpg");
-			} catch (MalformedURLException e) {
-				e.printStackTrace();
-				return;
-			}
-            loadImageIconFromURL(imageUrl, 10, 10, new ImageLoadCallback() {
-                @Override
-                public void onImageLoaded(ImageIcon icon) {
-                    label.setIcon(icon);
-                    label.setText("");
-                    frame.pack();
-                }
-
-                @Override
-                public void onImageLoadFailed(Exception e) {
-                    label.setText("Failed to load image: " + e.getMessage());
-                }
-            });
-        });
-    }
     
     protected static ImageIcon createScaledIcon(URL imagePath, int logoWidth, int logoHeight) {
         if (imagePath == null) {
@@ -97,7 +65,7 @@ public class ImageLoader {
             if (isAnimatedGif(reader)) {
                 return createScaledAnimatedGif(imagePath, logoWidth, logoHeight);
             } else {
-                return createScaledStaticImage(imagePath, logoWidth, logoHeight);
+                return createScaledStaticImage(reader, logoWidth, logoHeight);
             }
         } catch (IOException e) {
             return DefaultIcon.getDefaultIcon(logoWidth, logoHeight);
@@ -111,6 +79,24 @@ public class ImageLoader {
     private static ImageIcon createScaledAnimatedGif(URL imagePath, int width, int height) {
         ImageIcon originalIcon = new ImageIcon(imagePath);
         Image scaledImage = originalIcon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
+        return new ImageIcon(scaledImage);
+    }
+    
+    private static ImageIcon createScaledStaticImage(ImageReader reader, int width, int height) throws IOException {
+        BufferedImage originalImage = reader.read(0);
+
+        if (originalImage == null) {
+            return DefaultIcon.getDefaultIcon(width, height);
+        }
+
+        BufferedImage scaledImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        AffineTransform at = AffineTransform.getScaleInstance(
+                (double) width / originalImage.getWidth(), 
+                (double) height / originalImage.getHeight()
+        );
+        AffineTransformOp scaleOp = new AffineTransformOp(at, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+        scaleOp.filter(originalImage, scaledImage);
+        
         return new ImageIcon(scaledImage);
     }
 
