@@ -10,6 +10,7 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
@@ -145,6 +146,39 @@ public class ModelSelectionPanel extends JPanel {
     		redrawModelCards(0);
     	else
     		SwingUtilities.invokeLater(() -> redrawModelCards(0));
+    }
+    
+    protected void setModelAt(ModelDescriptor model, int pos) {
+    	Objects.requireNonNull(model);
+    	if (pos > models.size())
+    		throw new IllegalArgumentException("Wanted position of the model (" + pos + ") out of range (" + models.size() + ").");
+    	this.models.set(pos, model);
+    	this.modelNames.set(pos, model.getName() == null ? defaultString : model.getName());
+    	this.modelNicknames.set(pos, model.getNickname() == null ? defaultString : model.getNickname());
+
+		if (model.getCovers() == null || model.getCovers().size() == 0) {
+			modelImagePaths.set(pos, this.getClass().getClassLoader().getResource(DefaultIcon.DIJ_ICON_PATH));
+			return;
+		}
+		File imFile = new File(model.getCovers().get(0));
+		if (!imFile.exists() && model.getModelPath() != null)
+			imFile = new File(model.getModelPath() + File.separator + model.getCovers().get(0));
+		else if (model.getModelPath() == null) {
+			try {
+				modelImagePaths.set(pos, new URL(model.getModelURL() + model.getCovers().get(0)));
+				return;
+			} catch (MalformedURLException e) {
+			}
+		}
+		if (!imFile.exists()) {
+			modelImagePaths.set(pos, this.getClass().getClassLoader().getResource(DefaultIcon.DIJ_ICON_PATH));
+			return;
+		}
+		try {
+			modelImagePaths.set(pos, imFile.toURI().toURL());
+		} catch (MalformedURLException e) {
+			modelImagePaths.set(pos, this.getClass().getClassLoader().getResource(DefaultIcon.DIJ_ICON_PATH));
+		}
     }
     
     protected void redrawModelCards(int currentIndex) {

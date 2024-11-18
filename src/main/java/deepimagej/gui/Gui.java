@@ -50,6 +50,7 @@ public class Gui extends PlugInFrame {
 	private final String modelsDir;
 	private final String enginesDir;
 	private final ImageAdapter imAdapter;
+    private final Object lock = new Object();
 
 	Thread engineInstallThread;
 	Thread trackEngineInstallThread;
@@ -319,19 +320,23 @@ public class Gui extends PlugInFrame {
 
     private void updateCarousel(int direction) {
     	closeModelWhenChanging();
-        currentIndex = getWrappedIndex(currentIndex + direction);
-    	updateProgressBar();
+    	synchronized(lock) {
+            currentIndex = getWrappedIndex(currentIndex + direction);
+        	updateProgressBar();
 
-        this.modelSelectionPanel.redrawModelCards(currentIndex);
-        
-        // Update example image and model info
-        int logoHeight = (int) (getHeight() * 0.3);
-        int logoWidth = getWidth() / 3;
-    	URL coverPath = modelSelectionPanel.getCoverPaths().get(currentIndex);
-        contentPanel.update(modelSelectionPanel.getModels().get(currentIndex), coverPath, logoWidth, logoHeight);
+            this.modelSelectionPanel.redrawModelCards(currentIndex);
+            
+            // Update example image and model info
+            int logoHeight = (int) (getHeight() * 0.3);
+            int logoWidth = getWidth() / 3;
+        	URL coverPath = modelSelectionPanel.getCoverPaths().get(currentIndex);
+            contentPanel.update(modelSelectionPanel.getModels().get(currentIndex), coverPath, logoWidth, logoHeight);
+    	}
     }
     
     private void updateProgressBar() {
+    	if (modelSelectionPanel.getModels().get(currentIndex) == null)
+    		return;
     	if (this.searchBar.isBarOnLocal() && this.contentPanel.getProgress() != 0) {
     		contentPanel.setProgressBarText("");
     		contentPanel.setDeterminatePorgress(0);
@@ -388,6 +393,16 @@ public class Gui extends PlugInFrame {
         contentPanel.update(modelSelectionPanel.getModels().get(currentIndex), coverPath, logoWidth, logoHeight);
     }
     
+    protected void setModelInGuiAt(ModelDescriptor model, int pos) {
+    	this.modelSelectionPanel.setModelAt(model, pos);
+    	synchronized (lock) {
+            if (currentIndex  == pos || currentIndex == pos + 1 || currentIndex == pos - 1
+            		|| getWrappedIndex(pos + 1) == currentIndex ) {
+            	updateCarousel(0);
+            }
+        }
+    }
+    
     public void trackEngineInstallation(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
     	this.titlePanel.trackEngineInstallation(consumersMap);
     }
@@ -433,7 +448,7 @@ public class Gui extends PlugInFrame {
     	this.runOnTestButton.setText(INSTALL_STR);
     	this.runOnTestButton.setEnabled(false);
     	this.modelSelectionPanel.setBMZBorder();
-    	this.modelSelectionPanel.setArrowsEnabled(false);
+    	// TODO remove this.modelSelectionPanel.setArrowsEnabled(false);
     	this.contentPanel.setProgressLabelText("Looking for models at Bioimage.io");
     	setModelsInGui(newModels);
     	
@@ -457,20 +472,15 @@ public class Gui extends PlugInFrame {
 				if (finderThread.isAlive())
 					SwingUtilities.invokeLater(() -> setModelsInGui(modelsList));
 	    		while (finderThread.isAlive()) {
-	    			int nModels;
-	    			try {
-						Thread.sleep(100);
-		    			nModels = searchBar.countBMZModels(false);
-					} catch (InterruptedException e) {
-						return;
-					}
+					Thread.sleep(100);
 	            	List<ModelDescriptor> foundModels = new ArrayList<>(searchBar.getBMZModels());
 	            	if (foundModels.size() < nParsedModels + 5)
 	            		continue;
+	            	for (int i = nParsedModels; i < foundModels.size(); i ++) {
+	            		int j = 0 + i;
+		            	SwingUtilities.invokeLater(() -> setModelInGuiAt(foundModels.get(j), j));
+	            	}
 	            	nParsedModels = foundModels.size();
-	            	// TODO create card for 5 models without image 
-	            	// TODO launch thread that caches the images for those 5 models, once ready draw them
-	            	SwingUtilities.invokeLater(() -> setModelsInGui(foundModels));
 	            	
 	    		}
 	    		if (Thread.currentThread().isInterrupted())
@@ -482,12 +492,16 @@ public class Gui extends PlugInFrame {
     		
     		
         	List<ModelDescriptor> foundModels = searchBar.getBMZModels();
+        	for (int i = nParsedModels; i < foundModels.size(); i ++) {
+        		int j = 0 + i;
+            	SwingUtilities.invokeLater(() -> setModelInGuiAt(foundModels.get(j), j));
+        	}
         	SwingUtilities.invokeLater(() -> {
-        		setModelsInGui(foundModels);
+        		// TODO remove setModelsInGui(foundModels);
             	this.contentPanel.setProgressIndeterminate(false);
             	this.searchBar.setBarEnabled(true);
             	this.runOnTestButton.setEnabled(true);
-            	this.modelSelectionPanel.setArrowsEnabled(true);
+            	// TODO remove this.modelSelectionPanel.setArrowsEnabled(true);
             	this.contentPanel.setProgressLabelText("");
         	});
     	});
