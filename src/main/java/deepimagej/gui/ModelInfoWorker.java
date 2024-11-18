@@ -1,5 +1,6 @@
 package deepimagej.gui;
 
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
@@ -7,11 +8,11 @@ import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 public class ModelInfoWorker extends SwingWorker<String, Void> {
 
     private ModelDescriptor model;
-    private ContentPanel contentPanel;
+    private TextLoadCallback callback;
 
-    public ModelInfoWorker(ModelDescriptor model, ContentPanel contentPanel) {
+    public ModelInfoWorker(ModelDescriptor model, TextLoadCallback callback) {
         this.model = model;
-        this.contentPanel = contentPanel;
+        this.callback = callback;
     }
 
     @Override
@@ -29,12 +30,19 @@ public class ModelInfoWorker extends SwingWorker<String, Void> {
     @Override
     protected void done() {
         try {
-            // Retrieve the result of doInBackground()
             String infoText = get();
-            // Update the GUI component on the EDT
-            contentPanel.setInfo(infoText);
+            SwingUtilities.invokeLater(() -> callback.onTextLoaded(infoText));
         } catch (Exception e) {
-            e.printStackTrace();
+            SwingUtilities.invokeLater(() -> callback.onTextLoadFailed(e));
+        }
+    }
+
+    @FunctionalInterface
+    public interface TextLoadCallback {
+        void onTextLoaded(String text);
+        
+        default void onTextLoadFailed(Exception e) {
+            System.err.println("Failed to load text: " + e.getMessage());
         }
     }
 }

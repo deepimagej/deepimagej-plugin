@@ -23,6 +23,7 @@ import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 
 import deepimagej.gui.ImageLoader.ImageLoadCallback;
+import deepimagej.gui.ModelInfoWorker.TextLoadCallback;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 
 public class ContentPanel extends JPanel {
@@ -209,7 +210,18 @@ public class ContentPanel extends JPanel {
             repaint();
         });
     	ModelSelectionPanel.ICONS_DISPLAYED.put("main", path);
-        ModelInfoWorker worker = new ModelInfoWorker(modelDescriptor, this);
+    	TextLoadCallback callback = new TextLoadCallback() {
+    	    @Override
+    	    public void onTextLoaded(String infoText) {
+    	        if (!ModelSelectionPanel.ICONS_DISPLAYED.get("main").equals(path)) {
+    	            return;
+    	        }
+                setInfo(infoText);
+    	        revalidate();
+    	        repaint();
+    	    }
+    	};
+        ModelInfoWorker worker = new ModelInfoWorker(modelDescriptor, callback);
         worker.execute();
     	ImageLoader.loadImageIconFromURL(path, logoWidth, logoHeight, new ImageLoadCallback() {
             @Override
