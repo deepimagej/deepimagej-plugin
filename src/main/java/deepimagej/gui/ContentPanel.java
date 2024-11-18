@@ -208,11 +208,14 @@ public class ContentPanel extends JPanel {
             revalidate();
             repaint();
         });
+    	ModelSelectionPanel.ICONS_DISPLAYED.put("main", path);
         ModelInfoWorker worker = new ModelInfoWorker(modelDescriptor, this);
         worker.execute();
     	ImageLoader.loadImageIconFromURL(path, logoWidth, logoHeight, new ImageLoadCallback() {
             @Override
             public void onImageLoaded(ImageIcon icon) {
+            	if (ModelSelectionPanel.ICONS_DISPLAYED.get("main") != path)
+            		return;
             	setIcon(icon);
             	revalidate();
             	repaint();

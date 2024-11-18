@@ -10,7 +10,9 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
@@ -42,6 +44,12 @@ public class ModelSelectionPanel extends JPanel {
     private List<String> modelNicknames;
     private List<URL> modelImagePaths;
     private List<ModelDescriptor> models;
+	
+	protected static Map<String, URL> ICONS_DISPLAYED = new ConcurrentHashMap<>();
+	
+	private static final String PREV_ICON = "prev";
+	private static final String MAIN_ICON = "main";
+	private static final String NEXT_ICON = "next";
 
     private static final double CARD_VRATIO = 0.8;
     private static final double CARD_HRATIO = 0.33;
@@ -69,8 +77,11 @@ public class ModelSelectionPanel extends JPanel {
         int cardHeight = (int) (this.parentHeight * SELECTION_PANE_VRATIO * CARD_VRATIO);
         int cardWidth = (int) (parentWidth * CARD_HRATIO);
         prevModelPanel = ModelCard.createModelCard(cardWidth, cardHeight, SECOND_CARD_RT);
+        prevModelPanel.setOptionalID(PREV_ICON);
         selectedModelPanel = ModelCard.createModelCard(cardWidth, cardHeight, MAIN_CARD_RT);
+        selectedModelPanel.setOptionalID(MAIN_ICON);
         nextModelPanel = ModelCard.createModelCard(cardWidth, cardHeight, SECOND_CARD_RT);
+        nextModelPanel.setOptionalID(NEXT_ICON);
 
         modelCarouselPanel.add(prevModelPanel);
         modelCarouselPanel.add(selectedModelPanel);
@@ -182,12 +193,15 @@ public class ModelSelectionPanel extends JPanel {
     }
     
     protected void redrawModelCards(int currentIndex) {
+    	ICONS_DISPLAYED.put(PREV_ICON, modelImagePaths.get(getWrappedIndex(currentIndex - 1)));
         prevModelPanel.updateCard(modelNames.get(getWrappedIndex(currentIndex - 1)),
                 modelNicknames.get(getWrappedIndex(currentIndex - 1)),
                 modelImagePaths.get(getWrappedIndex(currentIndex - 1)));
+    	ICONS_DISPLAYED.put(MAIN_ICON, modelImagePaths.get(getWrappedIndex(currentIndex)));
         selectedModelPanel.updateCard(modelNames.get(currentIndex),
                 modelNicknames.get(currentIndex),
                 modelImagePaths.get(currentIndex));
+    	ICONS_DISPLAYED.put(NEXT_ICON, modelImagePaths.get(getWrappedIndex(currentIndex + 1)));
         nextModelPanel.updateCard(modelNames.get(getWrappedIndex(currentIndex + 1)),
                 modelNicknames.get(getWrappedIndex(currentIndex + 1)),
                 modelImagePaths.get(getWrappedIndex(currentIndex + 1)));

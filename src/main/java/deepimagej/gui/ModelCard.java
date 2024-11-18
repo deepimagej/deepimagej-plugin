@@ -5,7 +5,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.net.URL;
 
 import javax.swing.BorderFactory;
@@ -27,6 +26,7 @@ public class ModelCard extends JPanel {
     
     private long cardWidth;
     private long cardHeight;
+    private String id;
     private final double scale;
     
 
@@ -58,6 +58,15 @@ public class ModelCard extends JPanel {
         this.add(this.imageLabel, BorderLayout.CENTER);
         this.add(this.nicknameLabel, BorderLayout.SOUTH);
     }
+	
+	/**
+	 * Set an optional id
+	 * @param id
+	 * 	the identifier of the card
+	 */
+	public void setOptionalID(String id) {
+		this.id = id;
+	}
 
     protected static ModelCard createModelCard(long cardWidth, long cardHeight, double scale) {
     	ModelCard modelCardPanel = new ModelCard(cardWidth, cardHeight, scale);
@@ -79,6 +88,8 @@ public class ModelCard extends JPanel {
     	ImageLoader.loadImageIconFromURL(imagePath, iconW, iconH, new ImageLoadCallback() {
                 @Override
                 public void onImageLoaded(ImageIcon icon) {
+                	if (ModelSelectionPanel.ICONS_DISPLAYED.get(id) != imagePath)
+                		return;
                 	imageLabel.setIcon(icon);
                     ModelCard.this.revalidate();
                     ModelCard.this.repaint();
