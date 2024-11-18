@@ -93,19 +93,33 @@ public class Gui extends PlugInFrame {
 
     public Gui(ImageAdapter imAdapter, String modelsDir, String enginesDir) {
         super(Constants.DIJ_NAME + "-" + Constants.DIJ_VERSION);
+        long tt = System.currentTimeMillis();
         this.imAdapter = imAdapter;
         this.modelsDir = modelsDir != null ? modelsDir : new File(MODELS_DEAFULT).getAbsolutePath();
         this.enginesDir = enginesDir != null ? enginesDir : new File(ENGINES_DEAFULT).getAbsolutePath();
         loadLocalModels();
+        System.out.println("Model loading: " + (System.currentTimeMillis() - tt));
+        tt = System.currentTimeMillis();
         installEnginesIfNeeded();
+        System.out.println("Engines loading: " + (System.currentTimeMillis() - tt));
+        tt = System.currentTimeMillis();
         setSize(800, 900);
         setLayout(layout);
+        System.out.println("Set size: " + (System.currentTimeMillis() - tt));
+        tt = System.currentTimeMillis();
 
         // Initialize UI components
         initTitlePanel();
+        System.out.println("Title panel: " + (System.currentTimeMillis() - tt));
+        tt = System.currentTimeMillis();
         initSearchBar();
+        System.out.println("Search bar: " + (System.currentTimeMillis() - tt));
+        tt = System.currentTimeMillis();
         initMainContentPanel();
+        System.out.println("Content panel: " + (System.currentTimeMillis() - tt));
+        tt = System.currentTimeMillis();
         initFooterPanel();
+        System.out.println("Footer: " + (System.currentTimeMillis() - tt));
         
         this.addWindowListener(new WindowAdapter() {
             @Override
@@ -138,14 +152,14 @@ public class Gui extends PlugInFrame {
     	engineInstallThread.start();
 	    
     	trackEngineInstallThread = new Thread(() -> {
-	    	while (consumersMap == null) {
+	    	while (consumersMap == null || this.titlePanel == null) {
 	    		try {
 					Thread.sleep(30);
 				} catch (InterruptedException e) {
 					return;
 				}
 	    	}
-	        this.trackEngineInstallation(consumersMap);
+	        this.trackEngineInstallation();
 	    });
     	trackEngineInstallThread.start();
     }
@@ -155,7 +169,7 @@ public class Gui extends PlugInFrame {
 	        List<ModelDescriptor> models = ModelDescriptorFactory.getModelsAtLocalRepo(new File(modelsDir).getAbsolutePath());
 	        while (contentPanel == null) {
 	        	try {
-					Thread.sleep(150);
+					Thread.sleep(100);
 				} catch (InterruptedException e) {
 				}
 	        }
@@ -403,7 +417,7 @@ public class Gui extends PlugInFrame {
         }
     }
     
-    public void trackEngineInstallation(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
+    public void trackEngineInstallation() {
     	this.titlePanel.trackEngineInstallation(consumersMap);
     }
     
