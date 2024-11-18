@@ -451,6 +451,7 @@ public class Gui extends PlugInFrame {
     	// TODO remove this.modelSelectionPanel.setArrowsEnabled(false);
     	this.contentPanel.setProgressLabelText("Looking for models at Bioimage.io");
     	setModelsInGui(newModels);
+    	List<ModelDescriptor> oldModels = new ArrayList<>(searchBar.getBMZModels());
     	
     	finderThread = new Thread(() -> {
     		// This line initiates the read of the bioimage.io collection
@@ -465,7 +466,7 @@ public class Gui extends PlugInFrame {
     	updaterThread = new Thread(() -> {
     		try {
         		nParsedModels = 0;
-	    		while (searchBar.countBMZModels(false) == 0 && finderThread.isAlive()) {
+	    		while (oldModels.equals(searchBar.getBMZModels()) && finderThread.isAlive()) {
 						Thread.sleep(100);
 	    		}
 	    		ArrayList<ModelDescriptor> modelsList = createArrayOfNulls(searchBar.countBMZModels(false));
@@ -476,11 +477,12 @@ public class Gui extends PlugInFrame {
 	            	List<ModelDescriptor> foundModels = new ArrayList<>(searchBar.getBMZModels());
 	            	if (foundModels.size() < nParsedModels + 5)
 	            		continue;
-	            	for (int i = nParsedModels; i < foundModels.size(); i ++) {
-	            		int j = 0 + i;
-		            	SwingUtilities.invokeLater(() -> setModelInGuiAt(foundModels.get(j), j));
-	            	}
-	            	nParsedModels = foundModels.size();
+	            	SwingUtilities.invokeLater(() -> {
+		            	for (int i = nParsedModels; i < foundModels.size(); i ++) {
+		            		setModelInGuiAt(foundModels.get(i), i);
+		            	}
+		            	nParsedModels = foundModels.size();
+	            	});
 	            	
 	    		}
 	    		if (Thread.currentThread().isInterrupted())
