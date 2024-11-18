@@ -22,7 +22,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 
-import deepimagej.gui.ImageLoader.ImageLoadCallback;
+import deepimagej.gui.ImageLoaderWorker.ImageLoadCallback;
 import deepimagej.gui.ModelInfoWorker.TextLoadCallback;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 
@@ -36,6 +36,7 @@ public class ContentPanel extends JPanel {
 	private JPanel progressPanel;
 	private JScrollPane infoScrollPane;
 	private CardLayout progressLabelLayout;
+    private ImageLoaderWorker imageWorker;
     private final long parentHeight;
     private final long parentWidth;
 
@@ -223,7 +224,10 @@ public class ContentPanel extends JPanel {
     	};
         ModelInfoWorker worker = new ModelInfoWorker(modelDescriptor, callback);
         worker.execute();
-    	ImageLoader.loadImageIconFromURL(path, logoWidth, logoHeight, new ImageLoadCallback() {
+        if (imageWorker != null && !imageWorker.isDone())
+        	imageWorker.cancelBackground();
+
+    	ImageLoadCallback imageCallback = new ImageLoadCallback() {
             @Override
             public void onImageLoaded(ImageIcon icon) {
             	if (ModelSelectionPanel.ICONS_DISPLAYED.get("main") != path)
@@ -232,6 +236,8 @@ public class ContentPanel extends JPanel {
             	revalidate();
             	repaint();
             }
-        });
+        };
+        imageWorker = ImageLoaderWorker.create(path, logoWidth, logoHeight, imageCallback);
+        imageWorker.execute();
 	}
 }

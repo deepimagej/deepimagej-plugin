@@ -83,15 +83,15 @@ public class ImageLoaderWorker extends SwingWorker<ImageIcon, Void> {
     @Override
     protected void done() {
         try {
-        	System.out.println(url);
+            if (isCancelled())
+            	return;
             ImageIcon icon = get();
             if (icon == null) {
-            	System.out.println("null icon " + url);
             	return;
             }
             SwingUtilities.invokeLater(() -> callback.onImageLoaded(icon));
         } catch (Exception e) {
-            SwingUtilities.invokeLater(() -> callback.onImageLoadFailed(e));
+        	e.printStackTrace();
         }
     }
 

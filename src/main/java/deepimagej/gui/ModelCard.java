@@ -13,7 +13,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import deepimagej.gui.ImageLoader.ImageLoadCallback;
+import deepimagej.gui.ImageLoaderWorker.ImageLoadCallback;
 
 public class ModelCard extends JPanel {
     
@@ -27,6 +27,7 @@ public class ModelCard extends JPanel {
     private long cardWidth;
     private long cardHeight;
     private String id;
+    private ImageLoaderWorker worker;
     private final double scale;
     
 
@@ -84,17 +85,21 @@ public class ModelCard extends JPanel {
             revalidate();
             repaint();
         });
-    	
-    	ImageLoader.loadImageIconFromURL(imagePath, iconW, iconH, new ImageLoadCallback() {
-                @Override
-                public void onImageLoaded(ImageIcon icon) {
-                	if (ModelSelectionPanel.ICONS_DISPLAYED.get(id) != imagePath)
-                		return;
-                	imageLabel.setIcon(icon);
-                    ModelCard.this.revalidate();
-                    ModelCard.this.repaint();
-                }
-            });
+    	if (worker != null && !worker.isDone())
+    		worker.cancelBackground();
+
+    	ImageLoadCallback callback = new ImageLoadCallback() {
+            @Override
+            public void onImageLoaded(ImageIcon icon) {
+            	if (ModelSelectionPanel.ICONS_DISPLAYED.get(id) != imagePath)
+            		return;
+            	imageLabel.setIcon(icon);
+                ModelCard.this.revalidate();
+                ModelCard.this.repaint();
+            }
+        };
+    	worker = ImageLoaderWorker.create(imagePath, iconW, iconH, callback);
+    	worker.execute();
     }
     
     private static ImageIcon createEmptyIcon(int width, int height) {

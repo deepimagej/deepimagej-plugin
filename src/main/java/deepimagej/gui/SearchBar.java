@@ -59,7 +59,7 @@ public class SearchBar extends JPanel {
         URL iconPath = getClass().getClassLoader().getResource(SEARCH_ICON_PATH);
         int iconH = (int) (parentHeight * V_RATIO * ICON_VRATIO);
         int iconW = (int) (parentWidth * H_RATIO * ICON_HRATIO);
-        ImageIcon scaledImage = ImageLoader.createScaledIcon(iconPath, iconW, iconH);
+        ImageIcon scaledImage = ImageLoaderWorker.createScaledIcon(iconPath, iconW, iconH);
         JLabel iconLabel = new JLabel(scaledImage);
         iconLabel.addMouseListener(new MouseAdapter() {
             @Override
