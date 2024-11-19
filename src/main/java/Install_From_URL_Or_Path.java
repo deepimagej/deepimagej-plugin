@@ -302,9 +302,11 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
 		    	SwingUtilities.invokeLater(() -> {
 		    		this.installButton.setEnabled(true);
 		    	});
-			} catch (InterruptedException | IOException e) {
+			} catch (IOException e) {
 				SwingUtilities.invokeLater(() -> IJ.error("Error installing model from local file."));
 				e.printStackTrace();
+			} catch (InterruptedException e) {
+				return;
 			}
 	    	SwingUtilities.invokeLater(() -> {
 	            browseFileBtn.setEnabled(true);
@@ -334,9 +336,11 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
 		    	SwingUtilities.invokeLater(() -> {
 		    		this.installButton.setEnabled(true);
 		    	});
-			} catch (InterruptedException | IOException e) {
+			} catch (IOException e) {
 				SwingUtilities.invokeLater(() -> IJ.error("Error installing model from url."));
 				e.printStackTrace();
+			} catch (InterruptedException e) {
+				return;
 			}
 	    	SwingUtilities.invokeLater(() -> {
 	            browseFileBtn.setEnabled(true);
@@ -364,17 +368,18 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
 		long fileSize = FileDownloader.getFileSize(url);
 		
 		
-		Thread currentThread = Thread.currentThread();
 		correctlyDownloaded = false;
 		Thread dwnldThread = new Thread(() -> {
 			try (
 					ReadableByteChannel rbc = Channels.newChannel(url.openStream());
 					FileOutputStream fos = new FileOutputStream(fileName);
 					) {
-				new FileDownloader(rbc, fos).call(currentThread);
+				FileDownloader fd = new FileDownloader(rbc, fos);
+				fd.call(this.installationThread);
 				correctlyDownloaded = true;
-			} catch (IOException | InterruptedException e) {
+			} catch (IOException e) {
 				e.printStackTrace();
+			} catch (InterruptedException e) {
 			}
 		});
 		dwnldThread.start();
@@ -408,10 +413,9 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
 		File destFile = new File(fileName);
 		long fileSize = new File(sourceFileName).length();
 		correctlyDownloaded = false;
-		Thread parentThread = Thread.currentThread();
 		Thread dwnldThread = new Thread(() -> {
 			try {
-				FileTools.copyFile(sourceFileName, fileName, parentThread);
+				FileTools.copyFile(sourceFileName, fileName, installationThread);
 				correctlyDownloaded = true;
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -452,7 +456,7 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
 	}
 	
 	private void unzip(String fileName) throws InterruptedException, IOException {
-		if (Thread.interrupted()) {
+		if (Thread.currentThread().isInterrupted()) {
 			return;
 		}
 		long size = ZipUtils.getUncompressedSize(new File(fileName));

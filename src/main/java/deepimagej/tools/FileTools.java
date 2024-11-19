@@ -193,7 +193,7 @@ public class FileTools {
             byte[] buffer = new byte[1 << 20]; // 1MB
             long ret = 0;
             int n = 0;
-            while ((n = src.read(buffer)) >= 0 && !parentThread.isInterrupted()) {
+            while ((n = src.read(buffer)) >= 0 && parentThread.isAlive()) {
                 dst.write(buffer, 0, n);
                 ret += n;
             }
@@ -287,7 +287,7 @@ public class FileTools {
                     byte[] buffer = new byte[bufferSize > 0 ? bufferSize : 4096];
                     int location;
                     
-                    while ((location = zis.read(buffer)) != -1 && !parentThread.isInterrupted()) {
+                    while ((location = zis.read(buffer)) != -1 && parentThread.isAlive()) {
                         bos.write(buffer, 0, location);
                     }
                     
