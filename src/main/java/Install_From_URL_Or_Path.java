@@ -83,7 +83,7 @@ import io.bioimage.modelrunner.utils.ZipUtils;
  * 
  * @author Carlos Javier Garcia Lopez de Haro
  */
-public class Install_Local_Model extends PlugInFrame {
+public class Install_From_URL_Or_Path extends PlugInFrame {
     private static final long serialVersionUID = -5457714313295644697L;
 	// Components
     private JLabel labelModel;
@@ -107,7 +107,7 @@ public class Install_Local_Model extends PlugInFrame {
     		+ "the specified path. If a path is provided, it can point to either a single image file<br>"
     		+ "or a folder containing multiple images.</html>";
 
-    public Install_Local_Model() {
+    public Install_From_URL_Or_Path() {
         super("deepImageJ " + Constants.DIJ_VERSION + " - Install model from zip");
         initComponents();
         pack();
@@ -131,7 +131,7 @@ public class Install_Local_Model extends PlugInFrame {
             public void actionPerformed(ActionEvent e) {
                 JFileChooser fileChooser = new JFileChooser();
                 fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-                int option = fileChooser.showOpenDialog(Install_Local_Model.this);
+                int option = fileChooser.showOpenDialog(Install_From_URL_Or_Path.this);
                 if (option == JFileChooser.APPROVE_OPTION) {
                     File selectedDirectory = fileChooser.getSelectedFile();
                     pathTextField.setText(selectedDirectory.getAbsolutePath());
@@ -452,6 +452,6 @@ public class Install_Local_Model extends PlugInFrame {
 	}
     
     public static void main(String[] args) {
-    	SwingUtilities.invokeLater(() -> new Install_Local_Model());
+    	SwingUtilities.invokeLater(() -> new Install_From_URL_Or_Path());
     }
 }
