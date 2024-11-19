@@ -76,6 +76,10 @@ public class FileTools {
 
 	static public long getFolderSize(String dir) {
 		File folder = new File(dir);
+		if (!folder.exists())
+			return 0;
+		if (folder.isFile())
+			return folder.length();
 		long length = 0;
 		File[] files = folder.listFiles();
 

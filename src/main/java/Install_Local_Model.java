@@ -76,6 +76,7 @@ import deepimagej.tools.FileTools;
 import ij.IJ;
 import ij.plugin.frame.PlugInFrame;
 import io.bioimage.modelrunner.engine.installation.FileDownloader;
+import io.bioimage.modelrunner.utils.ZipUtils;
 
 /**
  * 
@@ -230,9 +231,9 @@ public class Install_Local_Model extends PlugInFrame {
 	 * @param sourceURL
 	 * 	source url of a zip file that is going to be downloaded into the models folder
 	 * @throws InterruptedException 
-	 * @throws MalformedURLException 
+	 * @throws IOException 
 	 */
-	private void installModelUrl(String sourceURL) throws InterruptedException, MalformedURLException {
+	private void installModelUrl(String sourceURL) throws InterruptedException, IOException {
 		URL url = new URL(sourceURL);
 		
 		String fileName = createFileName(sourceURL);
@@ -275,10 +276,10 @@ public class Install_Local_Model extends PlugInFrame {
 	 * location into the models folder and unzips it
 	 * @param sourceFileName
 	 * 	source zip file that is going to be copied into the models dir
-	 * @throws MalformedURLException 
 	 * @throws InterruptedException 
+	 * @throws IOException 
 	 */
-	private void copyFromPath(String sourceFileName) throws MalformedURLException, InterruptedException {
+	private void copyFromPath(String sourceFileName) throws InterruptedException, IOException {
 		String fileName = createFileName(sourceFileName);
 		File originalModel = new File(sourceFileName);
 		File destFile = new File(fileName);
@@ -321,15 +322,18 @@ public class Install_Local_Model extends PlugInFrame {
 		return fileName;
 	}
 	
-	private void unzip(String fileName) throws InterruptedException {
+	private void unzip(String fileName) throws InterruptedException, IOException {
 		if (Thread.interrupted()) {
 			return;
 		}
+		long size = ZipUtils.getUncompressedSize(new File(fileName));
 		Thread parentThread = Thread.currentThread();
 		String unzippedFileName = fileName.substring(0, fileName.lastIndexOf("."));
+		correctlyDownloaded = false;
 		Thread unzipThread = new Thread(() -> {
 			try {
 				FileTools.unzipFolder(new File(fileName), unzippedFileName, parentThread);
+				correctlyDownloaded = true;
 			} catch (IOException | InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -338,6 +342,15 @@ public class Install_Local_Model extends PlugInFrame {
 		
 		while (unzipThread.isAlive()) {
 			Thread.sleep(100);
+			double progress = Math.round(((double) FileTools.getFolderSize(unzippedFileName)) * 100 / size);
+			SwingUtilities.invokeLater(() -> {
+				progressBar.setValue((int) progress);
+				progressBar.setString(progress + "%");
+			});
+		}
+		if (!correctlyDownloaded) {
+			IJ.error("The model was not correctly unzipped in the 'models' directory, please try again.");
+			return;
 		}
 	}
 	
