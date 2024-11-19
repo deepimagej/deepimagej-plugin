@@ -47,48 +47,32 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Calendar;
-import java.util.List;
-import java.util.stream.Collectors;
 
-import javax.swing.ButtonGroup;
 import javax.swing.Icon;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
-import javax.swing.JRadioButton;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.filechooser.FileNameExtensionFilter;
 
 import deepimagej.Constants;
+import deepimagej.tools.FileTools;
 import ij.IJ;
 import ij.plugin.frame.PlugInFrame;
 import io.bioimage.modelrunner.engine.installation.FileDownloader;
@@ -243,14 +227,15 @@ public class Install_Local_Model extends PlugInFrame {
 	/**
 	 * Download DeepImageJ model from URL and unzip it in the 
 	 * models folder of Fiji/ImageJ
+	 * @param sourceURL
+	 * 	source url of a zip file that is going to be downloaded into the models folder
 	 * @throws InterruptedException 
 	 * @throws MalformedURLException 
 	 */
-	private void installModelUrl() throws InterruptedException, MalformedURLException {
-		String name = (String) this.pathTextField.getText();
-		URL url = new URL(name);
+	private void installModelUrl(String sourceURL) throws InterruptedException, MalformedURLException {
+		URL url = new URL(sourceURL);
 		
-		String fileName = createFileName(url);
+		String fileName = createFileName(sourceURL);
 		long fileSize = FileDownloader.getFileSize(url);
 		
 		
@@ -285,63 +270,75 @@ public class Install_Local_Model extends PlugInFrame {
 		unzip(fileName);
 	}
 	
-	private static String createFileName(URL url) throws MalformedURLException {
+	/**
+	 * Method that copies zip model from introduced
+	 * location into the models folder and unzips it
+	 * @param sourceFileName
+	 * 	source zip file that is going to be copied into the models dir
+	 * @throws MalformedURLException 
+	 * @throws InterruptedException 
+	 */
+	private void copyFromPath(String sourceFileName) throws MalformedURLException, InterruptedException {
+		String fileName = createFileName(sourceFileName);
+		File originalModel = new File(sourceFileName);
+		File destFile = new File(fileName);
+		long fileSize = originalModel.length();
+		correctlyDownloaded = false;
+		Thread dwnldThread = new Thread(() -> {
+			try {
+				FileTools.copyFile(originalModel, destFile);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		});
+		dwnldThread.start();
+		
+		while (dwnldThread.isAlive()) {
+			Thread.sleep(100);
+			double progress = Math.round(((double) destFile.length()) * 100 / fileSize);
+			SwingUtilities.invokeLater(() -> {
+				progressBar.setValue((int) progress);
+				progressBar.setString(progress + "%");
+			});
+		}
+		if (!correctlyDownloaded) {
+			IJ.error("The model was not correctly copied to the 'models' directory, please try again.");
+			return;
+		}
+		unzip(fileName);
+	}
+	
+	private static String createFileName(String url) throws MalformedURLException {
 		if (MODELS_DIR == null)
 			MODELS_DIR = "";
 		// Add timestamp to the model name. 
 		// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
 		String dateString = SDF.format(CALENDAR.getTime());
-		String fileName = FileDownloader.getFileNameFromURLString(url.toString());
+		String fileName = FileDownloader.getFileNameFromURLString(url);
 		if (fileName.endsWith(".zip")) fileName = fileName.substring(0, fileName.length() - 4);
 		fileName = removeInvalidCharacters(fileName + "_" + dateString + ".zip");
 		fileName = MODELS_DIR + File.separator + fileName;
 		return fileName;
 	}
 	
-	/**
-	 * Method that copies zip model from introduced
-	 * location into the models folder and unzips it
-	 */
-	public void copyFromPath() {
-		boolean copied = false;
-		try {
-			if (downloadURLs.size() != 1)
-				throw new Exception();
-			fileName = removeInvalidCharacters(new File(downloadURLs.get(0)).getName());
-			// Add timestamp to the model name. 
-			// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
-	        Calendar cal = Calendar.getInstance();
-			SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
-			String dateString = sdf.format(cal.getTime());
-			fileName = fileName.substring(0, fileName.lastIndexOf(".")) + "_" + dateString + ".zip";
-			File originalModel = new File(downloadURLs.get(0));
-			File destFile = new File(modelsDir + File.separator +  fileName);
-			progressScreen.setFileName(modelsDir + File.separator +  fileName);
-			progressScreen.setmodelName(fileName);
-			progressScreen.setFileSize(originalModel.length());
-			progressScreen.buildScreen();
-			progressScreen.setVisible(true);
-			FileTools.copyFile(originalModel, destFile);
-			copied = true;
-			if (!Thread.interrupted()) {
-				// Once it is already downloaded unzip the model
-				String unzippedFileName = modelsDir + File.separator + fileName.substring(0, fileName.lastIndexOf("."));
-				FileTools.unzipFolder(new File(modelsDir, fileName), unzippedFileName);
-			}
-		} catch(Exception ex) {
-			ex.printStackTrace();
-			if (!copied) {
-				IJ.error("Unable to copy file from desired location.\n"
-						+ "Check the permissions.");
-			} else {
-				IJ.error("Unable to unzip he file in the models folder.");
-			}
+	private void unzip(String fileName) throws InterruptedException {
+		if (Thread.interrupted()) {
+			return;
 		}
-		progressScreen.stop();
-	}
-	
-	private void unzip(String fileName) {
+		Thread parentThread = Thread.currentThread();
+		String unzippedFileName = fileName.substring(0, fileName.lastIndexOf("."));
+		Thread unzipThread = new Thread(() -> {
+			try {
+				FileTools.unzipFolder(new File(fileName), unzippedFileName, parentThread);
+			} catch (IOException | InterruptedException e) {
+				e.printStackTrace();
+			}
+		});
+		unzipThread.start();
 		
+		while (unzipThread.isAlive()) {
+			Thread.sleep(100);
+		}
 	}
 	
 	private static String removeInvalidCharacters(String filename) {

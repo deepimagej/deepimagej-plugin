@@ -52,10 +52,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -69,7 +67,6 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-import ij.IJ;
 
 public class FileTools {
 
@@ -232,12 +229,17 @@ public class FileTools {
             addFileToZip(rootPath, fileName, zip);
         }
     }
+    
+    public static boolean unzipFolder(File source, String outPath) throws IOException, InterruptedException {
+    	return unzipFolder(source, outPath, null);
+    }
 	
     /*
      * Unzip zip file 'source' into a file in the path 'outPath'
      */
-    public static boolean unzipFolder(File source, String outPath) throws IOException, InterruptedException {
- 	    
+    public static boolean unzipFolder(File source, String outPath, Thread parentThread) throws IOException, InterruptedException {
+ 	    if (parentThread == null)
+ 	    	parentThread = Thread.currentThread();
     	FileInputStream fis = new FileInputStream(source);
     	ZipInputStream zis = new ZipInputStream(fis);
 
@@ -264,7 +266,7 @@ public class FileTools {
                     byte[] buffer = new byte[bufferSize > 0 ? bufferSize : 4096];
                     int location;
                     
-                    while ((location = zis.read(buffer)) != -1 && !Thread.interrupted()) {
+                    while ((location = zis.read(buffer)) != -1 && !parentThread.isInterrupted()) {
                         bos.write(buffer, 0, location);
                     }
                     
@@ -276,9 +278,6 @@ public class FileTools {
      	           bos.close();
                 } catch (ZipException e) {
     				e.printStackTrace();
-    				IJ.error("Error unzipping: " + source.getName() + "\n"
-    						+ "It seems that the zipped file was corrupted\n"
-    						+ " while zipping and cannot be unzipped correctly.");
     		 	    zis.close();
     		 	    fis.close();
     				return false;
