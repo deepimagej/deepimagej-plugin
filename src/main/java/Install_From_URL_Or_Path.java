@@ -71,12 +71,16 @@ import javax.swing.JProgressBar;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import deepimagej.Constants;
 import deepimagej.tools.FileTools;
 import ij.IJ;
 import ij.plugin.frame.PlugInFrame;
 import io.bioimage.modelrunner.engine.installation.FileDownloader;
+import io.bioimage.modelrunner.system.PlatformDetection;
 import io.bioimage.modelrunner.utils.ZipUtils;
 
 /**
@@ -88,10 +92,10 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
 	// Components
     private JLabel labelModel;
     private JTextField pathTextField;
-    private JButton browseImageButton;
+    private JButton browseFileBtn;
     private JProgressBar progressBar;
     private JButton cancelButton;
-    private JButton saveAsButton;
+    private JButton installButton;
     
     private boolean correctlyDownloaded = false;
     private Thread installationThread;
@@ -122,15 +126,27 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
         // Initialize components
         labelModel = new JLabel("Model folder:");
 
-        pathTextField = new JTextField(20);
-        pathTextField.setEnabled(false);
-        browseImageButton = new JButton("Browse");
-        browseImageButton.setEnabled(false); // Initially disabled
-        browseImageButton.addActionListener(new ActionListener() {
+        pathTextField = new JTextField(40);
+        pathTextField.setEnabled(true);
+        pathTextField.getDocument().addDocumentListener(new DocumentListener() { // Listener for path text field
+            public void changedUpdate(DocumentEvent e) {
+                decideInstallEnabled();
+            }
+            public void removeUpdate(DocumentEvent e) {
+            	decideInstallEnabled();
+            }
+            public void insertUpdate(DocumentEvent e) {
+            	decideInstallEnabled();
+            }
+        });
+        browseFileBtn = new JButton("Browse");
+        browseFileBtn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 JFileChooser fileChooser = new JFileChooser();
-                fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+                fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                FileNameExtensionFilter zipFilter = new FileNameExtensionFilter("ZIP Files", "zip");
+                fileChooser.setFileFilter(zipFilter);
                 int option = fileChooser.showOpenDialog(Install_From_URL_Or_Path.this);
                 if (option == JFileChooser.APPROVE_OPTION) {
                     File selectedDirectory = fileChooser.getSelectedFile();
@@ -149,8 +165,9 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
         	if (installationThread != null && installationThread.isAlive())
         		installationThread.interrupt();
         });
-        saveAsButton = new JButton("Save As");
-        saveAsButton.addActionListener(new ActionListener() {
+        installButton = new JButton("Install");
+        installButton.setEnabled(false);
+        installButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
             	install();
@@ -164,7 +181,7 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
         // Panel for path text field and browse button
         JPanel pathPanel = new JPanel(new BorderLayout(5, 0));
         pathPanel.add(pathTextField, BorderLayout.CENTER);
-        pathPanel.add(browseImageButton, BorderLayout.EAST);
+        pathPanel.add(browseFileBtn, BorderLayout.EAST);
         addRowComponents(gridy++, INPUT_INFO, labelModel, pathPanel, true);
         
         // Add progress bar
@@ -180,7 +197,7 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
         // Row 6: Buttons aligned to the right
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.add(cancelButton);
-        buttonPanel.add(saveAsButton);
+        buttonPanel.add(installButton);
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
@@ -231,6 +248,14 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
         this.add(rightComponent, gbc);
     }
     
+    private void decideInstallEnabled() {
+    	String text = this.pathTextField.getText().trim();
+    	if (text != null && !text.equals(""))
+    		this.installButton.setEnabled(true);
+    	else
+    		this.installButton.setEnabled(false);
+    }
+    
     private void install() {
     	String text = this.pathTextField.getText().trim();
     	if (new File(text).isFile()) {
@@ -242,7 +267,7 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
     		url = new URL(text);
     	} catch (MalformedURLException ex) {
     		IJ.error("Invalid URL");
-    		this.saveAsButton.setEnabled(false);
+    		this.installButton.setEnabled(false);
     		return;
     	}
     	String urlPath;
@@ -262,22 +287,27 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
     
     private void prepareAndManageLocalModel(String fileName) {
     	SwingUtilities.invokeLater(() -> {
-    		this.saveAsButton.setEnabled(false);
+    		this.installButton.setEnabled(false);
     		this.pathTextField.setEnabled(false);
+            browseFileBtn.setEnabled(false);
     		this.progressBar.setIndeterminate(true);
     		this.progressBar.setString("Preparing installation");
     	});
     	installationThread = new Thread(() -> {
     		try {
+		    	SwingUtilities.invokeLater(() -> {
+		    		this.progressBar.setIndeterminate(false);
+		    	});
 				installModelFromLocalFile(fileName);
 		    	SwingUtilities.invokeLater(() -> {
-		    		this.saveAsButton.setEnabled(true);
+		    		this.installButton.setEnabled(true);
 		    	});
 			} catch (InterruptedException | IOException e) {
 				SwingUtilities.invokeLater(() -> IJ.error("Error installing model from local file."));
 				e.printStackTrace();
 			}
 	    	SwingUtilities.invokeLater(() -> {
+	            browseFileBtn.setEnabled(true);
 	    		this.pathTextField.setEnabled(true);
 	    		this.progressBar.setIndeterminate(false);
 	    		this.progressBar.setValue(0);
@@ -289,22 +319,27 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
     
     private void prepareAndManageOnlineModel(String url) {
     	SwingUtilities.invokeLater(() -> {
-    		this.saveAsButton.setEnabled(false);
+    		this.installButton.setEnabled(false);
+            browseFileBtn.setEnabled(false);
     		this.pathTextField.setEnabled(false);
     		this.progressBar.setIndeterminate(true);
     		this.progressBar.setString("Preparing installation");
     	});
     	installationThread = new Thread(() -> {
     		try {
+		    	SwingUtilities.invokeLater(() -> {
+		    		this.progressBar.setIndeterminate(false);
+		    	});
     			installModelUrl(url);
 		    	SwingUtilities.invokeLater(() -> {
-		    		this.saveAsButton.setEnabled(true);
+		    		this.installButton.setEnabled(true);
 		    	});
 			} catch (InterruptedException | IOException e) {
 				SwingUtilities.invokeLater(() -> IJ.error("Error installing model from url."));
 				e.printStackTrace();
 			}
 	    	SwingUtilities.invokeLater(() -> {
+	            browseFileBtn.setEnabled(true);
 	    		this.pathTextField.setEnabled(true);
 	    		this.progressBar.setIndeterminate(false);
 	    		this.progressBar.setValue(0);
@@ -350,7 +385,7 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
 			double progress = Math.round(((double) nSize) * 100 / fileSize);
 			SwingUtilities.invokeLater(() -> {
 				progressBar.setValue((int) progress);
-				progressBar.setString(progress + "%");
+				progressBar.setString("Download progress: " + progress + "%");
 			});
 		}
 		if (!correctlyDownloaded) {
@@ -377,6 +412,7 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
 		Thread dwnldThread = new Thread(() -> {
 			try {
 				FileTools.copyFile(sourceFileName, fileName, parentThread);
+				correctlyDownloaded = true;
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -388,7 +424,7 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
 			double progress = Math.round(((double) destFile.length()) * 100 / fileSize);
 			SwingUtilities.invokeLater(() -> {
 				progressBar.setValue((int) progress);
-				progressBar.setString(progress + "%");
+				progressBar.setString("Copying progress: " + progress + "%");
 			});
 		}
 		if (!correctlyDownloaded) {
@@ -398,13 +434,17 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
 		unzip(fileName);
 	}
 	
-	private static String createFileName(String url) throws MalformedURLException {
+	private static String createFileName(String url) throws IOException {
 		if (MODELS_DIR == null)
-			MODELS_DIR = "";
+			getModelsFolder();
 		// Add timestamp to the model name. 
 		// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
 		String dateString = SDF.format(CALENDAR.getTime());
-		String fileName = FileDownloader.getFileNameFromURLString(url);
+		String fileName;
+		if (new File(url).exists())
+			fileName = new File(url).getName();
+		else
+			fileName = FileDownloader.getFileNameFromURLString(url);
 		if (fileName.endsWith(".zip")) fileName = fileName.substring(0, fileName.length() - 4);
 		fileName = removeInvalidCharacters(fileName + "_" + dateString + ".zip");
 		fileName = MODELS_DIR + File.separator + fileName;
@@ -434,7 +474,7 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
 			double progress = Math.round(((double) FileTools.getFolderSize(unzippedFileName)) * 100 / size);
 			SwingUtilities.invokeLater(() -> {
 				progressBar.setValue((int) progress);
-				progressBar.setString(progress + "%");
+				progressBar.setString("Unzip progress: " + progress + "%");
 			});
 		}
 		if (!correctlyDownloaded) {
@@ -449,6 +489,35 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
 		for (String invalid : listForbidden)
 			filename = filename.replace(invalid, "_");
 		return filename;
+	}
+	
+	private static void getModelsFolder() throws IOException {
+		String fijiFolder = getFijiFolder();
+		File modelsFolder = new File(fijiFolder, "models");
+		if (!modelsFolder.isDirectory() && !modelsFolder.mkdirs()) {
+			throw new IOException("Unable to access the models folder in Fiji:" 
+								+ System.lineSeparator() + " - " + modelsFolder.getAbsolutePath());
+		}
+		MODELS_DIR = modelsFolder.getAbsolutePath();
+	}
+	
+	private static String getFijiFolder() {
+		File jvmFolder = new File(System.getProperty("java.home"));
+		String imageJExecutable;
+		if (PlatformDetection.isWindows())
+			imageJExecutable = "ImageJ-win64.exe";
+		else if (PlatformDetection.isLinux())
+			imageJExecutable = "ImageJ-linux64";
+		else if (PlatformDetection.isMacOS())
+			imageJExecutable = "Contents/MacOS/ImageJ-macosx";
+		else
+			throw new IllegalArgumentException("Unsupported Operating System");
+		while (true && jvmFolder != null) {
+			jvmFolder = jvmFolder.getParentFile();
+			if (new File(jvmFolder + File.separator + imageJExecutable).isFile())
+				return jvmFolder.getAbsolutePath();
+		}
+		return new File("").getAbsolutePath();
 	}
     
     public static void main(String[] args) {
