@@ -54,9 +54,16 @@ import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -70,6 +77,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -83,19 +91,29 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import deepimagej.Constants;
 import ij.IJ;
 import ij.plugin.frame.PlugInFrame;
+import io.bioimage.modelrunner.engine.installation.FileDownloader;
 
 /**
  * 
  * @author Carlos Javier Garcia Lopez de Haro
  */
 public class Install_Local_Model extends PlugInFrame {
-    private static final long serialVersionUID = 5648984831136983153L;
-    // Components
+    private static final long serialVersionUID = -5457714313295644697L;
+	// Components
     private JLabel labelModel;
     private JTextField pathTextField;
     private JButton browseImageButton;
+    private JProgressBar progressBar;
     private JButton cancelButton;
     private JButton saveAsButton;
+    
+    private boolean correctlyDownloaded = false;
+    
+    private static String MODELS_DIR;
+    private static Calendar CALENDAR = Calendar.getInstance();
+    private static SimpleDateFormat SDF = new SimpleDateFormat("ddMMYYYY_HHmmss");
+    
+    
     
     private static final String INPUT_INFO = "<html>"
     		+ "Choose whether to run the model on the current in-focus image or on the image(s) at<br>"
@@ -133,6 +151,10 @@ public class Install_Local_Model extends PlugInFrame {
                 }
             }
         });
+        
+        progressBar = new JProgressBar(0, 100);
+        progressBar.setStringPainted(true); // Show percentage text
+        progressBar.setValue(0);
 
         cancelButton = new JButton("Cancel");
         cancelButton.addActionListener(e -> this.dispose());
@@ -153,6 +175,15 @@ public class Install_Local_Model extends PlugInFrame {
         pathPanel.add(pathTextField, BorderLayout.CENTER);
         pathPanel.add(browseImageButton, BorderLayout.EAST);
         addRowComponents(gridy++, INPUT_INFO, labelModel, pathPanel, true);
+        
+        // Add progress bar
+        GridBagConstraints progressBarGbc = new GridBagConstraints();
+        progressBarGbc.gridx = 0;
+        progressBarGbc.gridy = gridy++;
+        progressBarGbc.gridwidth = 4;
+        progressBarGbc.fill = GridBagConstraints.HORIZONTAL;
+        progressBarGbc.insets = new Insets(10, 5, 10, 5);
+        this.add(progressBar, progressBarGbc);
         
 
         // Row 6: Buttons aligned to the right
@@ -212,44 +243,59 @@ public class Install_Local_Model extends PlugInFrame {
 	/**
 	 * Download DeepImageJ model from URL and unzip it in the 
 	 * models folder of Fiji/ImageJ
+	 * @throws InterruptedException 
+	 * @throws MalformedURLException 
 	 */
-	private void installModelUrl() {
-		String name = (String) txtURL.getText();
-		if (name == null || name.equals("")) {
-			IJ.error("Please introduce a valid URL.");
-			chk.setSelected(false);
-			return;
-		}
-		try {
-			// Check if the String introduced can be converted into an URL. If
-			// itt can, set the downloadURL to that string
-			URL url = new URL(name);
-			downloadURLs= new ArrayList<String>();
-			downloadURLs.add(name);
-		} catch (MalformedURLException e) {
-			IJ.error("String introduced does not correspond to a valid URL.");
-			chk.setSelected(false);
-			return;
-		}
+	private void installModelUrl() throws InterruptedException, MalformedURLException {
+		String name = (String) this.pathTextField.getText();
+		URL url = new URL(name);
 		
-		// First check that "Fiji.App\models" exist or create it if not
-		modelsDir = IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
-		// TODO modelsDir = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models";
-
+		String fileName = createFileName(url);
+		long fileSize = FileDownloader.getFileSize(url);
+		
+		
+		Thread currentThread = Thread.currentThread();
+		correctlyDownloaded = false;
+		Thread dwnldThread = new Thread(() -> {
+			try (
+					ReadableByteChannel rbc = Channels.newChannel(url.openStream());
+					FileOutputStream fos = new FileOutputStream(fileName);
+					) {
+				new FileDownloader(rbc, fos).call(currentThread);
+				correctlyDownloaded = true;
+			} catch (IOException | InterruptedException e) {
+				e.printStackTrace();
+			}
+		});
+		dwnldThread.start();
+		
+		while (dwnldThread.isAlive()) {
+			Thread.sleep(100);
+			long nSize = new File(fileName).length();
+			double progress = Math.round(((double) nSize) * 100 / fileSize);
+			SwingUtilities.invokeLater(() -> {
+				progressBar.setValue((int) progress);
+				progressBar.setString(progress + "%");
+			});
+		}
+		if (!correctlyDownloaded) {
+			IJ.error("The model was not correctly downloaded, please try again.");
+			return;
+		}
+		unzip(fileName);
+	}
+	
+	private static String createFileName(URL url) throws MalformedURLException {
+		if (MODELS_DIR == null)
+			MODELS_DIR = "";
 		// Add timestamp to the model name. 
 		// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
-        Calendar cal = Calendar.getInstance();
-		SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
-		String dateString = sdf.format(cal.getTime());
-		fileName = removeInvalidCharacters("deepImageJModel" + "_" + dateString + ".zip");
-		
-		Thread thread = new Thread(this);
-		thread.setPriority(Thread.MIN_PRIORITY);
-		progressScreen = new DownloadProgress(true);
-		progressScreen.setThread(thread);
-		stopped = false;
-		thread.start();
-		chk.setSelected(false);
+		String dateString = SDF.format(CALENDAR.getTime());
+		String fileName = FileDownloader.getFileNameFromURLString(url.toString());
+		if (fileName.endsWith(".zip")) fileName = fileName.substring(0, fileName.length() - 4);
+		fileName = removeInvalidCharacters(fileName + "_" + dateString + ".zip");
+		fileName = MODELS_DIR + File.separator + fileName;
+		return fileName;
 	}
 	
 	/**
@@ -292,6 +338,18 @@ public class Install_Local_Model extends PlugInFrame {
 			}
 		}
 		progressScreen.stop();
+	}
+	
+	private void unzip(String fileName) {
+		
+	}
+	
+	private static String removeInvalidCharacters(String filename) {
+		String[] listForbidden = new String[] {"\\", "|", "/", "<", ">", 
+												":", "\"", "?", "*"};
+		for (String invalid : listForbidden)
+			filename = filename.replace(invalid, "_");
+		return filename;
 	}
     
     public static void main(String[] args) {
