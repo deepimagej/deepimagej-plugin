@@ -419,7 +419,7 @@ public class Create_Macro extends PlugInFrame {
         StringBuilder codeBuilder = new StringBuilder();
 
         // Get the selected model
-        String selectedModel = (String) modelComboBox.getSelectedItem();
+        String selectedModel = ((String) modelComboBox.getSelectedItem()).trim();
         if (NO_MODELS_STR.equals(selectedModel)) {
             codeBuilder.append("// No model selected");
             return;
@@ -439,7 +439,7 @@ public class Create_Macro extends PlugInFrame {
         else if (this.pathTextField.getText().equals(""))
         	inputStr = "null";
         else
-        	inputStr = this.pathTextField.getText();
+        	inputStr = this.pathTextField.getText().trim();
         if (!displayOutput)
         	nDisplayedStr = "" + 0;
         else if (this.periodTextField.getText().equals(""))
@@ -451,9 +451,15 @@ public class Create_Macro extends PlugInFrame {
     	else if (this.outputFolderTextField.getText().equals(""))
     		outputStr = "null";
     	else
-    		outputStr = this.outputFolderTextField.getText();
+    		outputStr = this.outputFolderTextField.getText().trim();
         	
 
+        if (modelFolder.contains(" "))
+        	modelFolder = "[" + modelFolder + "]";
+        if (inputStr.contains(" "))
+        	inputStr = "[" + inputStr + "]";
+        if (outputStr.contains(" "))
+        	outputStr = "[" + outputStr + "]";
         codeTextArea.setText(String.format(MACRO_FORMAT, modelFolder, inputStr, outputStr, nDisplayedStr));
     }
     
