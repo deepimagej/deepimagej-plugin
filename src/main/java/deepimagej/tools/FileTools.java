@@ -96,6 +96,12 @@ public class FileTools {
 		return length;
 	}
 
+	/**
+	 * @deprecated
+	 * @param sourceFile
+	 * @param destFile
+	 * @throws IOException
+	 */
 	public static void copyFile(File sourceFile, File destFile) throws IOException {
 		if (!destFile.getParentFile().exists()) {
 			destFile.getParentFile().mkdir();
@@ -132,7 +138,7 @@ public class FileTools {
 				String sourceFile = file.getAbsolutePath();
 				String fileName = file.getName();
 				String destFile = destFolder.getAbsolutePath() + File.separator + fileName;
-				copyFile(new File(sourceFile), new File(destFile));
+				copyFile(sourceFile, destFile);
 			}
 		}
 	}
@@ -161,31 +167,42 @@ public class FileTools {
  
 			String fileName = destinationDir + File.separator + entry.getName();
 			File f = new File(fileName);
- 
+			Thread thread = Thread.currentThread();
 			if (!fileName.endsWith("/")) {
 				InputStream src = jar.getInputStream(entry);
 				FileOutputStream dst = new FileOutputStream(f);
-				copy(src, dst);
+				copy(src, dst, thread);
 			}
 		}
 		jar.close();
 	}
 	
-	private static long copy(InputStream src, FileOutputStream dst) throws IOException {
-	    try {
-	      byte[] buffer = new byte[1 << 20]; // 1MB
-	      long ret = 0;
-	      int n = 0;
-	      while ((n = src.read(buffer)) >= 0) {
-	        dst.write(buffer, 0, n);
-	        ret += n;
-	      }
-	      return ret;
-	    } finally {
-	      dst.close();
-	      src.close();
-	    }
-	  }
+    public static void copyFile(String sourcePath, String destPath) throws IOException {
+    	copyFile(sourcePath, destPath, Thread.currentThread());
+    }
+	
+    public static void copyFile(String sourcePath, String destPath, Thread parentThread) throws IOException {
+        try (FileInputStream src = new FileInputStream(sourcePath);
+             FileOutputStream dst = new FileOutputStream(destPath)) {
+            copy(src, dst, parentThread);
+        }
+    }
+	
+    private static long copy(InputStream src, FileOutputStream dst, Thread parentThread) throws IOException {
+        try {
+            byte[] buffer = new byte[1 << 20]; // 1MB
+            long ret = 0;
+            int n = 0;
+            while ((n = src.read(buffer)) >= 0 && !parentThread.isInterrupted()) {
+                dst.write(buffer, 0, n);
+                ret += n;
+            }
+            return ret;
+        } finally {
+            dst.close();
+            src.close();
+        }
+    }
 	
 	public static boolean deleteDir(File element) {
 	    if (element.isDirectory()) {
@@ -346,12 +363,10 @@ public class FileTools {
             zos.putNextEntry(new ZipEntry(parentFolder + "/" + file.getName()));
             BufferedInputStream bis = new BufferedInputStream(
                     new FileInputStream(file));
-            long bytesRead = 0;
             byte[] bytesIn = new byte[4096];
             int read = 0;
             while ((read = bis.read(bytesIn)) != -1) {
                 zos.write(bytesIn, 0, read);
-                bytesRead += read;
             }
             zos.closeEntry();
             bis.close();
@@ -369,12 +384,10 @@ public class FileTools {
         zos.putNextEntry(new ZipEntry(file.getName()));
         BufferedInputStream bis = new BufferedInputStream(new FileInputStream(
                 file));
-        long bytesRead = 0;
         byte[] bytesIn = new byte[4096];
         int read = 0;
         while ((read = bis.read(bytesIn)) != -1) {
             zos.write(bytesIn, 0, read);
-            bytesRead += read;
         }
         zos.closeEntry();
         bis.close();

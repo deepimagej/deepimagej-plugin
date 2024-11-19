@@ -54,6 +54,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -93,6 +94,7 @@ public class Install_Local_Model extends PlugInFrame {
     private JButton saveAsButton;
     
     private boolean correctlyDownloaded = false;
+    private Thread installationThread;
     
     private static String MODELS_DIR;
     private static Calendar CALENDAR = Calendar.getInstance();
@@ -142,12 +144,16 @@ public class Install_Local_Model extends PlugInFrame {
         progressBar.setValue(0);
 
         cancelButton = new JButton("Cancel");
-        cancelButton.addActionListener(e -> this.dispose());
+        cancelButton.addActionListener(e -> {
+        	this.dispose();
+        	if (installationThread != null && installationThread.isAlive())
+        		installationThread.interrupt();
+        });
         saveAsButton = new JButton("Save As");
         saveAsButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-            	// TODO
+            	install();
             }
         });
 
@@ -224,6 +230,89 @@ public class Install_Local_Model extends PlugInFrame {
         gbc.anchor = GridBagConstraints.WEST;
         this.add(rightComponent, gbc);
     }
+    
+    private void install() {
+    	String text = this.pathTextField.getText().trim();
+    	if (new File(text).isFile()) {
+    		prepareAndManageLocalModel(text);
+    		return;
+    	}
+    	URL url;
+    	try {
+    		url = new URL(text);
+    	} catch (MalformedURLException ex) {
+    		IJ.error("Invalid URL");
+    		this.saveAsButton.setEnabled(false);
+    		return;
+    	}
+    	String urlPath;
+		try {
+			urlPath = url.toURI().getPath();
+		} catch (URISyntaxException e) {
+    		IJ.error("Invalid URL");
+			e.printStackTrace();
+			return;
+		}
+    	if (new File(urlPath).isFile()) {
+    		prepareAndManageLocalModel(urlPath);
+    		return;
+    	}
+		prepareAndManageOnlineModel(text);
+    }
+    
+    private void prepareAndManageLocalModel(String fileName) {
+    	SwingUtilities.invokeLater(() -> {
+    		this.saveAsButton.setEnabled(false);
+    		this.pathTextField.setEnabled(false);
+    		this.progressBar.setIndeterminate(true);
+    		this.progressBar.setString("Preparing installation");
+    	});
+    	installationThread = new Thread(() -> {
+    		try {
+				installModelFromLocalFile(fileName);
+		    	SwingUtilities.invokeLater(() -> {
+		    		this.saveAsButton.setEnabled(true);
+		    	});
+			} catch (InterruptedException | IOException e) {
+				SwingUtilities.invokeLater(() -> IJ.error("Error installing model from local file."));
+				e.printStackTrace();
+			}
+	    	SwingUtilities.invokeLater(() -> {
+	    		this.pathTextField.setEnabled(true);
+	    		this.progressBar.setIndeterminate(false);
+	    		this.progressBar.setValue(0);
+	    		this.progressBar.setString("");
+	    	});
+    	});
+    	installationThread.start();
+    }
+    
+    private void prepareAndManageOnlineModel(String url) {
+    	SwingUtilities.invokeLater(() -> {
+    		this.saveAsButton.setEnabled(false);
+    		this.pathTextField.setEnabled(false);
+    		this.progressBar.setIndeterminate(true);
+    		this.progressBar.setString("Preparing installation");
+    	});
+    	installationThread = new Thread(() -> {
+    		try {
+    			installModelUrl(url);
+		    	SwingUtilities.invokeLater(() -> {
+		    		this.saveAsButton.setEnabled(true);
+		    	});
+			} catch (InterruptedException | IOException e) {
+				SwingUtilities.invokeLater(() -> IJ.error("Error installing model from url."));
+				e.printStackTrace();
+			}
+	    	SwingUtilities.invokeLater(() -> {
+	    		this.pathTextField.setEnabled(true);
+	    		this.progressBar.setIndeterminate(false);
+	    		this.progressBar.setValue(0);
+	    		this.progressBar.setString("");
+	    	});
+    	});
+    	installationThread.start();
+    }
 	
 	/**
 	 * Download DeepImageJ model from URL and unzip it in the 
@@ -279,15 +368,15 @@ public class Install_Local_Model extends PlugInFrame {
 	 * @throws InterruptedException 
 	 * @throws IOException 
 	 */
-	private void copyFromPath(String sourceFileName) throws InterruptedException, IOException {
+	private void installModelFromLocalFile(String sourceFileName) throws InterruptedException, IOException {
 		String fileName = createFileName(sourceFileName);
-		File originalModel = new File(sourceFileName);
 		File destFile = new File(fileName);
-		long fileSize = originalModel.length();
+		long fileSize = new File(sourceFileName).length();
 		correctlyDownloaded = false;
+		Thread parentThread = Thread.currentThread();
 		Thread dwnldThread = new Thread(() -> {
 			try {
-				FileTools.copyFile(originalModel, destFile);
+				FileTools.copyFile(sourceFileName, fileName, parentThread);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
