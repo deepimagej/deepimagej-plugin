@@ -208,6 +208,91 @@ public class Install_Local_Model extends PlugInFrame {
         gbc.anchor = GridBagConstraints.WEST;
         this.add(rightComponent, gbc);
     }
+	
+	/**
+	 * Download DeepImageJ model from URL and unzip it in the 
+	 * models folder of Fiji/ImageJ
+	 */
+	private void installModelUrl() {
+		String name = (String) txtURL.getText();
+		if (name == null || name.equals("")) {
+			IJ.error("Please introduce a valid URL.");
+			chk.setSelected(false);
+			return;
+		}
+		try {
+			// Check if the String introduced can be converted into an URL. If
+			// itt can, set the downloadURL to that string
+			URL url = new URL(name);
+			downloadURLs= new ArrayList<String>();
+			downloadURLs.add(name);
+		} catch (MalformedURLException e) {
+			IJ.error("String introduced does not correspond to a valid URL.");
+			chk.setSelected(false);
+			return;
+		}
+		
+		// First check that "Fiji.App\models" exist or create it if not
+		modelsDir = IJ.getDirectory("imagej") + File.separator + "models" + File.separator;
+		// TODO modelsDir = "C:\\Users\\Carlos(tfg)\\Desktop\\Fiji.app\\models";
+
+		// Add timestamp to the model name. 
+		// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
+        Calendar cal = Calendar.getInstance();
+		SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
+		String dateString = sdf.format(cal.getTime());
+		fileName = removeInvalidCharacters("deepImageJModel" + "_" + dateString + ".zip");
+		
+		Thread thread = new Thread(this);
+		thread.setPriority(Thread.MIN_PRIORITY);
+		progressScreen = new DownloadProgress(true);
+		progressScreen.setThread(thread);
+		stopped = false;
+		thread.start();
+		chk.setSelected(false);
+	}
+	
+	/**
+	 * Method that copies zip model from introduced
+	 * location into the models folder and unzips it
+	 */
+	public void copyFromPath() {
+		boolean copied = false;
+		try {
+			if (downloadURLs.size() != 1)
+				throw new Exception();
+			fileName = removeInvalidCharacters(new File(downloadURLs.get(0)).getName());
+			// Add timestamp to the model name. 
+			// The format consists on: modelName + date as ddmmyyyy + time as hhmmss
+	        Calendar cal = Calendar.getInstance();
+			SimpleDateFormat sdf = new SimpleDateFormat("ddMMYYYY_HHmmss");
+			String dateString = sdf.format(cal.getTime());
+			fileName = fileName.substring(0, fileName.lastIndexOf(".")) + "_" + dateString + ".zip";
+			File originalModel = new File(downloadURLs.get(0));
+			File destFile = new File(modelsDir + File.separator +  fileName);
+			progressScreen.setFileName(modelsDir + File.separator +  fileName);
+			progressScreen.setmodelName(fileName);
+			progressScreen.setFileSize(originalModel.length());
+			progressScreen.buildScreen();
+			progressScreen.setVisible(true);
+			FileTools.copyFile(originalModel, destFile);
+			copied = true;
+			if (!Thread.interrupted()) {
+				// Once it is already downloaded unzip the model
+				String unzippedFileName = modelsDir + File.separator + fileName.substring(0, fileName.lastIndexOf("."));
+				FileTools.unzipFolder(new File(modelsDir, fileName), unzippedFileName);
+			}
+		} catch(Exception ex) {
+			ex.printStackTrace();
+			if (!copied) {
+				IJ.error("Unable to copy file from desired location.\n"
+						+ "Check the permissions.");
+			} else {
+				IJ.error("Unable to unzip he file in the models folder.");
+			}
+		}
+		progressScreen.stop();
+	}
     
     public static void main(String[] args) {
     	SwingUtilities.invokeLater(() -> new Install_Local_Model());
