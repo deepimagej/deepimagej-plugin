@@ -9,6 +9,7 @@ import deepimagej.gui.adapter.ImageAdapter;
 import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
 import ij.ImagePlus;
+import ij.plugin.CompositeConverter;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.TensorSpec;
 import io.bioimage.modelrunner.tensor.Tensor;
@@ -22,7 +23,8 @@ public class IjAdapter implements ImageAdapter {
 	@Override
 	public <T extends RealType<T> & NativeType<T>> List<Tensor<T>> getInputTensors(ModelDescriptor descriptor) {
 		ImagePlus imp = IJ.getImage();
-		List<Tensor<T>> list = Arrays.asList(buildTensor(imp, descriptor.getInputTensors().get(0)));
+		boolean isColorRGB = imp.getType() == ImagePlus.COLOR_RGB;
+		List<Tensor<T>> list = Arrays.asList(buildTensor(isColorRGB ? CompositeConverter.makeComposite(imp) : imp, descriptor.getInputTensors().get(0)));
 		return list;
 	}
 	
@@ -36,7 +38,9 @@ public class IjAdapter implements ImageAdapter {
 				throw new IllegalArgumentException("Missing input tensor: " + tt.getName());
 			else if (!(im instanceof ImagePlus))
 				throw new IllegalArgumentException("Input object should be an ImagePlus: " + tt.getName());
-			inputTensors.add(buildTensor((ImagePlus) im, tt));
+			ImagePlus imp = (ImagePlus) im;
+			boolean isColorRGB = imp.getType() == ImagePlus.COLOR_RGB;
+			inputTensors.add(buildTensor(isColorRGB ? CompositeConverter.makeComposite(imp) : imp, tt));
 		}
 		return inputTensors;
 	}
