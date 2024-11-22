@@ -92,21 +92,24 @@ jobs:
         run: |
           ls fiji/Fiji.app/models
 
-      - name: Set up the wanted models to test and create macro
-        shell: bash
-        run: |
-          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/create_macro.py \
-            -model_nicknames "${{ env.MODELS }}" \
-            -models_dir fiji/Fiji.app/models \
-            -macro_path ${{ env.MACRO_FPATH }} \
-            -json_fpath ${{ env.JSON_FPATH }}
+      - name: Create a New Directory
+        run: mkdir -p outputs
+
+      - name: Create a New Directory 2
+        run: mkdir -p outputs_npy
 
       - name: Run macros
         shell: bash
         run: |
-          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console --debug -macro ${{ env.MACRO_FPATH }}
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console --debug -macro test.ijm
 
-      - name: Check that the expected result has been produced
+      - name: Convert to npy
         shell: bash
         run: |
-          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/check_outputs.py -json_fpath ${{ env.JSON_FPATH }}
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/to_numpy.py
+
+      - name: Run final python
+        shell: bash
+        run: |
+          python -m pip install numpy
+          python .github/check_numpy_vals.py
