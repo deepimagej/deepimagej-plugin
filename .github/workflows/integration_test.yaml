@@ -3,6 +3,8 @@ name: Integration Tests
 on:
   push:
     branches: [ master ]
+    paths-ignore:
+      - .github/workflows/macos_test.yml
   pull_request:
     branches: [ master ]
 
