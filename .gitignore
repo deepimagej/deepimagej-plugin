@@ -22,7 +22,7 @@
 *.war
 *.nar
 *.ear
-#*.zip
+*.zip
 *.tar.gz
 *.rar
 
