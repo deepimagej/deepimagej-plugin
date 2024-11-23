@@ -17,15 +17,13 @@
 Python script that checks that the wanted objects have actually been created
 """
 
-import json
-import sys
 import os
-import argparse
 
 from io.bioimage.modelrunner.numpy import DecodeNumpy
 from net.imglib2.img.display.imagej import ImageJFunctions
 from ij import IJ
 
+print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 
 for ff in os.listdir("outputs"):
     print(ff)
