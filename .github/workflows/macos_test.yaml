@@ -76,6 +76,7 @@ jobs:
         run: |
           curl -L --output-dir fiji/Fiji.app/jars/ -O "https://maven.scijava.org/content/groups/public/io/bioimage/dl-modelrunner/0.5.10/dl-modelrunner-0.5.10.jar"
           curl -L --output-dir fiji/Fiji.app/jars/ -O "https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.13.0/jna-platform-5.13.0.jar"
+          curl -L --output-dir fiji/Fiji.app/jars/ -O "https://maven.scijava.org/content/groups/public/net/imglib2/imglib2/7.1.4/imglib2-7.1.4.jar"
 
       - name: Set up engine using Jython script and Fiji headless
         shell: bash
@@ -91,6 +92,11 @@ jobs:
         shell: bash
         run: |
           ls fiji/Fiji.app/models/brightfield_nuclei
+
+      - name: rm file
+        shell: bash
+        run: |
+          rm /Users/runner/work/deepimagej-plugin/deepimagej-plugin/fiji/Fiji.app/jars/imglib2-6.1.0.jar
 
       - name: Create a New Directory
         run: mkdir -p outputs
