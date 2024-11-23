@@ -4,7 +4,7 @@ on:
   push:
     branches: [ master ]
     paths-ignore:
-      - .github/workflows/macos_test.yml
+      - .github/workflows/macos_test.yaml
   pull_request:
     branches: [ master ]
 
