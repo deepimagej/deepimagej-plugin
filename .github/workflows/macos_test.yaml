@@ -114,6 +114,12 @@ jobs:
       - name: Create a New Directory 2
         run: mkdir -p outputs_npy
 
+      - name: CHEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEECK
+        shell: bash
+        run: |
+          fiji/Fiji.app/engines/pytorch-2.0.0-2.0.0-macosx-x86_64-cpu
+          fiji/Fiji.app/engines/pytorch-1.13.1-1.13.1-macosx-x86_64-cpu
+
       - name: Run macros
         shell: bash
         run: |
