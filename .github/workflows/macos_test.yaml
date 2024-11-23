@@ -101,7 +101,7 @@ jobs:
       - name: Run macros
         shell: bash
         run: |
-          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --debug --console --debug -macro test.ijm
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --debug --console -macro test.ijm
 
       - name: Convert to npy
         shell: bash
