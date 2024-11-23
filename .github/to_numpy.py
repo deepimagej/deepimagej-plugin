@@ -29,6 +29,6 @@ from ij import IJ
 
 for ff in os.listdir("outputs"):
     print(ff)
-    rai = ImageJFunctions.wrap(IJ.openImage("outputs/" + ff))
-    DecodeNumpy.saveNpy("outputs_npy/" + ff, rai)
+    #rai = ImageJFunctions.wrap(IJ.openImage("outputs/" + ff))
+    #DecodeNumpy.saveNpy("outputs_npy/" + ff, rai)
 
