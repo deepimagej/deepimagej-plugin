@@ -100,7 +100,9 @@ jobs:
       - name: rm file
         shell: bash
         run: |
-          rm /Users/runner/work/deepimagej-plugin/deepimagej-plugin/fiji/Fiji.app/jars/imglib2-6.1.0.jar
+          rm fiji/Fiji.app/jars/imglib2-6.1.0.jar
+          #rm /Users/runner/work/deepimagej-plugin/deepimagej-plugin/fiji/Fiji.app/jars/imglib2-6.1.0.jar
+          #rm /home/runner/work/deepimagej-plugin/deepimagej-plugin/fiji/Fiji.app/jars/imglib2-6.1.0.jar
 
       - name: Create a New Directory
         run: mkdir -p outputs
