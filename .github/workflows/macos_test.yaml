@@ -90,7 +90,7 @@ jobs:
       - name: check model is there
         shell: bash
         run: |
-          ls fiji/Fiji.app/models
+          ls fiji/Fiji.app/models/brightfield_nuclei
 
       - name: Create a New Directory
         run: mkdir -p outputs
