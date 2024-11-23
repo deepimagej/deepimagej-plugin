@@ -106,8 +106,8 @@ jobs:
       - name: Convert to npy
         shell: bash
         run: |
-          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/check_outputs.py -json_fpath json
-          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/to_numpy.py
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --debug --console .github/check_outputs.py -json_fpath json
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --debug --console .github/to_numpy.py
 
       - name: Run final python
         shell: bash
