@@ -22,6 +22,8 @@ import sys
 import os
 import argparse
 
+from ij import IJ
+
 def main(expected_files_path):
     with open(expected_files_path, 'r') as f:
         expected_files = json.load(f)
@@ -41,6 +43,12 @@ def main(expected_files_path):
             all_passed = False
         else:
             print("File '{file_path}' exists with size {actual_size} bytes.".format(file_path=file_path, actual_size=actual_size))
+            max_val = IJ.openImage(file_path).getProcessor().getMax()
+            if (max_val < 1e-9):
+                print("Error: File '{file_path}' max value too low -> {max_val}.".format(file_path=file_path, max_val=max_val))
+                all_passed = False
+            else:
+                print("File '{file_path}' max value -> {max_val}.".format(file_path=file_path, max_val=max_val))
 
     if not all_passed:
         sys.exit(1)
