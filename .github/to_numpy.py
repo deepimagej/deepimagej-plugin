@@ -28,7 +28,7 @@ print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 for ff in os.listdir("outputs"):
     print(ff)
     imp = IJ.openImage("outputs/" + ff);
-    print(imp.getProcessor().maxValue())
+    print(imp.getProcessor().getMax())
     rai = ImageJFunctions.wrap(imp)
     DecodeNumpy.saveNpy("outputs_npy/" + ff, rai)
 
