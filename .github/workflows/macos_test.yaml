@@ -123,13 +123,13 @@ jobs:
       - name: Run macros
         shell: bash
         run: |
-          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --debug --console -macro test_samples/test.ijm
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console -macro test_samples/test.ijm
 
       - name: Convert to npy
         shell: bash
         run: |
           ls .github
-          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --debug --console .github/to_numpy.py
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/to_numpy.py
 
       - name: Run final python
         shell: bash
