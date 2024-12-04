@@ -96,6 +96,15 @@ jobs:
         run: |
           fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console scripts/download_engines.py -engines_path fiji/Fiji.app/engines
 
+      - name: Check files in the engines
+        shell: bash
+        run: |
+          DIR_OF_INTEREST="fiji/Fiji.app/engines"
+          for dir in "$DIR_OF_INTEREST"/*/; do
+            echo "Directory: $dir"
+            find "$dir" -type f -exec echo "  File: {}" \;
+          done
+
       - name: Set up the wanted models to test and create macro
         shell: bash
         run: |
