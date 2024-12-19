@@ -100,24 +100,11 @@ jobs:
         run: |
           ls fiji/Fiji.app/models/brightfield_nuclei
 
-      - name: rm file
-        shell: bash
-        run: |
-          rm fiji/Fiji.app/jars/imglib2-6.1.0.jar
-          #rm /Users/runner/work/deepimagej-plugin/deepimagej-plugin/fiji/Fiji.app/jars/imglib2-6.1.0.jar
-          #rm /home/runner/work/deepimagej-plugin/deepimagej-plugin/fiji/Fiji.app/jars/imglib2-6.1.0.jar
-
       - name: Create a New Directory
         run: mkdir -p outputs
 
       - name: Create a New Directory 2
         run: mkdir -p outputs_npy
-
-      - name: CHEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEECK
-        shell: bash
-        run: |
-          #ls fiji/Fiji.app/engines/pytorch-2.0.0-2.0.0-macosx-x86_64-cpu
-          #ls fiji/Fiji.app/engines/pytorch-1.13.1-1.13.1-macosx-x86_64-cpu
 
       - name: Run macros
         shell: bash
