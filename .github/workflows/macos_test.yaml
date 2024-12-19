@@ -125,5 +125,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: my-artifact  # Name of the artifact
-          path: test_samples/test_image.tif 
+          name: my-artifact-${{ matrix.name }}  # Name of the artifact
+          path: outputs
