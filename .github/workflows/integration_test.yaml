@@ -56,6 +56,7 @@ jobs:
           unzip fiji.zip -d fiji
 
       - name: Build Plugin
+        shell: bash
         run: mvn clean package
 
       - name: Get plugin name and version
@@ -79,12 +80,32 @@ jobs:
         shell: bash
         run: cp target/${{steps.mvn_info.outputs.name}}-${{steps.mvn_info.outputs.version}}.jar fiji/Fiji.app/plugins/
 
+      - name: Checkout JDLL repository
+        shell: bash
+        run: |
+          git clone https://github.com/bioimage-io/JDLL.git JDLL
+
+      - name: Build JDLL
+        shell: bash
+        run: |
+          cd JDLL
+          mvn clean install
+          MVN_VERSION=$(mvn -q \
+            -Dexec.executable=echo \
+            -Dexec.args='${project.version}' \
+            --non-recursive \
+            exec:exec)
+          MVN_NAME=$(mvn -q \
+            -Dexec.executable=echo \
+            -Dexec.args='${project.name}' \
+            --non-recursive \
+            exec:exec)
+        cp target/${MVN_NAME}-${MVN_VERSION}.jar ../fiji/Fiji.app/jars/
+
       - name: Download dependencies
         shell: bash
         run: |
-          curl -L --output-dir fiji/Fiji.app/jars/ -O "https://maven.scijava.org/content/groups/public/io/bioimage/dl-modelrunner/0.5.11-SNAPSHOT/dl-modelrunner-0.5.11-20241205.014016-18.jar"
           curl -L --output-dir fiji/Fiji.app/jars/ -O "https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.13.0/jna-platform-5.13.0.jar"
-          #curl -L --output-dir fiji/Fiji.app/jars/ -O "https://maven.scijava.org/content/groups/public/net/imglib2/imglib2/7.1.4/imglib2-7.1.4.jar"
 
       - name: rm file
         shell: bash

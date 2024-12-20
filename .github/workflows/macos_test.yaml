@@ -1,4 +1,4 @@
-name: Macos Tests
+name: Tiling test
 
 on:
   push:
@@ -28,6 +28,10 @@ jobs:
             os: macos-13
             url_file_name: fiji-macosx.zip
             fiji_executable: Contents/MacOS/ImageJ-macosx
+          - name: windows
+            os: windows-latest
+            url_file_name: fiji-win64.zip
+            fiji_executable: ImageJ-win64.exe
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -52,6 +56,7 @@ jobs:
           unzip fiji.zip -d fiji
 
       - name: Build Plugin
+        shell: bash
         run: mvn clean package
 
       - name: Get plugin name and version
@@ -75,15 +80,33 @@ jobs:
         shell: bash
         run: cp target/${{steps.mvn_info.outputs.name}}-${{steps.mvn_info.outputs.version}}.jar fiji/Fiji.app/plugins/
 
-      - name: Copy Plugin to Fiji
+      - name: Checkout JDLL repository
         shell: bash
-        run: cp dl-modelrunner-0.5.11-SNAPSHOT.jar fiji/Fiji.app/plugins/
+        run: |
+          git clone https://github.com/bioimage-io/JDLL.git JDLL
+
+      - name: Build JDLL
+        shell: bash
+        run: |
+          cd JDLL
+          mvn clean install
+          MVN_VERSION=$(mvn -q \
+            -Dexec.executable=echo \
+            -Dexec.args='${project.version}' \
+            --non-recursive \
+            exec:exec)
+          MVN_NAME=$(mvn -q \
+            -Dexec.executable=echo \
+            -Dexec.args='${project.name}' \
+            --non-recursive \
+            exec:exec)
+        cp target/${MVN_NAME}-${MVN_VERSION}.jar ../fiji/Fiji.app/jars/
+
 
       - name: Download dependencies
         shell: bash
         run: |
           curl -L --output-dir fiji/Fiji.app/jars/ -O "https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.13.0/jna-platform-5.13.0.jar"
-          curl -L --output-dir fiji/Fiji.app/jars/ -O "https://maven.scijava.org/content/groups/public/net/imglib2/imglib2/7.1.4/imglib2-7.1.4.jar"
 
       - name: Set up engine using Jython script and Fiji headless
         shell: bash
@@ -101,9 +124,11 @@ jobs:
           ls fiji/Fiji.app/models/brightfield_nuclei
 
       - name: Create a New Directory
+        shell: bash
         run: mkdir -p outputs
 
       - name: Create a New Directory 2
+        shell: bash
         run: mkdir -p outputs_npy
 
       - name: Run macros
@@ -122,8 +147,3 @@ jobs:
         run: |
           python -m pip install numpy
           python .github/check_numpy_vals.py
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: my-artifact-${{ matrix.name }}  # Name of the artifact
-          path: outputs
