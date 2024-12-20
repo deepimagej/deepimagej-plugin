@@ -100,7 +100,7 @@ jobs:
             -Dexec.args='${project.name}' \
             --non-recursive \
             exec:exec)
-        cp target/${MVN_NAME}-${MVN_VERSION}.jar ../fiji/Fiji.app/jars/
+          cp target/${MVN_NAME}-${MVN_VERSION}.jar ../fiji/Fiji.app/jars/
 
       - name: Download dependencies
         shell: bash
