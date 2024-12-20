@@ -69,7 +69,7 @@ jobs:
             exec:exec)
           MVN_NAME=$(mvn -q \
             -Dexec.executable=echo \
-            -Dexec.args='${project.name}' \
+            -Dexec.args='${project.artifactId}' \
             --non-recursive \
             exec:exec)
           echo "version=${MVN_VERSION}" >> $GITHUB_OUTPUT
@@ -97,11 +97,9 @@ jobs:
             exec:exec)
           MVN_NAME=$(mvn -q \
             -Dexec.executable=echo \
-            -Dexec.args='${project.name}' \
+            -Dexec.args='${project.artifactId}' \
             --non-recursive \
             exec:exec)
-          echo ${MVN_NAME}
-          echo ${MVN_VERSION}
           cp target/${MVN_NAME}-${MVN_VERSION}.jar ../fiji/Fiji.app/jars/
 
 
