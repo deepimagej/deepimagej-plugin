@@ -100,6 +100,8 @@ jobs:
             -Dexec.args='${project.name}' \
             --non-recursive \
             exec:exec)
+          echo ${MVN_NAME}
+          echo ${MVN_VERSION}
           cp target/${MVN_NAME}-${MVN_VERSION}.jar ../fiji/Fiji.app/jars/
 
 
