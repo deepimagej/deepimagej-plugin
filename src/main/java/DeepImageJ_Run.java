@@ -58,6 +58,7 @@ import deepimagej.Runner;
 import deepimagej.gui.Gui;
 import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
+import ij.ImageJ;
 import ij.ImagePlus;
 import ij.Macro;
 import ij.WindowManager;
@@ -98,6 +99,7 @@ public class DeepImageJ_Run implements PlugIn {
 	
 	
 	static public void main(String args[]) {
+		new ImageJ();
 		new DeepImageJ_Run().run("");
 	}
 	@Override
@@ -252,7 +254,9 @@ public class DeepImageJ_Run implements PlugIn {
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
 	void executeOnImagePlus(Runner runner, IjAdapter adapter) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
 		ImagePlus imp = WindowManager.getCurrentImage();
-		List<Tensor<T>> inputList = adapter.convertToInputTensors(null, model);
+		Map<String, Object> inputMap = new HashMap<String, Object>();
+		inputMap.put(model.getInputTensors().get(0).getName(), imp);
+		List<Tensor<T>> inputList = adapter.convertToInputTensors(inputMap, model);
 		List<Tensor<R>> res = runner.run(inputList);
 		for (Tensor<R> rr : res) {
 			ImagePlus im = ImPlusRaiManager.convert(rr.getData(), rr.getAxesOrderString());
