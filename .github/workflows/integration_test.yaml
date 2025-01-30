@@ -55,6 +55,17 @@ jobs:
           curl -L -o fiji.zip https://downloads.imagej.net/fiji/latest/${{ matrix.url_file_name }}
           unzip fiji.zip -d fiji
 
+      - name: Install deepimageJ
+        shell: bash
+        run: |
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --update add-update-site "DeepImageJ" "https://sites.imagej.net/DeepImageJ/"
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --update update
+
+      - name: rm deepimagej file
+        shell: bash
+        run: |
+          rm -f /fiji/Fiji.app/plugins/deepimagej-*.jar
+
       - name: Build Plugin
         shell: bash
         run: mvn clean package
@@ -79,38 +90,6 @@ jobs:
       - name: Copy Plugin to Fiji
         shell: bash
         run: cp target/${{steps.mvn_info.outputs.name}}-${{steps.mvn_info.outputs.version}}.jar fiji/Fiji.app/plugins/
-
-      - name: Checkout JDLL repository
-        shell: bash
-        run: |
-          git clone https://github.com/bioimage-io/JDLL.git JDLL
-
-      - name: Build JDLL
-        shell: bash
-        run: |
-          cd JDLL
-          mvn clean install
-          MVN_VERSION=$(mvn -q \
-            -Dexec.executable=echo \
-            -Dexec.args='${project.version}' \
-            --non-recursive \
-            exec:exec)
-          MVN_NAME=$(mvn -q \
-            -Dexec.executable=echo \
-            -Dexec.args='${project.artifactId}' \
-            --non-recursive \
-            exec:exec)
-          cp target/${MVN_NAME}-${MVN_VERSION}.jar ../fiji/Fiji.app/jars/
-
-      - name: Download dependencies
-        shell: bash
-        run: |
-          curl -L --output-dir fiji/Fiji.app/jars/ -O "https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.13.0/jna-platform-5.13.0.jar"
-
-      - name: rm file
-        shell: bash
-        run: |
-          #rm fiji/Fiji.app/jars/imglib2-6.1.0.jar
 
       - name: Set up engine using Jython script and Fiji headless
         shell: bash
