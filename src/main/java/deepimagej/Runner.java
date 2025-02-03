@@ -58,14 +58,17 @@ import javax.swing.SwingUtilities;
 import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
 import ij.ImagePlus;
-import io.bioimage.modelrunner.apposed.appose.Types;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.TensorSpec;
 import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
+import io.bioimage.modelrunner.bioimageio.description.stardist.ModelDescriptorStardistV04;
+import io.bioimage.modelrunner.bioimageio.description.stardist.ModelDescriptorStardistV05;
 import io.bioimage.modelrunner.exceptions.LoadEngineException;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
 import io.bioimage.modelrunner.exceptions.RunModelException;
-import io.bioimage.modelrunner.model.Model;
+import io.bioimage.modelrunner.model.BaseModel;
+import io.bioimage.modelrunner.model.BioimageIoModel;
+import io.bioimage.modelrunner.model.stardist.Stardist2D;
 import io.bioimage.modelrunner.numpy.DecodeNumpy;
 import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.RandomAccessibleInterval;
@@ -76,33 +79,27 @@ public class Runner implements Closeable {
 	
 	private final ModelDescriptor descriptor;
 	
-	private final Model model;
+	private final BaseModel model;
 	
 	private boolean closed = false;
 	
 	private boolean loaded = false;
 
-	private Runner(ModelDescriptor descriptor) {
+	private Runner(ModelDescriptor descriptor) throws LoadEngineException, IOException {
 		this.descriptor = descriptor;
-		try {
-			this.model = Model.createBioimageioModel(new File(descriptor.getModelPath()).getAbsolutePath());
-		} catch (ModelSpecsException | LoadEngineException | IOException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("Something has happened, the model wanted does not "
-					+ "seem to exist anymore or it has been moved." + System.lineSeparator()
-					+ Types.stackTrace(e));
+		if (descriptor instanceof ModelDescriptorStardistV05 || descriptor instanceof ModelDescriptorStardistV04) {
+			model = Stardist2D.fromBioimageioModel(descriptor.getModelPath());
+		} else {
+			model = BioimageIoModel.createBioimageioModel(descriptor.getModelPath());
 		}
 	}
 
-	private Runner(ModelDescriptor descriptor, String enginesPath) {
+	private Runner(ModelDescriptor descriptor, String enginesPath) throws LoadEngineException, IOException {
 		this.descriptor = descriptor;
-		try {
-			this.model = Model.createBioimageioModel(new File(descriptor.getModelPath()).getAbsolutePath(), enginesPath);
-		} catch (ModelSpecsException | LoadEngineException | IOException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("Something has happened, the model wanted does not "
-					+ "seem to exist anymore or it has been moved." + System.lineSeparator()
-					+ Types.stackTrace(e));
+		if (descriptor instanceof ModelDescriptorStardistV05 || descriptor instanceof ModelDescriptorStardistV04) {
+			model = Stardist2D.fromBioimageioModel(descriptor.getModelPath());
+		} else {
+			model = BioimageIoModel.createBioimageioModel(descriptor.getModelPath(), enginesPath);
 		}
 	}
 	
@@ -114,11 +111,11 @@ public class Runner implements Closeable {
 		return this.descriptor;
 	}
 	
-	public static Runner create(ModelDescriptor descriptor) {
+	public static Runner create(ModelDescriptor descriptor) throws LoadEngineException, IOException {
 		return new Runner(descriptor);
 	}
 	
-	public static Runner create(ModelDescriptor descriptor, String enginesPath) {
+	public static Runner create(ModelDescriptor descriptor, String enginesPath) throws LoadEngineException, IOException {
 		return new Runner(descriptor, enginesPath);
 	}
 	
@@ -135,7 +132,7 @@ public class Runner implements Closeable {
 			throw new RuntimeException("The model has already been closed");
 		if (!this.model.isLoaded())
 			throw new RuntimeException("Please first load the model");
-		return model.runBMZ(inputTensors);
+		return model.run(inputTensors);
 	}
 	
 	public <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
@@ -143,7 +140,7 @@ public class Runner implements Closeable {
 		LinkedHashMap<TensorSpec, String> testInputs = getTestInputs();
 		LinkedHashMap<TensorSpec, RandomAccessibleInterval<T>> inputRais = displayTestInputs(testInputs);
 		List<Tensor<T>> inputTensors = createTestTensorList(inputRais);
-		return model.runBMZ(inputTensors);
+		return model.run(inputTensors);
 	}
 	
 	private  <T extends RealType<T> & NativeType<T>> 

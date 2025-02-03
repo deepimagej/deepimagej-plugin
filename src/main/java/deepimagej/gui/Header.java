@@ -219,7 +219,7 @@ public class Header extends JPanel {
         			.stream().filter(ee -> ee.getValue().get().get("total") != null 
         								&& ee.getValue().get().get("total") != 0 && ee.getValue().get().get("total") != 1)
         			.findFirst().orElse(null);
-    		long perc = Math.round(100 * progress / total);
+    		double perc = Math.floor(100 * progress / total);
         	SwingUtilities.invokeLater(() -> {
         		progressBar.setString(perc + "%");
         		progressBar.setValue((int) perc);

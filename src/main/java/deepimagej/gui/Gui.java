@@ -144,6 +144,7 @@ public class Gui extends PlugInFrame {
 	        consumersMap = installer.getBasicEnginesProgress();
 	        installer.basicEngineInstallation();
 	    	SwingUtilities.invokeLater(() -> {
+	    		System.out.println("done");
 	    		this.searchBar.switchButton.setEnabled(true);
 	    		this.runButton.setEnabled(true);
 	    		this.runOnTestButton.setEnabled(true);
@@ -259,11 +260,11 @@ public class Gui extends PlugInFrame {
     private <T extends RealType<T> & NativeType<T>> void runModel() {
     	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressIndeterminate(true));
     	runninThread = new Thread(() -> {
-        	if (runner == null || runner.isClosed()) {
-            	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressLabelText("Loading model..."));
-        		runner = Runner.create(this.modelSelectionPanel.getModels().get(currentIndex));
-        	}
         	try {
+            	if (runner == null || runner.isClosed()) {
+                	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressLabelText("Loading model..."));
+            		runner = Runner.create(this.modelSelectionPanel.getModels().get(currentIndex));
+            	}
         		if (!runner.isLoaded() && GuiUtils.isEDTAlive())
         			runner.load();
         		else if (!GuiUtils.isEDTAlive())
@@ -301,11 +302,11 @@ public class Gui extends PlugInFrame {
     private <T extends RealType<T> & NativeType<T>> void runModelOnTestImage() {
     	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressIndeterminate(true));
     	runninThread = new Thread(() -> {
-        	if (runner == null || runner.isClosed()) {
-            	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressLabelText("Loading model..."));
-        		runner = Runner.create(this.modelSelectionPanel.getModels().get(currentIndex));
-        	}
         	try {
+            	if (runner == null || runner.isClosed()) {
+                	SwingUtilities.invokeLater(() -> this.contentPanel.setProgressLabelText("Loading model..."));
+            		runner = Runner.create(this.modelSelectionPanel.getModels().get(currentIndex));
+            	}
         		if (!runner.isLoaded() && GuiUtils.isEDTAlive())
         			runner.load();
         		else if (!GuiUtils.isEDTAlive())
