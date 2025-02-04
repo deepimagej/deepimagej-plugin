@@ -66,6 +66,7 @@ import ij.plugin.PlugIn;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
 import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
+import io.bioimage.modelrunner.exceptions.LoadEngineException;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
 import io.bioimage.modelrunner.exceptions.RunModelException;
 import io.bioimage.modelrunner.system.PlatformDetection;
@@ -178,7 +179,7 @@ public class DeepImageJ_Run implements PlugIn {
 			} else {
 				executeOnImagePlus(runner, adapter);
 			}
-		} catch (ModelSpecsException | IOException | LoadModelException | RunModelException e) {
+		} catch (IOException | LoadModelException | RunModelException | LoadEngineException e) {
 			e.printStackTrace();
 		}
 	}
@@ -196,7 +197,7 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	void executeOnPath(Runner runner, IjAdapter adapter) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
+	void executeOnPath(Runner runner, IjAdapter adapter) throws FileNotFoundException, RunModelException, IOException {
 		File ff = new File(this.inputFolder);
 		if (ff.isDirectory())
 			this.executeOnFolder(model, runner, adapter);
@@ -206,7 +207,7 @@ public class DeepImageJ_Run implements PlugIn {
 	
 	private static <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
 	List<ImagePlus> executeOnFile(File ff, ModelDescriptor model, Runner runner, IjAdapter adapter) 
-			throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
+			throws FileNotFoundException, RunModelException, IOException {
 		List<ImagePlus> outList = new ArrayList<ImagePlus>();
 		ImagePlus imp = IJ.openImage(ff.getAbsolutePath());
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -222,7 +223,7 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	void executeOnFile(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
+	void executeOnFile(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, RunModelException, IOException {
 		List<ImagePlus> outs = executeOnFile(new File(this.inputFolder), model, runner, adapter);
 		for (ImagePlus im : outs) {
 			if (this.outputFolder != null) {
@@ -235,7 +236,7 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	void executeOnFolder(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
+	void executeOnFolder(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, RunModelException, IOException {
 		for (File ff : new File(this.inputFolder).listFiles()) {
 			List<ImagePlus> outs = executeOnFile(ff, model, runner, adapter);
 			
@@ -252,7 +253,7 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	void executeOnImagePlus(Runner runner, IjAdapter adapter) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
+	void executeOnImagePlus(Runner runner, IjAdapter adapter) throws FileNotFoundException, RunModelException, IOException {
 		ImagePlus imp = WindowManager.getCurrentImage();
 		Map<String, Object> inputMap = new HashMap<String, Object>();
 		inputMap.put(model.getInputTensors().get(0).getName(), imp);

@@ -129,7 +129,7 @@ public class Runner implements Closeable {
 	}
 	
 	public <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	List<Tensor<R>> run(List<Tensor<T>> inputTensors) throws FileNotFoundException, ModelSpecsException, RunModelException, IOException {
+	List<Tensor<R>> run(List<Tensor<T>> inputTensors) throws FileNotFoundException, RunModelException, IOException {
 		if (closed)
 			throw new RuntimeException("The model has already been closed");
 		if (!this.model.isLoaded())
