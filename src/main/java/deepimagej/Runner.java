@@ -67,6 +67,7 @@ import io.bioimage.modelrunner.exceptions.RunModelException;
 import io.bioimage.modelrunner.model.BaseModel;
 import io.bioimage.modelrunner.model.BioimageIoModel;
 import io.bioimage.modelrunner.model.stardist.Stardist2D;
+import io.bioimage.modelrunner.model.stardist.StardistAbstract;
 import io.bioimage.modelrunner.numpy.DecodeNumpy;
 import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.RandomAccessibleInterval;
@@ -86,7 +87,7 @@ public class Runner implements Closeable {
 	private Runner(ModelDescriptor descriptor) throws LoadEngineException, IOException {
 		this.descriptor = descriptor;
 		if (descriptor.getModelFamily().equals(ModelDescriptor.STARDIST)) {
-			model = Stardist2D.fromBioimageioModel(descriptor.getModelPath());
+			model = StardistAbstract.fromBioimageioModel(descriptor);
 		} else if (descriptor.getModelFamily().equals(ModelDescriptor.BIOIMAGEIO)) {
 			model = BioimageIoModel.createBioimageioModel(descriptor.getModelPath());
 		} else {
@@ -97,7 +98,7 @@ public class Runner implements Closeable {
 	private Runner(ModelDescriptor descriptor, String enginesPath) throws LoadEngineException, IOException {
 		this.descriptor = descriptor;
 		if (descriptor.getModelFamily().equals(ModelDescriptor.STARDIST)) {
-			model = Stardist2D.fromBioimageioModel(descriptor.getModelPath());
+			model = Stardist2D.fromBioimageioModel(descriptor);
 		} else if (descriptor.getModelFamily().equals(ModelDescriptor.BIOIMAGEIO)) {
 			model = BioimageIoModel.createBioimageioModel(descriptor.getModelPath(), enginesPath);
 		} else {
