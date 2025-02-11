@@ -152,7 +152,6 @@ public class Gui extends PlugInFrame {
     	        try {
     				installer.basicEngineInstallation();
     			} catch (InterruptedException e) {
-    				e.printStackTrace();
     			}
         	}
 	    	SwingUtilities.invokeLater(() -> {
