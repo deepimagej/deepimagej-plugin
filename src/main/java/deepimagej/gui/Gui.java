@@ -135,17 +135,26 @@ public class Gui extends PlugInFrame {
     		this.runButton.setEnabled(false);
     		this.runOnTestButton.setEnabled(false);
     	});
-		titlePanel.setGUIStartInstallation();
     	engineInstallThread = new Thread(() -> {
 	        EngineInstall installer = EngineInstall.createInstaller(this.enginesDir);
 	        installer.checkBasicEngineInstallation();
-	        installer.setEngineInstalledConsumer(titlePanel.createStringConsumer());
-	        installer.setProgresConsumer(titlePanel.createProgressConsumer());
-	        try {
-				installer.basicEngineInstallation();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+        	while (titlePanel == null) {
+        		try {
+					Thread.sleep(30);
+				} catch (InterruptedException e) {
+					return;
+				}
+        	}
+        	if (installer.getMissingEngines().size() != 0) {
+        		titlePanel.setGUIStartInstallation();
+    	        installer.setEngineInstalledConsumer(titlePanel.createStringConsumer());
+    	        installer.setProgresConsumer(titlePanel.createProgressConsumer());
+    	        try {
+    				installer.basicEngineInstallation();
+    			} catch (InterruptedException e) {
+    				e.printStackTrace();
+    			}
+        	}
 	    	SwingUtilities.invokeLater(() -> {
 	    		System.out.println("done");
 	    		this.searchBar.switchButton.setEnabled(true);
@@ -154,7 +163,6 @@ public class Gui extends PlugInFrame {
 	    	});
 	    });
     	engineInstallThread.start();
-    	trackEngineInstallThread.start();
     }
     
     private void loadLocalModels() {
