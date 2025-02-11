@@ -81,7 +81,7 @@ public class DefaultIcon {
         
         // Check if already being processed
         CompletableFuture<ImageIcon> pending = PENDING_ICONS.get(size);
-        if (pending == null) {
+        if (pending == null && !scaleExecutor.isShutdown()) {
             // Start new scaling operation
             pending = CompletableFuture.supplyAsync(() -> {
                 Image scaledImage = MASTER_IMAGE.getScaledInstance(width, height, Image.SCALE_SMOOTH);
@@ -125,7 +125,7 @@ public class DefaultIcon {
         Dimension size = new Dimension(width, height);
         
         CompletableFuture<ImageIcon> pending = PENDING_ICONS.get(size);
-        if (pending != null) {
+        if (pending != null && !scaleExecutor.isShutdown()) {
             pending.thenAcceptAsync(icon -> {
                 SwingUtilities.invokeLater(() -> callback.accept(icon));
             }, scaleExecutor);
