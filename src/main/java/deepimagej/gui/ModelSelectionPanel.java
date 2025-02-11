@@ -232,7 +232,7 @@ public class ModelSelectionPanel extends JPanel {
 
     private int getWrappedIndex(int index) {
         int size = getModelNames().size();
-        return (index % size + size) % size;
+        return size == 0 ? size : (index % size + size) % size;
     }
     
     public List<String> getModelNames() {

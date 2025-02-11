@@ -551,11 +551,13 @@ public class Gui extends PlugInFrame {
 					return;
 				}
             	List<ModelDescriptor> foundModels = new ArrayList<>(searchBar.getBMZModels());
-            	SwingUtilities.invokeLater(() -> setModelsInGui(foundModels));
+            	if (foundModels.size() > 0)
+            		SwingUtilities.invokeLater(() -> setModelsInGui(foundModels));
     		}
         	List<ModelDescriptor> foundModels = searchBar.getBMZModels();
         	SwingUtilities.invokeLater(() -> {
-        		setModelsInGui(foundModels);
+        		if (foundModels.size() > 0)
+            		setModelsInGui(foundModels);
             	this.contentPanel.setProgressIndeterminate(false);
             	this.contentPanel.setDeterminatePorgress(0);
             	this.contentPanel.setProgressBarText("");
