@@ -197,9 +197,9 @@ public class Header extends JPanel {
 			SwingUtilities.invokeLater(() -> {
 				if (progressBar.isIndeterminate())
 					progressBar.setIndeterminate(false);
-				int perc = (int) Math.floor(dd * 100);
+				double perc = Math.floor(dd * 1000) / 10;
 				progressBar.setString(perc + "%");
-	    		progressBar.setValue(perc);
+	    		progressBar.setValue((int) perc);
 	    		if (perc == 100)
 	    			cardLayout.show(progressPanelCard, "invisible");
 			});
