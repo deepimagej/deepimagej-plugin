@@ -51,15 +51,14 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 import javax.swing.Icon;
 import javax.swing.JButton;
@@ -79,7 +78,7 @@ import deepimagej.Constants;
 import deepimagej.tools.FileTools;
 import ij.IJ;
 import ij.plugin.frame.PlugInFrame;
-import io.bioimage.modelrunner.engine.installation.FileDownloader;
+import io.bioimage.modelrunner.download.FileDownloader;
 import io.bioimage.modelrunner.system.PlatformDetection;
 import io.bioimage.modelrunner.utils.ZipUtils;
 
@@ -336,8 +335,7 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
 		    	SwingUtilities.invokeLater(() -> {
 		    		this.installButton.setEnabled(true);
 		    	});
-			} catch (IOException e) {
-				SwingUtilities.invokeLater(() -> IJ.error("Error installing model from url."));
+			} catch (IOException | ExecutionException e) {
 				e.printStackTrace();
 			} catch (InterruptedException e) {
 				return;
@@ -358,46 +356,36 @@ public class Install_From_URL_Or_Path extends PlugInFrame {
 	 * models folder of Fiji/ImageJ
 	 * @param sourceURL
 	 * 	source url of a zip file that is going to be downloaded into the models folder
-	 * @throws InterruptedException 
-	 * @throws IOException 
+	 * @throws IOException
+	 * @throws ExecutionException 
+	 * @throws IOException
 	 */
-	private void installModelUrl(String sourceURL) throws InterruptedException, IOException {
-		URL url = new URL(sourceURL);
-		
-		String fileName = createFileName(sourceURL);
-		long fileSize = FileDownloader.getFileSize(url);
-		
-		
-		correctlyDownloaded = false;
-		Thread dwnldThread = new Thread(() -> {
-			try (
-					ReadableByteChannel rbc = Channels.newChannel(url.openStream());
-					FileOutputStream fos = new FileOutputStream(fileName);
-					) {
-				FileDownloader fd = new FileDownloader(rbc, fos);
-				fd.call(this.installationThread);
-				correctlyDownloaded = true;
-			} catch (IOException e) {
-				e.printStackTrace();
-			} catch (InterruptedException e) {
-			}
-		});
-		dwnldThread.start();
-		
-		while (dwnldThread.isAlive()) {
-			Thread.sleep(100);
-			long nSize = new File(fileName).length();
-			double progress = Math.round(((double) nSize) * 100 / fileSize);
-			SwingUtilities.invokeLater(() -> {
-				progressBar.setValue((int) progress);
-				progressBar.setString("Download progress: " + progress + "%");
-			});
+	private void installModelUrl(String sourceURL) throws IOException, ExecutionException, InterruptedException {
+		String fileName = null;
+		try {
+			
+			fileName = createFileName(sourceURL);
+			Consumer<Double> consumer = (c) -> {
+				SwingUtilities.invokeLater(() -> {
+					int progress = (int) Math.round(100 * c);
+					progressBar.setValue(progress);
+					progressBar.setString("Download progress: " + progress + "%");
+				});
+			};
+			
+			FileDownloader fd = new FileDownloader(sourceURL, new File(fileName));
+			fd.setPartialProgressConsumer(consumer);
+			fd.download();
+		} catch (IOException | ExecutionException e) {
+			IJ.error("Error downloading the model");
+			throw e;
 		}
-		if (!correctlyDownloaded) {
-			IJ.error("The model was not correctly downloaded, please try again.");
-			return;
+		try {
+			unzip(fileName);
+		} catch (IOException | InterruptedException e) {
+			IJ.error("Error unzipping the model");
+			throw e;
 		}
-		unzip(fileName);
 	}
 	
 	/**

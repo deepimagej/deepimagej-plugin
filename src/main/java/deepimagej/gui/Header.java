@@ -8,10 +8,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.io.File;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
+import java.util.function.Consumer;
 
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -20,9 +17,6 @@ import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
 import javax.swing.border.LineBorder;
-
-import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
-import io.bioimage.modelrunner.engine.installation.EngineInstall;
 
 public class Header extends JPanel {
 	
@@ -177,10 +171,8 @@ public class Header extends JPanel {
         
         return progressPanel;
 	}
-    
-    public void trackEngineInstallation(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
-    	if (consumersMap.keySet().size() == 0)
-    		return;
+	
+	protected void setGUIStartInstallation() {
     	SwingUtilities.invokeLater(() -> {
     		progressBar.setIndeterminate(true);
             progressBar.setStringPainted(true);
@@ -189,62 +181,29 @@ public class Header extends JPanel {
     		cardLayout.show(progressPanelCard, "visible");
 
     	});
-		if (!checkDownloadStarted(consumersMap))
-			return;
-		SwingUtilities.invokeLater(() -> {
-    		progressBar.setIndeterminate(false);
-    		progressLabel.setText("Installing DL engines...");
-		});
-		trackProgress(consumersMap);
-    }
-
-    private void trackProgress(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
-    	double total = consumersMap.entrySet().stream()
-				.map(ee -> ee.getValue().get().get("total" + EngineInstall.NBYTES_SUFFIX))
-				.filter(Objects::nonNull).mapToDouble(value -> (Double) value).sum();
-    	while (GuiUtils.isEDTAlive()) {
-    		try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				return;
-			}
-        	double progress = consumersMap.entrySet().stream()
-    				.map(ee -> {
-    					Double totalPerc = ee.getValue().get().get("total");
-    					totalPerc = totalPerc == null ? 0 : totalPerc;
-    					return ee.getValue().get().get("total" + EngineInstall.NBYTES_SUFFIX) * totalPerc;
-    				})
-    				.filter(Objects::nonNull).mapToDouble(value -> (Double) value).sum();
-        	Entry<String, TwoParameterConsumer<String, Double>> entry = consumersMap.entrySet()
-        			.stream().filter(ee -> ee.getValue().get().get("total") != null 
-        								&& ee.getValue().get().get("total") != 0 && ee.getValue().get().get("total") != 1)
-        			.findFirst().orElse(null);
-    		double perc = Math.floor(100 * progress / total);
-        	SwingUtilities.invokeLater(() -> {
-        		progressBar.setString(perc + "%");
-        		progressBar.setValue((int) perc);
-        		if (entry != null)
-        			this.progressLabel.setText("Installing " + new File(entry.getKey()).getName());
-        	});
-        	if (perc == 100) {
-            	SwingUtilities.invokeLater(() -> cardLayout.show(progressPanelCard, "invisible"));
-        		return;
-        	}
-    	}
-    } 
-    
-    private static boolean checkDownloadStarted(Map<String, TwoParameterConsumer<String, Double>> consumersMap) {
-		boolean startedDownload = false;
-    	while (!startedDownload && GuiUtils.isEDTAlive()) {
-    		try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				return false;
-			}
-    		startedDownload = consumersMap.entrySet().stream()
-    				.filter(ee -> ee.getValue().get().get("total") != null).findAny().orElse(null) != null;
-    	}
-    	return startedDownload;
-    }
-
+	}
+	
+	public Consumer<String> createStringConsumer(){
+		Consumer<String> consumer = (ss) -> {
+			SwingUtilities.invokeLater(() -> {
+    			this.progressLabel.setText("Installing " + new File(ss).getName());
+			});
+		};
+		return consumer;
+	}
+	
+	public Consumer<Double> createProgressConsumer(){
+		Consumer<Double> consumer = (dd) -> {
+			SwingUtilities.invokeLater(() -> {
+				if (progressBar.isIndeterminate())
+					progressBar.setIndeterminate(false);
+				int perc = (int) Math.floor(dd * 100);
+				progressBar.setString(perc + "%");
+	    		progressBar.setValue(perc);
+	    		if (perc == 100)
+	    			cardLayout.show(progressPanelCard, "invisible");
+			});
+		};
+		return consumer;
+	}
 }

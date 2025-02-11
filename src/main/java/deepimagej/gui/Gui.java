@@ -5,8 +5,6 @@ import ij.plugin.frame.PlugInFrame;
 import io.bioimage.modelrunner.bioimageio.BioimageioRepo;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
-import io.bioimage.modelrunner.bioimageio.download.DownloadTracker;
-import io.bioimage.modelrunner.bioimageio.download.DownloadTracker.TwoParameterConsumer;
 import io.bioimage.modelrunner.engine.installation.EngineInstall;
 import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.type.NativeType;
@@ -40,7 +38,7 @@ import deepimagej.tools.ImPlusRaiManager;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.function.Consumer;
 
 public class Gui extends PlugInFrame {
 
@@ -69,7 +67,6 @@ public class Gui extends PlugInFrame {
     private JButton runOnTestButton;
     private JButton cancelButton;
     private Layout layout = Layout.createVertical(LAYOUT_WEIGHTS);
-	private Map<String, TwoParameterConsumer<String, Double>> consumersMap;
 
     private static final double FOOTER_VRATIO = 0.06;
     private static final double[] LAYOUT_WEIGHTS = new double[] {0.1, 0.05, 0.8, 0.05};
@@ -138,11 +135,17 @@ public class Gui extends PlugInFrame {
     		this.runButton.setEnabled(false);
     		this.runOnTestButton.setEnabled(false);
     	});
+		titlePanel.setGUIStartInstallation();
     	engineInstallThread = new Thread(() -> {
 	        EngineInstall installer = EngineInstall.createInstaller(this.enginesDir);
 	        installer.checkBasicEngineInstallation();
-	        consumersMap = installer.getBasicEnginesProgress();
-	        installer.basicEngineInstallation();
+	        installer.setEngineInstalledConsumer(titlePanel.createStringConsumer());
+	        installer.setProgresConsumer(titlePanel.createProgressConsumer());
+	        try {
+				installer.basicEngineInstallation();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 	    	SwingUtilities.invokeLater(() -> {
 	    		System.out.println("done");
 	    		this.searchBar.switchButton.setEnabled(true);
@@ -151,17 +154,6 @@ public class Gui extends PlugInFrame {
 	    	});
 	    });
     	engineInstallThread.start();
-	    
-    	trackEngineInstallThread = new Thread(() -> {
-	    	while (consumersMap == null || this.titlePanel == null) {
-	    		try {
-					Thread.sleep(30);
-				} catch (InterruptedException e) {
-					return;
-				}
-	    	}
-	        this.trackEngineInstallation();
-	    });
     	trackEngineInstallThread.start();
     }
     
@@ -418,10 +410,6 @@ public class Gui extends PlugInFrame {
         }
     }
     
-    public void trackEngineInstallation() {
-    	this.titlePanel.trackEngineInstallation(consumersMap);
-    }
-    
     private void searchModels() {
     	List<ModelDescriptor> models = this.searchBar.performSearch();
     	if (models.size() == 0) {
@@ -578,45 +566,31 @@ public class Gui extends PlugInFrame {
     
     private void installSelectedModel() {
     	ModelDescriptor selectedModel = modelSelectionPanel.getModels().get(this.currentIndex);
-    	TwoParameterConsumer<String, Double> progress = DownloadTracker.createConsumerProgress();
-    	this.runOnTestButton.setEnabled(false);
-    	this.searchBar.setBarEnabled(false);
-    	this.modelSelectionPanel.setArrowsEnabled(false);
-    	this.contentPanel.setProgressLabelText("Installing ...");
-    	
-    	dwnlThread = new Thread(() -> {
-        	try {
-    			String modelFolder = BioimageioRepo.downloadModel(selectedModel, new File(modelsDir).getAbsolutePath(), progress);
-    			selectedModel.addModelPath(Paths.get(modelFolder));
-    		} catch (IOException | InterruptedException e) {
-    			e.printStackTrace();
-    			return;
-    		}
+    	Consumer<Double> progress = (c) -> {
+			SwingUtilities.invokeLater(() -> contentPanel.setDeterminatePorgress((int) (c * 100)));
+    	};
+    	SwingUtilities.invokeLater(() -> {
+        	this.runOnTestButton.setEnabled(false);
+        	this.searchBar.setBarEnabled(false);
+        	this.modelSelectionPanel.setArrowsEnabled(false);
+        	this.contentPanel.setProgressLabelText("Installing ...");
     	});
-    	
-    	Thread reportThread = new Thread(() -> {
-    		while (dwnlThread.isAlive()) {
-    			try {
-					Thread.sleep(150);
-				} catch (InterruptedException e) {
-					return;
-				}
-    			Double val = progress.get().get("total");
-    			long perc = Math.round((val == null ? 0.0 : val) * 100);
-    			SwingUtilities.invokeLater(() -> contentPanel.setDeterminatePorgress((int) perc));
-    		}
-			Double val = progress.get().get("total");
-			long perc = Math.round((val == null ? 0.0 : val) * 100);
+		this.dwnlThread = new Thread(() -> {
+			try {
+				String modelFolder = BioimageioRepo.downloadModel(selectedModel, new File(modelsDir).getAbsolutePath(), progress);
+				selectedModel.addModelPath(Paths.get(modelFolder));
+			} catch (IOException | InterruptedException e) {
+				e.printStackTrace();
+			}
+
 			SwingUtilities.invokeLater(() -> {
-				contentPanel.setDeterminatePorgress((int) perc);
 				runOnTestButton.setEnabled(true);
 		    	this.searchBar.setBarEnabled(true);
 		    	this.modelSelectionPanel.setArrowsEnabled(true);
 		    	this.contentPanel.setProgressLabelText("");
 			});
-    	});
-    	dwnlThread.start();
-    	reportThread.start();
+		});
+		dwnlThread.start();
     }
     
     private void onClose() {
