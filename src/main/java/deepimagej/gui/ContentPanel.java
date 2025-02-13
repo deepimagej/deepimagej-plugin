@@ -24,8 +24,10 @@ import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 
 import deepimagej.Constants;
-import deepimagej.gui.ImageLoaderWorker.ImageLoadCallback;
-import deepimagej.gui.ModelInfoWorker.TextLoadCallback;
+import deepimagej.gui.workers.ImageLoaderWorker;
+import deepimagej.gui.workers.ImageLoaderWorker.ImageLoadCallback;
+import deepimagej.gui.workers.ModelInfoWorker;
+import deepimagej.gui.workers.ModelInfoWorker.TextLoadCallback;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 
 public class ContentPanel extends JPanel {
@@ -42,7 +44,7 @@ public class ContentPanel extends JPanel {
     private final long parentHeight;
     private final long parentWidth;
     
-    protected final static String INSTALL_INSTRUCTIONS = ""
+    public final static String INSTALL_INSTRUCTIONS = ""
     		+ "No models found at: " + Constants.FIJI_FOLDER + File.separator + "models<br><br>"
     		+ "Please, install manually or download models from the Bioimage.io.<br><br>"
     		+ "To download models from the Bioimage.io, click on the Bioimage.io button on the top right.";

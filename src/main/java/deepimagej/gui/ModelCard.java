@@ -13,7 +13,8 @@ import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import deepimagej.gui.ImageLoaderWorker.ImageLoadCallback;
+import deepimagej.gui.workers.ImageLoaderWorker;
+import deepimagej.gui.workers.ImageLoaderWorker.ImageLoadCallback;
 
 public class ModelCard extends JPanel {
     

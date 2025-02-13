@@ -1,8 +1,9 @@
-package deepimagej.gui;
+package deepimagej.gui.workers;
 
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
+import deepimagej.gui.ContentPanel;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 
 public class ModelInfoWorker extends SwingWorker<String, Void> {

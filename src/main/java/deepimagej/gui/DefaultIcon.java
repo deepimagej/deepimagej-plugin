@@ -54,7 +54,7 @@ public class DefaultIcon {
         }
     }
 
-    static ImageIcon getDefaultIcon(int width, int height) {
+    public static ImageIcon getDefaultIcon(int width, int height) {
         try {
             URL defaultIconUrl = Gui.class.getClassLoader().getResource(DIJ_ICON_PATH);
             if (defaultIconUrl == null) {

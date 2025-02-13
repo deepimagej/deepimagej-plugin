@@ -1,11 +1,10 @@
-package deepimagej.gui;
+package deepimagej.gui.workers;
 
 import java.awt.Image;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -19,6 +18,8 @@ import javax.imageio.stream.ImageInputStream;
 import javax.swing.ImageIcon;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+
+import deepimagej.gui.DefaultIcon;
 
 public class ImageLoaderWorker extends SwingWorker<ImageIcon, Void> {
 	
@@ -111,7 +112,7 @@ public class ImageLoaderWorker extends SwingWorker<ImageIcon, Void> {
         }
     }
     
-    protected static ImageIcon createScaledIcon(URL imagePath, int logoWidth, int logoHeight) {
+    public static ImageIcon createScaledIcon(URL imagePath, int logoWidth, int logoHeight) {
         if (imagePath == null) {
             return DefaultIcon.getDefaultIcon(logoWidth, logoHeight);
         }

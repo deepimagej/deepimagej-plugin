@@ -1,6 +1,7 @@
 package deepimagej.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Point;
 import java.awt.Window;
 import java.awt.event.MouseAdapter;
@@ -9,6 +10,7 @@ import java.awt.event.MouseMotionAdapter;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.Consumer;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -16,6 +18,10 @@ import javax.swing.JEditorPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 
@@ -25,6 +31,7 @@ public class EnvironmentInstaller extends JPanel {
     private ModelDescriptor descriptor;
 	private CountDownLatch latch;
     private Thread parentThread;
+    private Consumer<String> consumer;
     private JEditorPane htmlPane;
     private JButton cancelButton;
     private Point initialClick;
@@ -33,6 +40,11 @@ public class EnvironmentInstaller extends JPanel {
     	this.descriptor = descriptor;
         this.latch = latch;
         this.parentThread = parentThread;
+        
+        consumer = (str) -> {
+        	appendText(str, Color.BLACK);
+        	System.out.println(str);
+        };
 
         setLayout(new BorderLayout());
 
@@ -74,7 +86,23 @@ public class EnvironmentInstaller extends JPanel {
         EnvironmentInstaller installer = new EnvironmentInstaller(descriptor, latch, parentThread);
         return installer;
     }
+    
+    public ModelDescriptor getDescriptor() {
+    	return this.descriptor;
+    }
 
+    public CountDownLatch getCountDownLatch() {
+    	return this.latch;
+    }
+    
+    public Thread getReferenceThread() {
+    	return this.parentThread;
+    }
+    
+    public Consumer<String> getConsumer(){
+    	return consumer;
+    }
+    
     public void cancelInstallation() {
         if (parentThread != null && parentThread.isAlive()) {
             parentThread.interrupt(); // Interrupt the installation thread
@@ -105,6 +133,20 @@ public class EnvironmentInstaller extends JPanel {
         });
 
     	parentFrame.setVisible(true);
+    }
+
+	// Method to append text with a specific color to the JEditorPane
+    private void appendText(String text, Color color) {
+        // Get the current HTML content
+        String currentText = htmlPane.getText();
+
+        // Convert the text to HTML with the specified color
+        String colorCode = (color == Color.RED) ? "red" : "black";
+        String newText = "<p style=\"color:" + colorCode + ";\">" + text + "</p>";
+
+        // Append the new text to the current content
+        String updatedText = currentText.substring(0, currentText.lastIndexOf("</body>")) + newText + "</body></html>";
+        htmlPane.setText(updatedText);
     }
     
     public void install() {
