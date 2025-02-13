@@ -38,6 +38,7 @@ import deepimagej.tools.ImPlusRaiManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
 public class Gui extends PlugInFrame {
@@ -572,17 +573,30 @@ public class Gui extends PlugInFrame {
     	updaterThread.start();
     }
     
+    private void startModelInstallation(boolean isStarting) {
+    	SwingUtilities.invokeLater(() -> {
+        	this.runOnTestButton.setEnabled(!isStarting);
+        	this.searchBar.setBarEnabled(!isStarting);
+        	this.modelSelectionPanel.setArrowsEnabled(!isStarting);
+        	if (isStarting)
+        		this.contentPanel.setProgressLabelText("Installing ...");
+        	else
+		    	this.contentPanel.setProgressLabelText("");
+    	});
+    }
+    
+    private void checkModelInstallationFinished(CountDownLatch latch) {
+    	if (latch.getCount() == 0)
+    		startModelInstallation(false);
+    }
+    
     private void installSelectedModel() {
     	ModelDescriptor selectedModel = modelSelectionPanel.getModels().get(this.currentIndex);
     	Consumer<Double> progress = (c) -> {
 			SwingUtilities.invokeLater(() -> contentPanel.setDeterminatePorgress((int) (c * 100)));
     	};
-    	SwingUtilities.invokeLater(() -> {
-        	this.runOnTestButton.setEnabled(false);
-        	this.searchBar.setBarEnabled(false);
-        	this.modelSelectionPanel.setArrowsEnabled(false);
-        	this.contentPanel.setProgressLabelText("Installing ...");
-    	});
+    	startModelInstallation(true);
+    	CountDownLatch latch = new CountDownLatch(2);
 		this.dwnlThread = new Thread(() -> {
 			try {
 				String modelFolder = BioimageioRepo.downloadModel(selectedModel, new File(modelsDir).getAbsolutePath(), progress);
@@ -590,6 +604,26 @@ public class Gui extends PlugInFrame {
 			} catch (IOException | InterruptedException e) {
 				e.printStackTrace();
 			}
+			latch.countDown();
+			checkModelInstallationFinished(latch);
+		});
+		dwnlThread.start();
+    }
+    
+    private void installExtra(ModelDescriptor descriptor, CountDownLatch latch) {
+    	String msg = "Installation of Python environments might take up to 20 minutes.";
+    	if (descriptor.isStardist() && YesNoDialog.askQuestion("Install StarDist Python", msg)) {
+    		new Thread(() -> {
+    			
+    		});
+    	} else if (descriptor.isCellpose() && YesNoDialog.askQuestion("Install Cellpose Python", msg)) {
+    		
+    	} else {
+			latch.countDown();
+			checkModelInstallationFinished(latch);
+    		return;
+    	}
+    	Thread pythonThread = new Thread(() -> {
 
 			SwingUtilities.invokeLater(() -> {
 				runOnTestButton.setEnabled(true);
