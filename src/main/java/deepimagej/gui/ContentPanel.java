@@ -9,6 +9,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.io.File;
 import java.net.URL;
 
 import javax.swing.Icon;
@@ -22,6 +23,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 
+import deepimagej.Constants;
 import deepimagej.gui.ImageLoaderWorker.ImageLoadCallback;
 import deepimagej.gui.ModelInfoWorker.TextLoadCallback;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
@@ -39,6 +41,11 @@ public class ContentPanel extends JPanel {
     private ImageLoaderWorker imageWorker;
     private final long parentHeight;
     private final long parentWidth;
+    
+    protected final static String INSTALL_INSTRUCTIONS = ""
+    		+ "No models found at: " + Constants.FIJI_FOLDER + File.separator + "models<br><br>"
+    		+ "Please, install manually or download models from the Bioimage.io.<br><br>"
+    		+ "To download models from the Bioimage.io, click on the Bioimage.io button on the top right.";
 
 	private final static double MODEL_VRATIO = 0.4;
 	private final static double PROGRESS_VRATIO = 0.2;

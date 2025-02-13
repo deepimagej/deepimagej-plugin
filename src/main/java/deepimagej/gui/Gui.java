@@ -72,7 +72,7 @@ public class Gui extends PlugInFrame {
     private static final double[] LAYOUT_WEIGHTS = new double[] {0.1, 0.05, 0.8, 0.05};
 
     protected static final String LOADING_STR = "loading...";
-    protected static final String NOT_FOUND_STR = "not found";
+    protected static final String NOT_FOUND_STR = "no models found";
     protected static final String LOADING_GIF_PATH = "loading...";
     protected static final String LOCAL_STR = "Local";
     protected static final String BIOIMAGEIO_STR = "Bioimage.io";

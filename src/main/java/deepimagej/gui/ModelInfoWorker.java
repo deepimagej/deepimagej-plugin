@@ -20,7 +20,7 @@ public class ModelInfoWorker extends SwingWorker<String, Void> {
         // Perform the time-consuming task of generating the info text
         if (model == null) {
             // Return default text if model is null
-            return "Detailed model description...";
+            return ContentPanel.INSTALL_INSTRUCTIONS;
         } else {
             // Generate the info from the model
             return model.buildInfo();

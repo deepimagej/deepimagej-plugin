@@ -44,8 +44,11 @@
 
 package deepimagej;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.Properties;
+
+import io.bioimage.modelrunner.system.PlatformDetection;
 
 
 public class Constants {
@@ -53,6 +56,8 @@ public class Constants {
 	public static String url = "https://deepimagej.github.io/deepimagej/";
 	public static String DIJ_VERSION = getVersion();
 	public static String DIJ_NAME = "deepImageJ";
+	
+	public static String FIJI_FOLDER = getFijiFolder();
 	
     private static String getVersion() {
         try (InputStream input = Constants.class.getResourceAsStream("/.deepimagej_properties")) {
@@ -63,5 +68,27 @@ public class Constants {
             return "unknown";
         }
     }
+    
+
+	
+	private static String getFijiFolder() {
+		File jvmFolder = new File(System.getProperty("java.home"));
+		String imageJExecutable;
+		if (PlatformDetection.isWindows())
+			imageJExecutable = "ImageJ-win64.exe";
+		else if (PlatformDetection.isLinux())
+			imageJExecutable = "ImageJ-linux64";
+		else if (PlatformDetection.isMacOS())
+			imageJExecutable = "Contents/MacOS/ImageJ-macosx";
+		else
+			throw new IllegalArgumentException("Unsupported Operating System");
+		while (true && jvmFolder != null) {
+			jvmFolder = jvmFolder.getParentFile();
+			if (new File(jvmFolder + File.separator + imageJExecutable).isFile())
+				return jvmFolder.getAbsolutePath();
+		}
+		return new File("").getAbsolutePath();
+		// TODO remove throw new RuntimeException("Unable to find the path to the ImageJ/Fiji being used.");
+	}
     
 }
