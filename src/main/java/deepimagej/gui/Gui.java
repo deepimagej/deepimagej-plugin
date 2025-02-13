@@ -26,6 +26,8 @@ import java.nio.file.Paths;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -34,6 +36,7 @@ import javax.swing.border.EmptyBorder;
 import deepimagej.Constants;
 import deepimagej.Runner;
 import deepimagej.gui.adapter.ImageAdapter;
+import deepimagej.gui.workers.InstallEnvWorker;
 import deepimagej.tools.ImPlusRaiManager;
 
 import java.util.ArrayList;
@@ -608,31 +611,29 @@ public class Gui extends PlugInFrame {
 			checkModelInstallationFinished(latch);
 		});
 		dwnlThread.start();
+		installEnv(selectedModel, latch);
     }
     
-    private void installExtra(ModelDescriptor descriptor, CountDownLatch latch) {
+    private void installEnv(ModelDescriptor descriptor, CountDownLatch latch) {
     	String msg = "Installation of Python environments might take up to 20 minutes.";
-    	if (descriptor.isStardist() && YesNoDialog.askQuestion("Install StarDist Python", msg)) {
-    		new Thread(() -> {
-    			
-    		});
-    	} else if (descriptor.isCellpose() && YesNoDialog.askQuestion("Install Cellpose Python", msg)) {
-    		
-    	} else {
+    	String question = String.format("Install %s Python", descriptor.getModelFamily());
+    	if (!YesNoDialog.askQuestion(question, msg)) {
 			latch.countDown();
 			checkModelInstallationFinished(latch);
     		return;
     	}
-    	Thread pythonThread = new Thread(() -> {
-
-			SwingUtilities.invokeLater(() -> {
-				runOnTestButton.setEnabled(true);
-		    	this.searchBar.setBarEnabled(true);
-		    	this.modelSelectionPanel.setArrowsEnabled(true);
-		    	this.contentPanel.setProgressLabelText("");
-			});
-		});
-		dwnlThread.start();
+		EnvironmentInstaller installerPanel = EnvironmentInstaller.create(descriptor, latch, Thread.currentThread());
+		JDialog installerFrame = new JDialog();
+		installerFrame.setTitle("Installing " + descriptor.getName());
+		installerFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		installerPanel.addToFrame(installerFrame);
+    	installerFrame.setSize(400, 300);
+    	Runnable callback = () -> {
+    		checkModelInstallationFinished(latch);
+    		if (installerFrame.isVisible())
+    			installerFrame.dispose();
+    	};
+    	new InstallEnvWorker(installerPanel, callback).execute();
     }
     
     private void onClose() {
