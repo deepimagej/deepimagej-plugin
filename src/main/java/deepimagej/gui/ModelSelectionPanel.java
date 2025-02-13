@@ -126,8 +126,9 @@ public class ModelSelectionPanel extends JPanel {
 	}
     
     private void setCardsData() {
-    	this.modelNames = models.stream().map(mm -> mm == null ? defaultString : mm.getName()).collect(Collectors.toList());
-    	this.modelNicknames = models.stream().map(mm -> mm == null ? defaultString : mm.getNickname()).collect(Collectors.toList());
+    	// TODO separate between not found and loading
+    	this.modelNames = models.stream().map(mm -> mm == null ? Gui.NOT_FOUND_STR : mm.getName()).collect(Collectors.toList());
+    	this.modelNicknames = models.stream().map(mm -> mm == null ? Gui.NOT_FOUND_STR : mm.getNickname()).collect(Collectors.toList());
     	this.modelImagePaths = models.stream().map(mm -> {
     		if (mm == null || mm.getCovers() == null || mm.getCovers().size() == 0) 
     			return this.getClass().getClassLoader().getResource(DefaultIcon.DIJ_ICON_PATH);

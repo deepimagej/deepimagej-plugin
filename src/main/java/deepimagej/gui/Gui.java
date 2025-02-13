@@ -73,7 +73,6 @@ public class Gui extends PlugInFrame {
 
     protected static final String LOADING_STR = "loading...";
     protected static final String NOT_FOUND_STR = "no models found";
-    protected static final String LOADING_GIF_PATH = "loading...";
     protected static final String LOCAL_STR = "Local";
     protected static final String BIOIMAGEIO_STR = "Bioimage.io";
     protected static final String RUN_STR = "Run";
