@@ -147,6 +147,7 @@ public class EnvironmentInstaller extends JPanel {
         // Append the new text to the current content
         String updatedText = currentText.substring(0, currentText.lastIndexOf("</body>")) + newText + "</body></html>";
         htmlPane.setText(updatedText);
+        htmlPane.setCaretPosition(updatedText.length());
     }
     
     public void install() {

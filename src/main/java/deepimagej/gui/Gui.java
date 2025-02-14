@@ -53,6 +53,7 @@ public class Gui extends PlugInFrame {
 	private final String enginesDir;
 	private final ImageAdapter imAdapter;
     private final Object lock = new Object();
+    private int nParsedModels;
 
 	Thread engineInstallThread;
 	Thread trackEngineInstallThread;
@@ -449,7 +450,6 @@ public class Gui extends PlugInFrame {
     }
     
     
-    private int nParsedModels;
     protected void clickedBMZ() {
     	ArrayList<ModelDescriptor> newModels = createArrayOfNulls(3);
     	this.searchBar.setBarEnabled(false);
@@ -617,7 +617,7 @@ public class Gui extends PlugInFrame {
     private void installEnv(ModelDescriptor descriptor, CountDownLatch latch) {
     	String msg = "Installation of Python environments might take up to 20 minutes.";
     	String question = String.format("Install %s Python", descriptor.getModelFamily());
-    	if (!YesNoDialog.askQuestion(question, msg)) {
+    	if (descriptor.areRequirementsInstalled() || !YesNoDialog.askQuestion(question, msg)) {
 			latch.countDown();
 			checkModelInstallationFinished(latch);
     		return;
