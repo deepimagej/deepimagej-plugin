@@ -9,7 +9,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
 import javax.swing.JButton;
@@ -18,40 +17,33 @@ import javax.swing.JEditorPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Style;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
 
-import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
+import deepimagej.gui.workers.InstallEnvWorker;
 
 public class EnvironmentInstaller extends JPanel {
 
     private static final long serialVersionUID = -459646711339061371L;
-    private ModelDescriptor descriptor;
-	private CountDownLatch latch;
-    private Thread parentThread;
+    
+    private InstallEnvWorker worker;
     private Consumer<String> consumer;
     private JEditorPane htmlPane;
     private JButton cancelButton;
     private Point initialClick;
 
-    private EnvironmentInstaller(ModelDescriptor descriptor, CountDownLatch latch, Thread parentThread) {
-    	this.descriptor = descriptor;
-        this.latch = latch;
-        this.parentThread = parentThread;
+    private EnvironmentInstaller(InstallEnvWorker worker) {
+    	this.worker = worker;
         
         consumer = (str) -> {
         	appendText(str, Color.BLACK);
         	System.out.println(str);
         };
-
+        worker.setConsumer(consumer);
         setLayout(new BorderLayout());
 
         // Set up the HTML pane
         htmlPane = new JEditorPane();
         htmlPane.setContentType("text/html");
-        htmlPane.setText("<html><body><h1>Installation in Progress</h1><p>Installing " + descriptor.getName() + "...</p></body></html>");
+        htmlPane.setText("<html><body><h1>Installation in Progress</h1><p>Installing " + worker.getDescriptor().getName() + "...</p></body></html>");
         htmlPane.setEditable(false); // Disable editing
 
         // Add HTML content pane
@@ -82,21 +74,9 @@ public class EnvironmentInstaller extends JPanel {
         });
     }
     
-    public static EnvironmentInstaller create(ModelDescriptor descriptor, CountDownLatch latch, Thread parentThread) {
-        EnvironmentInstaller installer = new EnvironmentInstaller(descriptor, latch, parentThread);
+    public static EnvironmentInstaller create(InstallEnvWorker worker) {
+        EnvironmentInstaller installer = new EnvironmentInstaller(worker);
         return installer;
-    }
-    
-    public ModelDescriptor getDescriptor() {
-    	return this.descriptor;
-    }
-
-    public CountDownLatch getCountDownLatch() {
-    	return this.latch;
-    }
-    
-    public Thread getReferenceThread() {
-    	return this.parentThread;
     }
     
     public Consumer<String> getConsumer(){
@@ -104,10 +84,7 @@ public class EnvironmentInstaller extends JPanel {
     }
     
     public void cancelInstallation() {
-        if (parentThread != null && parentThread.isAlive()) {
-            parentThread.interrupt(); // Interrupt the installation thread
-        }
-        latch.countDown(); // Decrement the latch
+        worker.stopBackground();
         // Close the installation window
         Window window = SwingUtilities.getWindowAncestor(this);
         if (window != null) {
@@ -147,7 +124,7 @@ public class EnvironmentInstaller extends JPanel {
         // Append the new text to the current content
         String updatedText = currentText.substring(0, currentText.lastIndexOf("</body>")) + newText + "</body></html>";
         htmlPane.setText(updatedText);
-        htmlPane.setCaretPosition(updatedText.length());
+        htmlPane.setCaretPosition(htmlPane.getDocument().getLength());
     }
     
     public void install() {

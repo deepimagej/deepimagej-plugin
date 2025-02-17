@@ -622,18 +622,19 @@ public class Gui extends PlugInFrame {
 			checkModelInstallationFinished(latch);
     		return;
     	}
-		EnvironmentInstaller installerPanel = EnvironmentInstaller.create(descriptor, latch, Thread.currentThread());
 		JDialog installerFrame = new JDialog();
 		installerFrame.setTitle("Installing " + descriptor.getName());
 		installerFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-		installerPanel.addToFrame(installerFrame);
-    	installerFrame.setSize(400, 300);
     	Runnable callback = () -> {
     		checkModelInstallationFinished(latch);
     		if (installerFrame.isVisible())
     			installerFrame.dispose();
     	};
-    	new InstallEnvWorker(installerPanel, callback).execute();
+    	InstallEnvWorker worker = new InstallEnvWorker(descriptor, latch, callback);
+		EnvironmentInstaller installerPanel = EnvironmentInstaller.create(worker);
+    	worker.execute();
+		installerPanel.addToFrame(installerFrame);
+    	installerFrame.setSize(600, 300);
     }
     
     private void onClose() {
