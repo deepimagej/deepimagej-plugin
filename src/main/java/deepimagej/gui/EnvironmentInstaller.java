@@ -78,7 +78,7 @@ public class EnvironmentInstaller extends JPanel {
         htmlPane = new JTextPane();
         htmlPane.setContentType("text/html");
         htmlPane.setEditable(false); 
-        htmlPane.setText(String.format(HTML_STYLE, worker.getDescriptor().getModelFamily() ));
+        htmlPane.setText(String.format(HTML_STYLE, "Installing Python for " + worker.getDescriptor().getModelFamily()));
         // Add HTML content pane
         JScrollPane scrollPane = new JScrollPane(htmlPane);
         add(scrollPane, BorderLayout.CENTER);
