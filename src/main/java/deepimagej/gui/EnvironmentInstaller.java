@@ -9,7 +9,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.IOException;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
@@ -22,9 +21,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
-import javax.swing.text.BadLocationException;
 import javax.swing.text.html.HTMLDocument;
-import javax.swing.text.html.HTMLEditorKit;
 
 import deepimagej.gui.workers.InstallEnvWorker;
 
@@ -39,7 +36,7 @@ public class EnvironmentInstaller extends JPanel {
     private Point initialClick;
     private int loadingCharInd = 0;
     
-    private static final String[] LOADING_CHAR = new String[] {"/", "--", "\\", "|", "/", "--", "\\",};
+    private static final String[] LOADING_CHAR = new String[] {"/", "\\", "|"};
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
     
     private static final String HTML_STYLE = ""
@@ -62,9 +59,9 @@ public class EnvironmentInstaller extends JPanel {
     		+ "  </body>" + System.lineSeparator()
     		+ "</html>" + System.lineSeparator();
     
-    private static final String LOADING_STR = "<p class='logline';'>%s -- Installation in progress...%s</p>";
+    private static final String LOADING_STR = "<p class='logline'>%s -- Installation in progress...%s</p>";
 
-    private static final String LOADING_REGEX = "<p class='logline';'>([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d -- Installation in progress\\.\\.\\.(.)</p>";
+    private static final String LOADING_REGEX = "<p\\s+class=[\"']logline[\"']>\\s*((?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d)\\s+--\\s+Installation in progress\\.\\.\\.(.)\\s*</p>";
 
 
     private EnvironmentInstaller(InstallEnvWorker worker) {
@@ -72,7 +69,7 @@ public class EnvironmentInstaller extends JPanel {
         
         consumer = (str) -> {
         	updateText(str, Color.BLACK);
-        	System.out.println(str);
+        	//System.out.println(str);
         };
         worker.setConsumer(consumer);
         setLayout(new BorderLayout());
@@ -158,62 +155,56 @@ public class EnvironmentInstaller extends JPanel {
     }
     
     private void appendText(String text, Color color) {
-    	formatInput(text);
-        // Get the editor kit and document from the htmlPane.
-        HTMLEditorKit kit = (HTMLEditorKit) htmlPane.getEditorKit();
-        HTMLDocument doc = (HTMLDocument) htmlPane.getDocument();
+    	text = formatInput(text);
         
         // Convert the Color to a hex string (e.g., "#ff0000")
         String hexColor = String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
         
         // Create an HTML snippet that uses the pre-defined class and overrides the color.
         String htmlSnippet = "<p class='logline' style='color:" + hexColor + ";'>" + text + "</p>";
-        
-        try {
-            // Insert the HTML snippet at the end of the document.
-            kit.insertHTML(doc, doc.getLength(), htmlSnippet, 0, 0, null);
-        } catch (BadLocationException | IOException e) {
-            e.printStackTrace();
+        String fullText = htmlPane.getText();
+        int containerStart = fullText.indexOf("</h1>" + System.lineSeparator());
+        int containerEnd   = fullText.indexOf("</div>", containerStart);
+        if (containerStart < 0 || containerEnd < 0) {
+            return;
         }
+        String nText = fullText.substring(0, containerEnd) + htmlSnippet + fullText.substring(containerEnd, fullText.length());
+        htmlPane.setText(nText);
+        
         
         // Optionally, scroll the pane to the end.
+        HTMLDocument doc = (HTMLDocument) htmlPane.getDocument();
         htmlPane.setCaretPosition(doc.getLength());
     }
     
     private void updateWait() {
-        HTMLEditorKit kit = (HTMLEditorKit) htmlPane.getEditorKit();
-        HTMLDocument doc = (HTMLDocument) htmlPane.getDocument();
+    	htmlPane.select(loadingCharInd, loadingCharInd);
         
-        try {
-            // Get the current document text.
-            String fullText = doc.getText(0, doc.getLength());
-            int containerStart = fullText.indexOf("<div class=\"console-panel\">" + System.lineSeparator());
-            int containerEnd   = fullText.indexOf("</div>", containerStart);
-            if (containerStart < 0 || containerEnd < 0) {
-                return;
-            }
-            Pattern pattern = Pattern.compile(LOADING_REGEX);
-            Matcher matcher = pattern.matcher(fullText);
-            int lastMatchStart = -1;
-            int lastMatchEnd = -1;
-            while (matcher.find()) {
-                // Save the position of the captured group for the last match.
-                lastMatchStart = matcher.start(1);
-                lastMatchEnd = matcher.end(1);
-            }
-            String loadingString = String.format(LOADING_STR, LocalTime.now().format(FORMATTER), getLoadingChar());
-            if (lastMatchEnd != -1 && lastMatchEnd + 1 == containerEnd) {
-                doc.remove(lastMatchStart, loadingString.length());
-            }
-            
-            
-            // Insert the new HTML snippet at the insertion point.
-            kit.insertHTML(doc, containerEnd, loadingString, 0, 0, null);
-        } catch (BadLocationException | IOException e) {
-            e.printStackTrace();
+        String fullText = htmlPane.getText();
+        int containerStart = fullText.indexOf("</h1>" + System.lineSeparator());
+        int containerEnd   = fullText.indexOf("</div>", containerStart);
+        if (containerStart < 0 || containerEnd < 0) {
+            return;
         }
-        
-        // Scroll the pane to the end if desired.
+        Pattern pattern = Pattern.compile(LOADING_REGEX);
+        Matcher matcher = pattern.matcher(fullText);
+        int lastMatchStart = -1;
+        int lastMatchEnd = -1;
+        while (matcher.find()) {
+            // Save the position of the captured group for the last match.
+            lastMatchStart = matcher.start(1) - "<p class='logline'>".length();
+            lastMatchStart = fullText.substring(0, lastMatchStart).lastIndexOf("<p");
+            lastMatchEnd = fullText.substring(lastMatchStart).indexOf("</p>") + "</p>".length() + lastMatchStart;
+        }
+        String loadingString = String.format(LOADING_STR, LocalTime.now().format(FORMATTER), getLoadingChar());
+        if (lastMatchEnd == -1 || !fullText.substring(lastMatchEnd, containerEnd).trim().equals("")) {
+        	lastMatchStart = containerEnd;
+        	lastMatchEnd = containerEnd;
+        }
+        String nText = fullText.substring(0, lastMatchStart) + loadingString + fullText.substring(lastMatchEnd, fullText.length());
+        htmlPane.setText(nText);
+
+        HTMLDocument doc = (HTMLDocument) htmlPane.getDocument();
         htmlPane.setCaretPosition(doc.getLength());
     }
     
