@@ -65,7 +65,7 @@ import io.bioimage.modelrunner.exceptions.LoadEngineException;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
 import io.bioimage.modelrunner.exceptions.RunModelException;
 import io.bioimage.modelrunner.model.BaseModel;
-import io.bioimage.modelrunner.model.BioimageIoModel;
+import io.bioimage.modelrunner.model.java.BioimageIoModelJava;
 import io.bioimage.modelrunner.model.stardist.Stardist2D;
 import io.bioimage.modelrunner.model.stardist.StardistAbstract;
 import io.bioimage.modelrunner.numpy.DecodeNumpy;
@@ -89,7 +89,7 @@ public class Runner implements Closeable {
 		if (descriptor.getModelFamily().equals(ModelDescriptor.STARDIST)) {
 			model = StardistAbstract.fromBioimageioModel(descriptor);
 		} else if (descriptor.getModelFamily().equals(ModelDescriptor.BIOIMAGEIO)) {
-			model = BioimageIoModel.createBioimageioModel(descriptor.getModelPath());
+			model = BioimageIoModelJava.createBioimageioModel(descriptor.getModelPath());
 		} else {
 			throw new IllegalArgumentException("Model not supported");
 		}
@@ -100,7 +100,7 @@ public class Runner implements Closeable {
 		if (descriptor.getModelFamily().equals(ModelDescriptor.STARDIST)) {
 			model = Stardist2D.fromBioimageioModel(descriptor);
 		} else if (descriptor.getModelFamily().equals(ModelDescriptor.BIOIMAGEIO)) {
-			model = BioimageIoModel.createBioimageioModel(descriptor.getModelPath(), enginesPath);
+			model = BioimageIoModelJava.createBioimageioModel(descriptor.getModelPath(), enginesPath);
 		} else {
 			throw new IllegalArgumentException("Model not supported");
 		}
