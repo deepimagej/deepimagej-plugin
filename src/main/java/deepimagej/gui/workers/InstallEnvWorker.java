@@ -11,7 +11,7 @@ import org.apache.commons.compress.archivers.ArchiveException;
 
 import io.bioimage.modelrunner.apposed.appose.MambaInstallException;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
-import io.bioimage.modelrunner.model.stardist.StardistAbstract;
+import io.bioimage.modelrunner.model.special.stardist.StardistAbstract;
 
 public class InstallEnvWorker extends SwingWorker<Void, Void> {
 
