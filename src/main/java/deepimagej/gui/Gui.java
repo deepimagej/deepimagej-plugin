@@ -6,6 +6,8 @@ import io.bioimage.modelrunner.bioimageio.BioimageioRepo;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
 import io.bioimage.modelrunner.engine.installation.EngineInstall;
+import io.bioimage.modelrunner.gui.EnvironmentInstaller;
+import io.bioimage.modelrunner.gui.workers.InstallEnvWorker;
 import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -36,7 +38,6 @@ import javax.swing.border.EmptyBorder;
 import deepimagej.Constants;
 import deepimagej.Runner;
 import deepimagej.gui.adapter.ImageAdapter;
-import deepimagej.gui.workers.InstallEnvWorker;
 import deepimagej.tools.ImPlusRaiManager;
 
 import java.util.ArrayList;

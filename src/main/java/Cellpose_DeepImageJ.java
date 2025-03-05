@@ -85,7 +85,7 @@ public class Cellpose_DeepImageJ implements PlugIn {
 		CellposeAdapter adapter = new CellposeAdapter();
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-            	ij.plugin.frame.PlugInFrame frame = new ij.plugin.frame.PlugInFrame("Cellpose Plugin");
+            	ij.plugin.frame.PlugInFrame frame = new ij.plugin.frame.PlugInFrame("deepImageJ Cellpose");
             	CellposeGUI gui = new CellposeGUI(adapter);
                 frame.add(gui);
                 frame.pack();
