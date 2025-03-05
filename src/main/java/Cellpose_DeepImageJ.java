@@ -43,34 +43,17 @@
  */
 
 import java.awt.GraphicsEnvironment;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 import javax.swing.SwingUtilities;
 
-import deepimagej.IjAdapter;
-import deepimagej.Runner;
-import deepimagej.gui.Gui;
-import deepimagej.tools.ImPlusRaiManager;
+import deepimagej.gui.consumers.CellposeAdapter;
 import ij.IJ;
 import ij.ImageJ;
-import ij.ImagePlus;
 import ij.Macro;
-import ij.WindowManager;
 import ij.plugin.PlugIn;
-import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
-import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
-import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
-import io.bioimage.modelrunner.exceptions.LoadEngineException;
-import io.bioimage.modelrunner.exceptions.LoadModelException;
-import io.bioimage.modelrunner.exceptions.RunModelException;
-import io.bioimage.modelrunner.tensor.Tensor;
-import io.bioimage.modelrunner.utils.Constants;
+import io.bioimage.modelrunner.gui.CellposeGUI;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
@@ -80,23 +63,6 @@ import net.imglib2.type.numeric.RealType;
  *
  */
 public class Cellpose_DeepImageJ implements PlugIn {
-
-	private String modelFolder;
-	private String inputFolder;
-	private String outputFolder;
-	private String display;
-	
-	private ModelDescriptor model;
-	
-	/**
-	 * Keys required to run deepImageJ with a macro
-	 */
-	final static String[] macroKeys = new String[] {"modelPath="};
-	/**
-	 * Optional keys to run deepImageJ with a macro or in headless mode
-	 */
-	final static String[] macroOptionalKeys = new String[] {"inputPath=", "outputFolder=", "displayOutput="};
-	
 	
 	static public void main(String args[]) {
 		new ImageJ();
@@ -116,17 +82,23 @@ public class Cellpose_DeepImageJ implements PlugIn {
 	}
 	
 	private void runGUI() {
-		File modelsDir = new File("models");
-		if (!modelsDir.isDirectory() && !modelsDir.mkdir())
-			throw new RuntimeException("Unable to create 'models' folder inside ImageJ/Fiji directory. Please create it yourself.");
-		final Gui[] guiRef = new Gui[1];
-	    if (SwingUtilities.isEventDispatchThread())
-	    	guiRef[0] = new Gui(new IjAdapter());
-	    else {
-		    SwingUtilities.invokeLater(() -> {
-		        guiRef[0] = new Gui(new IjAdapter());
-		    });
-	    }
+		CellposeAdapter adapter = new CellposeAdapter();
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+            	ij.plugin.frame.PlugInFrame frame = new ij.plugin.frame.PlugInFrame("Cellpose Plugin");
+            	CellposeGUI gui = new CellposeGUI(adapter);
+                frame.add(gui);
+                frame.pack();
+                frame.setLocationRelativeTo(null);
+                frame.setVisible(true);
+                frame.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosed(WindowEvent e) {
+                    	gui.close();
+                    }
+                });
+            }
+           });
 	}
 	
 	/**
@@ -138,115 +110,11 @@ public class Cellpose_DeepImageJ implements PlugIn {
 	 */
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>  void runMacro() {
 		parseCommand();
-
-		if (this.inputFolder != null && !(new File(this.inputFolder).exists()))
-			throw new IllegalArgumentException("The provided input folder does not exist: " + this.inputFolder);
-		if (this.outputFolder != null && !(new File(this.outputFolder).isDirectory()) && !(new File(outputFolder).mkdirs()))
-			throw new IllegalArgumentException("The provided output folder does not exist and cannot be created: " + this.inputFolder);
-		
-		IjAdapter adapter = new IjAdapter();
-
-		try {
-			loadDescriptor();
-		} catch (ModelSpecsException | IOException e) {
-			e.printStackTrace();
-			return;
-		}
-		try (Runner runner = Runner.create(model, deepimagej.Constants.FIJI_FOLDER + File.separator + "engines")) {
-			runner.load();
-			if (this.inputFolder != null) {
-				executeOnPath(runner, adapter);
-			} else {
-				executeOnImagePlus(runner, adapter);
-			}
-		} catch (IOException | LoadModelException | RunModelException | LoadEngineException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	private void loadDescriptor() throws FileNotFoundException, ModelSpecsException, IOException {
-		model = ModelDescriptorFactory.readFromLocalFile(modelFolder + File.separator + Constants.RDF_FNAME);
-		if (model.getInputTensors().size() > 1)
-			throw new IllegalArgumentException("Selected model requires more than one input, currently only models with 1 input"
-					+ " are supported.");
 	}
 	
 	
 	private void runHeadless() {
 		// TODO not ready yet
-	}
-	
-	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	void executeOnPath(Runner runner, IjAdapter adapter) throws FileNotFoundException, RunModelException, IOException {
-		File ff = new File(this.inputFolder);
-		if (ff.isDirectory())
-			this.executeOnFolder(model, runner, adapter);
-		else
-			this.executeOnFile(model, runner, adapter);
-	}
-	
-	private static <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	List<ImagePlus> executeOnFile(File ff, ModelDescriptor model, Runner runner, IjAdapter adapter) 
-			throws FileNotFoundException, RunModelException, IOException {
-		List<ImagePlus> outList = new ArrayList<ImagePlus>();
-		ImagePlus imp = IJ.openImage(ff.getAbsolutePath());
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put(model.getInputTensors().get(0).getName(), imp);
-		List<Tensor<T>> inputList = adapter.convertToInputTensors(map, model);
-		List<Tensor<R>> res = runner.run(inputList);
-		for (Tensor<R> rr : res) {
-			ImagePlus im = ImPlusRaiManager.convert(rr.getData(), rr.getAxesOrderString());
-			im.setTitle(imp.getShortTitle() + "_" + rr.getName());
-			outList.add(im);
-		}
-		return outList;
-	}
-	
-	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	void executeOnFile(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, RunModelException, IOException {
-		List<ImagePlus> outs = executeOnFile(new File(this.inputFolder), model, runner, adapter);
-		for (ImagePlus im : outs) {
-			if (this.outputFolder != null) {
-				IJ.saveAsTiff(im, this.outputFolder + File.separator + im.getTitle());
-			} 
-			if (display != null && this.display.equals("all")) {
-				SwingUtilities.invokeLater(() -> im.show());
-			}
-		}
-	}
-	
-	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	void executeOnFolder(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, RunModelException, IOException {
-		for (File ff : new File(this.inputFolder).listFiles()) {
-			List<ImagePlus> outs = executeOnFile(ff, model, runner, adapter);
-			
-			for (ImagePlus im : outs) {
-				if (this.outputFolder != null) {
-					IJ.saveAsTiff(im, this.outputFolder + File.separator + im.getTitle());
-				} 
-				if (display != null && this.display.equals("all")) {
-					SwingUtilities.invokeLater(() -> im.show());
-				}
-			}
-		}
-		
-	}
-	
-	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	void executeOnImagePlus(Runner runner, IjAdapter adapter) throws FileNotFoundException, RunModelException, IOException {
-		ImagePlus imp = WindowManager.getCurrentImage();
-		Map<String, Object> inputMap = new HashMap<String, Object>();
-		inputMap.put(model.getInputTensors().get(0).getName(), imp);
-		List<Tensor<T>> inputList = adapter.convertToInputTensors(inputMap, model);
-		List<Tensor<R>> res = runner.run(inputList);
-		for (Tensor<R> rr : res) {
-			ImagePlus im = ImPlusRaiManager.convert(rr.getData(), rr.getAxesOrderString());
-			im.setTitle(imp.getShortTitle() + "_" + rr.getName());
-			SwingUtilities.invokeLater(() -> im.show());
-			if (this.outputFolder != null) {
-				IJ.saveAsTiff(im, this.outputFolder + File.separator + im.getTitle());
-			}
-		}
 	}
 	
 	private void parseCommand() {
@@ -257,12 +125,6 @@ public class Cellpose_DeepImageJ implements PlugIn {
 		// macroArg = "modelPath=NucleiSegmentationBoundaryModel outputFolder=null";
 		// macroArg = "modelPath=[StarDist H&E Nuclei Segmentation] inputPath=null outputFolder=null";
 
-		modelFolder = parseArg(macroArg, macroKeys[0], true);
-		if (!(new File(modelFolder).isAbsolute()))
-			modelFolder = new File(deepimagej.Constants.FIJI_FOLDER + File.separator + "models", modelFolder).getAbsolutePath();
-		inputFolder = parseArg(macroArg, macroOptionalKeys[0], false);
-		outputFolder = parseArg(macroArg, macroOptionalKeys[1], false);
-		display = parseArg(macroArg, macroOptionalKeys[2], false);
 	}
 	
 	private static String parseArg(String macroArg, String arg, boolean required) {

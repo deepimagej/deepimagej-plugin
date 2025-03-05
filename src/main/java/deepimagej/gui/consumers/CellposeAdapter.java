@@ -46,6 +46,8 @@ package deepimagej.gui.consumers;
 
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowFocusListener;
 import java.util.List;
 
 import javax.swing.DefaultComboBoxModel;
@@ -57,6 +59,7 @@ import ij.ImageListener;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.ImageWindow;
+import ij.plugin.CompositeConverter;
 import io.bioimage.modelrunner.gui.ConsumerInterface;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
@@ -71,6 +74,7 @@ public class CellposeAdapter extends ConsumerInterface implements ImageListener 
 	private JComboBox<String> cbox;
 	
 	public CellposeAdapter() {
+        ImagePlus.addImageListener(this);
 		int[] ids = WindowManager.getIDList();
         if (ids == null) return;
 
@@ -79,23 +83,25 @@ public class CellposeAdapter extends ConsumerInterface implements ImageListener 
             if (imp == null) continue;
             ImageWindow win = imp.getWindow();
             if (win == null) continue;
-            win.addFocusListener(new FocusListener() {
-                @Override
-                public void focusGained(FocusEvent e) {
+            win.addWindowFocusListener(new WindowFocusListener() {
+
+				@Override
+				public void windowGainedFocus(WindowEvent e) {
                 	updateComboBox(imp);
-                }
-                @Override
-                public void focusLost(FocusEvent e) {
-                }
+				}
+
+				@Override
+				public void windowLostFocus(WindowEvent e) {
+				}
+            	
             });
             if (win.isFocusOwner()) updateComboBox(imp);
         }
-        ImagePlus.addImageListener(this);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void setListenersForComponents(List<JComponent> components) {
+	public void setComponents(List<JComponent> components) {
 		this.componentsGui = components;
 		if (varNames != null && varNames.indexOf("Channel:") != -1) {
 			this.cbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Channel:"));
@@ -112,14 +118,19 @@ public class CellposeAdapter extends ConsumerInterface implements ImageListener 
 	}
 
 	@Override
-	public Object getFocusedImage() {
-		return WindowManager.getCurrentImage();
+	public <T extends RealType<T> & NativeType<T>> void display(RandomAccessibleInterval<T> rai, String axes,
+			String name) {
+		ImagePlus imp = ImPlusRaiManager.convert(rai, axes);
+		imp.setTitle(name);
+		imp.show();
 	}
 
 	@Override
 	public <T extends RealType<T> & NativeType<T>> RandomAccessibleInterval<T> getFocusedImageAsRai() {
 		ImagePlus imp = WindowManager.getCurrentImage();
-		RandomAccessibleInterval<T> rai = ImPlusRaiManager.convert(imp, "xyczt");
+		boolean isColorRGB = imp.getType() == ImagePlus.COLOR_RGB;
+		RandomAccessibleInterval<T> rai = 
+				ImPlusRaiManager.convert(isColorRGB ? CompositeConverter.makeComposite(imp) : imp, "xyczt");
 		// We only allow multichannel, single slice images. If there are several frames, 
 		// they will be processed sequentially
 		if (imp.getNFrames() == 1) {
@@ -129,20 +140,58 @@ public class CellposeAdapter extends ConsumerInterface implements ImageListener 
 	}
 
 	@Override
-	public <T extends RealType<T> & NativeType<T>> void display(RandomAccessibleInterval<T> rai, String axes,
-			String name) {
-		ImagePlus imp = ImPlusRaiManager.convert(rai, axes);
-		imp.setTitle(name);
-		imp.show();
+	public Object getFocusedImage() {
+		return WindowManager.getCurrentImage();
+	}
+
+	@Override
+	public Integer getFocusedImageChannels() {
+		ImagePlus imp = (ImagePlus) getFocusedImage();
+		if(imp == null)
+			return null;
+		return imp.getNChannels();
+	}
+
+	@Override
+	public Integer getFocusedImageSlices() {
+		ImagePlus imp = (ImagePlus) getFocusedImage();
+		if(imp == null)
+			return null;
+		return imp.getNSlices();
+	}
+
+	@Override
+	public Integer getFocusedImageFrames() {
+		ImagePlus imp = (ImagePlus) getFocusedImage();
+		if(imp == null)
+			return null;
+		return imp.getNFrames();
+	}
+
+	@Override
+	public Integer getFocusedImageWidth() {
+		ImagePlus imp = (ImagePlus) getFocusedImage();
+		if(imp == null)
+			return null;
+		return imp.getWidth();
+	}
+
+	@Override
+	public Integer getFocusedImageHeight() {
+		ImagePlus imp = (ImagePlus) getFocusedImage();
+		if(imp == null)
+			return null;
+		return imp.getHeight();
 	}
 	
 	private void updateComboBox(ImagePlus imp) {
-		if (imp.getNChannels() == 1) {
-	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[0, 0]"}));
-		} else if (imp.getNChannels() == 1) {
-	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[2, 3]", "[2, 1]"}));
-		} else {
-	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[0, 0]", "[2, 3]", "[2, 1]"}));
+		if (cbox == null) return;
+		if ((imp.getType() == ImagePlus.COLOR_RGB || imp.getNChannels() == 3) && cbox.getItemCount() != 2) {
+	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[2,3]", "[2,1]"}));
+		} else if (imp.getNChannels() == 1 && cbox.getItemCount() != 1) {
+	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[0,0]"}));
+		} else if (imp.getNChannels() != 1 && imp.getNChannels() == 3) {
+	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[0,0]", "[2,3]", "[2,1]"}));
 		}
 	}
 
@@ -150,16 +199,20 @@ public class CellposeAdapter extends ConsumerInterface implements ImageListener 
 	public void imageOpened(ImagePlus imp) {
         ImageWindow win = imp.getWindow();
         if (win != null) {
-            win.addFocusListener(new FocusListener() {
-                @Override
-                public void focusGained(FocusEvent e) {
-                    updateComboBox(imp);
-                }
-                @Override
-                public void focusLost(FocusEvent e) {
-                }
+            win.addWindowFocusListener(new WindowFocusListener() {
+
+				@Override
+				public void windowGainedFocus(WindowEvent e) {
+                	updateComboBox(imp);
+				}
+
+				@Override
+				public void windowLostFocus(WindowEvent e) {
+				}
+            	
             });
         }
+        if (win.isFocused()) updateComboBox(imp);
 	}
 
 	@Override
