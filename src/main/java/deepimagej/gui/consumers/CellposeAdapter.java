@@ -44,8 +44,6 @@
 
 package deepimagej.gui.consumers;
 
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowFocusListener;
 import java.util.List;
