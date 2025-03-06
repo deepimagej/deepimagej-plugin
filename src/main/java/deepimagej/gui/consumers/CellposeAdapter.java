@@ -46,6 +46,7 @@ package deepimagej.gui.consumers;
 
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowFocusListener;
+import java.io.File;
 import java.util.List;
 
 import javax.swing.DefaultComboBoxModel;
@@ -95,6 +96,11 @@ public class CellposeAdapter extends ConsumerInterface implements ImageListener 
             });
             if (win.isFocusOwner()) updateComboBox(imp);
         }
+	}
+
+	@Override
+	public String getModelsDir() {
+		return new File("models").getAbsolutePath();
 	}
 
 	@SuppressWarnings("unchecked")
