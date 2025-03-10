@@ -53,7 +53,6 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.Macro;
 import ij.plugin.PlugIn;
-import io.bioimage.modelrunner.gui.CellposeGUI;
 import io.bioimage.modelrunner.gui.StardistGUI;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
