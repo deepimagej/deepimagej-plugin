@@ -67,8 +67,8 @@ public class StardistAdapter extends SmallPluginAdapter {
 	@Override
 	public void setComponents(List<JComponent> components) {
 		this.componentsGui = components;
-		if (varNames != null && varNames.indexOf("Channel:") != -1) {
-			this.cbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Channel:"));
+		if (varNames != null && varNames.indexOf("Select a model:") != -1) {
+			this.cbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Select a model:"));
 		}
 	}
 
@@ -76,8 +76,8 @@ public class StardistAdapter extends SmallPluginAdapter {
 	@Override
 	public void setVarNames(List<String> componentNames) {
 		this.varNames = componentNames;
-		if (componentsGui != null && varNames.indexOf("Channel:") != -1) {
-			this.cbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Channel:"));
+		if (componentsGui != null && varNames.indexOf("Select a model:") != -1) {
+			this.cbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Select a model:"));
 		}
 	}
 
@@ -88,12 +88,16 @@ public class StardistAdapter extends SmallPluginAdapter {
 	
 	private void updateComboBox(ImagePlus imp) {
 		if (cbox == null) return;
-		if ((imp.getType() == ImagePlus.COLOR_RGB || imp.getNChannels() == 3) && cbox.getItemCount() != 2) {
-	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[2,3]", "[2,1]"}));
-		} else if (imp.getNChannels() == 1 && cbox.getItemCount() != 1) {
-	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[0,0]"}));
-		} else if (imp.getNChannels() != 1 && imp.getNChannels() == 3) {
-	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[0,0]", "[2,3]", "[2,1]"}));
+		String firstItem = cbox.getItemAt(0);
+		int nItems = cbox.getItemCount();
+		if ((imp.getType() == ImagePlus.COLOR_RGB || imp.getNChannels() == 3) 
+				&& (nItems != 2 || !firstItem.equals("StarDist H&E Nuclei Segmentation"))) {
+	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"StarDist H&E Nuclei Segmentation", "your custom model"}));
+		} else if (imp.getNChannels() == 1 && imp.getType() != ImagePlus.COLOR_RGB 
+				&& (nItems != 2 || !firstItem.equals("StarDist Fluorescence Nuclei Segmentation"))) {
+	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"StarDist Fluorescence Nuclei Segmentation", "your custom model"}));
+		} else if (imp.getNChannels() != 1 && imp.getNChannels() == 3 && nItems != 3) {
+	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"StarDist Fluorescence Nuclei Segmentation", "StarDist H&E Nuclei Segmentation", "your custom model"}));
 		}
 	}
 

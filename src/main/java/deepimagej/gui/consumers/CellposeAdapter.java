@@ -90,7 +90,7 @@ public class CellposeAdapter extends SmallPluginAdapter {
 		if (cbox == null) return;
 		if ((imp.getType() == ImagePlus.COLOR_RGB || imp.getNChannels() == 3) && cbox.getItemCount() != 2) {
 	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[2,3]", "[2,1]"}));
-		} else if (imp.getNChannels() == 1 && cbox.getItemCount() != 1) {
+		} else if (imp.getNChannels() == 1 && imp.getType() != ImagePlus.COLOR_RGB && cbox.getItemCount() != 1) {
 	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[0,0]"}));
 		} else if (imp.getNChannels() != 1 && imp.getNChannels() == 3) {
 	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[0,0]", "[2,3]", "[2,1]"}));
