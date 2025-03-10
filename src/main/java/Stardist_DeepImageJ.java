@@ -48,7 +48,6 @@ import java.awt.event.WindowEvent;
 
 import javax.swing.SwingUtilities;
 
-import deepimagej.gui.consumers.CellposeAdapter_old;
 import deepimagej.gui.consumers.StardistAdapter;
 import ij.IJ;
 import ij.ImageJ;

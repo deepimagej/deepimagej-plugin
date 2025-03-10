@@ -48,7 +48,7 @@ import java.awt.event.WindowEvent;
 
 import javax.swing.SwingUtilities;
 
-import deepimagej.gui.consumers.CellposeAdapter_old;
+import deepimagej.gui.consumers.CellposeAdapter;
 import ij.IJ;
 import ij.ImageJ;
 import ij.Macro;
@@ -82,7 +82,7 @@ public class Cellpose_DeepImageJ implements PlugIn {
 	}
 	
 	private void runGUI() {
-		CellposeAdapter_old adapter = new CellposeAdapter_old();
+		CellposeAdapter adapter = new CellposeAdapter();
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
             	ij.plugin.frame.PlugInFrame frame = new ij.plugin.frame.PlugInFrame("deepImageJ Cellpose");
