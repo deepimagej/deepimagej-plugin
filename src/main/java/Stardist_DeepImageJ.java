@@ -49,11 +49,13 @@ import java.awt.event.WindowEvent;
 import javax.swing.SwingUtilities;
 
 import deepimagej.gui.consumers.CellposeAdapter_old;
+import deepimagej.gui.consumers.StardistAdapter;
 import ij.IJ;
 import ij.ImageJ;
 import ij.Macro;
 import ij.plugin.PlugIn;
 import io.bioimage.modelrunner.gui.CellposeGUI;
+import io.bioimage.modelrunner.gui.StardistGUI;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
@@ -62,11 +64,11 @@ import net.imglib2.type.numeric.RealType;
  * @author Carlos Javier Garcia Lopez de Haro
  *
  */
-public class Cellpose_DeepImageJ implements PlugIn {
+public class Stardist_DeepImageJ implements PlugIn {
 	
 	static public void main(String args[]) {
 		new ImageJ();
-		new Cellpose_DeepImageJ().run("");
+		new Stardist_DeepImageJ().run("");
 	}
 	@Override
 	public void run(String arg) {
@@ -82,11 +84,11 @@ public class Cellpose_DeepImageJ implements PlugIn {
 	}
 	
 	private void runGUI() {
-		CellposeAdapter_old adapter = new CellposeAdapter_old();
+		StardistAdapter adapter = new StardistAdapter();
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-            	ij.plugin.frame.PlugInFrame frame = new ij.plugin.frame.PlugInFrame("deepImageJ Cellpose");
-            	CellposeGUI gui = new CellposeGUI(adapter);
+            	ij.plugin.frame.PlugInFrame frame = new ij.plugin.frame.PlugInFrame("deepImageJ StarDist");
+            	StardistGUI gui = new StardistGUI(adapter);
                 frame.add(gui);
                 frame.pack();
                 frame.setLocationRelativeTo(null);

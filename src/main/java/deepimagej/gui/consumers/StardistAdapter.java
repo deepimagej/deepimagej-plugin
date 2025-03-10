@@ -55,11 +55,11 @@ import ij.ImagePlus;
 /**
  * @author Carlos Garcia
  */
-public class CellposeAdapter extends SmallPluginAdapter {
+public class StardistAdapter extends SmallPluginAdapter {
 	
 	private JComboBox<String> cbox;
 	
-	public CellposeAdapter() {
+	public StardistAdapter() {
         super();
 	}
 
