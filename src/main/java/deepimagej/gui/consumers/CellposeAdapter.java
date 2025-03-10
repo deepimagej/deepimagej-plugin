@@ -132,6 +132,8 @@ public class CellposeAdapter extends ConsumerInterface implements ImageListener 
 	@Override
 	public <T extends RealType<T> & NativeType<T>> RandomAccessibleInterval<T> getFocusedImageAsRai() {
 		ImagePlus imp = WindowManager.getCurrentImage();
+		if (imp == null)
+			return null;
 		boolean isColorRGB = imp.getType() == ImagePlus.COLOR_RGB;
 		RandomAccessibleInterval<T> rai = 
 				ImPlusRaiManager.convert(isColorRGB ? CompositeConverter.makeComposite(imp) : imp, "xyczt");
@@ -146,6 +148,11 @@ public class CellposeAdapter extends ConsumerInterface implements ImageListener 
 	@Override
 	public Object getFocusedImage() {
 		return WindowManager.getCurrentImage();
+	}
+
+	@Override
+	public String getFocusedImageName() {
+		return WindowManager.getCurrentImage().getTitle();
 	}
 
 	@Override
