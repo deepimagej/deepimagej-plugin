@@ -57,7 +57,7 @@ import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.ImageWindow;
 import ij.plugin.CompositeConverter;
-import io.bioimage.modelrunner.gui.ConsumerInterface;
+import io.bioimage.modelrunner.gui.custom.ConsumerInterface;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
