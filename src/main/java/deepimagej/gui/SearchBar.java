@@ -136,6 +136,8 @@ public class SearchBar extends JPanel {
     	bmzModels = new ArrayList<ModelDescriptor>();
     	for (String url : BioimageioRepo.getModelIDs()) {
     		ModelDescriptor descriptor = BioimageioRepo.retreiveDescriptorFromURL(BioimageioRepo.getModelURL(url) + Constants.RDF_FNAME);
+    		if (descriptor == null)
+    			continue;
     		bmzModels.add(descriptor);
     	}
     	return bmzModels;
