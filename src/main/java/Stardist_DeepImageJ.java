@@ -97,6 +97,7 @@ public class Stardist_DeepImageJ implements PlugIn {
                     	gui.close();
                     }
                 });
+    	    	gui.setCancelCallback(() -> frame.dispose());
             }
            });
 	}

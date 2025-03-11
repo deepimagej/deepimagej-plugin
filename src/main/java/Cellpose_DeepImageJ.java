@@ -97,6 +97,7 @@ public class Cellpose_DeepImageJ implements PlugIn {
                     	gui.close();
                     }
                 });
+    	    	gui.setCancelCallback(() -> frame.dispose());
             }
            });
 	}
