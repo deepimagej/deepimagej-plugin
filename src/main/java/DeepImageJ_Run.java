@@ -53,6 +53,8 @@ import java.util.Map;
 
 import javax.swing.SwingUtilities;
 
+import com.sun.jna.Platform;
+
 import deepimagej.IjAdapter;
 import deepimagej.Runner;
 import deepimagej.gui.Gui;
@@ -251,6 +253,8 @@ public class DeepImageJ_Run implements PlugIn {
 	
 	private void parseCommand() {
 		String macroArg = Macro.getOptions();
+		if (Platform.isWindows())
+			macroArg = macroArg.replaceAll(File.separatorChar + "", File.separatorChar + File.separator);
 		System.out.println(macroArg);
 
 		// macroArg = "modelPath=NucleiSegmentationBoundaryModel";
