@@ -50,6 +50,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.SwingUtilities;
 
@@ -254,7 +256,7 @@ public class DeepImageJ_Run implements PlugIn {
 	private void parseCommand() {
 		String macroArg = Macro.getOptions();
 		if (Platform.isWindows())
-			macroArg = macroArg.replaceAll(File.separatorChar + "", File.separatorChar + File.separator);
+			macroArg = macroArg.replaceAll(Pattern.quote(File.separator), Matcher.quoteReplacement(File.separator + File.separator));
 		System.out.println(macroArg);
 
 		// macroArg = "modelPath=NucleiSegmentationBoundaryModel";
