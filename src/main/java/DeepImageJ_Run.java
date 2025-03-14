@@ -253,8 +253,36 @@ public class DeepImageJ_Run implements PlugIn {
 		}
 	}
 	
+	public static String escapeString(String s) {
+	    StringBuilder builder = new StringBuilder();
+	    for (char c : s.toCharArray()) {
+	        switch (c) {
+	            case '\n':
+	                builder.append("\\n");
+	                break;
+	            case '\r':
+	                builder.append("\\r");
+	                break;
+	            case '\t':
+	                builder.append("\\t");
+	                break;
+	            case '\"':
+	                builder.append("\\\"");
+	                break;
+	            case '\\':
+	                builder.append("\\\\");
+	                break;
+	            default:
+	                builder.append(c);
+	        }
+	    }
+	    return builder.toString();
+	}
+
+	
 	private void parseCommand() {
 		String macroArg = Macro.getOptions();
+		System.out.println(escapeString(macroArg));
 		if (Platform.isWindows())
 			macroArg = macroArg.replaceAll(Pattern.quote(File.separator), Matcher.quoteReplacement(File.separator + File.separator));
 		System.out.println(macroArg);
