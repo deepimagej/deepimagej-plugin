@@ -64,6 +64,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
@@ -254,13 +255,114 @@ public class FileTools {
     public static boolean unzipFolder(File source, String outPath) throws IOException, InterruptedException {
     	return unzipFolder(source, outPath, null);
     }
+    
+    public static boolean unzipFolder(File source, String outPath, Thread parentThread) throws IOException, InterruptedException {
+        if (parentThread == null) {
+            parentThread = Thread.currentThread();
+        }
+
+        // REMOVED hardcoded path: Use the 'source' parameter passed to the method
+        // source = new File("/home/carlos/git/deepimagej-plugin/models/embryo-stardist-cat.zip");
+
+        // Use ZipFile which reads the central directory and might be more lenient
+        // Use try-with-resources to ensure the ZipFile is closed automatically
+        try (ZipFile zipFile = new ZipFile(source)) {
+
+            Enumeration<? extends ZipEntry> entries = zipFile.entries();
+
+            while (entries.hasMoreElements()) {
+                // Check for interruption before processing the next entry
+                if (!parentThread.isAlive()) {
+                    throw new InterruptedException("Unzipping interrupted by parent thread.");
+                }
+
+                ZipEntry entry = entries.nextElement();
+                File entryDestination = new File(outPath, entry.getName());
+
+                // Create parent directories if they don't exist
+                if (!entry.isDirectory()) {
+                    File parentDir = entryDestination.getParentFile();
+                    if (parentDir != null && !parentDir.exists()) {
+                        if (!parentDir.mkdirs()) {
+                            throw new IOException("Failed to create directory: " + parentDir.getAbsolutePath());
+                        }
+                    }
+                }
+
+                if (entry.isDirectory()) {
+                    // Create directory entry
+                    if (!entryDestination.exists()) {
+                        if (!entryDestination.mkdirs()) {
+                           throw new IOException("Failed to create directory: " + entryDestination.getAbsolutePath());
+                        }
+                    }
+                } else {
+                    // Extract file entry
+                    // Use try-with-resources for the streams
+                    boolean interrupted = false;
+                    try (InputStream in = zipFile.getInputStream(entry);
+                         BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(entryDestination))) {
+
+                        // Use a fixed-size buffer instead of entry.getSize(), which can be unreliable (-1)
+                        // or too large causing OutOfMemoryError. 8KB is common.
+                        byte[] buffer = new byte[8192];
+                        int bytesRead;
+
+                        while ((bytesRead = in.read(buffer)) != -1) {
+                            // Check for interruption within the read loop
+                            if (!parentThread.isAlive()) {
+                                interrupted = true;
+                                break;
+                            }
+                            bos.write(buffer, 0, bytesRead);
+                        }
+                        bos.flush(); // Ensure buffer is flushed before closing
+
+                    } catch (IOException e) {
+                        // Handle potential errors reading a specific entry or writing its file
+                        System.err.println("Error processing entry " + entry.getName() + ": " + e.getMessage());
+                        // Clean up potentially partially written file
+                        entryDestination.delete();
+                        // Depending on requirements, you might want to continue with the next entry
+                        // or stop entirely. Here, we stop by returning false.
+                        return false;
+                    }
+
+                    // If the inner loop was exited due to interruption, throw the exception
+                    if (interrupted) {
+                         // Clean up partially written file
+                         entryDestination.delete();
+                        throw new InterruptedException("Unzipping interrupted by parent thread while processing entry: " + entry.getName());
+                    }
+                }
+            } // end while loop over entries
+
+            // Final check after processing all entries
+            if (!parentThread.isAlive()) {
+                 throw new InterruptedException("Unzipping interrupted by parent thread after processing entries.");
+             }
+
+        } catch (ZipException e) {
+            // Catch ZipException specifically (might still occur if ZipFile detects other corruption)
+            System.err.println("Error opening or reading ZIP file (ZipException): " + source.getAbsolutePath() + " - " + e.getMessage());
+            e.printStackTrace(); // Print stack trace for debugging
+            return false; // Indicate failure
+        } catch (IOException e) {
+            // Catch other IOExceptions (e.g., file not found, permissions)
+             System.err.println("IO error during unzip: " + e.getMessage());
+            throw e; // Re-throw other IOExceptions as they might indicate different problems
+        }
+
+        return true; // If we reached here without exceptions or returning false, it was successful
+    }
 	
     /*
      * Unzip zip file 'source' into a file in the path 'outPath'
      */
-    public static boolean unzipFolder(File source, String outPath, Thread parentThread) throws IOException, InterruptedException {
+    public static boolean unzipFolder2(File source, String outPath, Thread parentThread) throws IOException, InterruptedException {
  	    if (parentThread == null)
  	    	parentThread = Thread.currentThread();
+ 	    source = new File("/home/carlos/git/deepimagej-plugin/models/embryo-stardist-cat.zip");
     	FileInputStream fis = new FileInputStream(source);
     	ZipInputStream zis = new ZipInputStream(fis);
 
