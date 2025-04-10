@@ -67,6 +67,7 @@ import ij.ImagePlus;
 import ij.Macro;
 import ij.WindowManager;
 import ij.plugin.PlugIn;
+import io.bioimage.modelrunner.apposed.appose.Types;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
 import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
@@ -164,7 +165,7 @@ public class DeepImageJ_Run implements PlugIn {
 				executeOnImagePlus(runner, adapter);
 			}
 		} catch (IOException | LoadModelException | RunModelException | LoadEngineException e) {
-			e.printStackTrace();
+			throw new RuntimeException(Types.stackTrace(e));
 		}
 	}
 	
