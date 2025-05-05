@@ -1,5 +1,6 @@
 package deepimagej.gui;
 
+import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,6 +37,16 @@ public class ImageJGui implements GuiAdapter {
 	@Override
 	public String getSoftwareDescription() {
 		return "The Fiji/ImageJ Plugin for AI";
+	}
+	
+	@Override
+	public Color getTitleColor() {
+		return Color.red;
+	}
+	
+	@Override
+	public Color getSubtitleColor() {
+		return Color.black;
 	}
 
 	@Override
