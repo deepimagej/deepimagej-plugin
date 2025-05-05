@@ -41,11 +41,16 @@ public class ImageJGui implements GuiAdapter {
 	
 	@Override
 	public Color getTitleColor() {
-		return Color.red;
+		return new Color(110, 38, 14);
 	}
 	
 	@Override
 	public Color getSubtitleColor() {
+		return Color.black;
+	}
+	
+	@Override
+	public Color getHeaderColor() {
 		return Color.black;
 	}
 
