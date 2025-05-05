@@ -51,13 +51,15 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
 import ij.ImagePlus;
+import io.bioimage.modelrunner.gui.custom.CellposeGUI;
 
 /**
  * @author Carlos Garcia
  */
 public class CellposeAdapter extends SmallPluginAdapter {
-	
-	private JComboBox<String> cbox;
+
+	private JComboBox<String> cytoCbox;
+	private JComboBox<String> nucleiCbox;
 	
 	public CellposeAdapter() {
         super();
@@ -67,8 +69,11 @@ public class CellposeAdapter extends SmallPluginAdapter {
 	@Override
 	public void setComponents(List<JComponent> components) {
 		this.componentsGui = components;
-		if (varNames != null && varNames.indexOf("Channel:") != -1) {
-			this.cbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Channel:"));
+		if (varNames != null && varNames.indexOf("Cytoplasm color:") != -1) {
+			this.cytoCbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Cytoplasm color:"));
+		}
+		if (varNames != null && varNames.indexOf("Nuclei color:") != -1) {
+			this.nucleiCbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Nuclei color:"));
 		}
 	}
 
@@ -76,24 +81,28 @@ public class CellposeAdapter extends SmallPluginAdapter {
 	@Override
 	public void setVarNames(List<String> componentNames) {
 		this.varNames = componentNames;
-		if (componentsGui != null && varNames.indexOf("Channel:") != -1) {
-			this.cbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Channel:"));
+		if (componentsGui != null && varNames.indexOf("Cytoplasm color:") != -1) {
+			this.cytoCbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Cytoplasm color:"));
+		}
+		if (componentsGui != null && varNames.indexOf("Nuclei color:") != -1) {
+			this.nucleiCbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Nuclei color:"));
 		}
 	}
 
 	@Override
 	protected void changeOnFocusGained(ImagePlus imp) {
-		updateComboBox(imp);		
+		updateComboBox(imp, cytoCbox);
+		updateComboBox(imp, nucleiCbox);
 	}
 	
-	private void updateComboBox(ImagePlus imp) {
+	private void updateComboBox(ImagePlus imp, JComboBox<String> cbox) {
 		if (cbox == null) return;
 		if ((imp.getType() == ImagePlus.COLOR_RGB || imp.getNChannels() == 3) && cbox.getItemCount() != 2) {
-	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[2,3]", "[2,1]"}));
+	        cbox.setModel(new DefaultComboBoxModel<>(CellposeGUI.RGB_LIST));
 		} else if (imp.getNChannels() == 1 && imp.getType() != ImagePlus.COLOR_RGB && cbox.getItemCount() != 1) {
-	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[0,0]"}));
+	        cbox.setModel(new DefaultComboBoxModel<>(CellposeGUI.GRAYSCALE_LIST));
 		} else if (imp.getNChannels() != 1 && imp.getNChannels() == 3) {
-	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"[0,0]", "[2,3]", "[2,1]"}));
+	        cbox.setModel(new DefaultComboBoxModel<>(CellposeGUI.RGB_LIST));
 		}
 	}
 
