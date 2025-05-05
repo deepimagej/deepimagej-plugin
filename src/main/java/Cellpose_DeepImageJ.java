@@ -53,7 +53,7 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.Macro;
 import ij.plugin.PlugIn;
-import io.bioimage.modelrunner.gui.custom.CellposeGUI;
+import io.bioimage.modelrunner.gui.custom.CellposePluginUI;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
@@ -86,7 +86,7 @@ public class Cellpose_DeepImageJ implements PlugIn {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
             	ij.plugin.frame.PlugInFrame frame = new ij.plugin.frame.PlugInFrame("deepImageJ Cellpose");
-            	CellposeGUI gui = new CellposeGUI(adapter);
+            	CellposePluginUI gui = new CellposePluginUI(adapter);
                 frame.add(gui);
                 frame.pack();
                 frame.setLocationRelativeTo(null);
