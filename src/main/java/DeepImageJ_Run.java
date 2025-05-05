@@ -42,7 +42,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -57,9 +60,8 @@ import javax.swing.SwingUtilities;
 
 import com.sun.jna.Platform;
 
-import deepimagej.IjAdapter;
 import deepimagej.Runner;
-import deepimagej.gui.Gui;
+import deepimagej.gui.ImageJGui;
 import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
 import ij.ImageJ;
@@ -74,6 +76,7 @@ import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsExcep
 import io.bioimage.modelrunner.exceptions.LoadEngineException;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
 import io.bioimage.modelrunner.exceptions.RunModelException;
+import io.bioimage.modelrunner.gui.Gui;
 import io.bioimage.modelrunner.tensor.Tensor;
 import io.bioimage.modelrunner.utils.Constants;
 import net.imglib2.type.NativeType;
@@ -126,12 +129,29 @@ public class DeepImageJ_Run implements PlugIn {
 			throw new RuntimeException("Unable to create 'models' folder inside ImageJ/Fiji directory. Please create it yourself.");
 		final Gui[] guiRef = new Gui[1];
 	    if (SwingUtilities.isEventDispatchThread())
-	    	guiRef[0] = new Gui(new IjAdapter());
+	    	guiRef[0] = new Gui(new ImageJGui());
 	    else {
 		    SwingUtilities.invokeLater(() -> {
-		        guiRef[0] = new Gui(new IjAdapter());
+		        guiRef[0] = new Gui(new ImageJGui());
 		    });
 	    }
+	    SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+            	ij.plugin.frame.PlugInFrame frame = new ij.plugin.frame.PlugInFrame("deepImageJ " + deepimagej.Constants.DIJ_VERSION);
+            	Gui gui = new Gui(new ImageJGui());
+                gui.setPreferredSize(new Dimension(600, 700));
+                frame.add(gui);
+                frame.pack();
+                frame.setLocationRelativeTo(null);
+                frame.setVisible(true);
+                frame.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosed(WindowEvent e) {
+                    	gui.onClose();
+                    }
+                });
+                }
+           });
 	}
 	
 	/**
@@ -149,7 +169,7 @@ public class DeepImageJ_Run implements PlugIn {
 		if (this.outputFolder != null && !(new File(this.outputFolder).isDirectory()) && !(new File(outputFolder).mkdirs()))
 			throw new IllegalArgumentException("The provided output folder does not exist and cannot be created: " + this.inputFolder);
 		
-		IjAdapter adapter = new IjAdapter();
+		ImageJGui adapter = new ImageJGui();
 
 		try {
 			loadDescriptor();
@@ -182,7 +202,7 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	void executeOnPath(Runner runner, IjAdapter adapter) throws FileNotFoundException, RunModelException, IOException {
+	void executeOnPath(Runner runner, ImageJGui adapter) throws FileNotFoundException, RunModelException, IOException {
 		File ff = new File(this.inputFolder);
 		if (ff.isDirectory())
 			this.executeOnFolder(model, runner, adapter);
@@ -191,7 +211,7 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	private static <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	List<ImagePlus> executeOnFile(File ff, ModelDescriptor model, Runner runner, IjAdapter adapter) 
+	List<ImagePlus> executeOnFile(File ff, ModelDescriptor model, Runner runner, ImageJGui adapter) 
 			throws FileNotFoundException, RunModelException, IOException {
 		List<ImagePlus> outList = new ArrayList<ImagePlus>();
 		ImagePlus imp = IJ.openImage(ff.getAbsolutePath());
@@ -208,7 +228,7 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	void executeOnFile(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, RunModelException, IOException {
+	void executeOnFile(ModelDescriptor model, Runner runner, ImageJGui adapter) throws FileNotFoundException, RunModelException, IOException {
 		List<ImagePlus> outs = executeOnFile(new File(this.inputFolder), model, runner, adapter);
 		for (ImagePlus im : outs) {
 			if (this.outputFolder != null) {
@@ -221,7 +241,7 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	void executeOnFolder(ModelDescriptor model, Runner runner, IjAdapter adapter) throws FileNotFoundException, RunModelException, IOException {
+	void executeOnFolder(ModelDescriptor model, Runner runner, ImageJGui adapter) throws FileNotFoundException, RunModelException, IOException {
 		for (File ff : new File(this.inputFolder).listFiles()) {
 			List<ImagePlus> outs = executeOnFile(ff, model, runner, adapter);
 			
@@ -238,7 +258,7 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
-	void executeOnImagePlus(Runner runner, IjAdapter adapter) throws FileNotFoundException, RunModelException, IOException {
+	void executeOnImagePlus(Runner runner, ImageJGui adapter) throws FileNotFoundException, RunModelException, IOException {
 		ImagePlus imp = WindowManager.getCurrentImage();
 		Map<String, Object> inputMap = new HashMap<String, Object>();
 		inputMap.put(model.getInputTensors().get(0).getName(), imp);
