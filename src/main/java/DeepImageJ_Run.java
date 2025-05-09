@@ -127,15 +127,7 @@ public class DeepImageJ_Run implements PlugIn {
 		File modelsDir = new File("models");
 		if (!modelsDir.isDirectory() && !modelsDir.mkdir())
 			throw new RuntimeException("Unable to create 'models' folder inside ImageJ/Fiji directory. Please create it yourself.");
-		final Gui[] guiRef = new Gui[1];
-	    if (SwingUtilities.isEventDispatchThread())
-	    	guiRef[0] = new Gui(new ImageJGui());
-	    else {
-		    SwingUtilities.invokeLater(() -> {
-		        guiRef[0] = new Gui(new ImageJGui());
-		    });
-	    }
-	    SwingUtilities.invokeLater(new Runnable() {
+		SwingUtilities.invokeLater(new Runnable() {
             public void run() {
             	ij.plugin.frame.PlugInFrame frame = new ij.plugin.frame.PlugInFrame("deepImageJ " + deepimagej.Constants.DIJ_VERSION);
             	Gui gui = new Gui(new ImageJGui());
