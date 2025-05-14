@@ -1,0 +1,150 @@
+name: Integration Tests Compiling JDLL
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - .github/workflows/macos_test.yaml
+      - dl-modelrunner-0.5.11-SNAPSHOT.jar
+  pull_request:
+    branches: [ master ]
+
+env:
+  MODELS: "intelligent-lion, ambitious-sloth, placid-llama, chatty-frog, hiding-tiger, laid-back-lobster"
+  JSON_FPATH: outputs.json
+  MACRO_FPATH: macro.ijm
+
+jobs:
+  integration-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ubuntu
+            os: ubuntu-latest
+            url_file_name: fiji-linux64.zip
+            fiji_executable: ImageJ-linux64
+          - name: windows
+            os: windows-latest
+            url_file_name: fiji-win64.zip
+            fiji_executable: ImageJ-win64.exe
+          - name: macos-arm64
+            os: macos-14
+            url_file_name: fiji-macosx.zip
+            fiji_executable: Contents/MacOS/ImageJ-macosx
+          - name: macos-arm64-15
+            os: macos-15
+            url_file_name: fiji-macosx.zip
+            fiji_executable: Contents/MacOS/ImageJ-macosx
+          - name: macos-x86_64
+            os: macos-13
+            url_file_name: fiji-macosx.zip
+            fiji_executable: Contents/MacOS/ImageJ-macosx
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'zulu'
+
+      - name: Set up Fiji
+        shell: bash
+        run: |
+          mkdir -p fiji
+          curl -L -o fiji.zip https://downloads.imagej.net/fiji/latest/${{ matrix.url_file_name }}
+          unzip fiji.zip -d fiji
+
+      - name: Install deepimageJ
+        shell: bash
+        run: |
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --update add-update-site "DeepImageJ" "https://sites.imagej.net/DeepImageJ/"
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --update update
+
+      - name: rm deepimagej file
+        shell: bash
+        run: |
+          rm -f /fiji/Fiji.app/plugins/deepimagej-*.jar
+
+      - name: Build Plugin
+        shell: bash
+        run: mvn clean package
+
+      - name: Get plugin name and version
+        shell: bash
+        run: |
+          MVN_VERSION=$(mvn -q \
+            -Dexec.executable=echo \
+            -Dexec.args='${project.version}' \
+            --non-recursive \
+            exec:exec)
+          MVN_NAME=$(mvn -q \
+            -Dexec.executable=echo \
+            -Dexec.args='${project.artifactId}' \
+            --non-recursive \
+            exec:exec)
+          echo "version=${MVN_VERSION}" >> $GITHUB_OUTPUT
+          echo "name=${MVN_NAME}" >> $GITHUB_OUTPUT
+        id: mvn_info
+
+      - name: Copy Plugin to Fiji
+        shell: bash
+        run: cp target/${{steps.mvn_info.outputs.name}}-${{steps.mvn_info.outputs.version}}.jar fiji/Fiji.app/plugins/
+
+      - name: rm deepimagej file
+        shell: bash
+        run: |
+          rm -f /fiji/Fiji.app/jars/dl-modelrunner-*.jar
+
+      - name: Create folder for jdll
+        shell: bash
+        run: mkdir jdll
+
+      - name: Checkout JDLL
+        shell: bash
+        uses: actions/checkout@v4
+        with:
+          repository: bioimage-io/jdll
+          # path where it will be cloned
+          path: jdll
+      
+      - name: Compile JDLL and copy it to the Fiji jars folder
+        shell: bash
+        run: |
+          cd jdll
+          mvn clean install
+          JDLL_VERSION=$(mvn -q \
+            -Dexec.executable=echo \
+            -Dexec.args='${project.version}' \
+            --non-recursive \
+            exec:exec)
+          JDLL_NAME=$(mvn -q \
+            -Dexec.executable=echo \
+            -Dexec.args='${project.artifactId}' \
+            --non-recursive \
+            exec:exec)
+          cp target/${{JDLL_NAME}}-${{JDLL_VERSION}}.jar ../fiji/Fiji.app/plugins/
+
+
+      - name: Set up the wanted models to test and create macro
+        shell: bash
+        run: |
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/create_macro.py \
+            -model_nicknames "${{ env.MODELS }}" \
+            -models_dir fiji/Fiji.app/models \
+            -macro_path ${{ env.MACRO_FPATH }} \
+            -json_fpath ${{ env.JSON_FPATH }}
+
+      - name: Run macros
+        shell: bash
+        run: |
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console -macro ${{ env.MACRO_FPATH }}
+
+      - name: Check that the expected result has been produced
+        shell: bash
+        run: |
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console .github/check_outputs.py -json_fpath ${{ env.JSON_FPATH }}
