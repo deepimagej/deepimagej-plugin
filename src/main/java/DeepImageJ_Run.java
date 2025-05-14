@@ -53,6 +53,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -73,6 +74,7 @@ import io.bioimage.modelrunner.apposed.appose.Types;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
 import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
+import io.bioimage.modelrunner.engine.installation.EngineInstall;
 import io.bioimage.modelrunner.exceptions.LoadEngineException;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
 import io.bioimage.modelrunner.exceptions.RunModelException;
@@ -166,6 +168,16 @@ public class DeepImageJ_Run implements PlugIn {
 		try {
 			loadDescriptor();
 		} catch (ModelSpecsException | IOException e) {
+			e.printStackTrace();
+			return;
+		}
+		Consumer<Double> cons = (dd) -> {
+			double progress = Math.round(dd * 10000) / 100;
+			System.out.println("Downloading engines for " + model.getName() + ":" + progress + "%");
+		};
+		try {
+			EngineInstall.installEnginesForModelInDir(model, deepimagej.Constants.FIJI_FOLDER + File.separator + "engines", cons);
+		} catch (IOException e) {
 			e.printStackTrace();
 			return;
 		}
