@@ -105,7 +105,6 @@ jobs:
         run: mkdir jdll
 
       - name: Checkout JDLL
-        shell: bash
         uses: actions/checkout@v4
         with:
           repository: bioimage-io/jdll
