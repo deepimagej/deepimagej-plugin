@@ -1,5 +1,8 @@
 package deepimagej.tools;
 
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+
 import ij.ImagePlus;
 import io.bioimage.modelrunner.tensor.Utils;
 import net.imglib2.RandomAccessibleInterval;
@@ -16,7 +19,7 @@ public class ImPlusRaiManager {
 	ImagePlus convert(RandomAccessibleInterval<T> rai, String axesOrder) {
 		String newImAxesOrder = removeExtraDims(rai, IJ_AXES_ORDER, axesOrder);
 		rai = transposeToAxesOrder(rai, axesOrder, newImAxesOrder);
-		return ImageJFunctions.show(rai);
+		return ImageJFunctions.wrap(rai, UUID.randomUUID().toString(), ( ExecutorService ) null);
 	}
 
 	public static <T extends RealType<T> & NativeType<T>>

@@ -311,8 +311,6 @@ public class DeepImageJ_Run implements PlugIn {
 		inputFolder = parseArg(macroArg, macroOptionalKeys[0], false);
 		outputFolder = parseArg(macroArg, macroOptionalKeys[1], false);
 		display = parseArg(macroArg, macroOptionalKeys[2], false);
-		if (display == null)
-			System.out.println("here");
 	}
 	
 	private static String parseArg(String macroArg, String arg, boolean required) {
@@ -330,6 +328,7 @@ public class DeepImageJ_Run implements PlugIn {
 		} else {
 			value = macroArg.substring(modelFolderInd + arg.length(), endInd);
 		}
+		value = value.trim();
 		if (value.equals("null") || value.equals(""))
 			value = null;
 		return value;
