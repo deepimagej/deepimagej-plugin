@@ -259,7 +259,8 @@ public class DeepImageJ_Run implements PlugIn {
 		for (Tensor<R> rr : res) {
 			ImagePlus im = ImPlusRaiManager.convert(rr.getData(), rr.getAxesOrderString());
 			im.setTitle(imp.getShortTitle() + "_" + rr.getName());
-			SwingUtilities.invokeLater(() -> im.show());
+			if (display != null)
+				SwingUtilities.invokeLater(() -> im.show());
 			if (this.outputFolder != null) {
 				IJ.saveAsTiff(im, this.outputFolder + File.separator + im.getTitle());
 			}
@@ -310,6 +311,8 @@ public class DeepImageJ_Run implements PlugIn {
 		inputFolder = parseArg(macroArg, macroOptionalKeys[0], false);
 		outputFolder = parseArg(macroArg, macroOptionalKeys[1], false);
 		display = parseArg(macroArg, macroOptionalKeys[2], false);
+		if (display == null)
+			System.out.println("here");
 	}
 	
 	private static String parseArg(String macroArg, String arg, boolean required) {
