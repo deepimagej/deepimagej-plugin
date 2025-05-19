@@ -160,7 +160,7 @@ public class DeepImageJ_Run implements PlugIn {
 			throw new IllegalArgumentException("The provided input folder does not exist: " + this.inputFolder);
 		if (this.outputFolder != null && !(new File(this.outputFolder).isDirectory()) && !(new File(outputFolder).mkdirs()))
 			throw new IllegalArgumentException("The provided output folder does not exist and cannot be created: " + this.inputFolder);
-		
+
 		ImageJGui adapter = new ImageJGui();
 
 		try {
@@ -225,7 +225,7 @@ public class DeepImageJ_Run implements PlugIn {
 		for (ImagePlus im : outs) {
 			if (this.outputFolder != null) {
 				IJ.saveAsTiff(im, this.outputFolder + File.separator + im.getTitle());
-			} 
+			}
 			if (display != null && this.display.equals("all")) {
 				SwingUtilities.invokeLater(() -> im.show());
 			}
