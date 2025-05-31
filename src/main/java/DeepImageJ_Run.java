@@ -132,6 +132,8 @@ public class DeepImageJ_Run implements PlugIn {
             	ij.plugin.frame.PlugInFrame frame = new ij.plugin.frame.PlugInFrame("deepImageJ " + deepimagej.Constants.DIJ_VERSION);
             	Gui gui = new Gui(new ImageJGui());
                 gui.setPreferredSize(new Dimension(600, 700));
+    	    	Runnable callback = () -> frame.dispose();
+    	    	gui.setCancelCallback(callback);
                 frame.add(gui);
                 frame.pack();
                 frame.setLocationRelativeTo(null);
