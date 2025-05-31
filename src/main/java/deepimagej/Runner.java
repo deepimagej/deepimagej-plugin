@@ -120,7 +120,7 @@ public class Runner extends RunnerAdapter {
 				throw new RuntimeException("Sample/Test files for input tensor '" + tt.getName() + "' are missing, please download them.");
 			File ff = new File(sampleFile);
 			if (!ff.isFile())
-				ff = new File(descriptor.getDescription() + File.separator + sampleFile);
+				ff = new File(descriptor.getModelPath() + File.separator + sampleFile);
 			if (!ff.isFile())
 				throw new RuntimeException("Sample/Test files for input tensor '" + tt.getName() + "' are missing, please download them.");
 			testInputs.put(tt, ff.getAbsolutePath());
