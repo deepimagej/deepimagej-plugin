@@ -89,6 +89,7 @@ public class Cellpose_DeepImageJ implements PlugIn {
             	CellposePluginUI gui = new CellposePluginUI(adapter);
                 frame.add(gui);
                 frame.pack();
+                frame.setSize(500, 300);
                 frame.setLocationRelativeTo(null);
                 frame.setVisible(true);
                 frame.addWindowListener(new WindowAdapter() {
