@@ -102,7 +102,7 @@ public abstract class SmallPluginAdapter extends ConsumerInterface implements Im
 
 	@Override
 	public String getModelsDir() {
-		return new File("models").getAbsolutePath();
+		return new File(deepimagej.Constants.FIJI_FOLDER + File.separator + "models").getAbsolutePath();
 	}
 
 	@Override

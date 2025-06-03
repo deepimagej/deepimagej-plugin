@@ -61,12 +61,12 @@ public class ImageJGui implements GuiAdapter {
 
 	@Override
 	public String getModelsDir() {
-		return new File("models").getAbsolutePath();
+		return new File(deepimagej.Constants.FIJI_FOLDER + File.separator + "models").getAbsolutePath();
 	}
 
 	@Override
 	public String getEnginesDir() {
-		return new File("engines").getAbsolutePath();
+		return new File(deepimagej.Constants.FIJI_FOLDER + File.separator + "engines").getAbsolutePath();
 	}
 
 	@Override

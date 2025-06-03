@@ -137,7 +137,7 @@ public class Create_Macro extends PlugInFrame {
     }
     
     private void createModelComboBox() {
-    	File modelsFolder = new File("models");
+    	File modelsFolder = new File(deepimagej.Constants.FIJI_FOLDER + File.separator + "models");
     	if (!modelsFolder.isDirectory()) {
     		modelComboBox = new JComboBox<>(new String[]{NO_MODELS_STR});
     		return;
