@@ -57,7 +57,11 @@ public class Constants {
 	public static String DIJ_VERSION = getVersion();
 	public static String DIJ_NAME = "deepImageJ";
 	
-	public static String FIJI_FOLDER = getFijiFolder();
+	public static final String FIJI_FOLDER;
+	static {
+		FIJI_FOLDER = getFijiFolder();
+		System.err.println("Fiji folder: " + FIJI_FOLDER);
+	}
 	
     private static String getVersion() {
         try (InputStream input = Constants.class.getResourceAsStream("/.deepimagej_properties")) {
@@ -69,9 +73,28 @@ public class Constants {
         }
     }
     
-
-	
 	private static String getFijiFolder() {
+		File jvmFolder = new File(System.getProperty("java.home"));
+		String imageJExecutable;
+		if (PlatformDetection.isWindows())
+			imageJExecutable = "fiji-windows-x64.exe";
+		else if (PlatformDetection.isLinux())
+			imageJExecutable = "fiji-linux-x64";
+		else if (PlatformDetection.isMacOS() && PlatformDetection.getArch().equals(PlatformDetection.ARCH_ARM64))
+			imageJExecutable = "Fiji.App/Contents/MacOS/fiji-macos-arm64";
+		else if (PlatformDetection.isMacOS())
+			imageJExecutable = "Fiji.App/Contents/MacOS/fiji-macos-x64";
+		else
+			throw new IllegalArgumentException("Unsupported Operating System");
+		while (true && jvmFolder != null) {
+			jvmFolder = jvmFolder.getParentFile();
+			if (new File(jvmFolder + File.separator + imageJExecutable).isFile())
+				return jvmFolder.getAbsolutePath();
+		}
+		return getImageJFolder();
+	}
+    
+	private static String getImageJFolder() {
 		File jvmFolder = new File(System.getProperty("java.home"));
 		String imageJExecutable;
 		if (PlatformDetection.isWindows())
