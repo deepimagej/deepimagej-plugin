@@ -69,11 +69,11 @@ public class CellposeAdapter extends SmallPluginAdapter {
 	@Override
 	public void setComponents(List<JComponent> components) {
 		this.componentsGui = components;
-		if (varNames != null && varNames.indexOf("Cytoplasm color:") != -1) {
-			this.cytoCbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Cytoplasm color:"));
+		if (varNames != null && varNames.indexOf("Cytoplasm Color:") != -1) {
+			this.cytoCbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Cytoplasm Color:"));
 		}
-		if (varNames != null && varNames.indexOf("Nuclei color:") != -1) {
-			this.nucleiCbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Nuclei color:"));
+		if (varNames != null && varNames.indexOf("Nuclei Color:") != -1) {
+			this.nucleiCbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Nuclei Color:"));
 		}
 	}
 
@@ -81,11 +81,11 @@ public class CellposeAdapter extends SmallPluginAdapter {
 	@Override
 	public void setVarNames(List<String> componentNames) {
 		this.varNames = componentNames;
-		if (componentsGui != null && varNames.indexOf("Cytoplasm color:") != -1) {
-			this.cytoCbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Cytoplasm color:"));
+		if (componentsGui != null && varNames.indexOf("Cytoplasm Color:") != -1) {
+			this.cytoCbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Cytoplasm Color:"));
 		}
-		if (componentsGui != null && varNames.indexOf("Nuclei color:") != -1) {
-			this.nucleiCbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Nuclei color:"));
+		if (componentsGui != null && varNames.indexOf("Nuclei Color:") != -1) {
+			this.nucleiCbox = (JComboBox<String>) componentsGui.get(varNames.indexOf("Nuclei Color:"));
 		}
 	}
 
