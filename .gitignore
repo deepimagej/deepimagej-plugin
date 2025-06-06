@@ -32,3 +32,5 @@ hs_err_pid*
 # Idea files
 .idea/
 lib/
+
+prep.sh
