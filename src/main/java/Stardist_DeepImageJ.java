@@ -156,17 +156,17 @@ public class Stardist_DeepImageJ implements PlugIn {
     	long[] inDims = rai.dimensionsAsLongArray();
     	long[] outDims;
     	if (model.is2D())
-    		outDims = new long[] {inDims[0], inDims[1], inDims[3]};
+    		outDims = new long[] {inDims[0], inDims[1], 1, inDims[3]};
     	else
-    		outDims = new long[] {inDims[0], inDims[1], inDims[3], inDims[4]};
+    		outDims = new long[] {inDims[0], inDims[1], 1, inDims[3], inDims[4]};
 		RandomAccessibleInterval<T> outMaskRai = Cast.unchecked(ArrayImgs.floats(outDims));
 		for (int i = 0; i < inDims[inDims.length - 1]; i ++) {
 	    	List<Tensor<R>> inList = new ArrayList<Tensor<R>>();
-	    	Tensor<R> inIm = Tensor.build("input", "xyc", Views.hyperSlice(rai, inDims.length - 1, i));
+	    	Tensor<R> inIm = Tensor.build("input", model.is2D() ? "xyc" : "xycz", Views.hyperSlice(rai, inDims.length - 1, i));
 	    	inList.add(inIm);
 	    	
 	    	List<Tensor<T>> outputList = new ArrayList<Tensor<T>>();
-	    	Tensor<T> outMask = Tensor.build("mask", "xy", Views.hyperSlice(outMaskRai, outDims.length - 1, i));
+	    	Tensor<T> outMask = Tensor.build("mask", "xyc", Views.hyperSlice(outMaskRai, outDims.length - 1, i));
 	    	outputList.add(outMask);
 	    	
 	    	model.run(inList, outputList);
