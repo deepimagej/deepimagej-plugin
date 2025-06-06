@@ -29,7 +29,7 @@ import os
 MODEL_NAME = "StarDist H&E Nuclei Segmentation"
 
 
-model_path = Stardist2D.donwloadPretrained(MODEL_NAME, "") 
+model_path = Stardist2D.donwloadPretrained(MODEL_NAME, os.getcwd()) 
 im_path = os.path.join(model_path, "sample_input_0.tif")
 imp = IJ.openImage(im_path)
 rai = ImageJFunctions.wrap(imp)
