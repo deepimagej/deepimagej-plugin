@@ -110,6 +110,7 @@ public abstract class SmallPluginAdapter extends ConsumerInterface implements Im
 			String name) {
 		ImagePlus imp = ImPlusRaiManager.convert(rai, axes);
 		imp.setTitle(name);
+		imp.getProcessor().resetMinAndMax();;
 		imp.show();
 	}
 
