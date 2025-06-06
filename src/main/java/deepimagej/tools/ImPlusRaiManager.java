@@ -24,6 +24,7 @@ public class ImPlusRaiManager {
 
 	public static <T extends RealType<T> & NativeType<T>>
 	RandomAccessibleInterval<T> convert(ImagePlus imp, String axesOrder) {
+		axesOrder = axesOrder.toLowerCase().replace("t", "b");
 		RandomAccessibleInterval<T> rai = ImageJFunctions.wrap(imp);
 		String impAxesOrder = "";
 		String[] ijAxesOrder = IJ_AXES_ORDER.split("");
@@ -61,7 +62,7 @@ public class ImPlusRaiManager {
 	private static <T extends RealType<T> & NativeType<T>>
 	String addExtraDims(RandomAccessibleInterval<T> rai, String ogAxes, String targetAxes) {
 		for (String ax : targetAxes.split("")) {
-			if (ogAxes.contains(ax))
+			if (ogAxes.contains(ax) || (ax.toLowerCase().equals("t") && ogAxes.toLowerCase().contains("b")))
 				continue;
 			ogAxes += ax;
 		}

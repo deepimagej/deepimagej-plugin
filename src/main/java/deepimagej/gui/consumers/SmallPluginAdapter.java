@@ -124,10 +124,15 @@ public abstract class SmallPluginAdapter extends ConsumerInterface implements Im
 				ImPlusRaiManager.convert(isColorRGB ? CompositeConverter.makeComposite(imp) : imp, "xyczt");
 		// We only allow multichannel, single slice images. If there are several frames, 
 		// they will be processed sequentially
-		if (imp.getNFrames() == 1) {
+		/**
+		 * TODO  remove
+		 if (imp.getNFrames() == 1) {
+		 
 			return Views.hyperSlice(Views.hyperSlice(rai, 4, 0), 3, 0);
 		}
-		return Views.hyperSlice(rai, 3, 0);
+		*/
+		// TODO REMOVEreturn Views.hyperSlice(rai, 3, 0);
+		return rai;
 	}
 
 	@Override

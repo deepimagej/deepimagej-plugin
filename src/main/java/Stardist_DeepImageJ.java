@@ -166,7 +166,7 @@ public class Stardist_DeepImageJ implements PlugIn {
 	    	inList.add(inIm);
 	    	
 	    	List<Tensor<T>> outputList = new ArrayList<Tensor<T>>();
-	    	Tensor<T> outMask = Tensor.build("mask", "xyc", Views.hyperSlice(outMaskRai, outDims.length - 1, i));
+	    	Tensor<T> outMask = Tensor.build("mask", model.is2D() ? "xyc" : "xycz", Views.hyperSlice(outMaskRai, outDims.length - 1, i));
 	    	outputList.add(outMask);
 	    	
 	    	model.run(inList, outputList);
@@ -206,40 +206,6 @@ public class Stardist_DeepImageJ implements PlugIn {
     		throw new IllegalArgumentException(String.format("Model requires %s channels", nChannels));
     	else if (dims.length == 2 && !is2d)
     		throw new IllegalArgumentException("Model is 3d, 2d image provided");
-    	else
-    		throw new IllegalArgumentException(
-    				String.format("Unsupported dimensions for %s model with %s channels. Dimension order should be (X, Y, C, Z, B or T)"
-    						, is2d ? "2D" : "3D", nChannels));
-    }
-    
-    private static <R extends RealType<R> & NativeType<R>>
-    long[] getOutputDims(StardistAbstract model, RandomAccessibleInterval<R> rai) {
-    	int nChannels = model.getNChannels();
-    	boolean is2d = model.is2D();
-    	long[] dims = rai.dimensionsAsLongArray();
-    	if (dims.length == 2 && nChannels == 1 && is2d)
-    		return new long[] {dims[0], dims[1], 1};
-    	else if (dims.length == 3 && dims[2] == 1 && nChannels == 1 && is2d)
-    		return dims;
-    	else if (dims.length == 2 && nChannels > 1)
-    		throw new IllegalArgumentException(String.format("Model requires %s channels", nChannels));
-    	else if (dims.length == 2 && !is2d)
-    		throw new IllegalArgumentException("Model is 3d, 2d image provided");
-    	else if (dims.length > 3 && dims[2] == nChannels && is2d)
-    		return new long[] {dims[0], dims[1], dims[3]};
-    	else if (dims.length == 3 && dims[2] == nChannels && is2d)
-    		return new long[] {dims[0], dims[1], 1};
-    	else if (dims.length >= 3 && dims[2] != nChannels && is2d)
-    		throw new IllegalArgumentException(String.format("Number of channels required for this model is: %s."
-    				+ " The number of channels (third dimension) in the image provided: %s.", nChannels, dims[2]));
-    	else if (dims.length == 3 && dims[2] != nChannels && !is2d)
-    		return new long[] {dims[0], dims[1], dims[2], 1};
-    	else if (dims.length > 3 && dims[2] != nChannels && !is2d)
-    		return new long[] {dims[0], dims[1], dims[2], dims[3]};
-    	else if (dims.length == 4 && dims[2] == nChannels && !is2d)
-    		return new long[] {dims[0], dims[1], dims[3], dims[1]};
-    	else if (dims.length > 4 && dims[2] == nChannels && !is2d)
-    		return new long[] {dims[0], dims[1], dims[3], dims[4]};
     	else
     		throw new IllegalArgumentException(
     				String.format("Unsupported dimensions for %s model with %s channels. Dimension order should be (X, Y, C, Z, B or T)"
