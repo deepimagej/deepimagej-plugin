@@ -42,20 +42,36 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import java.awt.GraphicsEnvironment;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 
 import javax.swing.SwingUtilities;
+
+import org.apache.commons.compress.archivers.ArchiveException;
 
 import deepimagej.gui.consumers.StardistAdapter;
 import ij.IJ;
 import ij.ImageJ;
 import ij.Macro;
 import ij.plugin.PlugIn;
+import io.bioimage.modelrunner.apposed.appose.MambaInstallException;
+import io.bioimage.modelrunner.apposed.appose.Types;
+import io.bioimage.modelrunner.exceptions.LoadModelException;
+import io.bioimage.modelrunner.exceptions.RunModelException;
 import io.bioimage.modelrunner.gui.custom.StardistGUI;
+import io.bioimage.modelrunner.model.special.stardist.StardistAbstract;
+import io.bioimage.modelrunner.tensor.Tensor;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.util.Cast;
+import net.imglib2.view.Views;
 
 /**
  * 
@@ -63,6 +79,9 @@ import net.imglib2.type.numeric.RealType;
  *
  */
 public class Stardist_DeepImageJ implements PlugIn {
+    
+    
+    private static boolean INSTALLED_ENV = false;
 	
 	static public void main(String args[]) {
 		new ImageJ();
@@ -71,13 +90,10 @@ public class Stardist_DeepImageJ implements PlugIn {
 	@Override
 	public void run(String arg) {
 	    boolean isMacro = IJ.isMacro();
-	    boolean isHeadless = GraphicsEnvironment.isHeadless();
 	    if (!isMacro) {
 	    	runGUI();
-	    } else if (isMacro ) { //&& !isHeadless) {
+	    } else if (isMacro ) {
 	    	runMacro();
-	    } else if (isHeadless) {
-	    	runHeadless();
 	    }
 	}
 	
@@ -114,9 +130,89 @@ public class Stardist_DeepImageJ implements PlugIn {
 	}
 	
 	
-	private void runHeadless() {
-		// TODO not ready yet
+	public static < T extends RealType< T > & NativeType< T > > 
+	RandomAccessibleInterval<T> runStarDist(String modelPath, RandomAccessibleInterval<T> rai) {
+		if (!INSTALLED_ENV) {
+			Consumer<String> cons = System.out::println;
+			try {
+				StardistAbstract.installRequirements(cons);
+				INSTALLED_ENV = true;
+			} catch (IOException | InterruptedException | RuntimeException | MambaInstallException | ArchiveException
+					| URISyntaxException e) {
+				throw new RuntimeException("Error installing StarDist. Caused by: " + Types.stackTrace(e));
+			}
+		}
+		try (StardistAbstract model = StardistAbstract.init(modelPath)){
+			model.loadModel();
+	    	return runStardistOnFramesStack(model, rai);
+		} catch (RunModelException | LoadModelException | IOException e) {
+			throw new RuntimeException("Error running the model. Caused by: " + Types.stackTrace(e));
+		}
 	}
+	
+    private static <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>
+    RandomAccessibleInterval<T> runStardistOnFramesStack(StardistAbstract model, RandomAccessibleInterval<R> rai) throws RunModelException {
+    	long[] outDims = getOutputDims(model, rai);
+    	rai = addDimsToInput(rai, outDims, model);
+    	long[] inDims = rai.dimensionsAsLongArray();
+		RandomAccessibleInterval<T> outMaskRai = Cast.unchecked(ArrayImgs.floats(outDims));
+		for (int i = 0; i < inDims[inDims.length - 1]; i ++) {
+	    	List<Tensor<R>> inList = new ArrayList<Tensor<R>>();
+	    	Tensor<R> inIm = Tensor.build("input", "xyc", Views.hyperSlice(rai, inDims.length - 1, i));
+	    	inList.add(inIm);
+	    	
+	    	List<Tensor<T>> outputList = new ArrayList<Tensor<T>>();
+	    	Tensor<T> outMask = Tensor.build("mask", "xy", Views.hyperSlice(outMaskRai, outDims.length - 1, i));
+	    	outputList.add(outMask);
+	    	
+	    	model.run(inList, outputList);
+		}
+    	return outMaskRai;
+    }
+    
+    private static <R extends RealType<R> & NativeType<R>>
+    RandomAccessibleInterval<R> addDimsToInput(RandomAccessibleInterval<R> rai, long[] outDims, StardistAbstract model) {
+    	long[] inDims = rai.dimensionsAsLongArray();
+    	if (outDims.length > inDims.length || (model.getNChannels() > 1 && outDims.length == inDims.length))
+    		rai = Views.addDimension(rai, 0, 1);
+    	if (outDims.length == inDims.length)
+    		rai = Views.addDimension(rai, 0, 1);
+    	return rai;
+    }
+    
+    private static <R extends RealType<R> & NativeType<R>>
+    long[] getOutputDims(StardistAbstract model, RandomAccessibleInterval<R> rai) {
+    	int nChannels = model.getNChannels();
+    	boolean is2d = model.is2D();
+    	long[] dims = rai.dimensionsAsLongArray();
+    	if (dims.length == 2 && nChannels == 1 && is2d)
+    		return new long[] {dims[0], dims[1], 1};
+    	else if (dims.length == 3 && dims[2] == 1 && nChannels == 1 && is2d)
+    		return dims;
+    	else if (dims.length == 2 && nChannels > 1)
+    		throw new IllegalArgumentException(String.format("Model requires %s channels", nChannels));
+    	else if (dims.length == 2 && !is2d)
+    		throw new IllegalArgumentException("Model is 3d, 2d image provided");
+    	else if (dims.length > 3 && dims[2] == nChannels && is2d)
+    		return new long[] {dims[0], dims[1], dims[3]};
+    	else if (dims.length == 3 && dims[2] == nChannels && is2d)
+    		return new long[] {dims[0], dims[1], 1};
+    	else if (dims.length >= 3 && dims[2] != nChannels && is2d)
+    		throw new IllegalArgumentException(String.format("Number of channels required for this model is: %s."
+    				+ " The number of channels (third dimension) in the image provided: %s.", nChannels, dims[2]));
+    	else if (dims.length == 3 && dims[2] != nChannels && !is2d)
+    		return new long[] {dims[0], dims[1], dims[2], 1};
+    	else if (dims.length > 3 && dims[2] != nChannels && !is2d)
+    		return new long[] {dims[0], dims[1], dims[2], dims[3]};
+    	else if (dims.length == 4 && dims[2] == nChannels && !is2d)
+    		return new long[] {dims[0], dims[1], dims[3], dims[1]};
+    	else if (dims.length > 4 && dims[2] == nChannels && !is2d)
+    		return new long[] {dims[0], dims[1], dims[3], dims[4]};
+    	else
+    		throw new IllegalArgumentException(
+    				String.format("Unsupported dimensions for %s model with %s channels. Dimension order should be (X, Y, C, Z, B or T)"
+    						, is2d ? "2D" : "3D", nChannels));
+    }
 	
 	private void parseCommand() {
 		String macroArg = Macro.getOptions();
