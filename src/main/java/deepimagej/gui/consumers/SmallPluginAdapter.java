@@ -61,7 +61,6 @@ import io.bioimage.modelrunner.gui.custom.ConsumerInterface;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.view.Views;
 
 /**
  * @author Carlos Garcia
@@ -208,6 +207,8 @@ public abstract class SmallPluginAdapter extends ConsumerInterface implements Im
 
 	@Override
 	public void imageClosed(ImagePlus imp) {
+		ImagePlus newImp = WindowManager.getCurrentImage();
+		changeOnFocusGained(newImp);
 	}
 
 	@Override

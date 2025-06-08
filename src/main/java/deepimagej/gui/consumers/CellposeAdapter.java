@@ -97,12 +97,14 @@ public class CellposeAdapter extends SmallPluginAdapter {
 	
 	private void updateComboBox(ImagePlus imp, JComboBox<String> cbox) {
 		if (cbox == null) return;
-		if ((imp.getType() == ImagePlus.COLOR_RGB || imp.getNChannels() == 3) && cbox.getItemCount() != 2) {
+		if (imp == null) {
+	        cbox.setModel(new DefaultComboBoxModel<>(CellposeGUI.ALL_LIST));
+		} else if ((imp.getType() == ImagePlus.COLOR_RGB || imp.getNChannels() == 3) && cbox.getItemCount() != 2) {
 	        cbox.setModel(new DefaultComboBoxModel<>(CellposeGUI.RGB_LIST));
 		} else if (imp.getNChannels() == 1 && imp.getType() != ImagePlus.COLOR_RGB && cbox.getItemCount() != 1) {
 	        cbox.setModel(new DefaultComboBoxModel<>(CellposeGUI.GRAYSCALE_LIST));
-		} else if (imp.getNChannels() != 1 && imp.getNChannels() == 3) {
-	        cbox.setModel(new DefaultComboBoxModel<>(CellposeGUI.RGB_LIST));
+		} else if (imp.getNChannels() != 1 && imp.getNChannels() != 3) {
+	        cbox.setModel(new DefaultComboBoxModel<>(CellposeGUI.ALL_LIST));
 		}
 	}
 

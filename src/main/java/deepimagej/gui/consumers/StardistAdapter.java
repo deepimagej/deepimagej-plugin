@@ -91,7 +91,9 @@ public class StardistAdapter extends SmallPluginAdapter {
 		String firstItem = cbox.getItemAt(0);
 		String selected = (String) cbox.getSelectedItem();
 		int nItems = cbox.getItemCount();
-		if ((imp.getType() == ImagePlus.COLOR_RGB || imp.getNChannels() == 3) 
+		if (imp == null && nItems != 3) {
+	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"StarDist Fluorescence Nuclei Segmentation", "StarDist H&E Nuclei Segmentation", "your custom model"}));
+		} else if ((imp.getType() == ImagePlus.COLOR_RGB || imp.getNChannels() == 3) 
 				&& (nItems != 2 || !firstItem.equals("StarDist H&E Nuclei Segmentation"))) {
 	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"StarDist H&E Nuclei Segmentation", "your custom model"}));
 	        if (selected.equals("your custom model"))
@@ -101,7 +103,7 @@ public class StardistAdapter extends SmallPluginAdapter {
 	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"StarDist Fluorescence Nuclei Segmentation", "your custom model"}));
 	        if (selected.equals("your custom model"))
 	        	cbox.setSelectedIndex(1);
-		} else if (imp.getNChannels() != 1 && imp.getNChannels() == 3 && nItems != 3) {
+		} else if (imp.getNChannels() != 1 && imp.getNChannels() != 3 && nItems != 3) {
 	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"StarDist Fluorescence Nuclei Segmentation", "StarDist H&E Nuclei Segmentation", "your custom model"}));
 	        if (selected.equals("your custom model"))
 	        	cbox.setSelectedIndex(2);
