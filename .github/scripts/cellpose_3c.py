@@ -14,11 +14,11 @@
 # ============================================================================
 
 """
-Jython script that downloads Stardist 2d 3 channels and runs it
+Jython script that tests Cellpose on 3 channel images
 """
 
 from io.bioimage.modelrunner.model.special.stardist import Stardist2D
-import Stardist_DeepImageJ
+import Cellpose_DeepImageJ
 
 from ij import IJ
 from net.imglib2.img.display.imagej import ImageJFunctions
@@ -35,7 +35,7 @@ imp = IJ.openImage(im_path)
 rai = ImageJFunctions.wrap(imp)
 
 
-output_rai = Stardist_DeepImageJ.runStarDist(model_path, rai)
+output_rai = Cellpose_DeepImageJ.runStarDist("cyto3", rai, "red", "blue")
 
 max = 0
 cursor = output_rai.cursor()
@@ -45,4 +45,4 @@ while cursor.hasNext():
 	if val > max:
 		max = val
 
-print("Number of instances counted by StarDist: " + str(max))
+print("Number of instances counted by Cellpose: " + str(max))

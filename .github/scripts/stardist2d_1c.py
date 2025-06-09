@@ -45,4 +45,4 @@ while cursor.hasNext():
 	if val > max:
 		max = val
 
-print("Number of instances: " + str(max))
+print("Number of instances counted by StarDist: " + str(max))

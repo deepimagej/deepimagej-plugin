@@ -5,7 +5,7 @@ on:
     branches: [ master ]
     paths-ignore:
       - .github/workflows/macos_test.yaml
-      - dl-modelrunner-0.5.11-SNAPSHOT.jar
+      - .github/workflows/test_stardist_cellpose.yaml
   pull_request:
     branches: [ master ]
 

@@ -1,4 +1,4 @@
-name: Test StarDist
+name: Test StarDist and Cellpose
 
 on:
   push:
@@ -12,6 +12,8 @@ on:
 env:
   SCRIPT_PATH_1C: .github/scripts/stardist2d_1c.py
   SCRIPT_PATH_3C: .github/scripts/stardist2d_3c.py
+  CP_SCRIPT_PATH_1C: .github/scripts/cellpose_1c.py
+  CP_SCRIPT_PATH_3C: .github/scripts/cellpose_3c.py
 
 jobs:
   integration-tests:
@@ -103,3 +105,13 @@ jobs:
         shell: bash
         run: |
           fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console  ${{ env.SCRIPT_PATH_3C }}
+
+      - name: Download and test Cellpose 2d 1 channel
+        shell: bash
+        run: |
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console  ${{ env.CP_SCRIPT_PATH_1C }}
+
+      - name: Download and test Cellpose 2d 3 channes
+        shell: bash
+        run: |
+          fiji/Fiji.app/${{ matrix.fiji_executable }} --headless --console  ${{ env.CP_SCRIPT_PATH_3C }}

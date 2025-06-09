@@ -3,6 +3,9 @@ name: Tiling test
 on:
   push:
     branches: [ master ]
+    paths-ignore:
+      - .github/workflows/test_stardist_cellpose.yaml
+      - .github/workflows/integration_test.yaml
   pull_request:
     branches: [ master ]
 
