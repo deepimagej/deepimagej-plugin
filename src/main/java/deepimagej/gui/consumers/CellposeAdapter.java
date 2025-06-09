@@ -44,13 +44,16 @@
 
 package deepimagej.gui.consumers;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map.Entry;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
 import ij.ImagePlus;
+import ij.plugin.frame.Recorder;
 import io.bioimage.modelrunner.gui.custom.CellposeGUI;
 
 /**
@@ -106,6 +109,19 @@ public class CellposeAdapter extends SmallPluginAdapter {
 		} else if (imp.getNChannels() != 1 && imp.getNChannels() != 3) {
 	        cbox.setModel(new DefaultComboBoxModel<>(CellposeGUI.ALL_LIST));
 		}
+	}
+
+	@Override
+	public void notifyParams(LinkedHashMap<String, String> args) {
+		if (!Recorder.record)
+			return;
+		
+		String macro = "run(\"DeepImageJ Cellpose\", \"" + System.lineSeparator();
+		for (Entry<String, String> ee : args.entrySet()) {
+			macro += ee.getKey() + "=[" + ee.getValue() + "] " ;
+		}
+		macro = macro.substring(0, macro.length() - 1) + "\");";
+		Recorder.recordString(macro);
 	}
 
 }

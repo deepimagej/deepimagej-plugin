@@ -44,13 +44,16 @@
 
 package deepimagej.gui.consumers;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map.Entry;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
 import ij.ImagePlus;
+import ij.plugin.frame.Recorder;
 
 /**
  * @author Carlos Garcia
@@ -108,6 +111,19 @@ public class StardistAdapter extends SmallPluginAdapter {
 	        if (selected.equals("your custom model"))
 	        	cbox.setSelectedIndex(2);
 		}
+	}
+
+	@Override
+	public void notifyParams(LinkedHashMap<String, String> args) {
+		if (!Recorder.record)
+			return;
+		
+		String macro = "run(\"DeepImageJ StarDist\", \"" + System.lineSeparator();
+		for (Entry<String, String> ee : args.entrySet()) {
+			macro += ee.getKey() + "=[" + ee.getValue() + "] " ;
+		}
+		macro = macro.substring(0, macro.length() - 1) + "\");";
+		Recorder.recordString(macro);
 	}
 
 }

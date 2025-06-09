@@ -63,6 +63,7 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.Macro;
 import ij.plugin.PlugIn;
+import ij.plugin.frame.Recorder;
 import io.bioimage.modelrunner.apposed.appose.MambaInstallException;
 import io.bioimage.modelrunner.apposed.appose.Types;
 import io.bioimage.modelrunner.exceptions.RunModelException;
@@ -87,6 +88,16 @@ public class Cellpose_DeepImageJ implements PlugIn {
     
     
     private static boolean INSTALLED_ENV = false;
+
+	private final static String MACRO_INFO = "https://github.com/deepimagej/deepimagej-plugin/blob/main/README.md#macros";
+    
+	final static String MACRO_RECORD_COMMENT = ""
+	        + System.lineSeparator()
+	        + "// The macro recording feature will capture the command 'run(\"DeepImageJ Cellpose\");', but executing it will have no effect." + System.lineSeparator()
+	        + "// The recording will be performed once the button 'Run' is clicked." + System.lineSeparator()
+	        + "// For more information, visit:" + System.lineSeparator()
+	        + "// " + MACRO_INFO + System.lineSeparator()
+	        + System.lineSeparator();
 	
 	static public void main(String args[]) {
 		new ImageJ();
@@ -103,6 +114,8 @@ public class Cellpose_DeepImageJ implements PlugIn {
 	}
 	
 	private void runGUI() {
+		if (Recorder.record)
+			Recorder.recordString(MACRO_RECORD_COMMENT);
 		CellposeAdapter adapter = new CellposeAdapter();
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
