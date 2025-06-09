@@ -58,9 +58,11 @@ import javax.swing.SwingUtilities;
 
 import org.apache.commons.compress.archivers.ArchiveException;
 
+import deepimagej.gui.ImageJGui;
 import deepimagej.gui.consumers.CellposeAdapter;
 import ij.IJ;
 import ij.ImageJ;
+import ij.ImagePlus;
 import ij.Macro;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.Recorder;
@@ -74,6 +76,7 @@ import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Cast;
@@ -85,7 +88,16 @@ import net.imglib2.view.Views;
  *
  */
 public class Cellpose_DeepImageJ implements PlugIn {
-    
+	
+	private String macroModel;
+	
+	private String cytoColor;
+	
+	private String nucleiColor;   
+	
+	private boolean displayAll = false;
+	
+	private ImageJGui HELPER_CONSUMER;
     
     private static boolean INSTALLED_ENV = false;
 
@@ -108,7 +120,7 @@ public class Cellpose_DeepImageJ implements PlugIn {
 	    boolean isMacro = IJ.isMacro();
 	    if (!isMacro) {
 	    	runGUI();
-	    } else if (isMacro ) {
+	    } else if (isMacro && Macro.getOptions() != null) {
 	    	runMacro();
 	    }
 	}
@@ -136,45 +148,51 @@ public class Cellpose_DeepImageJ implements PlugIn {
             }
            });
 	}
-	
-	/**
-	 * Macro example:
-	 * run("DeepImageJ Run", "modelPath=/path/to/model/LiveCellSegmentationBou 
-	 *  inputPath=/path/to/image/sample_input_0.tif 
-	 *  outputFolder=/path/to/ouput/folder
-	 *  displayOutput=null")
-	 */
+
+    
+    private String getOutputName(String inputTitle, String tensorName) {
+    	String noExtension;
+    	if (inputTitle.lastIndexOf(".") != -1)
+    		noExtension = inputTitle.substring(0, inputTitle.lastIndexOf("."));
+    	else
+    		noExtension = inputTitle;
+    	String extension = ".tif";
+    	return noExtension + "_" + tensorName + extension;
+    }
+
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>  void runMacro() {
 		parseCommand();
+		ImagePlus imp = IJ.getImage();
+		Map<String, RandomAccessibleInterval<T>> out = runCellpose(macroModel, Cast.unchecked(ImageJFunctions.wrap(imp)), cytoColor, nucleiColor);
+		if (HELPER_CONSUMER == null)
+			HELPER_CONSUMER = new ImageJGui();
+		HELPER_CONSUMER.displayRai(out.get("labels"), "xyb", getOutputName(imp.getTitle(), "labels"));
+		if (!displayAll)
+			return;
+		HELPER_CONSUMER.displayRai(out.get("flows_0"), "xycb", getOutputName(imp.getTitle(), "flows_0"));
+		HELPER_CONSUMER.displayRai(out.get("flows_1"), "cxyb", getOutputName(imp.getTitle(), "flows_1"));
+		HELPER_CONSUMER.displayRai(out.get("flows_2"), "xyb", getOutputName(imp.getTitle(), "flows_2"));
+		HELPER_CONSUMER.displayRai(out.get("image_dn"), "xycb", getOutputName(imp.getTitle(), "image_dn"));
 	}
 	
 	private void parseCommand() {
 		String macroArg = Macro.getOptions();
-		System.out.println(macroArg);
 
-		// macroArg = "modelPath=NucleiSegmentationBoundaryModel";
-		// macroArg = "modelPath=NucleiSegmentationBoundaryModel outputFolder=null";
-		// macroArg = "modelPath=[StarDist H&E Nuclei Segmentation] inputPath=null outputFolder=null";
-
+		macroModel = parseArg(macroArg, "model", true);
+		cytoColor = parseArg(macroArg, "cyto_color", true);
+		nucleiColor = parseArg(macroArg, "nuclei_color", true);
+		String displayAllStr = parseArg(macroArg, "display_all", false);
+		if (displayAllStr != null && (displayAllStr.equals("true") || displayAllStr.equals("True")))
+			displayAll = true;
 	}
 	
 	private static String parseArg(String macroArg, String arg, boolean required) {
-		int modelFolderInd = macroArg.indexOf(arg);
-		if (modelFolderInd == -1 && required)
-			throw new IllegalArgumentException("DeepImageJ macro requires to set the variable '" + arg + "'.");
-		else if (modelFolderInd == -1)
-			return null;
-		int modelFolderInd2 = macroArg.indexOf(arg + "[");
-		int endInd = macroArg.indexOf(" ", modelFolderInd);
-		String value;
-		if (modelFolderInd2 != -1) {
-			endInd = macroArg.indexOf("] ", modelFolderInd2);
-			value = macroArg.substring(modelFolderInd2 + arg.length() + 1, endInd);
-		} else {
-			value = macroArg.substring(modelFolderInd + arg.length(), endInd);
-		}
-		if (value.equals("null") || value.equals(""))
+		String value = Macro.getValue(macroArg, arg, null);
+		if (value != null && value.equals(""))
 			value = null;
+		if (value == null && required)
+			throw new IllegalArgumentException("DeepImageJ Cellpose macro requires to the variable '" + arg + "'. "
+					+ "For more info, please visit: " + MACRO_INFO);
 		return value;
 	}
 	
@@ -196,16 +214,18 @@ public class Cellpose_DeepImageJ implements PlugIn {
 		try {
 			if (new File(modelPath).isFile())
 				model = Cellpose.init(modelPath);
-			else if (Cellpose.fileIsCellpose(modelPath, deepimagej.Constants.FIJI_FOLDER) != null)
-				model = Cellpose.init(Cellpose.fileIsCellpose(modelPath, deepimagej.Constants.FIJI_FOLDER));
+			else if (Cellpose.fileIsCellpose(modelPath, deepimagej.Constants.FIJI_FOLDER + File.separator + "models") != null)
+				model = Cellpose.init(Cellpose.fileIsCellpose(modelPath, deepimagej.Constants.FIJI_FOLDER + File.separator + "models"));
 			else {
 				Consumer<Double> cons = (p) -> {
 					System.out.println(String.format("Downloading %s model: %s%", modelPath, "" + Math.round(p * 10000) / 100));
 				};
-				model = Cellpose.init(Cellpose.donwloadPretrained(modelPath, deepimagej.Constants.FIJI_FOLDER, cons));
+				model = Cellpose.init(Cellpose.donwloadPretrained(modelPath, deepimagej.Constants.FIJI_FOLDER + File.separator + "models", cons));
 			}
 			model.loadModel();
-	    	return runCellposeOnFramesStack(model, rai, cytoColor, nucleiColor);
+	    	Map<String, RandomAccessibleInterval<T>> out = runCellposeOnFramesStack(model, rai, cytoColor, nucleiColor);
+	    	model.close();
+	    	return out;
 		} catch (Exception e) {
 			if (model != null)
 				model.close();
@@ -216,7 +236,7 @@ public class Cellpose_DeepImageJ implements PlugIn {
     private static <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>
     Map<String, RandomAccessibleInterval<T>> runCellposeOnFramesStack(Cellpose model, RandomAccessibleInterval<R> rai, String cytoColor, String nucleiColor) throws RunModelException {
     	model.setChannels(new int[] {CellposePluginUI.CHANNEL_MAP.get(cytoColor), CellposePluginUI.CHANNEL_MAP.get(nucleiColor)});
-    	rai = addDimsToInput(rai, cytoColor == "gray" ? 1 : 3);
+    	rai = addDimsToInput(rai, cytoColor.equals("gray") ? 1 : 3);
     	long[] inDims = rai.dimensionsAsLongArray();
     	long[] outDims = new long[] {inDims[0], inDims[1], inDims[3]};
 		RandomAccessibleInterval<T> outMaskRai = Cast.unchecked(ArrayImgs.unsignedShorts(outDims));
