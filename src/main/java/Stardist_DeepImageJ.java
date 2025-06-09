@@ -44,6 +44,7 @@
 
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -67,6 +68,7 @@ import io.bioimage.modelrunner.apposed.appose.Types;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
 import io.bioimage.modelrunner.exceptions.RunModelException;
 import io.bioimage.modelrunner.gui.custom.StardistGUI;
+import io.bioimage.modelrunner.model.special.stardist.Stardist2D;
 import io.bioimage.modelrunner.model.special.stardist.StardistAbstract;
 import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.RandomAccessibleInterval;
@@ -98,7 +100,7 @@ public class Stardist_DeepImageJ implements PlugIn {
     
 	final static String MACRO_RECORD_COMMENT = ""
 	        + System.lineSeparator()
-	        + "// The macro recording feature will capture the command 'run(\"DeepImageJ Stardist\");', but executing it will have no effect." + System.lineSeparator()
+	        + "// The macro recording feature will capture the command 'run(\"DeepImageJ StarDist\");', but executing it will have no effect." + System.lineSeparator()
 	        + "// The recording will be performed once the button 'Run' is clicked." + System.lineSeparator()
 	        + "// For more information, visit:" + System.lineSeparator()
 	        + "// " + MACRO_INFO + System.lineSeparator()
@@ -113,7 +115,7 @@ public class Stardist_DeepImageJ implements PlugIn {
 	    boolean isMacro = IJ.isMacro();
 	    if (!isMacro) {
 	    	runGUI();
-	    } else if (isMacro ) {
+	    } else if (isMacro && Macro.getOptions() != null) {
 	    	runMacro();
 	    }
 	}
@@ -144,9 +146,9 @@ public class Stardist_DeepImageJ implements PlugIn {
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>  void runMacro() {
 		parseCommand();
 		ImagePlus imp = IJ.getImage();
-		RandomAccessibleInterval<T> out = runStarDist(macroModel, Cast.unchecked(ImageJFunctions.wrap(imp)));
 		if (HELPER_CONSUMER == null)
 			HELPER_CONSUMER = new ImageJGui();
+		RandomAccessibleInterval<T> out = runStarDist(macroModel, Cast.unchecked(ImageJFunctions.wrap(imp)));
 		HELPER_CONSUMER.displayRai(out, "xycb", getOutputName(imp.getTitle(), "mask"));
 	}
 	
@@ -163,7 +165,7 @@ public class Stardist_DeepImageJ implements PlugIn {
 		if (value != null && value.equals(""))
 			value = null;
 		if (value == null && required)
-			throw new IllegalArgumentException("DeepImageJ Cellpose macro requires to the variable '" + arg + "'. "
+			throw new IllegalArgumentException("DeepImageJ StarDist macro requires to the variable '" + arg + "'. "
 					+ "For more info, please visit: " + MACRO_INFO);
 		return value;
 	}
@@ -180,10 +182,25 @@ public class Stardist_DeepImageJ implements PlugIn {
 				throw new RuntimeException("Error installing StarDist. Caused by: " + Types.stackTrace(e));
 			}
 		}
-		try (StardistAbstract model = StardistAbstract.init(modelPath)){
+		StardistAbstract model = null;
+		try {
+			if (new File(modelPath).isDirectory()) {
+				model = StardistAbstract.init(modelPath);
+			} else if (Stardist2D.fromPretained(modelPath, HELPER_CONSUMER.getModelsDir(), false) != null){
+				model = Stardist2D.fromPretained(modelPath, HELPER_CONSUMER.getModelsDir(), false);
+			} else {
+				Consumer<Double> cons = (d) -> 
+				System.out.println(String.format("Downloading %s: %s%", modelPath, "" + Math.round(d * 10000) / 100));
+				String path = Stardist2D.donwloadPretrained(modelPath, HELPER_CONSUMER.getModelsDir(), cons);
+				model = StardistAbstract.init(path);
+			}
 			model.loadModel();
-	    	return runStardistOnFramesStack(model, rai);
-		} catch (RunModelException | LoadModelException | IOException e) {
+	    	RandomAccessibleInterval<T> out = runStardistOnFramesStack(model, rai);
+	    	model.close();
+	    	return out;
+		} catch (Exception e) {
+			if (model != null)
+				model.close();
 			throw new RuntimeException("Error running the model. Caused by: " + Types.stackTrace(e));
 		}
 	}

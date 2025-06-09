@@ -118,11 +118,11 @@ public class StardistAdapter extends SmallPluginAdapter {
 		if (!Recorder.record)
 			return;
 		
-		String macro = "run(\"DeepImageJ StarDist\", \"" + System.lineSeparator();
+		String macro = "run(\"DeepImageJ StarDist\", \"";
 		for (Entry<String, String> ee : args.entrySet()) {
 			macro += ee.getKey() + "=[" + ee.getValue() + "] " ;
 		}
-		macro = macro.substring(0, macro.length() - 1) + "\");";
+		macro = macro.substring(0, macro.length() - 1) + "\");" + System.lineSeparator();
 		Recorder.recordString(macro);
 	}
 
