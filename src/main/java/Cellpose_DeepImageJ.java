@@ -97,7 +97,7 @@ public class Cellpose_DeepImageJ implements PlugIn {
 	
 	private boolean displayAll = false;
 	
-	private ImageJGui HELPER_CONSUMER;
+	private static ImageJGui HELPER_CONSUMER;
     
     private static boolean INSTALLED_ENV = false;
 
@@ -149,7 +149,6 @@ public class Cellpose_DeepImageJ implements PlugIn {
            });
 	}
 
-    
     private String getOutputName(String inputTitle, String tensorName) {
     	String noExtension;
     	if (inputTitle.lastIndexOf(".") != -1)

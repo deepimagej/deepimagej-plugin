@@ -54,9 +54,11 @@ import javax.swing.SwingUtilities;
 
 import org.apache.commons.compress.archivers.ArchiveException;
 
+import deepimagej.gui.ImageJGui;
 import deepimagej.gui.consumers.StardistAdapter;
 import ij.IJ;
 import ij.ImageJ;
+import ij.ImagePlus;
 import ij.Macro;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.Recorder;
@@ -69,6 +71,7 @@ import io.bioimage.modelrunner.model.special.stardist.StardistAbstract;
 import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Cast;
@@ -80,7 +83,14 @@ import net.imglib2.view.Views;
  *
  */
 public class Stardist_DeepImageJ implements PlugIn {
-    
+	
+	private String macroModel;
+	
+	private String minPerc;
+	
+	private String maxPerc;
+	
+	private static ImageJGui HELPER_CONSUMER;
     
     private static boolean INSTALLED_ENV = false;
 
@@ -130,16 +140,32 @@ public class Stardist_DeepImageJ implements PlugIn {
             }
            });
 	}
-	
-	/**
-	 * Macro example:
-	 * run("DeepImageJ Run", "modelPath=/path/to/model/LiveCellSegmentationBou 
-	 *  inputPath=/path/to/image/sample_input_0.tif 
-	 *  outputFolder=/path/to/ouput/folder
-	 *  displayOutput=null")
-	 */
+
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>  void runMacro() {
 		parseCommand();
+		ImagePlus imp = IJ.getImage();
+		RandomAccessibleInterval<T> out = runStarDist(macroModel, Cast.unchecked(ImageJFunctions.wrap(imp)));
+		if (HELPER_CONSUMER == null)
+			HELPER_CONSUMER = new ImageJGui();
+		HELPER_CONSUMER.displayRai(out, "xycb", getOutputName(imp.getTitle(), "mask"));
+	}
+	
+	private void parseCommand() {
+		String macroArg = Macro.getOptions();
+
+		macroModel = parseArg(macroArg, "model", true);
+		minPerc = parseArg(macroArg, "min_percentile", true);
+		maxPerc = parseArg(macroArg, "max_percentile", true);
+	}
+	
+	private static String parseArg(String macroArg, String arg, boolean required) {
+		String value = Macro.getValue(macroArg, arg, null);
+		if (value != null && value.equals(""))
+			value = null;
+		if (value == null && required)
+			throw new IllegalArgumentException("DeepImageJ Cellpose macro requires to the variable '" + arg + "'. "
+					+ "For more info, please visit: " + MACRO_INFO);
+		return value;
 	}
 	
 	public static < T extends RealType< T > & NativeType< T > > 
@@ -223,35 +249,14 @@ public class Stardist_DeepImageJ implements PlugIn {
     				String.format("Unsupported dimensions for %s model with %s channels. Dimension order should be (X, Y, C, Z, B or T)"
     						, is2d ? "2D" : "3D", nChannels));
     }
-	
-	private void parseCommand() {
-		String macroArg = Macro.getOptions();
-		System.out.println(macroArg);
 
-		// macroArg = "modelPath=NucleiSegmentationBoundaryModel";
-		// macroArg = "modelPath=NucleiSegmentationBoundaryModel outputFolder=null";
-		// macroArg = "modelPath=[StarDist H&E Nuclei Segmentation] inputPath=null outputFolder=null";
-
-	}
-	
-	private static String parseArg(String macroArg, String arg, boolean required) {
-		int modelFolderInd = macroArg.indexOf(arg);
-		if (modelFolderInd == -1 && required)
-			throw new IllegalArgumentException("DeepImageJ macro requires to set the variable '" + arg + "'.");
-		else if (modelFolderInd == -1)
-			return null;
-		int modelFolderInd2 = macroArg.indexOf(arg + "[");
-		int endInd = macroArg.indexOf(" ", modelFolderInd);
-		String value;
-		if (modelFolderInd2 != -1) {
-			endInd = macroArg.indexOf("] ", modelFolderInd2);
-			value = macroArg.substring(modelFolderInd2 + arg.length() + 1, endInd);
-		} else {
-			value = macroArg.substring(modelFolderInd + arg.length(), endInd);
-		}
-		if (value.equals("null") || value.equals(""))
-			value = null;
-		return value;
-	}
-
+    private String getOutputName(String inputTitle, String tensorName) {
+    	String noExtension;
+    	if (inputTitle.lastIndexOf(".") != -1)
+    		noExtension = inputTitle.substring(0, inputTitle.lastIndexOf("."));
+    	else
+    		noExtension = inputTitle;
+    	String extension = ".tif";
+    	return noExtension + "_" + tensorName + extension;
+    }
 }
