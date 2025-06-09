@@ -163,8 +163,6 @@ public class Cellpose_DeepImageJ implements PlugIn {
 		parseCommand();
 		ImagePlus imp = IJ.getImage();
 		Map<String, RandomAccessibleInterval<T>> out = runCellpose(macroModel, Cast.unchecked(ImageJFunctions.wrap(imp)), cytoColor, nucleiColor);
-		if (HELPER_CONSUMER == null)
-			HELPER_CONSUMER = new ImageJGui();
 		HELPER_CONSUMER.displayRai(out.get("labels"), "xyb", getOutputName(imp.getTitle(), "labels"));
 		if (!displayAll)
 			return;
@@ -209,17 +207,19 @@ public class Cellpose_DeepImageJ implements PlugIn {
 				throw new RuntimeException("Error installing Cellpose. Caused by: " + Types.stackTrace(e));
 			}
 		}
+		if (HELPER_CONSUMER == null)
+			HELPER_CONSUMER = new ImageJGui();
 		Cellpose model = null;
 		try {
 			if (new File(modelPath).isFile())
 				model = Cellpose.init(modelPath);
-			else if (Cellpose.fileIsCellpose(modelPath, deepimagej.Constants.FIJI_FOLDER + File.separator + "models") != null)
-				model = Cellpose.init(Cellpose.fileIsCellpose(modelPath, deepimagej.Constants.FIJI_FOLDER + File.separator + "models"));
+			else if (Cellpose.fileIsCellpose(modelPath, HELPER_CONSUMER.getModelsDir()) != null)
+				model = Cellpose.init(Cellpose.fileIsCellpose(modelPath, HELPER_CONSUMER.getModelsDir()));
 			else {
 				Consumer<Double> cons = (p) -> {
-					System.out.println(String.format("Downloading %s model: %s%", modelPath, "" + Math.round(p * 10000) / 100));
+					System.out.println(String.format("Downloading %s model: %.2f%%", modelPath, p * 100));
 				};
-				model = Cellpose.init(Cellpose.donwloadPretrained(modelPath, deepimagej.Constants.FIJI_FOLDER + File.separator + "models", cons));
+				model = Cellpose.init(Cellpose.donwloadPretrained(modelPath, HELPER_CONSUMER.getModelsDir(), cons));
 			}
 			model.loadModel();
 	    	Map<String, RandomAccessibleInterval<T>> out = runCellposeOnFramesStack(model, rai, cytoColor, nucleiColor);

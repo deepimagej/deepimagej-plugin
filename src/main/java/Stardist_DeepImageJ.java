@@ -189,8 +189,8 @@ public class Stardist_DeepImageJ implements PlugIn {
 			} else if (Stardist2D.fromPretained(modelPath, HELPER_CONSUMER.getModelsDir(), false) != null){
 				model = Stardist2D.fromPretained(modelPath, HELPER_CONSUMER.getModelsDir(), false);
 			} else {
-				Consumer<Double> cons = (d) -> 
-				System.out.println(String.format("Downloading %s: %s%", modelPath, "" + Math.round(d * 10000) / 100));
+				Consumer<Double> cons = 
+						(d) -> System.out.println(String.format("Downloading %s: %.2f%%", modelPath, d * 100));
 				String path = Stardist2D.donwloadPretrained(modelPath, HELPER_CONSUMER.getModelsDir(), cons);
 				model = StardistAbstract.init(path);
 			}
