@@ -35,8 +35,9 @@ imp = IJ.openImage(im_path)
 rai = ImageJFunctions.wrap(imp)
 
 
-output_rai = Cellpose_DeepImageJ.runStarDist("cyto3", rai, "red", "blue")
+map = Cellpose_DeepImageJ.runCellpose("cyto3", rai, "gray", "gray")
 
+output_rai = map["labels"]
 max = 0
 cursor = output_rai.cursor()
 while cursor.hasNext():
