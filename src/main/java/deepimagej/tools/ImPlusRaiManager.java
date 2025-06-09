@@ -17,8 +17,10 @@ public class ImPlusRaiManager {
 
 	public static <T extends RealType<T> & NativeType<T>>
 	ImagePlus convert(RandomAccessibleInterval<T> rai, String axesOrder) {
-		String newImAxesOrder = removeExtraDims(rai, IJ_AXES_ORDER, axesOrder);
-		rai = transposeToAxesOrder(rai, axesOrder, newImAxesOrder);
+		String newImAxesOrder = addExtraDims(axesOrder, IJ_AXES_ORDER);
+		for (int i = 0; i < (newImAxesOrder.length() - axesOrder.length()); i ++)
+			rai = Views.addDimension(rai, 0, 0);
+		rai = transposeToAxesOrder(rai, newImAxesOrder, IJ_AXES_ORDER);
 		return ImageJFunctions.wrap(rai, UUID.randomUUID().toString(), ( ExecutorService ) null);
 	}
 
@@ -32,7 +34,7 @@ public class ImPlusRaiManager {
 			if (imp.getDimensions()[i] != 1)
 				impAxesOrder += ijAxesOrder[i];
 		}
-		String newImAxesOrder = addExtraDims(rai, impAxesOrder, axesOrder);
+		String newImAxesOrder = addExtraDims(impAxesOrder, axesOrder);
 		for (int i = 0; i < newImAxesOrder.length() - impAxesOrder.length(); i ++)
 			rai = Views.addDimension(rai, 0, 0);
 		rai = transposeToAxesOrder(rai, newImAxesOrder, axesOrder);
@@ -41,7 +43,7 @@ public class ImPlusRaiManager {
 
 	public static <T extends RealType<T> & NativeType<T>>
 	RandomAccessibleInterval<T> permute(RandomAccessibleInterval<T> rai, String ogAxesOrder, String targetAxesOrder) {
-		String newImAxesOrder = addExtraDims(rai, ogAxesOrder, targetAxesOrder);
+		String newImAxesOrder = addExtraDims(ogAxesOrder, targetAxesOrder);
 		for (int i = 0; i < newImAxesOrder.length() - ogAxesOrder.length(); i ++)
 			rai = Views.addDimension(rai, 0, 0);
 		
@@ -49,7 +51,7 @@ public class ImPlusRaiManager {
 	}
 	
 	private static <T extends RealType<T> & NativeType<T>>
-	String removeExtraDims(RandomAccessibleInterval<T> rai, String ogAxes, String targetAxes) {
+	String removeExtraDims(String ogAxes, String targetAxes) {
 		String nAxes = "";
 		for (String ax : ogAxes.split("")) {
 			if (!targetAxes.contains(ax))
@@ -60,9 +62,11 @@ public class ImPlusRaiManager {
 	}
 	
 	private static <T extends RealType<T> & NativeType<T>>
-	String addExtraDims(RandomAccessibleInterval<T> rai, String ogAxes, String targetAxes) {
+	String addExtraDims(String ogAxes, String targetAxes) {
+		ogAxes = ogAxes.toLowerCase().replace("t", "b");
+		targetAxes = targetAxes.toLowerCase().replace("t", "b");
 		for (String ax : targetAxes.split("")) {
-			if (ogAxes.contains(ax) || (ax.toLowerCase().equals("t") && ogAxes.toLowerCase().contains("b")))
+			if (ogAxes.contains(ax))
 				continue;
 			ogAxes += ax;
 		}
