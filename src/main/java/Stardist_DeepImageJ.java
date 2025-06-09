@@ -129,7 +129,6 @@ public class Stardist_DeepImageJ implements PlugIn {
 		parseCommand();
 	}
 	
-	
 	public static < T extends RealType< T > & NativeType< T > > 
 	RandomAccessibleInterval<T> runStarDist(String modelPath, RandomAccessibleInterval<T> rai) {
 		if (!INSTALLED_ENV) {
