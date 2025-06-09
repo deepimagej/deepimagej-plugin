@@ -116,11 +116,11 @@ public class CellposeAdapter extends SmallPluginAdapter {
 		if (!Recorder.record)
 			return;
 		
-		String macro = "run(\"DeepImageJ Cellpose\", \"" + System.lineSeparator();
+		String macro = "run(\"DeepImageJ Cellpose\", \"";
 		for (Entry<String, String> ee : args.entrySet()) {
 			macro += ee.getKey() + "=[" + ee.getValue() + "] " ;
 		}
-		macro = macro.substring(0, macro.length() - 1) + "\");";
+		macro = macro.substring(0, macro.length() - 1) + "\");" + System.lineSeparator();
 		Recorder.recordString(macro);
 	}
 

@@ -14,6 +14,7 @@ import deepimagej.Runner;
 import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
 import ij.ImagePlus;
+import ij.WindowManager;
 import ij.plugin.CompositeConverter;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.TensorSpec;
@@ -89,7 +90,21 @@ public class ImageJGui implements GuiAdapter {
 	@Override
 	public <T extends RealType<T> & NativeType<T>> void displayRai(RandomAccessibleInterval<T> rai, String axesOrder, String imTitle) {
 		ImagePlus im = ImPlusRaiManager.convert(rai, axesOrder);
+		if (WindowManager.getWindow(imTitle) != null) {
+	    	String noExtension = imTitle;
+	    	String extension = ".tif";
+    		int pointInd = imTitle.lastIndexOf(".");
+	    	if (pointInd != -1) {
+	    		noExtension = imTitle.substring(0, pointInd);
+	    		extension = imTitle.substring(pointInd);
+	    	}
+	    	int c = 1;
+	    	while (WindowManager.getWindow(imTitle) != null) {
+	    		imTitle = noExtension + "-" + c + extension;
+	    	}
+		}
 		im.setTitle(imTitle);
+		im.getProcessor().resetMinAndMax();;
 		SwingUtilities.invokeLater(() -> im.show());
 		
 	}

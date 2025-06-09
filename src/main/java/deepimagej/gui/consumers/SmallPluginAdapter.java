@@ -108,6 +108,19 @@ public abstract class SmallPluginAdapter extends ConsumerInterface implements Im
 	public <T extends RealType<T> & NativeType<T>> void display(RandomAccessibleInterval<T> rai, String axes,
 			String name) {
 		ImagePlus imp = ImPlusRaiManager.convert(rai, axes);
+		if (WindowManager.getWindow(name) != null) {
+	    	String noExtension = name;
+	    	String extension = ".tif";
+    		int pointInd = name.lastIndexOf(".");
+	    	if (pointInd != -1) {
+	    		noExtension = name.substring(0, pointInd);
+	    		extension = name.substring(pointInd);
+	    	}
+	    	int c = 1;
+	    	while (WindowManager.getWindow(name) != null) {
+	    		name = noExtension + "-" + (c ++) + extension;
+	    	}
+		}
 		imp.setTitle(name);
 		imp.getProcessor().resetMinAndMax();;
 		imp.show();
