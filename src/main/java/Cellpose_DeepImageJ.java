@@ -209,6 +209,8 @@ public class Cellpose_DeepImageJ implements PlugIn {
 		}
 		if (HELPER_CONSUMER == null)
 			HELPER_CONSUMER = new ImageJGui();
+		System.out.println("printewsdwd");
+		System.out.println("printed: " +  HELPER_CONSUMER.getModelsDir());
 		Cellpose model = null;
 		try {
 			if (new File(modelPath).isFile())
