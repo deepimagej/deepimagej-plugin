@@ -69,7 +69,7 @@ import ij.plugin.frame.Recorder;
 import io.bioimage.modelrunner.apposed.appose.MambaInstallException;
 import io.bioimage.modelrunner.apposed.appose.Types;
 import io.bioimage.modelrunner.exceptions.RunModelException;
-import io.bioimage.modelrunner.gui.custom.CellposeGUI;
+import io.bioimage.modelrunner.gui.custom.gui.CellposeGUI;
 import io.bioimage.modelrunner.gui.custom.CellposePluginUI;
 import io.bioimage.modelrunner.model.special.cellpose.Cellpose;
 import io.bioimage.modelrunner.tensor.Tensor;

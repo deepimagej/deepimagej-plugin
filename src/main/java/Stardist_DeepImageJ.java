@@ -130,6 +130,7 @@ public class Stardist_DeepImageJ implements PlugIn {
             	StarDistPluginUI gui = new StarDistPluginUI(adapter);
                 frame.add(gui);
                 frame.pack();
+                frame.setSize(500, 300);
                 frame.setLocationRelativeTo(null);
                 frame.setVisible(true);
                 frame.addWindowListener(new WindowAdapter() {
