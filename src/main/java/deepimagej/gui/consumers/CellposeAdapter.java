@@ -54,7 +54,7 @@ import javax.swing.JComponent;
 
 import ij.ImagePlus;
 import ij.plugin.frame.Recorder;
-import io.bioimage.modelrunner.gui.custom.CellposeGUI;
+import io.bioimage.modelrunner.gui.custom.gui.CellposeGUI;
 
 /**
  * @author Carlos Garcia
