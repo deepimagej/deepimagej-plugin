@@ -67,7 +67,7 @@ import io.bioimage.modelrunner.apposed.appose.MambaInstallException;
 import io.bioimage.modelrunner.apposed.appose.Types;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
 import io.bioimage.modelrunner.exceptions.RunModelException;
-import io.bioimage.modelrunner.gui.custom.StardistGUI;
+import io.bioimage.modelrunner.gui.custom.StarDistPluginUI;
 import io.bioimage.modelrunner.model.special.stardist.Stardist2D;
 import io.bioimage.modelrunner.model.special.stardist.StardistAbstract;
 import io.bioimage.modelrunner.tensor.Tensor;
@@ -127,7 +127,7 @@ public class Stardist_DeepImageJ implements PlugIn {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
             	ij.plugin.frame.PlugInFrame frame = new ij.plugin.frame.PlugInFrame("deepImageJ StarDist");
-            	StardistGUI gui = new StardistGUI(adapter);
+            	StarDistPluginUI gui = new StarDistPluginUI(adapter);
                 frame.add(gui);
                 frame.pack();
                 frame.setLocationRelativeTo(null);
