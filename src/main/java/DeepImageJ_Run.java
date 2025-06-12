@@ -43,7 +43,6 @@
  */
 
 import java.awt.Dimension;
-import java.awt.GraphicsEnvironment;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -69,6 +68,7 @@ import ij.ImagePlus;
 import ij.Macro;
 import ij.WindowManager;
 import ij.plugin.PlugIn;
+import ij.plugin.frame.Recorder;
 import io.bioimage.modelrunner.apposed.appose.Types;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
@@ -79,6 +79,7 @@ import io.bioimage.modelrunner.exceptions.RunModelException;
 import io.bioimage.modelrunner.gui.Gui;
 import io.bioimage.modelrunner.tensor.Tensor;
 import io.bioimage.modelrunner.utils.Constants;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
@@ -105,6 +106,14 @@ public class DeepImageJ_Run implements PlugIn {
 	 */
 	final static String[] macroOptionalKeys = new String[] {"inputPath=", "outputFolder=", "displayOutput="};
 	
+	public final static String MACRO_INFO = "https://github.com/deepimagej/deepimagej-plugin/blob/main/README.md#macros";
+
+	final static String MACRO_RECORD_COMMENT = ""
+	        + System.lineSeparator()
+	        + "// The macro recording feature will capture the command 'run(\"DeepImageJ Run\");', but executing it will have no effect." + System.lineSeparator()
+	        + "// The recording will be performed once the button 'Run' is clicked." + System.lineSeparator()
+	        + "// For more information, visit:" + System.lineSeparator()
+	        + "// " + MACRO_INFO + System.lineSeparator();
 	
 	static public void main(String args[]) {
 		new ImageJ();
@@ -113,17 +122,16 @@ public class DeepImageJ_Run implements PlugIn {
 	@Override
 	public void run(String arg) {
 	    boolean isMacro = IJ.isMacro();
-	    boolean isHeadless = GraphicsEnvironment.isHeadless();
 	    if (!isMacro) {
 	    	runGUI();
-	    } else if (isMacro ) { //&& !isHeadless) {
+	    } else if (isMacro && Macro.getOptions() != null) {
 	    	runMacro();
-	    } else if (isHeadless) {
-	    	runHeadless();
 	    }
 	}
 	
 	private void runGUI() {
+		if (Recorder.record)
+			Recorder.recordString(MACRO_RECORD_COMMENT);
 		File modelsDir = new File(deepimagej.Constants.FIJI_FOLDER + File.separator + "models");
 		if (!modelsDir.isDirectory() && !modelsDir.mkdir())
 			throw new RuntimeException("Unable to create 'models' folder inside ImageJ/Fiji directory. Please create it yourself.");
@@ -146,6 +154,11 @@ public class DeepImageJ_Run implements PlugIn {
                 });
                 }
            });
+	}
+	
+	public static < T extends RealType< T > & NativeType< T > >
+	List<RandomAccessibleInterval<T>> runModel(String model, List<RandomAccessibleInterval<T>> inputs) {
+		return null;
 	}
 	
 	/**
@@ -188,11 +201,6 @@ public class DeepImageJ_Run implements PlugIn {
 		if (model.getInputTensors().size() > 1)
 			throw new IllegalArgumentException("Selected model requires more than one input, currently only models with 1 input"
 					+ " are supported.");
-	}
-	
-	
-	private void runHeadless() {
-		// TODO not ready yet
 	}
 	
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
@@ -268,40 +276,14 @@ public class DeepImageJ_Run implements PlugIn {
 			}
 		}
 	}
-	
-	public static String escapeString(String s) {
-	    StringBuilder builder = new StringBuilder();
-	    for (char c : s.toCharArray()) {
-	        switch (c) {
-	            case '\n':
-	                builder.append("\\n");
-	                break;
-	            case '\r':
-	                builder.append("\\r");
-	                break;
-	            case '\t':
-	                builder.append("\\t");
-	                break;
-	            case '\"':
-	                builder.append("\\\"");
-	                break;
-	            case '\\':
-	                builder.append("\\\\");
-	                break;
-	            default:
-	                builder.append(c);
-	        }
-	    }
-	    return builder.toString();
-	}
 
 	
 	private void parseCommand() {
 		String macroArg = Macro.getOptions();
-		System.out.println(escapeString(macroArg));
 		if (Platform.isWindows())
-			macroArg = macroArg.replaceAll(Pattern.quote(File.separator), Matcher.quoteReplacement(File.separator + File.separator));
-		System.out.println(macroArg);
+			System.err.println("[WARNING] On Windows, you must use double "
+					+ "backslashes ('\\\\') in file and folder paths. "
+					+ "For example: C:\\\\path\\\\to\\\\modelFolder");
 
 		// macroArg = "modelPath=NucleiSegmentationBoundaryModel";
 		// macroArg = "modelPath=NucleiSegmentationBoundaryModel outputFolder=null";
@@ -316,23 +298,12 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 	
 	private static String parseArg(String macroArg, String arg, boolean required) {
-		int modelFolderInd = macroArg.indexOf(arg);
-		if (modelFolderInd == -1 && required)
-			throw new IllegalArgumentException("DeepImageJ macro requires to set the variable '" + arg + "'.");
-		else if (modelFolderInd == -1)
-			return null;
-		int modelFolderInd2 = macroArg.indexOf(arg + "[");
-		int endInd = macroArg.indexOf(" ", modelFolderInd);
-		String value;
-		if (modelFolderInd2 != -1) {
-			endInd = macroArg.indexOf("] ", modelFolderInd2);
-			value = macroArg.substring(modelFolderInd2 + arg.length() + 1, endInd);
-		} else {
-			value = macroArg.substring(modelFolderInd + arg.length(), endInd);
-		}
-		value = value.trim();
-		if (value.equals("null") || value.equals(""))
+		String value = Macro.getValue(macroArg, arg, null);
+		if (value != null && value.equals(""))
 			value = null;
+		if (value == null && required)
+			throw new IllegalArgumentException("DeepImageJ Run macro requires to the variable '" + arg + "'. "
+					+ "For more info, please visit: " + DeepImageJ_Run.MACRO_INFO);
 		return value;
 	}
 

@@ -102,14 +102,13 @@ public class Cellpose_DeepImageJ implements PlugIn {
     
     private static boolean INSTALLED_ENV = false;
 
-	private final static String MACRO_INFO = "https://github.com/deepimagej/deepimagej-plugin/blob/main/README.md#macros";
     
 	final static String MACRO_RECORD_COMMENT = ""
 	        + System.lineSeparator()
 	        + "// The macro recording feature will capture the command 'run(\"DeepImageJ Cellpose\");', but executing it will have no effect." + System.lineSeparator()
 	        + "// The recording will be performed once the button 'Run' is clicked." + System.lineSeparator()
 	        + "// For more information, visit:" + System.lineSeparator()
-	        + "// " + MACRO_INFO + System.lineSeparator()
+	        + "// " + DeepImageJ_Run.MACRO_INFO + System.lineSeparator()
 	        + System.lineSeparator();
 	
 	static public void main(String args[]) {
@@ -190,7 +189,7 @@ public class Cellpose_DeepImageJ implements PlugIn {
 			value = null;
 		if (value == null && required)
 			throw new IllegalArgumentException("DeepImageJ Cellpose macro requires to the variable '" + arg + "'. "
-					+ "For more info, please visit: " + MACRO_INFO);
+					+ "For more info, please visit: " + DeepImageJ_Run.MACRO_INFO);
 		return value;
 	}
 	
