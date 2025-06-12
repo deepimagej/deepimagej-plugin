@@ -88,6 +88,8 @@ public class Stardist_DeepImageJ implements PlugIn {
 	
 	private String macroModel;
 	
+	private String probThresh;
+	
 	private String minPerc;
 	
 	private String maxPerc;
@@ -149,7 +151,8 @@ public class Stardist_DeepImageJ implements PlugIn {
 		ImagePlus imp = WindowManager.getCurrentImage();
 		if (HELPER_CONSUMER == null)
 			HELPER_CONSUMER = new ImageJGui();
-		RandomAccessibleInterval<T> out = runStarDist(macroModel, Cast.unchecked(ImageJFunctions.wrap(imp)));
+		RandomAccessibleInterval<T> out = runStarDist(macroModel, Cast.unchecked(ImageJFunctions.wrap(imp)), 
+				Double.parseDouble(probThresh), Double.parseDouble(minPerc), Double.parseDouble(maxPerc));
 		HELPER_CONSUMER.displayRai(out, "xycb", getOutputName(imp.getTitle(), "mask"));
 	}
 	
@@ -157,8 +160,15 @@ public class Stardist_DeepImageJ implements PlugIn {
 		String macroArg = Macro.getOptions();
 
 		macroModel = parseArg(macroArg, "model", true);
-		minPerc = parseArg(macroArg, "min_percentile", true);
-		maxPerc = parseArg(macroArg, "max_percentile", true);
+		probThresh = parseArg(macroArg, "prob_thresh", false);
+		if (probThresh == null || (probThresh != null && probThresh.equals("")))
+			probThresh = "0.5";
+		minPerc = parseArg(macroArg, "min_percentile", false);
+		if (minPerc == null || (minPerc != null && minPerc.equals("")))
+			minPerc = "0.5";
+		maxPerc = parseArg(macroArg, "max_percentile", false);
+		if (maxPerc == null || (maxPerc != null && maxPerc.equals("")))
+			maxPerc = "0.5";
 	}
 	
 	private static String parseArg(String macroArg, String arg, boolean required) {
@@ -173,6 +183,16 @@ public class Stardist_DeepImageJ implements PlugIn {
 	
 	public static < T extends RealType< T > & NativeType< T > > 
 	RandomAccessibleInterval<T> runStarDist(String modelPath, RandomAccessibleInterval<T> rai) {
+		return runStarDist(modelPath, rai, null, 1, 99.8);
+	}
+	
+	public static < T extends RealType< T > & NativeType< T > > 
+	RandomAccessibleInterval<T> runStarDist(String modelPath, RandomAccessibleInterval<T> rai, Double probThresh) {
+		return runStarDist(modelPath, rai, probThresh, 1, 99.8);
+	}
+	
+	public static < T extends RealType< T > & NativeType< T > > 
+	RandomAccessibleInterval<T> runStarDist(String modelPath, RandomAccessibleInterval<T> rai, Double probThresh, double minPerc, double maxPerc) {
 		if (!INSTALLED_ENV) {
 			Consumer<String> cons = System.out::println;
 			try {
@@ -196,6 +216,10 @@ public class Stardist_DeepImageJ implements PlugIn {
 				model = StardistAbstract.init(path);
 			}
 			model.loadModel();
+			if (probThresh != null)
+				model.setThreshold(probThresh);
+			model.scaleRangeMinPercentile = minPerc;
+			model.scaleRangeMaxPercentile = maxPerc;
 	    	RandomAccessibleInterval<T> out = runStardistOnFramesStack(model, rai);
 	    	model.close();
 	    	return out;
