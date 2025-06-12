@@ -64,6 +64,7 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.Macro;
+import ij.WindowManager;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.Recorder;
 import io.bioimage.modelrunner.apposed.appose.MambaInstallException;
@@ -161,7 +162,7 @@ public class Cellpose_DeepImageJ implements PlugIn {
 
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>  void runMacro() {
 		parseCommand();
-		ImagePlus imp = IJ.getImage();
+		ImagePlus imp = WindowManager.getCurrentImage();
 		Map<String, RandomAccessibleInterval<T>> out = runCellpose(macroModel, Cast.unchecked(ImageJFunctions.wrap(imp)), cytoColor, nucleiColor);
 		HELPER_CONSUMER.displayRai(out.get("labels"), "xyb", getOutputName(imp.getTitle(), "labels"));
 		if (!displayAll)

@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.swing.SwingUtilities;
 
@@ -16,6 +17,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.plugin.CompositeConverter;
+import ij.plugin.frame.Recorder;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.TensorSpec;
 import io.bioimage.modelrunner.exceptions.LoadEngineException;
@@ -69,6 +71,15 @@ public class ImageJGui implements GuiAdapter {
 	public String getEnginesDir() {
 		return new File(deepimagej.Constants.FIJI_FOLDER + File.separator + "engines").getAbsolutePath();
 	}
+	
+	@Override
+	public void notifyModelUsed(String modelAbsPath) {
+		if (!Recorder.record)
+			return;
+		
+		String macro = String.format("run(\"DeepImageJ Run\", \"modePath=[%s]", modelAbsPath) + System.lineSeparator();
+		Recorder.recordString(macro);
+	}
 
 	@Override
 	public RunnerAdapter createRunner(ModelDescriptor descriptor) throws IOException, LoadEngineException {
@@ -83,7 +94,10 @@ public class ImageJGui implements GuiAdapter {
 	@Override
 	public List<String> getInputImageNames() {
 		List<String> names = new ArrayList<String>();
-		names.add(IJ.getImage().getTitle());
+		ImagePlus imp = WindowManager.getCurrentImage();
+		if (imp == null)
+			return names;
+		names.add(imp.getTitle());
 		return names;
 	}
 
@@ -111,7 +125,7 @@ public class ImageJGui implements GuiAdapter {
 
 	@Override
 	public <T extends RealType<T> & NativeType<T>> List<Tensor<T>> getInputTensors(ModelDescriptor descriptor) {
-		ImagePlus imp = IJ.getImage();
+		ImagePlus imp = WindowManager.getCurrentImage();
 		List<Tensor<T>> list = Arrays.asList(buildTensor(imp, descriptor.getInputTensors().get(0)));
 		return list;
 	}

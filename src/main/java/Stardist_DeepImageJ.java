@@ -61,6 +61,7 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.Macro;
+import ij.WindowManager;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.Recorder;
 import io.bioimage.modelrunner.apposed.appose.MambaInstallException;
@@ -145,7 +146,7 @@ public class Stardist_DeepImageJ implements PlugIn {
 
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>  void runMacro() {
 		parseCommand();
-		ImagePlus imp = IJ.getImage();
+		ImagePlus imp = WindowManager.getCurrentImage();
 		if (HELPER_CONSUMER == null)
 			HELPER_CONSUMER = new ImageJGui();
 		RandomAccessibleInterval<T> out = runStarDist(macroModel, Cast.unchecked(ImageJFunctions.wrap(imp)));
