@@ -52,8 +52,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.function.Consumer;
 
 import javax.swing.SwingUtilities;
 
@@ -70,8 +69,11 @@ import ij.WindowManager;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.Recorder;
 import io.bioimage.modelrunner.apposed.appose.Types;
+import io.bioimage.modelrunner.bioimageio.BioimageioDirectConnection;
+import io.bioimage.modelrunner.bioimageio.BioimageioRepo;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
+import io.bioimage.modelrunner.bioimageio.description.TensorSpec;
 import io.bioimage.modelrunner.bioimageio.description.exceptions.ModelSpecsException;
 import io.bioimage.modelrunner.exceptions.LoadEngineException;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
@@ -156,9 +158,56 @@ public class DeepImageJ_Run implements PlugIn {
            });
 	}
 	
-	public static < T extends RealType< T > & NativeType< T > >
-	List<RandomAccessibleInterval<T>> runModel(String model, List<RandomAccessibleInterval<T>> inputs) {
-		return null;
+	public static <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
+	List<RandomAccessibleInterval<R>> runModel(String model, List<RandomAccessibleInterval<T>> inputs, List<String> axesOrders) throws IOException, InterruptedException, LoadEngineException, RunModelException {
+		ModelDescriptor descriptor;
+		if (axesOrders.size() != inputs.size())
+			throw new IllegalArgumentException(String.format("There has to be one axes order per input RandomAccessibleInterval: %s axes orders vs %s inputs", axesOrders.size(), inputs.size()));
+		if (new File(model).isFile()) {
+			descriptor = ModelDescriptorFactory.readFromLocalFile(model + File.separator + Constants.RDF_FNAME);
+		} else if (new File(deepimagej.Constants.FIJI_FOLDER + File.separator + "models", model).isFile()) {
+			descriptor = ModelDescriptorFactory.readFromLocalFile(deepimagej.Constants.FIJI_FOLDER + File.separator + "models" 
+															+ File.separator + model + File.separator + Constants.RDF_FNAME);
+			model = deepimagej.Constants.FIJI_FOLDER + File.separator + "models" + File.separator + model;
+		} else if ((descriptor = BioimageioDirectConnection.selectByID(model)) != null) {
+			String modelId = model;
+			Consumer<Double> cons = (d) -> {
+				System.out.println(String.format("Downloading %s: %.2f%%", modelId, d * 100));
+			};
+			model = BioimageioRepo.downloadModel(descriptor, deepimagej.Constants.FIJI_FOLDER + File.separator + "models" , cons);
+		}  else {
+			throw new IllegalArgumentException(String.format("The string %s does not correspond to an installed model or to the ID of a model in the Bioiamge.io zoo.", model));
+		}
+		
+		Runner runner = Runner.create(descriptor, deepimagej.Constants.FIJI_FOLDER + File.separator + "engines");
+		List<Tensor<T>> ins = createInputTensorList(descriptor, inputs, axesOrders);
+		List<Tensor<R>> outs = runner.run(ins);
+		List<RandomAccessibleInterval<R>> raiOuts = new ArrayList<RandomAccessibleInterval<R>>();
+		for (int i = 0; i < outs.size(); i ++) {
+			TensorSpec spec = descriptor.getOutputTensors().get(i);
+			RandomAccessibleInterval<R> outRai = outs.get(i).getData();
+			if (spec.isImage())
+				outRai = ImPlusRaiManager.convertToAxesOrder(outRai, spec.getAxesOrder(), ImPlusRaiManager.IJ_AXES_ORDER);
+			raiOuts.add(outRai);
+		}
+		return raiOuts;
+	}
+	
+	private static <T extends RealType<T> & NativeType<T>> List<Tensor<T>> createInputTensorList(ModelDescriptor descriptor, List<RandomAccessibleInterval<T>> inputs, List<String> axesOrders) {
+		if (inputs.size() != descriptor.getInputTensors().size())
+			throw new IllegalArgumentException(String.format("The number of inputs defined in the Bioimage.io rdf.yaml specs file is not the same as the number"
+					+ " of inputs provided: %s vs %s", descriptor.getInputTensors().size(), inputs.size()));
+		List<Tensor<T>> ins = new ArrayList<Tensor<T>>();
+		for (int i = 0; i < inputs.size(); i ++) {
+			RandomAccessibleInterval<T> rai = inputs.get(i);
+			TensorSpec spec = descriptor.getInputTensors().get(i);
+			String axesOrder = axesOrders.get(i).toLowerCase().replaceAll("t", "b");
+			if (spec.isImage())
+				rai = ImPlusRaiManager.convertToAxesOrder(rai, axesOrder, spec.getAxesOrder());
+			Tensor<T> tensor = Tensor.build(spec.getName(), spec.getAxesOrder(), rai);
+			ins.add(tensor);
+		}
+		return ins;
 	}
 	
 	/**

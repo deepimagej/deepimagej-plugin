@@ -13,15 +13,29 @@ import net.imglib2.view.Views;
 
 public class ImPlusRaiManager {
 	
-	private static final String IJ_AXES_ORDER = "xyczb";
+	public static final String IJ_AXES_ORDER = "xyczb";
 
 	public static <T extends RealType<T> & NativeType<T>>
 	ImagePlus convert(RandomAccessibleInterval<T> rai, String axesOrder) {
-		String newImAxesOrder = addExtraDims(axesOrder, IJ_AXES_ORDER);
+		axesOrder = axesOrder.toLowerCase().replaceAll("t", "b");
+		rai = convertToAxesOrder(rai, axesOrder, IJ_AXES_ORDER);
+		return ImageJFunctions.wrap(rai, UUID.randomUUID().toString(), ( ExecutorService ) null);
+	}
+
+	public static <T extends RealType<T> & NativeType<T>>
+	RandomAccessibleInterval<T> convertToAxesOrder(RandomAccessibleInterval<T> rai, String axesOrder, String targetAxesOrder) {
+		int ogLength = axesOrder.length();
+		for (int i = ogLength - 1; i >= 0; i --) {
+			if (targetAxesOrder.indexOf(axesOrder.split("")[i]) != -1)
+				continue;
+			axesOrder = axesOrder.substring(0, i) + axesOrder.substring(i + 1, axesOrder.length());
+			rai = Views.hyperSlice(rai, i, 0);
+		}
+		String newImAxesOrder = addExtraDims(axesOrder, targetAxesOrder);
 		for (int i = 0; i < (newImAxesOrder.length() - axesOrder.length()); i ++)
 			rai = Views.addDimension(rai, 0, 0);
 		rai = transposeToAxesOrder(rai, newImAxesOrder, IJ_AXES_ORDER);
-		return ImageJFunctions.wrap(rai, UUID.randomUUID().toString(), ( ExecutorService ) null);
+		return rai;
 	}
 
 	public static <T extends RealType<T> & NativeType<T>>
