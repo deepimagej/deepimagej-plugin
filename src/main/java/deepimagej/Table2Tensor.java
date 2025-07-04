@@ -47,8 +47,6 @@ package deepimagej;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import deepimagej.exceptions.BatchSizeBiggerThanOne;
-import deepimagej.exceptions.IncorrectNumberOfDimensions;
 import ij.IJ;
 import ij.measure.ResultsTable;
 import io.bioimage.modelrunner.tensor.Tensor;
