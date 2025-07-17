@@ -92,6 +92,7 @@ import net.imglib2.type.numeric.RealType;
  */
 public class DeepImageJ_Run implements PlugIn {
 
+	private String modelArg;
 	private String modelFolder;
 	private String inputFolder;
 	private String outputFolder;
@@ -207,36 +208,40 @@ public class DeepImageJ_Run implements PlugIn {
 	 */
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>
 	void runMacro() {
-		try {
-			parseCommand();
-		} catch (IOException | InterruptedException e) {
-			e.printStackTrace();
-			return;
-		}
-
-		if (this.inputFolder != null && !(new File(this.inputFolder).exists()))
-			throw new IllegalArgumentException("The provided input folder does not exist: " + this.inputFolder);
-		if (this.outputFolder != null && !(new File(this.outputFolder).isDirectory()) && !(new File(outputFolder).mkdirs()))
-			throw new IllegalArgumentException("The provided output folder does not exist and cannot be created: " + this.inputFolder);
-
-		ImageJGui adapter = new ImageJGui();
-
-		try {
-			loadDescriptor();
-		} catch (ModelSpecsException | IOException e) {
-			e.printStackTrace();
-			return;
-		}
-		try (Runner runner = Runner.create(model, deepimagej.Constants.FIJI_FOLDER + File.separator + "engines")) {
-			runner.load(true);
-			if (this.inputFolder != null) {
-				executeOnPath(runner, adapter);
-			} else {
-				executeOnImagePlus(runner, adapter);
+		parseCommand();
+		new Thread(() -> {
+			try {
+				modelFolder = identifyModel(modelArg);
+			} catch (IOException | InterruptedException e) {
+				e.printStackTrace();
+				return;
 			}
-		} catch (IOException | LoadModelException | RunModelException | LoadEngineException e) {
-			throw new RuntimeException(Types.stackTrace(e));
-		}
+
+
+			if (this.inputFolder != null && !(new File(this.inputFolder).exists()))
+				throw new IllegalArgumentException("The provided input folder does not exist: " + this.inputFolder);
+			if (this.outputFolder != null && !(new File(this.outputFolder).isDirectory()) && !(new File(outputFolder).mkdirs()))
+				throw new IllegalArgumentException("The provided output folder does not exist and cannot be created: " + this.inputFolder);
+
+			ImageJGui adapter = new ImageJGui();
+
+			try {
+				loadDescriptor();
+			} catch (ModelSpecsException | IOException e) {
+				e.printStackTrace();
+				return;
+			}
+			try (Runner runner = Runner.create(model, deepimagej.Constants.FIJI_FOLDER + File.separator + "engines")) {
+				runner.load(true);
+				if (this.inputFolder != null) {
+					executeOnPath(runner, adapter);
+				} else {
+					executeOnImagePlus(runner, adapter);
+				}
+			} catch (IOException | LoadModelException | RunModelException | LoadEngineException e) {
+				throw new RuntimeException(Types.stackTrace(e));
+			}
+		}).start();
 	}
 	
 	private void loadDescriptor() throws FileNotFoundException, ModelSpecsException, IOException {
@@ -322,7 +327,7 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 
 	
-	private void parseCommand() throws IOException, InterruptedException {
+	private void parseCommand() {
 		String macroArg = Macro.getOptions();
 		if (Platform.isWindows())
 			System.err.println("[WARNING] On Windows, you must use double "
@@ -333,11 +338,10 @@ public class DeepImageJ_Run implements PlugIn {
 		// macroArg = "modelPath=NucleiSegmentationBoundaryModel outputFolder=null";
 		// macroArg = "modelPath=[StarDist H&E Nuclei Segmentation] inputPath=null outputFolder=null";
 
-		String modelArg = parseArg(macroArg, macroKeys[0], true);
+		modelArg = parseArg(macroArg, macroKeys[0], true);
 		inputFolder = parseArg(macroArg, macroOptionalKeys[0], false);
 		outputFolder = parseArg(macroArg, macroOptionalKeys[1], false);
 		display = parseArg(macroArg, macroOptionalKeys[2], false);
-		modelFolder = identifyModel(modelArg);
 	}
 	
 	private static String identifyModel(String modelArg) throws IOException, InterruptedException {

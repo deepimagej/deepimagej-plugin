@@ -172,16 +172,18 @@ public class Cellpose_DeepImageJ implements PlugIn {
 		}
 		ImagePlus imp = WindowManager.getCurrentImage();
 		boolean isColorRGB = imp.getType() == ImagePlus.COLOR_RGB;
-		RandomAccessibleInterval<T> rai = 
-				ImPlusRaiManager.convert(isColorRGB ? CompositeConverter.makeComposite(imp) : imp, "xyczt");
-		Map<String, RandomAccessibleInterval<T>> out = runCellpose(macroModel, rai, cytoColor, nucleiColor, diameter);
-		HELPER_CONSUMER.displayRai(out.get("labels"), "xyb", getOutputName(imp.getTitle(), "labels"));
-		if (!displayAll)
-			return;
-		HELPER_CONSUMER.displayRai(out.get("flows_0"), "xycb", getOutputName(imp.getTitle(), "flows_0"));
-		HELPER_CONSUMER.displayRai(out.get("flows_1"), "cxyb", getOutputName(imp.getTitle(), "flows_1"));
-		HELPER_CONSUMER.displayRai(out.get("flows_2"), "xyb", getOutputName(imp.getTitle(), "flows_2"));
-		HELPER_CONSUMER.displayRai(out.get("image_dn"), "xycb", getOutputName(imp.getTitle(), "image_dn"));
+		new Thread(() -> {
+			RandomAccessibleInterval<T> rai = 
+					ImPlusRaiManager.convert(isColorRGB ? CompositeConverter.makeComposite(imp) : imp, "xyczt");
+			Map<String, RandomAccessibleInterval<T>> out = runCellpose(macroModel, rai, cytoColor, nucleiColor, diameter);
+			HELPER_CONSUMER.displayRai(out.get("labels"), "xyb", getOutputName(imp.getTitle(), "labels"));
+			if (!displayAll)
+				return;
+			HELPER_CONSUMER.displayRai(out.get("flows_0"), "xycb", getOutputName(imp.getTitle(), "flows_0"));
+			HELPER_CONSUMER.displayRai(out.get("flows_1"), "cxyb", getOutputName(imp.getTitle(), "flows_1"));
+			HELPER_CONSUMER.displayRai(out.get("flows_2"), "xyb", getOutputName(imp.getTitle(), "flows_2"));
+			HELPER_CONSUMER.displayRai(out.get("image_dn"), "xycb", getOutputName(imp.getTitle(), "image_dn"));
+		}).start();
 	}
 	
 	private void parseCommand() throws NumberFormatException {
@@ -244,9 +246,7 @@ public class Cellpose_DeepImageJ implements PlugIn {
 				model = Cellpose.init(Cellpose.donwloadPretrained(modelPath, HELPER_CONSUMER.getModelsDir(), cons));
 			}
 			model.loadModel();
-			if (diameter != null)
-				model.setDiameter(diameter);
-	    	Map<String, RandomAccessibleInterval<T>> out = runCellposeOnFramesStack(model, rai, cytoColor, nucleiColor);
+	    	Map<String, RandomAccessibleInterval<T>> out = runCellposeOnFramesStack(model, rai, cytoColor, nucleiColor, diameter);
 	    	model.close();
 	    	return out;
 		} catch (Exception e) {
@@ -257,7 +257,9 @@ public class Cellpose_DeepImageJ implements PlugIn {
 	}
     
     private static <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>
-    Map<String, RandomAccessibleInterval<T>> runCellposeOnFramesStack(Cellpose model, RandomAccessibleInterval<R> rai, String cytoColor, String nucleiColor) throws RunModelException {
+    Map<String, RandomAccessibleInterval<T>> 
+    runCellposeOnFramesStack(Cellpose model, RandomAccessibleInterval<R> rai, String cytoColor, String nucleiColor, Float diameter)
+    		throws RunModelException {
     	model.setChannels(new int[] {CellposePluginUI.CHANNEL_MAP.get(cytoColor), CellposePluginUI.CHANNEL_MAP.get(nucleiColor)});
     	rai = addDimsToInput(rai, cytoColor.equals("gray") ? 1 : 3);
     	long[] inDims = rai.dimensionsAsLongArray();
@@ -270,6 +272,8 @@ public class Cellpose_DeepImageJ implements PlugIn {
 		RandomAccessibleInterval<T> styles = null;
 		
 		for (int i = 0; i < rai.dimensionsAsLongArray()[3]; i ++) {
+			if (diameter != null)
+				model.setDiameter(diameter);
 	    	List<Tensor<R>> inList = new ArrayList<Tensor<R>>();
 	    	Tensor<R> inIm = Tensor.build("input", "xyc", Views.hyperSlice(rai, 3, i));
 	    	inList.add(inIm);

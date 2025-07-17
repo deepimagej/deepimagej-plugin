@@ -152,11 +152,13 @@ public class Stardist_DeepImageJ implements PlugIn {
 		if (HELPER_CONSUMER == null)
 			HELPER_CONSUMER = new ImageJGui();
 		boolean isColorRGB = imp.getType() == ImagePlus.COLOR_RGB;
-		RandomAccessibleInterval<T> rai = 
-				ImPlusRaiManager.convert(isColorRGB ? CompositeConverter.makeComposite(imp) : imp, "xyczt");
-		RandomAccessibleInterval<T> out = runStarDist(macroModel, rai, 
-				Double.parseDouble(probThresh), Double.parseDouble(minPerc), Double.parseDouble(maxPerc));
-		HELPER_CONSUMER.displayRai(out, "xycb", getOutputName(imp.getTitle(), "mask"));
+		new Thread(() -> {
+			RandomAccessibleInterval<T> rai = 
+					ImPlusRaiManager.convert(isColorRGB ? CompositeConverter.makeComposite(imp) : imp, "xyczt");
+			RandomAccessibleInterval<T> out = runStarDist(macroModel, rai, 
+					Double.parseDouble(probThresh), Double.parseDouble(minPerc), Double.parseDouble(maxPerc));
+			HELPER_CONSUMER.displayRai(out, "xycb", getOutputName(imp.getTitle(), "mask"));
+		}).start();
 	}
 	
 	private void parseCommand() {
