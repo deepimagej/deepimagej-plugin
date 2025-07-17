@@ -57,11 +57,13 @@ import org.apache.commons.compress.archivers.ArchiveException;
 
 import deepimagej.gui.ImageJGui;
 import deepimagej.gui.consumers.StardistAdapter;
+import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.Macro;
 import ij.WindowManager;
+import ij.plugin.CompositeConverter;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.Recorder;
 import io.bioimage.modelrunner.apposed.appose.MambaInstallException;
@@ -73,7 +75,6 @@ import io.bioimage.modelrunner.model.special.stardist.StardistAbstract;
 import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Cast;
@@ -150,7 +151,10 @@ public class Stardist_DeepImageJ implements PlugIn {
 		ImagePlus imp = WindowManager.getCurrentImage();
 		if (HELPER_CONSUMER == null)
 			HELPER_CONSUMER = new ImageJGui();
-		RandomAccessibleInterval<T> out = runStarDist(macroModel, Cast.unchecked(ImageJFunctions.wrap(imp)), 
+		boolean isColorRGB = imp.getType() == ImagePlus.COLOR_RGB;
+		RandomAccessibleInterval<T> rai = 
+				ImPlusRaiManager.convert(isColorRGB ? CompositeConverter.makeComposite(imp) : imp, "xyczt");
+		RandomAccessibleInterval<T> out = runStarDist(macroModel, rai, 
 				Double.parseDouble(probThresh), Double.parseDouble(minPerc), Double.parseDouble(maxPerc));
 		HELPER_CONSUMER.displayRai(out, "xycb", getOutputName(imp.getTitle(), "mask"));
 	}

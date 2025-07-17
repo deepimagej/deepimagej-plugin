@@ -97,6 +97,8 @@ public abstract class SmallPluginAdapter extends ConsumerInterface implements Im
             });
             if (win.isFocusOwner()) changeOnFocusGained(imp);
         }
+        if (WindowManager.getCurrentImage() != null) 
+        	changeOnFocusGained(WindowManager.getCurrentImage());
 	}
 
 	@Override

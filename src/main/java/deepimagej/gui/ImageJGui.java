@@ -7,13 +7,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.swing.SwingUtilities;
 
 import deepimagej.Runner;
 import deepimagej.tools.ImPlusRaiManager;
-import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.plugin.CompositeConverter;

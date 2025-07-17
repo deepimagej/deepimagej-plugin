@@ -60,11 +60,13 @@ import org.apache.commons.compress.archivers.ArchiveException;
 
 import deepimagej.gui.ImageJGui;
 import deepimagej.gui.consumers.CellposeAdapter;
+import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.Macro;
 import ij.WindowManager;
+import ij.plugin.CompositeConverter;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.Recorder;
 import io.bioimage.modelrunner.apposed.appose.MambaInstallException;
@@ -169,7 +171,10 @@ public class Cellpose_DeepImageJ implements PlugIn {
 			return;
 		}
 		ImagePlus imp = WindowManager.getCurrentImage();
-		Map<String, RandomAccessibleInterval<T>> out = runCellpose(macroModel, Cast.unchecked(ImageJFunctions.wrap(imp)), cytoColor, nucleiColor, diameter);
+		boolean isColorRGB = imp.getType() == ImagePlus.COLOR_RGB;
+		RandomAccessibleInterval<T> rai = 
+				ImPlusRaiManager.convert(isColorRGB ? CompositeConverter.makeComposite(imp) : imp, "xyczt");
+		Map<String, RandomAccessibleInterval<T>> out = runCellpose(macroModel, rai, cytoColor, nucleiColor, diameter);
 		HELPER_CONSUMER.displayRai(out.get("labels"), "xyb", getOutputName(imp.getTitle(), "labels"));
 		if (!displayAll)
 			return;
