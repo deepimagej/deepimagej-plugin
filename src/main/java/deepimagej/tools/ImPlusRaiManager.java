@@ -57,22 +57,18 @@ public class ImPlusRaiManager {
 
 	public static <T extends RealType<T> & NativeType<T>>
 	RandomAccessibleInterval<T> permute(RandomAccessibleInterval<T> rai, String ogAxesOrder, String targetAxesOrder) {
+		int n = ogAxesOrder.length();
+		for (int i = n - 1; i >= 0; i --) {
+			if (targetAxesOrder.contains(ogAxesOrder.split("")[i]))
+				continue;
+			rai = Views.hyperSlice(rai, i, 0);
+			ogAxesOrder = ogAxesOrder.substring(0, i) + ogAxesOrder.substring(i + 1);
+		}
 		String newImAxesOrder = addExtraDims(ogAxesOrder, targetAxesOrder);
 		for (int i = 0; i < newImAxesOrder.length() - ogAxesOrder.length(); i ++)
 			rai = Views.addDimension(rai, 0, 0);
 		
 		return transposeToAxesOrder(rai, newImAxesOrder, targetAxesOrder);
-	}
-	
-	private static <T extends RealType<T> & NativeType<T>>
-	String removeExtraDims(String ogAxes, String targetAxes) {
-		String nAxes = "";
-		for (String ax : ogAxes.split("")) {
-			if (!targetAxes.contains(ax))
-				continue;
-			nAxes += ax;
-		}
-		return nAxes;
 	}
 	
 	private static <T extends RealType<T> & NativeType<T>>

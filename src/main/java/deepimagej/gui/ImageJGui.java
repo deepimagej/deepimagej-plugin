@@ -161,6 +161,12 @@ public class ImageJGui implements GuiAdapter {
 			axesOrder += "b";
 		if (imp.getNFrames() != 1)
 			axesOrder += "b";
+		for (String ax : tensorSpec.getAxesOrder().split("")) {
+			if (axesOrder.contains(ax))
+				continue;
+			rai = Views.addDimension(rai, 0, 0);
+			axesOrder += ax;
+		}
 		RandomAccessibleInterval<T> nRai = ImPlusRaiManager.permute(rai, axesOrder, tensorSpec.getAxesOrder());
 		return Tensor.build(tensorSpec.getName(), tensorSpec.getAxesOrder(), nRai);
 	}
