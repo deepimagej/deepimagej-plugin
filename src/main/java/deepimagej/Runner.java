@@ -95,6 +95,7 @@ public class Runner extends RunnerAdapter {
 				try {
 					rai = DecodeNumpy.loadNpy(input.getValue());
 					ImagePlus image = ImPlusRaiManager.convert(rai, input.getKey().getAxesOrder());
+					image.getProcessor().resetMinAndMax();
 					SwingUtilities.invokeLater(() -> image.show()); 
 				} catch (IOException e) {
 					throw new RuntimeException("Unexpected error reading .npy file.");
