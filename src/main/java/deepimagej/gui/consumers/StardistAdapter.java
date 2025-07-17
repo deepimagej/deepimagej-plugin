@@ -53,6 +53,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
 import ij.ImagePlus;
+import ij.plugin.CompositeConverter;
 import ij.plugin.frame.Recorder;
 
 /**
@@ -96,7 +97,10 @@ public class StardistAdapter extends SmallPluginAdapter {
 		int nItems = cbox.getItemCount();
 		if (imp == null && nItems != 3) {
 	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"StarDist Fluorescence Nuclei Segmentation", "StarDist H&E Nuclei Segmentation", "your custom model"}));
-		} else if ((imp.getType() == ImagePlus.COLOR_RGB || imp.getNChannels() == 3) 
+	        return;
+		}
+		imp = imp.getType() == ImagePlus.COLOR_RGB ? CompositeConverter.makeComposite(imp) : imp;
+		if ((imp.getType() == ImagePlus.COLOR_RGB || imp.getNChannels() == 3) 
 				&& (nItems != 2 || !firstItem.equals("StarDist H&E Nuclei Segmentation"))) {
 	        cbox.setModel(new DefaultComboBoxModel<>(new String[] {"StarDist H&E Nuclei Segmentation", "your custom model"}));
 	        if (selected.equals("your custom model"))

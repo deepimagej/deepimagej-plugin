@@ -53,6 +53,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
 import ij.ImagePlus;
+import ij.plugin.CompositeConverter;
 import ij.plugin.frame.Recorder;
 import io.bioimage.modelrunner.gui.custom.gui.CellposeGUI;
 
@@ -102,7 +103,10 @@ public class CellposeAdapter extends SmallPluginAdapter {
 		if (cbox == null) return;
 		if (imp == null) {
 	        cbox.setModel(new DefaultComboBoxModel<>(CellposeGUI.ALL_LIST));
-		} else if ((imp.getType() == ImagePlus.COLOR_RGB || imp.getNChannels() == 3) && cbox.getItemCount() != 2) {
+	        return;
+		}
+		imp = imp.getType() == ImagePlus.COLOR_RGB ? CompositeConverter.makeComposite(imp) : imp;
+		if ((imp.getType() == ImagePlus.COLOR_RGB || imp.getNChannels() == 3) && cbox.getItemCount() != 2) {
 	        cbox.setModel(new DefaultComboBoxModel<>(CellposeGUI.RGB_LIST));
 		} else if (imp.getNChannels() == 1 && imp.getType() != ImagePlus.COLOR_RGB && cbox.getItemCount() != 1) {
 	        cbox.setModel(new DefaultComboBoxModel<>(CellposeGUI.GRAYSCALE_LIST));
