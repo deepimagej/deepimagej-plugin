@@ -264,8 +264,10 @@ public class Stardist_DeepImageJ implements PlugIn {
     		return Views.addDimension(rai, 0, 0);
     	else if (dims.length == 4 && dims[2] == nChannels && is2d)
     		return rai;
-    	else if (dims.length == 5 && dims[2] == nChannels && is2d)
+    	else if (dims.length == 5 && dims[2] == nChannels && is2d && dims[4] > 1)
     		return Views.hyperSlice(rai, 3, 0);
+    	else if (dims.length == 5 && dims[2] == nChannels && is2d && dims[4] == 1)
+    		return Views.hyperSlice(rai, 4, 0);
     	else if (dims.length == 3 && dims[2] != nChannels && nChannels == 1 && !is2d) {
     		rai = Views.permute(Views.addDimension(rai, 0, 0), 2, 3);
     		return Views.addDimension(rai, 0, 0);
