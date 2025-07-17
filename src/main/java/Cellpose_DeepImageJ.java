@@ -96,6 +96,8 @@ public class Cellpose_DeepImageJ implements PlugIn {
 	
 	private String nucleiColor;   
 	
+	private float diameter;   
+	
 	private boolean displayAll = false;
 	
 	private static ImageJGui HELPER_CONSUMER;
@@ -160,9 +162,14 @@ public class Cellpose_DeepImageJ implements PlugIn {
     }
 
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>  void runMacro() {
-		parseCommand();
+		try {
+			parseCommand();
+		} catch (NumberFormatException ex) {
+			ex.printStackTrace();
+			return;
+		}
 		ImagePlus imp = WindowManager.getCurrentImage();
-		Map<String, RandomAccessibleInterval<T>> out = runCellpose(macroModel, Cast.unchecked(ImageJFunctions.wrap(imp)), cytoColor, nucleiColor);
+		Map<String, RandomAccessibleInterval<T>> out = runCellpose(macroModel, Cast.unchecked(ImageJFunctions.wrap(imp)), cytoColor, nucleiColor, diameter);
 		HELPER_CONSUMER.displayRai(out.get("labels"), "xyb", getOutputName(imp.getTitle(), "labels"));
 		if (!displayAll)
 			return;
@@ -172,12 +179,16 @@ public class Cellpose_DeepImageJ implements PlugIn {
 		HELPER_CONSUMER.displayRai(out.get("image_dn"), "xycb", getOutputName(imp.getTitle(), "image_dn"));
 	}
 	
-	private void parseCommand() {
+	private void parseCommand() throws NumberFormatException {
 		String macroArg = Macro.getOptions();
 
 		macroModel = parseArg(macroArg, "model", true);
 		cytoColor = parseArg(macroArg, "cyto_color", true);
 		nucleiColor = parseArg(macroArg, "nuclei_color", true);
+		String diameterStr = parseArg(macroArg, "diameter", false);
+		if (diameterStr != null) {
+			diameter = Float.parseFloat(diameterStr);
+		}
 		String displayAllStr = parseArg(macroArg, "display_all", false);
 		if (displayAllStr != null && (displayAllStr.equals("true") || displayAllStr.equals("True")))
 			displayAll = true;
@@ -196,6 +207,12 @@ public class Cellpose_DeepImageJ implements PlugIn {
 	
 	public static < T extends RealType< T > & NativeType< T > > 
 	Map<String, RandomAccessibleInterval<T>> runCellpose(String modelPath, RandomAccessibleInterval<T> rai, String cytoColor, String nucleiColor) {
+		return runCellpose(modelPath, rai, cytoColor, nucleiColor, null);
+	}
+	
+	
+	public static < T extends RealType< T > & NativeType< T > > 
+	Map<String, RandomAccessibleInterval<T>> runCellpose(String modelPath, RandomAccessibleInterval<T> rai, String cytoColor, String nucleiColor, Float diameter) {
 		checkChannels((cytoColor = cytoColor.toLowerCase()), (nucleiColor = nucleiColor.toLowerCase()));
 		if (!INSTALLED_ENV) {
 			Consumer<String> cons = System.out::println;
@@ -222,6 +239,8 @@ public class Cellpose_DeepImageJ implements PlugIn {
 				model = Cellpose.init(Cellpose.donwloadPretrained(modelPath, HELPER_CONSUMER.getModelsDir(), cons));
 			}
 			model.loadModel();
+			if (diameter != null)
+				model.setDiameter(diameter);
 	    	Map<String, RandomAccessibleInterval<T>> out = runCellposeOnFramesStack(model, rai, cytoColor, nucleiColor);
 	    	model.close();
 	    	return out;

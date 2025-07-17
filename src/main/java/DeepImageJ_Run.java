@@ -52,6 +52,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Consumer;
 
 import javax.swing.SwingUtilities;
@@ -69,7 +70,6 @@ import ij.WindowManager;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.Recorder;
 import io.bioimage.modelrunner.apposed.appose.Types;
-import io.bioimage.modelrunner.bioimageio.BioimageioDirectConnection;
 import io.bioimage.modelrunner.bioimageio.BioimageioRepo;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptor;
 import io.bioimage.modelrunner.bioimageio.description.ModelDescriptorFactory;
@@ -160,24 +160,8 @@ public class DeepImageJ_Run implements PlugIn {
 	
 	public static <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
 	List<RandomAccessibleInterval<R>> runModel(String model, List<RandomAccessibleInterval<T>> inputs, List<String> axesOrders) throws IOException, InterruptedException, LoadEngineException, RunModelException {
-		ModelDescriptor descriptor;
-		if (axesOrders.size() != inputs.size())
-			throw new IllegalArgumentException(String.format("There has to be one axes order per input RandomAccessibleInterval: %s axes orders vs %s inputs", axesOrders.size(), inputs.size()));
-		if (new File(model).isFile()) {
-			descriptor = ModelDescriptorFactory.readFromLocalFile(model + File.separator + Constants.RDF_FNAME);
-		} else if (new File(deepimagej.Constants.FIJI_FOLDER + File.separator + "models", model).isFile()) {
-			descriptor = ModelDescriptorFactory.readFromLocalFile(deepimagej.Constants.FIJI_FOLDER + File.separator + "models" 
-															+ File.separator + model + File.separator + Constants.RDF_FNAME);
-			model = deepimagej.Constants.FIJI_FOLDER + File.separator + "models" + File.separator + model;
-		} else if ((descriptor = BioimageioDirectConnection.selectByID(model)) != null) {
-			String modelId = model;
-			Consumer<Double> cons = (d) -> {
-				System.out.println(String.format("Downloading %s: %.2f%%", modelId, d * 100));
-			};
-			model = BioimageioRepo.downloadModel(descriptor, deepimagej.Constants.FIJI_FOLDER + File.separator + "models" , cons);
-		}  else {
-			throw new IllegalArgumentException(String.format("The string %s does not correspond to an installed model or to the ID of a model in the Bioiamge.io zoo.", model));
-		}
+		model = identifyModel(model);
+		ModelDescriptor descriptor = ModelDescriptorFactory.readFromLocalFile(model + File.separator + Constants.RDF_FNAME);
 		
 		Runner runner = Runner.create(descriptor, deepimagej.Constants.FIJI_FOLDER + File.separator + "engines");
 		List<Tensor<T>> ins = createInputTensorList(descriptor, inputs, axesOrders);
@@ -201,7 +185,11 @@ public class DeepImageJ_Run implements PlugIn {
 		for (int i = 0; i < inputs.size(); i ++) {
 			RandomAccessibleInterval<T> rai = inputs.get(i);
 			TensorSpec spec = descriptor.getInputTensors().get(i);
-			String axesOrder = axesOrders.get(i).toLowerCase().replaceAll("t", "b");
+			String axesOrder = axesOrders.get(i).toLowerCase();
+			if (!axesOrder.contains("b") && axesOrder.contains("t") && !spec.getAxesOrder().contains("t"))
+				axesOrder = axesOrder.replace("t", "b");
+			else if (!axesOrder.contains("b") && axesOrder.contains("z") && !spec.getAxesOrder().contains("z"))
+				axesOrder = axesOrder.replace("z", "b");
 			if (spec.isImage())
 				rai = ImPlusRaiManager.convertToAxesOrder(rai, axesOrder, spec.getAxesOrder());
 			Tensor<T> tensor = Tensor.build(spec.getName(), spec.getAxesOrder(), rai);
@@ -217,8 +205,14 @@ public class DeepImageJ_Run implements PlugIn {
 	 *  outputFolder=/path/to/ouput/folder
 	 *  displayOutput=null")
 	 */
-	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>  void runMacro() {
-		parseCommand();
+	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>
+	void runMacro() {
+		try {
+			parseCommand();
+		} catch (IOException | InterruptedException e) {
+			e.printStackTrace();
+			return;
+		}
 
 		if (this.inputFolder != null && !(new File(this.inputFolder).exists()))
 			throw new IllegalArgumentException("The provided input folder does not exist: " + this.inputFolder);
@@ -327,7 +321,7 @@ public class DeepImageJ_Run implements PlugIn {
 	}
 
 	
-	private void parseCommand() {
+	private void parseCommand() throws IOException, InterruptedException {
 		String macroArg = Macro.getOptions();
 		if (Platform.isWindows())
 			System.err.println("[WARNING] On Windows, you must use double "
@@ -338,12 +332,35 @@ public class DeepImageJ_Run implements PlugIn {
 		// macroArg = "modelPath=NucleiSegmentationBoundaryModel outputFolder=null";
 		// macroArg = "modelPath=[StarDist H&E Nuclei Segmentation] inputPath=null outputFolder=null";
 
-		modelFolder = parseArg(macroArg, macroKeys[0], true);
-		if (!(new File(modelFolder).isAbsolute()))
-			modelFolder = new File(deepimagej.Constants.FIJI_FOLDER + File.separator + "models", modelFolder).getAbsolutePath();
+		String modelArg = parseArg(macroArg, macroKeys[0], true);
 		inputFolder = parseArg(macroArg, macroOptionalKeys[0], false);
 		outputFolder = parseArg(macroArg, macroOptionalKeys[1], false);
 		display = parseArg(macroArg, macroOptionalKeys[2], false);
+		modelFolder = identifyModel(modelArg);
+	}
+	
+	private static String identifyModel(String modelArg) throws IOException, InterruptedException {
+
+		if ((new File(modelArg).isAbsolute()))
+			return modelArg;
+		else if (new File(deepimagej.Constants.FIJI_FOLDER + File.separator + "models", modelArg).isDirectory())
+			return new File(deepimagej.Constants.FIJI_FOLDER + File.separator + "models", modelArg).getAbsolutePath();
+		else {
+			List<ModelDescriptor> localModels = ModelDescriptorFactory.getModelsAtLocalRepo(deepimagej.Constants.FIJI_FOLDER + File.separator + "models");
+			ModelDescriptor modelDes = localModels.stream().filter(mm -> mm.getNickname().equals(modelArg)).findFirst().orElse(null);
+			if (modelDes != null) {
+				return modelDes.getModelPath();
+			}
+			System.err.println("Looking for the model in the Bioimage.io repo: " + modelArg);
+			Entry<String, ModelDescriptor> entry = BioimageioRepo.connect().listAllModels(false).entrySet().stream()
+					.filter(ee -> ee.getValue().getNickname().equals(modelArg)).findFirst().orElse(null);
+			if (entry == null)
+				throw new IllegalArgumentException("Model '" + modelArg + "' not found either locally or on the Bioimage.io repo.");
+			Consumer<Double> cons = (d) -> {
+				System.out.println(String.format("Downloading %s: %.2f%%", modelArg, d * 100));
+			};
+			return BioimageioRepo.downloadModel(entry.getValue(), deepimagej.Constants.FIJI_FOLDER + File.separator + "models", cons);
+		}
 	}
 	
 	private static String parseArg(String macroArg, String arg, boolean required) {
