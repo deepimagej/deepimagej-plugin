@@ -151,10 +151,14 @@ public class ImageJGui implements GuiAdapter {
 		imp = isColorRGB ? CompositeConverter.makeComposite(imp) : imp;
 		RandomAccessibleInterval<T> rai = Views.dropSingletonDimensions((RandomAccessibleInterval<T>) ImageJFunctions.wrap(imp));
 		String axesOrder = "xy";
-		if (imp.getNChannels() != 1)
+		if (imp.getNChannels() != 1 && (tensorSpec.getAxesOrder().toLowerCase().contains("c") || imp.getNFrames() != 1))
 			axesOrder += "c";
-		if (imp.getNSlices() != 1)
+		if (imp.getNChannels() != 1 && !tensorSpec.getAxesOrder().toLowerCase().contains("c") && imp.getNFrames() == 1)
+			axesOrder += "b";
+		if (imp.getNSlices() != 1 && (tensorSpec.getAxesOrder().toLowerCase().contains("z") || imp.getNFrames() != 1) || axesOrder.contains("b"))
 			axesOrder += "z";
+		if (imp.getNSlices() != 1 && !tensorSpec.getAxesOrder().toLowerCase().contains("z") && imp.getNFrames() == 1 && !axesOrder.contains("b"))
+			axesOrder += "b";
 		if (imp.getNFrames() != 1)
 			axesOrder += "b";
 		RandomAccessibleInterval<T> nRai = ImPlusRaiManager.permute(rai, axesOrder, tensorSpec.getAxesOrder());
