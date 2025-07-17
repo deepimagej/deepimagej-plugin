@@ -312,7 +312,8 @@ public class DeepImageJ_Run implements PlugIn {
 		for (Tensor<R> rr : res) {
 			ImagePlus im = ImPlusRaiManager.convert(rr.getData(), rr.getAxesOrderString());
 			im.setTitle(imp.getShortTitle() + "_" + rr.getName());
-			if (display != null)
+			im.getProcessor().resetMinAndMax();
+			if (display == null)
 				SwingUtilities.invokeLater(() -> im.show());
 			if (this.outputFolder != null) {
 				IJ.saveAsTiff(im, this.outputFolder + File.separator + im.getTitle());
