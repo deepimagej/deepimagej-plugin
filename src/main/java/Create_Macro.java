@@ -126,7 +126,7 @@ public class Create_Macro extends PlugInFrame {
 
     private static final String NO_MODELS_STR = "No models installed";
     
-    private static final String MACRO_FORMAT = "run(\"DeepImageJ Run\", \"modelPath=%s inputPath=%s outputFolder=%s displayOutput=%s\")"; 
+    private static final String MACRO_FORMAT = "run(\"DeepImageJ Run\", \"model_path=%s input_path=%s output_folder=%s display_output=%s\")"; 
 
     public Create_Macro() {
         super("deepImageJ " + Constants.DIJ_VERSION + " - Create Macro");

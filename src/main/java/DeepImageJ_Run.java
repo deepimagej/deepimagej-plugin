@@ -102,11 +102,11 @@ public class DeepImageJ_Run implements PlugIn {
 	/**
 	 * Keys required to run deepImageJ with a macro
 	 */
-	final static String[] macroKeys = new String[] {"modelPath"};
+	final static String[] macroKeys = new String[] {"model_path"};
 	/**
 	 * Optional keys to run deepImageJ with a macro or in headless mode
 	 */
-	final static String[] macroOptionalKeys = new String[] {"inputPath", "outputFolder", "displayOutput"};
+	final static String[] macroOptionalKeys = new String[] {"input_path", "output_folder", "display_output"};
 	
 	public final static String MACRO_INFO = "https://github.com/deepimagej/deepimagej-plugin/blob/main/README.md#macros";
 

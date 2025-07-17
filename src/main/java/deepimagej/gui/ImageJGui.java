@@ -77,7 +77,7 @@ public class ImageJGui implements GuiAdapter {
 		if (!Recorder.record)
 			return;
 		
-		String macro = String.format("run(\"DeepImageJ Run\", \"modelPath=[%s]", modelAbsPath) + ")" + System.lineSeparator();
+		String macro = String.format("run(\"DeepImageJ Run\", \"model_path=[%s]", modelAbsPath) + "\")" + System.lineSeparator();
 		Recorder.recordString(macro);
 	}
 
