@@ -318,7 +318,7 @@ public class DeepImageJ_Run implements PlugIn {
 			ImagePlus im = ImPlusRaiManager.convert(rr.getData(), rr.getAxesOrderString());
 			im.setTitle(imp.getShortTitle() + "_" + rr.getName());
 			im.getProcessor().resetMinAndMax();
-			if (display == null)
+			if (display == null || display.equals("all"))
 				SwingUtilities.invokeLater(() -> im.show());
 			if (this.outputFolder != null) {
 				IJ.saveAsTiff(im, this.outputFolder + File.separator + im.getTitle());
@@ -371,6 +371,8 @@ public class DeepImageJ_Run implements PlugIn {
 	private static String parseArg(String macroArg, String arg, boolean required) {
 		String value = Macro.getValue(macroArg, arg, null);
 		if (value != null && value.equals(""))
+			value = null;
+		if (value != null && value.equals("null"))
 			value = null;
 		if (value == null && required)
 			throw new IllegalArgumentException("DeepImageJ Run macro requires to the variable '" + arg + "'. "
