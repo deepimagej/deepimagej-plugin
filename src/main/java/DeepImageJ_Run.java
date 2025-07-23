@@ -209,39 +209,37 @@ public class DeepImageJ_Run implements PlugIn {
 	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>
 	void runMacro() {
 		parseCommand();
-		new Thread(() -> {
-			try {
-				modelFolder = identifyModel(modelArg);
-			} catch (IOException | InterruptedException e) {
-				e.printStackTrace();
-				return;
+		try {
+			modelFolder = identifyModel(modelArg);
+		} catch (IOException | InterruptedException e) {
+			e.printStackTrace();
+			return;
+		}
+
+
+		if (this.inputFolder != null && !(new File(this.inputFolder).exists()))
+			throw new IllegalArgumentException("The provided input folder does not exist: " + this.inputFolder);
+		if (this.outputFolder != null && !(new File(this.outputFolder).isDirectory()) && !(new File(outputFolder).mkdirs()))
+			throw new IllegalArgumentException("The provided output folder does not exist and cannot be created: " + this.inputFolder);
+
+		ImageJGui adapter = new ImageJGui();
+
+		try {
+			loadDescriptor();
+		} catch (ModelSpecsException | IOException e) {
+			e.printStackTrace();
+			return;
+		}
+		try (Runner runner = Runner.create(model, deepimagej.Constants.FIJI_FOLDER + File.separator + "engines")) {
+			runner.load(true);
+			if (this.inputFolder != null) {
+				executeOnPath(runner, adapter);
+			} else {
+				executeOnImagePlus(runner, adapter);
 			}
-
-
-			if (this.inputFolder != null && !(new File(this.inputFolder).exists()))
-				throw new IllegalArgumentException("The provided input folder does not exist: " + this.inputFolder);
-			if (this.outputFolder != null && !(new File(this.outputFolder).isDirectory()) && !(new File(outputFolder).mkdirs()))
-				throw new IllegalArgumentException("The provided output folder does not exist and cannot be created: " + this.inputFolder);
-
-			ImageJGui adapter = new ImageJGui();
-
-			try {
-				loadDescriptor();
-			} catch (ModelSpecsException | IOException e) {
-				e.printStackTrace();
-				return;
-			}
-			try (Runner runner = Runner.create(model, deepimagej.Constants.FIJI_FOLDER + File.separator + "engines")) {
-				runner.load(true);
-				if (this.inputFolder != null) {
-					executeOnPath(runner, adapter);
-				} else {
-					executeOnImagePlus(runner, adapter);
-				}
-			} catch (IOException | LoadModelException | RunModelException | LoadEngineException e) {
-				throw new RuntimeException(Types.stackTrace(e));
-			}
-		}).start();
+		} catch (IOException | LoadModelException | RunModelException | LoadEngineException e) {
+			throw new RuntimeException(Types.stackTrace(e));
+		};
 	}
 	
 	private void loadDescriptor() throws FileNotFoundException, ModelSpecsException, IOException {

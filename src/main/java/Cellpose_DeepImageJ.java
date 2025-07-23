@@ -79,7 +79,6 @@ import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Cast;
@@ -172,18 +171,16 @@ public class Cellpose_DeepImageJ implements PlugIn {
 		}
 		ImagePlus imp = WindowManager.getCurrentImage();
 		boolean isColorRGB = imp.getType() == ImagePlus.COLOR_RGB;
-		new Thread(() -> {
-			RandomAccessibleInterval<T> rai = 
-					ImPlusRaiManager.convert(isColorRGB ? CompositeConverter.makeComposite(imp) : imp, "xyczt");
-			Map<String, RandomAccessibleInterval<T>> out = runCellpose(macroModel, rai, cytoColor, nucleiColor, diameter);
-			HELPER_CONSUMER.displayRai(out.get("labels"), "xyb", getOutputName(imp.getTitle(), "labels"));
-			if (!displayAll)
-				return;
-			HELPER_CONSUMER.displayRai(out.get("flows_0"), "xycb", getOutputName(imp.getTitle(), "flows_0"));
-			HELPER_CONSUMER.displayRai(out.get("flows_1"), "cxyb", getOutputName(imp.getTitle(), "flows_1"));
-			HELPER_CONSUMER.displayRai(out.get("flows_2"), "xyb", getOutputName(imp.getTitle(), "flows_2"));
-			HELPER_CONSUMER.displayRai(out.get("image_dn"), "xycb", getOutputName(imp.getTitle(), "image_dn"));
-		}).start();
+		RandomAccessibleInterval<T> rai =
+				ImPlusRaiManager.convert(isColorRGB ? CompositeConverter.makeComposite(imp) : imp, "xyczt");
+		Map<String, RandomAccessibleInterval<T>> out = runCellpose(macroModel, rai, cytoColor, nucleiColor, diameter);
+		HELPER_CONSUMER.displayRai(out.get("labels"), "xyb", getOutputName(imp.getTitle(), "labels"));
+		if (!displayAll)
+			return;
+		HELPER_CONSUMER.displayRai(out.get("flows_0"), "xycb", getOutputName(imp.getTitle(), "flows_0"));
+		HELPER_CONSUMER.displayRai(out.get("flows_1"), "cxyb", getOutputName(imp.getTitle(), "flows_1"));
+		HELPER_CONSUMER.displayRai(out.get("flows_2"), "xyb", getOutputName(imp.getTitle(), "flows_2"));
+		HELPER_CONSUMER.displayRai(out.get("image_dn"), "xycb", getOutputName(imp.getTitle(), "image_dn"));
 	}
 	
 	private void parseCommand() throws NumberFormatException {
