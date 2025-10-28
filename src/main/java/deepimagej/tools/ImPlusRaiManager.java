@@ -34,7 +34,7 @@ public class ImPlusRaiManager {
 		String newImAxesOrder = addExtraDims(axesOrder, targetAxesOrder);
 		for (int i = 0; i < (newImAxesOrder.length() - axesOrder.length()); i ++)
 			rai = Views.addDimension(rai, 0, 0);
-		rai = transposeToAxesOrder(rai, newImAxesOrder, IJ_AXES_ORDER);
+		rai = transposeToAxesOrder(rai, newImAxesOrder, targetAxesOrder);
 		return rai;
 	}
 
