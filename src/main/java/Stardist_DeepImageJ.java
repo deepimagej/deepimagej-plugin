@@ -53,7 +53,6 @@ import java.util.function.Consumer;
 
 import javax.swing.SwingUtilities;
 
-import org.apache.commons.compress.archivers.ArchiveException;
 
 import deepimagej.gui.ImageJGui;
 import deepimagej.gui.consumers.StardistAdapter;
@@ -201,7 +200,7 @@ public class Stardist_DeepImageJ implements PlugIn {
 			try {
 				StardistAbstract.installRequirements(cons);
 				INSTALLED_ENV = true;
-			} catch (IOException | InterruptedException | RuntimeException | MambaInstallException | ArchiveException
+			} catch (IOException | InterruptedException | RuntimeException | MambaInstallException
 					| URISyntaxException e) {
 				throw new RuntimeException("Error installing StarDist. Caused by: " + Types.stackTrace(e));
 			}

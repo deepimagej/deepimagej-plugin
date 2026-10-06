@@ -223,7 +223,7 @@ public class Cellpose_DeepImageJ implements PlugIn {
 			try {
 				Cellpose.installRequirements(cons);
 				INSTALLED_ENV = true;
-			} catch (IOException | InterruptedException | RuntimeException | MambaInstallException | ArchiveException
+			} catch (IOException | InterruptedException | RuntimeException | MambaInstallException
 					| URISyntaxException e) {
 				throw new RuntimeException("Error installing Cellpose. Caused by: " + Types.stackTrace(e));
 			}
