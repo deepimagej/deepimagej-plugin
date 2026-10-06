@@ -60,7 +60,7 @@ public class Constants {
 	public static final String FIJI_FOLDER;
 	static {
 		FIJI_FOLDER = getFijiFolder();
-		System.err.println("Fiji folder: " + FIJI_FOLDER);
+		System.out.println("Fiji folder: " + FIJI_FOLDER);
 	}
 	
     private static String getVersion() {
