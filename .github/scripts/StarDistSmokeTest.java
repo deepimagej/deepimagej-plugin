@@ -5,6 +5,8 @@ import java.nio.file.Paths;
 import io.bioimage.modelrunner.model.special.stardist.Stardist2D;
 import io.bioimage.modelrunner.model.special.stardist.StardistAbstract;
 
+import net.imglib2.img.array.ArrayImg;
+
 public class StarDistSmokeTest {
     public static void main(String[] args) throws Exception {
         Path root = Paths.get(args[0], "deepimagej-stardist").toAbsolutePath();
@@ -20,7 +22,7 @@ public class StarDistSmokeTest {
         try {
             model.loadModel();
             System.out.println("SUCCESS: StarDist model loaded from " + modelPath);
-            model.run(ArraysImgs.floats(new long[] {512, 512, 1}));
+            model.run(ArrayImg.floats(new long[] {512, 512, 1}));
             System.out.println("SUCCESS: Run StarDist");
         } finally {
             model.close();
