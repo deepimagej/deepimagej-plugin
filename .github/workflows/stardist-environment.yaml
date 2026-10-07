@@ -35,3 +35,25 @@ jobs:
           classpath="JDLL/target/classes${separator}JDLL/target/dependency/*"
           javac -cp "$classpath" -d JDLL/target/classes .github/scripts/StarDistSmokeTest.java
           java -Djava.awt.headless=true -cp "$classpath" StarDistSmokeTest "$RUNNER_TEMP"
+      - name: Check Windows imports with the installed environment Python
+        if: ${{ always() && runner.os == 'Windows' }}
+        shell: pwsh
+        env:
+          CUDA_VISIBLE_DEVICES: '-1'
+        run: |
+          $python = Join-Path $env:USERPROFILE '.local/share/appose/micromamba/envs/stardist/python.exe'
+          if (!(Test-Path $python)) { throw "Environment Python not found: $python" }
+          $PSNativeCommandUseErrorActionPreference = $false
+          $failed = $false
+          foreach ($code in @(
+            'import numpy; print(numpy.__version__)'
+            'import scipy; print(scipy.__version__)'
+            'import tensorflow as tf; print(tf.__version__)'
+            "from stardist.models import StarDist2D; print('StarDist OK')"
+          )) {
+            Write-Host "Checking: $code"
+            & $python -u -X faulthandler -c $code
+            Write-Host "Exit code: $LASTEXITCODE"
+            if ($LASTEXITCODE -ne 0) { $failed = $true }
+          }
+          if ($failed) { exit 1 }
