@@ -21,10 +21,13 @@ public class StarDistSmokeTest {
         StardistAbstract model = StardistAbstract.init(modelPath);
         try {
             model.loadModel();
-            System.out.println("SUCCESS: StarDist model loaded from " + modelPath);
+            System.out.println("SUCCESS: StarDist model loaded from " +   modelPath);
             model.run(ArrayImg.floats(new long[] {512, 512, 1}));
             System.out.println("SUCCESS: Run StarDist");
-        } finally {
+        } catch (Exception ex) {
+        	ex.printStackTrace();
+        	throw ex;
+    	} finally {
             model.close();
         }
     }
