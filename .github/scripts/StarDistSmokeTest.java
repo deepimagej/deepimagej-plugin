@@ -5,7 +5,7 @@ import java.nio.file.Paths;
 import io.bioimage.modelrunner.model.special.stardist.Stardist2D;
 import io.bioimage.modelrunner.model.special.stardist.StardistAbstract;
 
-import net.imglib2.img.array.ArrayImg;
+import net.imglib2.img.array.ArrayImgs;
 
 public class StarDistSmokeTest {
     public static void main(String[] args) throws Exception {
