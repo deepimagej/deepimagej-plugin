@@ -1,0 +1,37 @@
+name: StarDist environment smoke test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  load-model:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-15-intel, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: bioimage-io/JDLL
+          ref: legacy
+          path: JDLL
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '8'
+      - name: Build JDLL and collect its Java dependencies
+        run: mvn -B -f JDLL/pom.xml -DskipTests package dependency:copy-dependencies -DincludeScope=runtime
+      - name: Install StarDist dependencies, download and load a model
+        shell: bash
+        run: |
+          separator=':'
+          if [ "$RUNNER_OS" = 'Windows' ]; then separator=';'; fi
+          classpath="JDLL/target/classes${separator}JDLL/target/dependency/*"
+          javac -cp "$classpath" -d JDLL/target/classes .github/scripts/StarDistSmokeTest.java
+          java -Djava.awt.headless=true -cp "$classpath" StarDistSmokeTest "$RUNNER_TEMP"
