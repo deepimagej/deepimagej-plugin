@@ -20,6 +20,8 @@ public class StarDistSmokeTest {
         try {
             model.loadModel();
             System.out.println("SUCCESS: StarDist model loaded from " + modelPath);
+            model.run(ArraysImgs.floats(new long[] {512, 512, 1}));
+            System.out.println("SUCCESS: Run StarDist");
         } finally {
             model.close();
         }
