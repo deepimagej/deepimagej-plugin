@@ -2,6 +2,11 @@ name: StarDist environment smoke test
 
 on:
   workflow_dispatch:
+    inputs:
+      windows_only:
+        description: Run only the Windows diagnostic job
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -11,8 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        #os: [ubuntu-latest, windows-latest, macos-15-intel, macos-15]
-        os: [ubuntu-latest, windows-latest]
+        os: ${{ inputs.windows_only && fromJSON('["windows-latest"]') || fromJSON('["ubuntu-latest", "windows-latest", "macos-15-intel", "macos-15"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
@@ -58,3 +62,12 @@ jobs:
             if ($LASTEXITCODE -ne 0) { $failed = $true }
           }
           if ($failed) { exit 1 }
+      - name: Compare Windows DLL paths and model loading
+        if: ${{ always() && runner.os == 'Windows' }}
+        shell: pwsh
+        env:
+          CUDA_VISIBLE_DEVICES: '-1'
+        run: |
+          $python = Join-Path $env:USERPROFILE '.local/share/appose/micromamba/envs/stardist/python.exe'
+          & $python -u .github/scripts/stardist_windows_diagnostics.py "$env:RUNNER_TEMP/deepimagej-stardist/models"
+          exit $LASTEXITCODE

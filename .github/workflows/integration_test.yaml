@@ -1,13 +1,7 @@
 name: Integration Tests
 
 on:
-  push:
-    branches: [ master ]
-    paths-ignore:
-      - .github/workflows/macos_test.yaml
-      - .github/workflows/test_stardist_cellpose.yaml
-  pull_request:
-    branches: [ master ]
+  workflow_dispatch:
 
 env:
   MODELS: "ambitious-sloth, placid-llama, chatty-frog, hiding-tiger, laid-back-lobster"

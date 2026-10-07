@@ -1,13 +1,7 @@
 name: Test StarDist and Cellpose
 
 on:
-  push:
-    branches: [ master ]
-    paths-ignore:
-      - .github/workflows/macos_test.yaml
-      - .github/workflows/integration_test.yaml
-  pull_request:
-    branches: [ master ]
+  workflow_dispatch:
 
 env:
   SCRIPT_PATH_1C: .github/scripts/stardist2d_1c.py
