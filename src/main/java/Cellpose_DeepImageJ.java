@@ -56,8 +56,6 @@ import java.util.function.Consumer;
 
 import javax.swing.SwingUtilities;
 
-import org.apache.commons.compress.archivers.ArchiveException;
-
 import deepimagej.gui.ImageJGui;
 import deepimagej.gui.consumers.CellposeAdapter;
 import deepimagej.tools.ImPlusRaiManager;
