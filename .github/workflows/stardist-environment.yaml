@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: zulu
-          java-version: '8'
+          java-version: '11'
       - name: Build JDLL and collect its Java dependencies
         run: mvn -B -f JDLL/pom.xml -DskipTests package dependency:copy-dependencies -DincludeScope=runtime
       - name: Install StarDist dependencies, download and load a model
