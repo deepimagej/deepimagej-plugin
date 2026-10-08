@@ -60,7 +60,8 @@ def verify(root, fixture):
         references[group] = mask
         Image.fromarray(mask.astype(np.uint16)).save(root / f"reference-{group}-mask.png")
 
-    manifest["versions"] = {name: importlib.metadata.version(name) for name in ("cellpose", "torch", "numpy")}
+    manifest["versions"] = {name: importlib.metadata.version(name)
+                            for name in ("cellpose", "torch", "numpy", "numba", "llvmlite")}
     manifest["fixture_sha256"] = digest(fixture)
     manifest["weights_sha256"] = {"segmentation": digest(manifest["weights"]),
                                   "restoration": digest(model.dn.pretrained_model)}

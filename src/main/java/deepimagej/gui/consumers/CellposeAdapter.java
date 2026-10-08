@@ -45,6 +45,7 @@
 package deepimagej.gui.consumers;
 
 import java.io.File;
+import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Map;
@@ -60,7 +61,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 
 import javax.swing.DefaultComboBoxModel;
-import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 import javax.swing.JComboBox;
@@ -71,7 +71,8 @@ import deepimagej.tools.ImPlusRaiManager;
 import ij.Macro;
 import ij.WindowManager;
 import ij.plugin.CompositeConverter;
-import io.bioimage.modelrunner.gui.custom.gui.CellposeGUI;
+import io.bioimage.modelrunner.gui.custom.CellposePluginUI;
+import io.bioimage.modelrunner.model.special.cellpose.Cellpose;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.loops.LoopBuilder;
@@ -374,16 +375,16 @@ public class CellposeAdapter extends SmallPluginAdapter implements AutoCloseable
     }
 
     /** ImageJ-specific controls use the same channel resolver and runner as macros. */
-    public static class Dialog extends CellposeGUI implements AutoCloseable {
+    public static class Dialog extends CellposePluginUI implements AutoCloseable {
         private static final long serialVersionUID = 1L;
         private final CellposeAdapter adapter;
         private final Supplier<? extends Job> runners;
         private SwingWorker<?, ?> worker;
         private Job runner;
-        private Runnable cancelCallback;
         private boolean closed;
 
         public Dialog(CellposeAdapter adapter, Supplier<? extends Job> runners) {
+            super(adapter);
             this.adapter = adapter;
             this.runners = runners;
             cytoplasmLabel.setText("Cytoplasm channel:");
@@ -394,20 +395,17 @@ public class CellposeAdapter extends SmallPluginAdapter implements AutoCloseable
             adapter.bindChannels(cytoCbox, nucleiCbox);
             modelComboBox.addActionListener(event -> updateCustomControls());
             updateCustomControls();
-            browseButton.addActionListener(event -> {
-                JFileChooser chooser = new JFileChooser();
-                if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION)
-                    customModelPathField.setText(chooser.getSelectedFile().getAbsolutePath());
-            });
-            footer.getButtons().getRunButton().addActionListener(event -> startRun());
-            footer.getButtons().getInstallButton().addActionListener(event -> startInstall());
-            footer.getButtons().getCancelButton().addActionListener(event -> {
-                close();
-                if (cancelCallback != null) cancelCallback.run();
-            });
         }
 
-        public void setCancelCallback(Runnable callback) { cancelCallback = callback; }
+        @Override public void actionPerformed(ActionEvent event) {
+            if (event.getSource() == footer.getButtons().getRunButton()) startRun();
+            else if (event.getSource() == footer.getButtons().getInstallButton()) startInstall();
+            else super.actionPerformed(event);
+        }
+
+        @Override public void setCancelCallback(Runnable callback) {
+            super.setCancelCallback(() -> { close(); callback.run(); });
+        }
 
         private void updateCustomControls() {
             boolean custom = CUSTOM_STR.equals(modelComboBox.getSelectedItem());
@@ -445,13 +443,29 @@ public class CellposeAdapter extends SmallPluginAdapter implements AutoCloseable
                 setBusy(true);
                 worker = new SwingWorker<Map<String, RandomAccessibleInterval<?>>, Void>() {
                     @Override protected Map<String, RandomAccessibleInterval<?>> doInBackground() throws Exception {
+                        // Reuse JDLL's agreement dialog, installer window and weights progress.
+                        Dialog.super.installCellpose();
+                        if (closed || isCancelled() || !Cellpose.isInstalled()) return null;
+                        if (!new File(model).isFile() && Cellpose.fileIsCellpose(model, adapter.getModelsDir()) == null)
+                            return null;
+                        SwingUtilities.invokeAndWait(() -> { if (!closed) setBusy(true); });
                         return job.runCellpose(model, adapter.getModelsDir(), input, diameter, Dialog.this::status);
                     }
                     @Override protected void done() {
+                        boolean failed = false;
                         try {
-                            if (!closed && !isCancelled()) displayOutputs(get(), input.title(), all);
-                        } catch (Exception ex) { showError(ex); }
-                        finally { job.close(); runner = null; worker = null; if (!closed) setBusy(false); }
+                            if (!closed && !isCancelled()) {
+                                Map<String, RandomAccessibleInterval<?>> outputs = get();
+                                if (outputs != null) displayOutputs(outputs, input.title(), all);
+                            }
+                        } catch (Exception ex) { failed = true; showError(ex); }
+                        finally {
+                            job.close(); runner = null; worker = null;
+                            if (!closed) {
+                                setBusy(false);
+                                if (failed) footer.getBar().setString("Error running the model");
+                            }
+                        }
                     }
                 };
                 worker.execute();
@@ -463,18 +477,16 @@ public class CellposeAdapter extends SmallPluginAdapter implements AutoCloseable
             final String model = selectedModel();
             try { validateCellpose(model, null); }
             catch (IllegalArgumentException ex) { showError(ex); return; }
-            runner = runners.get();
-            final Job job = runner;
             setBusy(true);
             worker = new SwingWorker<Void, Void>() {
                 @Override protected Void doInBackground() throws Exception {
-                    job.install(model, adapter.getModelsDir(), Dialog.this::status);
+                    Dialog.super.installCellpose();
                     return null;
                 }
                 @Override protected void done() {
                     try { if (!isCancelled()) get(); }
                     catch (Exception ex) { showError(ex); }
-                    finally { job.close(); runner = null; worker = null; if (!closed) setBusy(false); }
+                    finally { worker = null; if (!closed) setBusy(false); }
                 }
             };
             worker.execute();
@@ -492,13 +504,21 @@ public class CellposeAdapter extends SmallPluginAdapter implements AutoCloseable
             customModelPathField.setEnabled(!busy && CUSTOM_STR.equals(modelComboBox.getSelectedItem()));
             browseButton.setEnabled(customModelPathField.isEnabled());
             footer.getBar().setIndeterminate(busy);
-            footer.getBar().setString(busy ? "Checking Cellpose installation..." : "");
+            if (!busy) footer.getBar().setValue(0);
+            footer.getBar().setString(busy ? "Checking cellpose installed..." : "");
             if (!busy) adapter.updateGUI();
         }
 
         private void status(String message) {
             System.out.println(message);
-            SwingUtilities.invokeLater(() -> { if (!closed) footer.getBar().setString(message); });
+            final String text;
+            if (message.equals("Loading Cellpose model")) text = "Loading model";
+            else if (message.startsWith("Running Cellpose plane "))
+                text = "Running the model " + message.substring("Running Cellpose plane ".length());
+            else return;
+            SwingUtilities.invokeLater(() -> {
+                if (!closed) { footer.getBar().setIndeterminate(true); footer.getBar().setString(text); }
+            });
         }
 
         private void showError(Exception ex) {
@@ -513,6 +533,7 @@ public class CellposeAdapter extends SmallPluginAdapter implements AutoCloseable
             closed = true;
             if (worker != null) worker.cancel(true);
             if (runner != null) runner.close();
+            super.close();
             adapter.close();
         }
     }

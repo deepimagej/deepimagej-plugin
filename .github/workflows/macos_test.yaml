@@ -37,7 +37,7 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.11'
 
       - name: Set up JDK 8
         uses: actions/setup-java@v4
@@ -142,5 +142,5 @@ jobs:
       - name: Run final python
         shell: bash
         run: |
-          python -m pip install numpy
+          python -m pip install numpy==1.26.4
           python .github/scripts/check_numpy_vals.py

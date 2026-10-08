@@ -66,7 +66,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install numpy pillow
+      - run: python -m pip install numpy==1.26.4 pillow==11.1.0
       - name: Compare every mask across operating systems
         run: python .github/scripts/cellpose_channels.py compare cellpose-results
       - uses: actions/upload-artifact@v4
