@@ -31,6 +31,7 @@ jobs:
           distribution: zulu
           java-version: '11'
       - name: Build JDLL legacy and DeepImageJ
+        shell: bash
         run: |
           mvn -B -f JDLL/pom.xml -Dmaven.test.skip=true install
           mvn -B -Dmaven.test.skip=true package dependency:copy-dependencies -DincludeScope=runtime
