@@ -1,0 +1,75 @@
+name: Cellpose channels across operating systems
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cellpose:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-15-intel, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      CUDA_VISIBLE_DEVICES: '-1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: bioimage-io/JDLL
+          ref: legacy
+          path: JDLL
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '11'
+      - name: Build JDLL legacy and DeepImageJ
+        run: |
+          mvn -B -f JDLL/pom.xml -Dmaven.test.skip=true install
+          mvn -B -Dmaven.test.skip=true package dependency:copy-dependencies -DincludeScope=runtime
+      - name: Install Cellpose and compare channel combinations with native Python
+        shell: bash
+        run: |
+          mkdir -p cellpose-results
+          git -C JDLL rev-parse HEAD > cellpose-results/jdll-commit.txt
+          separator=':'
+          if [ "$RUNNER_OS" = 'Windows' ]; then separator=';'; fi
+          classpath="target/classes${separator}target/dependency/*"
+          javac -cp "$classpath" -d target/classes .github/scripts/CellposeChannels.java
+          java -Djava.awt.headless=true -cp "$classpath" CellposeChannels \
+            .github/fixtures/cellpose-test.png cellpose-results .github/scripts/cellpose_channels.py \
+            2>&1 | tee cellpose-results/run.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cellpose-${{ matrix.os }}
+          path: cellpose-results/
+          if-no-files-found: warn
+
+  compare-operating-systems:
+    needs: cellpose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cellpose-*
+          path: cellpose-results
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install numpy pillow
+      - name: Compare every mask across operating systems
+        run: python .github/scripts/cellpose_channels.py compare cellpose-results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cellpose-comparison
+          path: cellpose-results/comparison.md
