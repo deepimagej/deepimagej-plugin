@@ -32,31 +32,47 @@ run("DeepImageJ Run", "model_path=[/path/to/model] input_path=[/path/to/images] 
 
 ### Cellpose
 
-`DeepImageJ Cellpose` processes the active image and displays a label image named `<input>_labels.tif`. Background is 0; each detected object has a positive integer label. Required dependencies and missing pretrained weights are installed on the first run, which needs internet access.
+`DeepImageJ Cellpose` processes the active image and displays `<input>_labels.tif`. Background is 0; positive integer labels identify objects. Dependencies and missing pretrained weights are installed on the first run, which needs internet access. The image, selected pixels, model, and parameters are captured when **Run** is clicked, so switching images during installation does not change the job.
 
 | Option | Meaning |
 | --- | --- |
 | `model` (required) | `cyto`, `cyto2`, `cyto3`, `nuclei`, or the path to a custom weights file. |
-| `cyto_color` (required) | Channel used for segmentation: `gray`, `red`, `blue`, or `green`. |
-| `nuclei_color` (required) | Supporting nuclei channel, using the same choices. For a grayscale image, set both channel options to `gray`. |
-| `diameter` | Object diameter in pixels. Set it explicitly, for example `30`; omitting it currently passes `0` from the macro parser. |
+| `cyto_channel` (required) | One-based source channel number (`1`, `2`, `3`, `4`, ...), or `red`, `green`, `blue` for an RGB/three-channel image. `gray` selects a single-channel image. |
+| `nuclei_channel` | Supporting nuclei channel, using the same numbers or RGB names. `none` or `0` disables it; omitting this option defaults to `none`. |
+| `diameter` | Object diameter in pixels, for example `30`. Omit to use JDLL's estimation/default behaviour; `0` can also be passed explicitly to Cellpose. |
 | `display_all` | `true` displays flows and the restored image as well as labels; the default is `false`. |
 
-Grayscale image:
+Channel numbers refer to the input image. The GUI labels are **Cytoplasm channel** and **Nuclei channel**. RGB/three-channel inputs show colour names only (red, green, blue); grayscale inputs show only **Gray** in both selectors, with no supporting nuclei channel internally. Inputs with two or more than three channels show **Channel 1**, **Channel 2**, and so on. **None** is also available for nuclei on multichannel inputs. Valid selections are preserved when image focus changes. Colour names use **red=1, green=2, blue=3**; displayed LUT colours do not change this channel order. Numeric macro selections remain available for any channel count. Inputs with two, five, or any other number of channels are supported; DeepImageJ extracts the selected channels before inference. Flow and restored-image channels therefore describe the selected signals, not all source channels.
+
+Grayscale image, without a supporting nuclei channel:
 
 ```ijm
 open("/path/to/cells.tif");
-run("DeepImageJ Cellpose", "model=cyto3 cyto_color=gray nuclei_color=gray diameter=30 display_all=false");
+run("DeepImageJ Cellpose", "model=cyto3 cyto_channel=1 nuclei_channel=none diameter=30 display_all=false");
 ```
 
-Three-channel image, with the segmentation signal in channel 1 and nuclei in channel 2:
+RGB image with green cytoplasm and blue nuclei:
 
 ```ijm
-open("/path/to/three-channel-cells.tif");
-run("DeepImageJ Cellpose", "model=cyto3 cyto_color=red nuclei_color=blue diameter=30 display_all=false");
+open("/path/to/rgb-cells.png");
+run("DeepImageJ Cellpose", "model=cyto3 cyto_channel=green nuclei_channel=blue diameter=30 display_all=false");
 ```
 
-The current channel map is **`red` = channel 1, `blue` = channel 2, `green` = channel 3**. Check your channel order against this mapping. The wrapper expects either one grayscale channel or three channels; extract a single channel or prepare a three-channel image before running it on a two-channel image.
+Two-channel image with cytoplasm in channel 1 and nuclei in channel 2:
+
+```ijm
+open("/path/to/two-channel-cells.tif");
+run("DeepImageJ Cellpose", "model=cyto3 cyto_channel=1 nuclei_channel=2 diameter=30");
+```
+
+Five-channel image, selecting channel 4 for segmentation and channel 2 for nuclei:
+
+```ijm
+open("/path/to/five-channel-cells.tif");
+run("DeepImageJ Cellpose", "model=cyto3 cyto_channel=4 nuclei_channel=2 diameter=30");
+```
+
+The old `cyto_color` and `nuclei_color` options remain aliases. Legacy `cyto_color=gray nuclei_color=gray` selects a grayscale image without a supporting nuclei channel. Supplying conflicting old and new options is an error. The previous green/blue mapping was reversed: update macros that deliberately swapped these colours to compensate. Recorded commands preserve colour names for RGB/three-channel inputs and `gray` for grayscale inputs; other multichannel inputs use channel numbers.
 
 For custom weights, replace `model=cyto3` with, for example, `model=[C:/models/my-cellpose-weights]`.
 
@@ -97,7 +113,7 @@ Cellpose on a grayscale Z stack:
 
 ```ijm
 open("/path/to/cells-z-stack.tif");
-run("DeepImageJ Cellpose", "model=cyto3 cyto_color=gray nuclei_color=gray diameter=30 display_all=false");
+run("DeepImageJ Cellpose", "model=cyto3 cyto_channel=1 nuclei_channel=none diameter=30 display_all=false");
 ```
 
 StarDist on a fluorescence time series (one Z plane per frame):
@@ -107,7 +123,7 @@ open("/path/to/nuclei-time-series.tif");
 run("DeepImageJ StarDist", "model=[StarDist Fluorescence Nuclei Segmentation] prob_thresh=0.5 min_percentile=1 max_percentile=99.8");
 ```
 
-For a hyperstack containing **both Z slices and time frames**, the current 2D wrappers process only the first Z plane when several frames are present. Use the following loop to process every Z/time pair and save one mask per plane. It preserves all channels when duplicating a plane and waits for the result window before saving it.
+Cellpose processes every Z/time pair and returns a stack with Z changing fastest within each time point. For StarDist on a hyperstack containing **both Z slices and time frames**, the current 2D wrapper processes only the first Z plane when several frames are present. Use the following loop to process every Z/time pair and save one mask per plane. It preserves all channels when duplicating a plane and waits for the result window before saving it.
 
 ```ijm
 open("/path/to/nuclei-zt-hyperstack.tif");
@@ -142,7 +158,7 @@ For Cellpose on a grayscale Z/time hyperstack, replace the three configuration l
 
 ```ijm
 command = "DeepImageJ Cellpose";
-options = "model=cyto3 cyto_color=gray nuclei_color=gray diameter=30 display_all=false";
+options = "model=cyto3 cyto_channel=1 nuclei_channel=none diameter=30 display_all=false";
 suffix = "_labels.tif";
 ```
 

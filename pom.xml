@@ -151,11 +151,6 @@ Universidad Carlos III de Madrid.</license.copyrightOwners>
 		    <artifactId>imglib2-ij</artifactId>
 		</dependency>
         <dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<scope>test</scope>
-		</dependency>
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>

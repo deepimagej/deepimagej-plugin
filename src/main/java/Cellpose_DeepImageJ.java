@@ -1,15 +1,15 @@
 /*
  * DeepImageJ
- * 
+ *
  * https://deepimagej.github.io/deepimagej/
- * 
+ *
  * Reference: DeepImageJ: A user-friendly environment to run deep learning models in ImageJ
- * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, W. Ouyang, L. Donati, M. Unser, E. Lundberg, A. Munoz-Barrutia, D. Sage. 
+ * E. Gomez-de-Mariscal, C. Garcia-Lopez-de-Haro, W. Ouyang, L. Donati, M. Unser, E. Lundberg, A. Munoz-Barrutia, D. Sage.
  * Submitted 2021.
  * Bioengineering and Aerospace Engineering Department, Universidad Carlos III de Madrid, Spain
  * Biomedical Imaging Group, Ecole polytechnique federale de Lausanne (EPFL), Switzerland
  * Science for Life Laboratory, School of Engineering Sciences in Chemistry, Biotechnology and Health, KTH - Royal Institute of Technology, Sweden
- * 
+ *
  * Authors: Carlos Garcia-Lopez-de-Haro and Estibaliz Gomez-de-Mariscal
  *
  */
@@ -19,7 +19,7 @@
  *
  * Copyright (c) 2019-2021, DeepImageJ
  * All rights reserved.
- *	
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *
@@ -29,7 +29,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *	  this list of conditions and the following disclaimer in the documentation
  *	  and/or other materials provided with the distribution.
- *	
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -45,311 +45,209 @@
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.function.Consumer;
 
 import javax.swing.SwingUtilities;
 
-import deepimagej.gui.ImageJGui;
+import deepimagej.gui.consumers.CellposeAdapter.Input;
 import deepimagej.gui.consumers.CellposeAdapter;
-import deepimagej.tools.ImPlusRaiManager;
 import ij.IJ;
 import ij.ImageJ;
-import ij.ImagePlus;
 import ij.Macro;
+import ij.Menus;
 import ij.WindowManager;
-import ij.plugin.CompositeConverter;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.Recorder;
-import io.bioimage.modelrunner.apposed.appose.MambaInstallException;
-import io.bioimage.modelrunner.apposed.appose.Types;
-import io.bioimage.modelrunner.exceptions.RunModelException;
-import io.bioimage.modelrunner.gui.custom.gui.CellposeGUI;
-import io.bioimage.modelrunner.gui.custom.CellposePluginUI;
 import io.bioimage.modelrunner.model.special.cellpose.Cellpose;
-import io.bioimage.modelrunner.tensor.Tensor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.loops.LoopBuilder;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Cast;
 import net.imglib2.view.Views;
 
-/**
- * 
- * @author Carlos Javier Garcia Lopez de Haro
- *
- */
-public class Cellpose_DeepImageJ implements PlugIn {
-	
-	private String macroModel;
-	
-	private String cytoColor;
-	
-	private String nucleiColor;   
-	
-	private float diameter;   
-	
-	private boolean displayAll = false;
-	
-	private static ImageJGui HELPER_CONSUMER;
-    
-    private static boolean INSTALLED_ENV = false;
+public class Cellpose_DeepImageJ implements PlugIn, CellposeAdapter.Job {
+    final static String MACRO_RECORD_COMMENT = "\n// Cellpose is recorded when Run is clicked.\n"
+            + "// " + DeepImageJ_Run.MACRO_INFO + "\n";
 
-    
-	final static String MACRO_RECORD_COMMENT = ""
-	        + System.lineSeparator()
-	        + "// The macro recording feature will capture the command 'run(\"DeepImageJ Cellpose\");', but executing it will have no effect." + System.lineSeparator()
-	        + "// The recording will be performed once the button 'Run' is clicked." + System.lineSeparator()
-	        + "// For more information, visit:" + System.lineSeparator()
-	        + "// " + DeepImageJ_Run.MACRO_INFO + System.lineSeparator()
-	        + System.lineSeparator();
-	
-	static public void main(String args[]) {
-		new ImageJ();
-		new Cellpose_DeepImageJ().run("");
-	}
-	@Override
-	public void run(String arg) {
-	    boolean isMacro = IJ.isMacro();
-	    if (!isMacro) {
-	    	runGUI();
-	    } else if (isMacro && Macro.getOptions() != null) {
-	    	runMacro();
-	    }
-	}
-	
-	private void runGUI() {
-		if (Recorder.record)
-			Recorder.recordString(MACRO_RECORD_COMMENT);
-		CellposeAdapter adapter = new CellposeAdapter();
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-            	ij.plugin.frame.PlugInFrame frame = new ij.plugin.frame.PlugInFrame("deepImageJ Cellpose");
-            	CellposePluginUI gui = new CellposePluginUI(adapter);
-                frame.add(gui);
-                frame.pack();
-                frame.setSize(500, 300);
-                frame.setLocationRelativeTo(null);
-                frame.setVisible(true);
-                frame.addWindowListener(new WindowAdapter() {
-                    @Override
-                    public void windowClosed(WindowEvent e) {
-                    	gui.close();
-                    }
-                });
-    	    	gui.setCancelCallback(() -> frame.dispose());
+    public static void main(String[] args) {
+        new ImageJ();
+        // Eclipse launches do not load the installed plugin's plugins.config.
+        Menus.getCommands().putIfAbsent("DeepImageJ Cellpose", Cellpose_DeepImageJ.class.getName());
+        new Cellpose_DeepImageJ().run("");
+    }
+
+    @Override
+    public void run(String arg) {
+        if (!IJ.isMacro()) runGUI();
+        else if (Macro.getOptions() != null) runMacro();
+    }
+
+    private void runGUI() {
+        if (Recorder.record) Recorder.recordString(MACRO_RECORD_COMMENT);
+        SwingUtilities.invokeLater(() -> {
+            CellposeAdapter adapter = new CellposeAdapter();
+            ij.plugin.frame.PlugInFrame frame = new ij.plugin.frame.PlugInFrame("deepImageJ Cellpose");
+            CellposeAdapter.Dialog gui = new CellposeAdapter.Dialog(adapter, Cellpose_DeepImageJ::new);
+            frame.add(gui);
+            frame.pack();
+            frame.setSize(520, 320);
+            frame.setLocationRelativeTo(null);
+            frame.addWindowListener(new WindowAdapter() {
+                @Override public void windowClosed(WindowEvent e) { gui.close(); }
+            });
+            gui.setCancelCallback(frame::dispose);
+            frame.setVisible(true);
+        });
+    }
+
+    private void runMacro() {
+        String options = Macro.getOptions();
+        String model = Macro.getValue(options, "model", null);
+        String diameterText = Macro.getValue(options, "diameter", null);
+        Float diameter = diameterText == null || diameterText.trim().isEmpty() ? null : Float.valueOf(diameterText);
+        validateCellpose(model, diameter);
+        String display = Macro.getValue(options, "display_all", "false");
+        if (!display.equalsIgnoreCase("true") && !display.equalsIgnoreCase("false"))
+            throw new IllegalArgumentException("display_all must be true or false.");
+        Input input = Input.captureMacro(WindowManager.getCurrentImage(), options);
+        try (Cellpose_DeepImageJ job = new Cellpose_DeepImageJ()) {
+            Map<String, RandomAccessibleInterval<?>> outputs = job.runCellpose(
+                    model, modelsDirectory(), input, diameter, System.out::println);
+            CellposeAdapter.displayOutputs(outputs, input.title(), Boolean.parseBoolean(display));
+        } catch (Exception ex) {
+            throw new RuntimeException("Error running Cellpose: " + ex.getMessage(), ex);
+        }
+    }
+
+    private static String modelsDirectory() {
+        return new java.io.File(deepimagej.Constants.FIJI_FOLDER, "models").getAbsolutePath();
+    }
+
+    public static <T extends RealType<T> & NativeType<T>> Map<String, RandomAccessibleInterval<T>> runCellpose(
+            String model, RandomAccessibleInterval<T> image, String cyto, String nuclei) {
+        return runCellpose(model, image, cyto, nuclei, null);
+    }
+
+    public static <T extends RealType<T> & NativeType<T>> Map<String, RandomAccessibleInterval<T>> runCellpose(
+            String model, RandomAccessibleInterval<T> image, String cyto, String nuclei, Float diameter) {
+        validateCellpose(model, diameter);
+        Input input = Input.fromRai(image, cyto, nuclei);
+        try (Cellpose_DeepImageJ job = new Cellpose_DeepImageJ()) {
+            return Cast.unchecked(job.runCellpose(model, modelsDirectory(), input, diameter, System.out::println));
+        } catch (Exception ex) {
+            throw new RuntimeException("Error running Cellpose: " + ex.getMessage(), ex);
+        }
+    }
+
+    // Flattened CellposeDenoiseModel outputs: masks, three flows, styles, restored image.
+    private static final String[] OUTPUT_NAMES = {"labels", "flows_0", "flows_1", "flows_2", "styles", "image_dn"};
+    private static final Object INSTALL_LOCK = new Object();
+    private static boolean INSTALLED_ENV;
+    private volatile Cellpose model;
+    private volatile boolean cancelled;
+
+    public static void validateCellpose(String model, Float diameter) {
+        CellposeAdapter.validateCellpose(model, diameter);
+    }
+
+    @Override public void install(String name, String directory, Consumer<String> log) throws Exception {
+        installCellpose(name, directory, log);
+    }
+
+    public static void installCellpose(String name, String directory, Consumer<String> log) throws Exception {
+        validateCellpose(name, null);
+        synchronized (INSTALL_LOCK) {
+            if (!INSTALLED_ENV) {
+                log.accept("Installing Cellpose requirements");
+                Cellpose.installRequirements(log);
+                INSTALLED_ENV = true;
             }
-           });
-	}
-
-    private String getOutputName(String inputTitle, String tensorName) {
-    	String noExtension;
-    	if (inputTitle.lastIndexOf(".") != -1)
-    		noExtension = inputTitle.substring(0, inputTitle.lastIndexOf("."));
-    	else
-    		noExtension = inputTitle;
-    	String extension = ".tif";
-    	return noExtension + "_" + tensorName + extension;
+        }
+        weights(name, directory, log);
     }
 
-	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>  void runMacro() {
-		try {
-			parseCommand();
-		} catch (NumberFormatException ex) {
-			ex.printStackTrace();
-			return;
-		}
-		ImagePlus imp = WindowManager.getCurrentImage();
-		boolean isColorRGB = imp.getType() == ImagePlus.COLOR_RGB;
-		RandomAccessibleInterval<T> rai =
-				ImPlusRaiManager.convert(isColorRGB ? CompositeConverter.makeComposite(imp) : imp, "xyczt");
-		Map<String, RandomAccessibleInterval<T>> out = runCellpose(macroModel, rai, cytoColor, nucleiColor, diameter);
-		HELPER_CONSUMER.displayRai(out.get("labels"), "xyb", getOutputName(imp.getTitle(), "labels"));
-		if (!displayAll)
-			return;
-		HELPER_CONSUMER.displayRai(out.get("flows_0"), "xycb", getOutputName(imp.getTitle(), "flows_0"));
-		HELPER_CONSUMER.displayRai(out.get("flows_1"), "cxyb", getOutputName(imp.getTitle(), "flows_1"));
-		HELPER_CONSUMER.displayRai(out.get("flows_2"), "xyb", getOutputName(imp.getTitle(), "flows_2"));
-		HELPER_CONSUMER.displayRai(out.get("image_dn"), "xycb", getOutputName(imp.getTitle(), "image_dn"));
-	}
-	
-	private void parseCommand() throws NumberFormatException {
-		String macroArg = Macro.getOptions();
-
-		macroModel = parseArg(macroArg, "model", true);
-		cytoColor = parseArg(macroArg, "cyto_color", true);
-		nucleiColor = parseArg(macroArg, "nuclei_color", true);
-		String diameterStr = parseArg(macroArg, "diameter", false);
-		if (diameterStr != null) {
-			diameter = Float.parseFloat(diameterStr);
-		}
-		String displayAllStr = parseArg(macroArg, "display_all", false);
-		if (displayAllStr != null && (displayAllStr.equals("true") || displayAllStr.equals("True")))
-			displayAll = true;
-	}
-	
-	private static String parseArg(String macroArg, String arg, boolean required) {
-		String value = Macro.getValue(macroArg, arg, null);
-		if (value != null && value.equals(""))
-			value = null;
-		if (value == null && required)
-			throw new IllegalArgumentException("DeepImageJ Cellpose macro requires to the variable '" + arg + "'. "
-					+ "For more info, please visit: " + DeepImageJ_Run.MACRO_INFO);
-		return value;
-	}
-	
-	
-	public static < T extends RealType< T > & NativeType< T > > 
-	Map<String, RandomAccessibleInterval<T>> runCellpose(String modelPath, RandomAccessibleInterval<T> rai, String cytoColor, String nucleiColor) {
-		return runCellpose(modelPath, rai, cytoColor, nucleiColor, null);
-	}
-	
-	
-	public static < T extends RealType< T > & NativeType< T > > 
-	Map<String, RandomAccessibleInterval<T>> runCellpose(String modelPath, RandomAccessibleInterval<T> rai, String cytoColor, String nucleiColor, Float diameter) {
-		checkChannels((cytoColor = cytoColor.toLowerCase()), (nucleiColor = nucleiColor.toLowerCase()));
-		if (!INSTALLED_ENV) {
-			Consumer<String> cons = System.out::println;
-			try {
-				Cellpose.installRequirements(cons);
-				INSTALLED_ENV = true;
-			} catch (IOException | InterruptedException | RuntimeException | MambaInstallException
-					| URISyntaxException e) {
-				throw new RuntimeException("Error installing Cellpose. Caused by: " + Types.stackTrace(e));
-			}
-		}
-		if (HELPER_CONSUMER == null)
-			HELPER_CONSUMER = new ImageJGui();
-		Cellpose model = null;
-		try {
-			if (new File(modelPath).isFile())
-				model = Cellpose.init(modelPath);
-			else if (Cellpose.fileIsCellpose(modelPath, HELPER_CONSUMER.getModelsDir()) != null)
-				model = Cellpose.init(Cellpose.fileIsCellpose(modelPath, HELPER_CONSUMER.getModelsDir()));
-			else {
-				Consumer<Double> cons = (p) -> {
-					System.out.println(String.format("Downloading %s model: %.2f%%", modelPath, p * 100));
-				};
-				model = Cellpose.init(Cellpose.donwloadPretrained(modelPath, HELPER_CONSUMER.getModelsDir(), cons));
-			}
-			model.loadModel();
-	    	Map<String, RandomAccessibleInterval<T>> out = runCellposeOnFramesStack(model, rai, cytoColor, nucleiColor, diameter);
-	    	model.close();
-	    	return out;
-		} catch (Exception e) {
-			if (model != null)
-				model.close();
-			throw new RuntimeException("Error running the model. Caused by: " + Types.stackTrace(e));
-		}
-	}
-    
-    private static <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>
-    Map<String, RandomAccessibleInterval<T>> 
-    runCellposeOnFramesStack(Cellpose model, RandomAccessibleInterval<R> rai, String cytoColor, String nucleiColor, Float diameter)
-    		throws RunModelException {
-    	model.setChannels(new int[] {CellposePluginUI.CHANNEL_MAP.get(cytoColor), CellposePluginUI.CHANNEL_MAP.get(nucleiColor)});
-    	rai = addDimsToInput(rai, cytoColor.equals("gray") ? 1 : 3);
-    	long[] inDims = rai.dimensionsAsLongArray();
-    	long[] outDims = new long[] {inDims[0], inDims[1], inDims[3]};
-		RandomAccessibleInterval<T> outMaskRai = Cast.unchecked(ArrayImgs.unsignedShorts(outDims));
-		RandomAccessibleInterval<T> output1 = Cast.unchecked(ArrayImgs.unsignedBytes(new long[] {inDims[0], inDims[1], 3, inDims[3]}));
-		RandomAccessibleInterval<T> output2 = Cast.unchecked(ArrayImgs.floats(new long[] {2, inDims[0], inDims[1], inDims[3]}));
-		RandomAccessibleInterval<T> output3 = Cast.unchecked(ArrayImgs.floats(new long[] {inDims[0], inDims[1], inDims[3]}));
-		RandomAccessibleInterval<T> output4 = Cast.unchecked(ArrayImgs.floats(new long[] {inDims[0], inDims[1], 3, inDims[3]}));
-		RandomAccessibleInterval<T> styles = null;
-		
-		for (int i = 0; i < rai.dimensionsAsLongArray()[3]; i ++) {
-			if (diameter != null)
-				model.setDiameter(diameter);
-	    	List<Tensor<R>> inList = new ArrayList<Tensor<R>>();
-	    	Tensor<R> inIm = Tensor.build("input", "xyc", Views.hyperSlice(rai, 3, i));
-	    	inList.add(inIm);
-	    	
-	    	List<Tensor<T>> outputList = new ArrayList<Tensor<T>>();
-	    	Tensor<T> outMask = Tensor.build("labels", "xy", Views.hyperSlice(outMaskRai, 2, i));
-	    	outputList.add(outMask);
-	    	Tensor<T> flows0 = Tensor.build("flows_0", "xyc", Views.hyperSlice(output1, 3, i));
-	    	outputList.add(flows0);
-	    	Tensor<T> flows1 = Tensor.build("flows_1", "cxy", Views.hyperSlice(output2, 3, i));
-	    	outputList.add(flows1);
-	    	Tensor<T> flows2 = Tensor.build("flows_2", "xy", Views.hyperSlice(output3, 2, i));
-	    	outputList.add(flows2);
-	    	Tensor<T> st = Tensor.buildEmptyTensor("styles", "i");
-	    	outputList.add(st);
-	    	Tensor<T> dn = Tensor.build("image_dn", "xyc", Views.hyperSlice(output4, 3, i));
-	    	outputList.add(dn);
-	    	
-	    	model.run(inList, outputList);
-	    	if (styles == null) {
-	    		long[] stylesDims = new long[outputList.get(4).getData().dimensionsAsLongArray().length + 1];
-	    		int dd = 0;
-	    		for (long dim : outputList.get(4).getData().dimensionsAsLongArray())
-	    			stylesDims[dd ++] = dim;
-	    		stylesDims[dd] = rai.dimensionsAsLongArray()[3];
-	    		styles = new ArrayImgFactory<T>(outputList.get(4).getData().getType()).create(outDims);
-	    	}
-	    	RandomAccessibleInterval<T> slice = Views.hyperSlice(styles, styles.dimensionsAsLongArray().length - 1, i);
-	    	slice = outputList.get(4).getData();
-		}
-		Map<String, RandomAccessibleInterval<T>> map = new HashMap<String, RandomAccessibleInterval<T>>();
-		map.put("labels", outMaskRai);
-		map.put("flows_0", output1);
-		map.put("flows_1", output2);
-		map.put("flows_2", output3);
-		map.put("image_dn", output4);
-		map.put("styles", styles);
-    	return map;
-    }
-    
-    private static <R extends RealType<R> & NativeType<R>>
-    RandomAccessibleInterval<R> addDimsToInput(RandomAccessibleInterval<R> rai, int nChannels) {
-    	long[] dims = rai.dimensionsAsLongArray();
-    	if (dims.length == 2 && nChannels == 1)
-    		return Views.addDimension(Views.addDimension(rai, 0, 0), 0, 0);
-    	else if (dims.length == 2)
-    		throw new IllegalArgumentException("Cyto and nuclei specified for RGB image and image provided is grayscale.");
-    	else if (dims.length == 3 && dims[2] == nChannels)
-    		return Views.addDimension(rai, 0, 0);
-    	else if (dims.length == 3 && nChannels == 1)
-    		return Views.permute(Views.addDimension(rai, 0, 0), 2, 3);
-    	else if (dims.length >= 3 && dims[2] == 1 && nChannels == 3)
-    		throw new IllegalArgumentException("Expected RGB (3 channels) image and got instead grayscale image (1 channel).");
-    	else if (dims.length == 4 && dims[2] == nChannels)
-    		return rai;
-    	else if (dims.length == 5 && dims[2] == nChannels && dims[4] != 1)
-    		return Views.hyperSlice(rai, 3, 0);
-    	else if (dims.length == 5 && dims[2] == nChannels && dims[4] == 1)
-    		return Views.hyperSlice(Views.permute(rai, 3, 4), 3, 0);
-    	else if (dims.length == 4 && dims[2] != nChannels && nChannels == 1) {
-    		rai = Views.hyperSlice(rai, 2, 0);
-    		rai = Views.addDimension(rai, 0, 0);
-    		return Views.permute(rai, 2, 3);
-    	} else if (dims.length == 5 && dims[2] != nChannels)
-    		throw new IllegalArgumentException("Expected grayscale (1 channel) image and got instead RGB image (3 channels).");
-    	else
-    		throw new IllegalArgumentException("Unsupported dimensions for Cellpose model");
-    }
-    
-    private static void checkChannels(String cytoColor, String nucleiColor) {
-    	if (!Arrays.asList(CellposeGUI.ALL_LIST).contains(cytoColor)) {
-    		throw new IllegalArgumentException(String.format("Invalid 'cytoColor' (%s). Only possible options are: %s",
-    				cytoColor, Arrays.asList(CellposeGUI.ALL_LIST)));
-    	} else if (!Arrays.asList(CellposeGUI.ALL_LIST).contains(nucleiColor)) {
-    		throw new IllegalArgumentException(String.format("Invalid 'nucleiColor' (%s). Only possible options are: %s",
-    				nucleiColor, Arrays.asList(CellposeGUI.ALL_LIST)));
-    	} else if ((cytoColor.equals("gray") && !nucleiColor.equals("gray")) 
-    			|| (!cytoColor.equals("gray") && nucleiColor.equals("gray"))) {
-    		throw new IllegalArgumentException("Invalid color combination, 'gray' can only be used for grayscale images."
-    				+ " And when one of the colors is 'gray' the other needs to be 'gray' too.");
-    	}
+    private static String weights(String name, String directory, Consumer<String> log) throws Exception {
+        if (new File(name).isFile()) return name;
+        if (new File(name).isAbsolute()) throw new IllegalArgumentException("Cellpose weights file not found: " + name);
+        String path = Cellpose.fileIsCellpose(name, directory);
+        if (path != null) return path;
+        log.accept("Downloading Cellpose model " + name);
+        return Cellpose.donwloadPretrained(name, directory, progress ->
+                log.accept(String.format("Downloading %s: %.1f%%", name, progress * 100)));
     }
 
+    public Map<String, RandomAccessibleInterval<?>> runCellpose(
+            String name, String directory, Input input, Float diameter, Consumer<String> log) throws Exception {
+        validateCellpose(name, diameter);
+        checkCancelled();
+        installCellpose(name, directory, log);
+        checkCancelled();
+        model = Cellpose.init(weights(name, directory, log));
+        try {
+            checkCancelled();
+            log.accept("Loading Cellpose model");
+            model.loadModel();
+            checkCancelled();
+            model.setChannels(input.channels().packedChannels());
+            return Cast.unchecked(runCellposeOnFramesStack(input, diameter, log));
+        } finally {
+            model.close();
+            model = null;
+        }
+    }
+
+    protected void checkCancelled() {
+        if (cancelled || Thread.currentThread().isInterrupted()) throw new CancellationException("Cellpose cancelled.");
+    }
+
+    protected <T extends RealType<T> & NativeType<T>> List<RandomAccessibleInterval<T>> predict(
+            RandomAccessibleInterval<FloatType> image, Float diameter) throws Exception {
+        if (diameter != null) model.setDiameter(diameter);
+        // Direct inference keeps the actual dtype and shape, including restored images with one channel.
+        return model.inference(Collections.singletonList(image));
+    }
+
+    protected <T extends RealType<T> & NativeType<T>> Map<String, RandomAccessibleInterval<T>> runCellposeOnFramesStack(
+            Input input, Float diameter, Consumer<String> log) throws Exception {
+        Map<String, RandomAccessibleInterval<T>> outputs = new LinkedHashMap<>();
+        long planes = input.pixels().dimension(3);
+        for (long p = 0; p < planes; p++) {
+            checkCancelled();
+            log.accept("Running Cellpose plane " + (p + 1) + "/" + planes);
+            List<RandomAccessibleInterval<T>> result = predict(Views.hyperSlice(input.pixels(), 3, p), diameter);
+            if (result.size() != OUTPUT_NAMES.length)
+                throw new IllegalStateException("Expected six Cellpose outputs, received " + result.size());
+            for (int i = 0; i < result.size(); i++) {
+                String name = OUTPUT_NAMES[i];
+                RandomAccessibleInterval<T> plane = result.get(i);
+                if (!outputs.containsKey(name)) {
+                    long[] dimensions = Arrays.copyOf(plane.dimensionsAsLongArray(), plane.numDimensions() + 1);
+                    dimensions[dimensions.length - 1] = planes;
+                    outputs.put(name, new ArrayImgFactory<>(plane.getType()).create(dimensions));
+                }
+                RandomAccessibleInterval<T> target = outputs.get(name);
+                RandomAccessibleInterval<T> slice = Views.hyperSlice(target, target.numDimensions() - 1, p);
+                if (!Arrays.equals(slice.dimensionsAsLongArray(), plane.dimensionsAsLongArray()))
+                    throw new IllegalStateException("Cellpose output shape changed between planes: " + name);
+                LoopBuilder.setImages(plane, slice).forEachPixel((s, d) -> d.set(s));
+            }
+        }
+        return outputs;
+    }
+
+    @Override
+    public void close() {
+        cancelled = true;
+        Cellpose active = model;
+        if (active != null) active.close();
+    }
 }
