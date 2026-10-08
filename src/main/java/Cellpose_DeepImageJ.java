@@ -75,6 +75,14 @@ import net.imglib2.util.Cast;
 import net.imglib2.view.Views;
 
 public class Cellpose_DeepImageJ implements PlugIn, CellposeAdapter.Job {
+    private final boolean installationPrepared;
+
+    public Cellpose_DeepImageJ() { this(false); }
+
+    private Cellpose_DeepImageJ(boolean installationPrepared) {
+        this.installationPrepared = installationPrepared;
+    }
+
     final static String MACRO_RECORD_COMMENT = "\n// Cellpose is recorded when Run is clicked.\n"
             + "// " + DeepImageJ_Run.MACRO_INFO + "\n";
 
@@ -96,7 +104,7 @@ public class Cellpose_DeepImageJ implements PlugIn, CellposeAdapter.Job {
         SwingUtilities.invokeLater(() -> {
             CellposeAdapter adapter = new CellposeAdapter();
             ij.plugin.frame.PlugInFrame frame = new ij.plugin.frame.PlugInFrame("deepImageJ Cellpose");
-            CellposeAdapter.Dialog gui = new CellposeAdapter.Dialog(adapter, Cellpose_DeepImageJ::new);
+            CellposeAdapter.Dialog gui = new CellposeAdapter.Dialog(adapter, () -> new Cellpose_DeepImageJ(true));
             frame.add(gui);
             frame.pack();
             frame.setSize(520, 320);
@@ -189,7 +197,7 @@ public class Cellpose_DeepImageJ implements PlugIn, CellposeAdapter.Job {
             String name, String directory, Input input, Float diameter, Consumer<String> log) throws Exception {
         validateCellpose(name, diameter);
         checkCancelled();
-        installCellpose(name, directory, log);
+        if (!installationPrepared) installCellpose(name, directory, log);
         checkCancelled();
         model = Cellpose.init(weights(name, directory, log));
         try {

@@ -72,7 +72,6 @@ import ij.Macro;
 import ij.WindowManager;
 import ij.plugin.CompositeConverter;
 import io.bioimage.modelrunner.gui.custom.CellposePluginUI;
-import io.bioimage.modelrunner.model.special.cellpose.Cellpose;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.loops.LoopBuilder;
@@ -407,6 +406,10 @@ public class CellposeAdapter extends SmallPluginAdapter implements AutoCloseable
             super.setCancelCallback(() -> { close(); callback.run(); });
         }
 
+        @Override protected void startModelInstallation(boolean starting) {
+            // This dialog's SwingWorker owns the busy state until installation and inference finish.
+        }
+
         private void updateCustomControls() {
             boolean custom = CUSTOM_STR.equals(modelComboBox.getSelectedItem());
             customLabel.setEnabled(custom);
@@ -445,10 +448,7 @@ public class CellposeAdapter extends SmallPluginAdapter implements AutoCloseable
                     @Override protected Map<String, RandomAccessibleInterval<?>> doInBackground() throws Exception {
                         // Reuse JDLL's agreement dialog, installer window and weights progress.
                         Dialog.super.installCellpose();
-                        if (closed || isCancelled() || !Cellpose.isInstalled()) return null;
-                        if (!new File(model).isFile() && Cellpose.fileIsCellpose(model, adapter.getModelsDir()) == null)
-                            return null;
-                        SwingUtilities.invokeAndWait(() -> { if (!closed) setBusy(true); });
+                        if (closed || isCancelled() || !cellposeInstallationReady()) return null;
                         return job.runCellpose(model, adapter.getModelsDir(), input, diameter, Dialog.this::status);
                     }
                     @Override protected void done() {
